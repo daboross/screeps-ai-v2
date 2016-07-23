@@ -64,7 +64,7 @@ def get_new_construction_target(creep):
     def find_list():
         return creep.room.find(FIND_CONSTRUCTION_SITES)
 
-    return creep_utils.get_spread_out_target(creep, "structure_repair", find_list, 3, True)
+    return creep_utils.get_spread_out_target(creep, "structure_build", find_list, 3, True)
 
 
 def execute_repair_target(creep, target, max_hits, type):
@@ -82,6 +82,8 @@ def execute_repair_target(creep, target, max_hits, type):
         print("[{}] Unknown result from creep.repair({}): {}".format(
             creep.name, target, result
         ))
+        if result == ERR_INVALID_TARGET:
+            creep_utils.untarget_spread_out_target(creep, type)
 
 
 def execute_construction_target(creep, target):
@@ -95,3 +97,5 @@ def execute_construction_target(creep, target):
         print("[{}] Unknown result from creep.build({}): {}".format(
             creep.name, target, result
         ))
+        if result == ERR_INVALID_TARGET:
+            creep_utils.untarget_spread_out_target(creep, "structure_build")

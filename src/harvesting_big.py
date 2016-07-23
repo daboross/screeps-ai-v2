@@ -19,5 +19,5 @@ def run(creep):
             }
     else:
         print("[{}] Unknown result from creep.harvest({}): {}".format(
-            creep.name, target, result
+            creep.name, source, result
         ))

@@ -35,7 +35,7 @@ def run():
             tower.attack(target)
         else:
             targets = tower.room.find(FIND_HOSTILE_CREEPS)
-            if targets:
+            if len(targets):
                 tower.memory.alert = True
                 tower.attack(targets[0])
                 continue
