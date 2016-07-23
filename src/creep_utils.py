@@ -202,9 +202,10 @@ def harvest_energy(creep):
 
     def find_list():
         list = creep.room.find(FIND_SOURCES)
-        for flag in Game.flags:
-            if flag.memory.harvesting_spot:
-                list.extend(flag.pos.lookFor(LOOK_SOURCES))
+        # for name in Object.keys(Game.flags):
+        #     flag = Game.flags[name]
+        #     if flag.memory.harvesting_spot:
+        #         list.extend(flag.pos.lookFor(LOOK_SOURCES))
         return list
 
     source = get_spread_out_target(creep, "source", find_list)
