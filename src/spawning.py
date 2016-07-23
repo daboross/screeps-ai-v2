@@ -2,6 +2,7 @@ from math import floor
 
 import creep_utils
 
+__pragma__('noalias', 'name')
 
 def run(spawn):
     spawn_with_energy(spawn, spawn.room.energyCapacityAvailable)

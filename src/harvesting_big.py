@@ -1,5 +1,6 @@
 import creep_utils
 
+__pragma__('noalias', 'name')
 
 def run(creep):
     source = creep_utils.get_spread_out_target(creep, "big_source", lambda: creep.room.find(FIND_SOURCES))

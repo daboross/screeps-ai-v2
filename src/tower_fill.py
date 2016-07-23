@@ -1,6 +1,8 @@
 import creep_utils
 import harvesting
 
+__pragma__('noalias', 'name')
+
 
 def run(creep, second_run=False):
     if creep.memory.harvesting and creep.carry.energy >= creep.carryCapacity:

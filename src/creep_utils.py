@@ -1,3 +1,6 @@
+__pragma__('noalias', 'name')
+
+
 # ***
 # MOVING
 # ***
@@ -35,7 +38,7 @@ def get_path_to(creep, target, same_position_ok=False):
                 creep.memory.last_pos = creep.pos
         try:
             return Room.deserializePath(creep.memory.path[id])
-        except e:
+        except:
             del creep.memory.path[id]
 
     path = creep.pos.findPathTo(target)
@@ -156,6 +159,8 @@ def recheck_targets_used():
 
     for name in Object.keys(Memory.creeps):
         memory = Memory.creeps[name]
+        if not memory.targets:
+            continue
         for resource in Object.keys(memory.targets):
             id = memory.targets[resource]
             if not targets_used[resource]:
@@ -172,11 +177,12 @@ def recheck_targets_used():
                     print("Target {}:{} didn't match. {} != {}".format(
                         resource, id, old_targets[resource][id], targets_used[resource][id]
                     ))
-            for id in Memory.keys(old_targets[type]):
-                if not targets_used[type][id] and old_targets[type][id]:
-                    print("Target {}:{} didn't match. {} != {}".format(
-                        resource, id, old_targets[resource][id], 0
-                    ))
+            if old_targets[type]:
+                for id in Object.keys(old_targets[type]):
+                    if not targets_used[type][id] and old_targets[type][id]:
+                        print("Target {}:{} didn't match. {} != {}".format(
+                            resource, id, old_targets[resource][id], 0
+                        ))
 
     Memory.targets_used = targets_used
 
@@ -195,7 +201,11 @@ def harvest_energy(creep):
     #     return True
 
     def find_list():
-        return creep.room.find(FIND_SOURCES)
+        list = creep.room.find(FIND_SOURCES)
+        for flag in Game.flags:
+            if flag.memory.harvesting_spot:
+                list.extend(flag.pos.lookFor(LOOK_SOURCES))
+        return list
 
     source = get_spread_out_target(creep, "source", find_list)
 
@@ -275,9 +285,9 @@ def get_role_name(new_spawn=False):
     big_harvester_count = role_count("big_harvester")
     tower_fill_count = role_count("tower_fill")
     print("Getting role: assuming {} harvesters exist, {} big harvesters exist, {} upgraders exist,"
-          "{} tower_fillers exist, {} builders exist, and this {} a new spawn.",
-          harvester_count, big_harvester_count, upgrader_count, tower_fill_count, builder_count,
-          "is" if new_spawn else "isn't")
+          "{} tower_fillers exist, {} builders exist, and this {} a new spawn.".format(
+        harvester_count, big_harvester_count, upgrader_count, tower_fill_count, builder_count,
+        "is" if new_spawn else "isn't"))
 
     if harvester_count < 2:
         return "harvester"
@@ -355,7 +365,7 @@ def clear_memory():
 # ***
 
 def is_next_block_clear(creep, target):
-    next_pos = RoomPosition(target.pos.x, target.pos.y, target.pos.roomName)
+    next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
     creep_pos = creep.pos
 
     # Apparently, I thought it would be best if we start at the target position, and continue looking for open spaces
@@ -396,7 +406,7 @@ def is_next_block_clear(creep, target):
         if len(creeps):
             continue
         terrain = next_pos.lookFor(LOOK_TERRAIN)
-        if (terrain[0].type & TERRAIN_MASK_WELL == TERRAIN_MASK_WALL
+        if (terrain[0].type & TERRAIN_MASK_WALL == TERRAIN_MASK_WALL
             or terrain[0].type & TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA):
             continue
 

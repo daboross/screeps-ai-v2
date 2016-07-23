@@ -1,6 +1,8 @@
 import creep_utils
 import upgrading
 
+__pragma__('noalias', 'name')
+
 
 def run(creep):
     if creep.memory.harvesting and creep.carry.energy >= creep.carryCapacity:
@@ -11,7 +13,6 @@ def run(creep):
         creep_utils.untarget_spread_out_target(creep, "structure_repair_big")
     elif not creep.memory.harvesting and creep.carry.energy <= 0:
         creep.memory.harvesting = True
-        new_target = False
 
     if creep.memory.harvesting:
         creep_utils.harvest_energy(creep)

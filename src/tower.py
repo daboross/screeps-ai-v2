@@ -1,5 +1,7 @@
 import creep_utils
 
+__pragma__('noalias', 'name')
+
 
 def run():
     current_time = Game.time
