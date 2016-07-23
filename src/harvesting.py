@@ -2,7 +2,7 @@ import creep_utils
 import upgrading
 
 
-def run(creep, secondRun=False):
+def run(creep, second_run=False):
     if creep.memory.harvesting and creep.carry.energy >= creep.carryCapacity:
         creep.memory.harvesting = False
         creep_utils.finished_energy_harvest(creep)
@@ -17,14 +17,18 @@ def run(creep, secondRun=False):
         if target:
             if target.energy >= target.energyCapacity:
                 creep_utils.untarget_spread_out_target(creep, "harvester_deposit")
-                if not secondRun:
+                if not second_run:
                     run(creep, True)
                 return
             else:
                 result = creep.transfer(target, RESOURCE_ENERGY)
                 if result == ERR_NOT_IN_RANGE:
                     creep_utils.move_to_path(creep, target)
-                elif target != OK:
+                elif result == ERR_FULL:
+                    creep_utils.untarget_spread_out_target(creep, "harvester_deposit")
+                    if not second_run:
+                        run(creep, True)
+                elif result != OK:
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
                         creep.name, target, result
                     ))
@@ -38,7 +42,8 @@ def get_new_target(creep):
         return creep.room.find(FIND_STRUCTURES, {
             "filter": lambda structure: ((structure.structureType == STRUCTURE_EXTENSION
                                           or structure.structureType == STRUCTURE_SPAWN)
-                                         and structure.energy < structure.energyCapacity and structure.my)
+                                         and structure.energy < structure.energyCapacity
+                                         and structure.my)
         })
 
     return creep_utils.get_spread_out_target(creep, "harvester_deposit", find_list)

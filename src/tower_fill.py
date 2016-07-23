@@ -2,7 +2,7 @@ import creep_utils
 import harvesting
 
 
-def run(creep):
+def run(creep, second_run=False):
     if creep.memory.harvesting and creep.carry.energy >= creep.carryCapacity:
         creep.memory.harvesting = False
         creep_utils.finished_energy_harvest(creep)
@@ -17,16 +17,22 @@ def run(creep):
             result = creep.transfer(target, RESOURCE_ENERGY)
             if result == ERR_NOT_IN_RANGE:
                 creep_utils.move_to_path(creep, target)
+            elif result == ERR_FULL:
+                creep_utils.untarget_spread_out_target(creep, "harvester_deposit")
+                if not second_run:
+                    run(creep, True)
             elif result != OK:
                 print("[{}] Unknown result from creep.transfer({}): {}".format(
                     creep.name, target, result
                 ))
+
         else:
             harvesting.run(creep)
 
 
 def get_new_target(creep):
     def find_list():
-        return [Game.getObjectById(id) for id in Memory.tower.towers]
+        return [tower for tower in (Game.getObjectById(id) for id in Memory.tower.towers)
+                if tower.energy < tower.energyCapacity]
 
     return creep_utils.get_spread_out_target(creep, "harvester_deposit", find_list)

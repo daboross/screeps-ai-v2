@@ -18,10 +18,10 @@ def run(creep):
     else:
         target = creep_utils.get_possible_spread_out_target(creep, "structure_repair")
         if target:
-            execute_repair(creep, target)
+            execute_repair_target(creep, target, 350000, "structure_repair")
         target = creep_utils.get_possible_spread_out_target(creep, "structure_build")
         if target:
-            execute_construction(creep, target)
+            execute_construction_target(creep, target)
             return
 
         target = get_new_repair_target(creep, 350000, "structure_repair")
@@ -56,14 +56,14 @@ def get_new_repair_target(creep, max_hits, type):
     def max_builders(structure):
         return min((1 + (structure.hitsMax - min(structure.hits, max_hits)) / creep.carryCapacity), 3)
 
-    return creep_utils.get_spread_out_target(creep, type, find_list, max_builders, true)
+    return creep_utils.get_spread_out_target(creep, type, find_list, max_builders, True)
 
 
 def get_new_construction_target(creep):
     def find_list():
         return creep.room.find(FIND_CONSTRUCTION_SITES)
 
-    return creep_utils.get_spread_out_target(creep, "structure_repair", find_list, 3, true)
+    return creep_utils.get_spread_out_target(creep, "structure_repair", find_list, 3, True)
 
 
 def execute_repair_target(creep, target, max_hits, type):

@@ -28,13 +28,13 @@ def run():
         if tower.memory.alert:
             target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
             if not target:
-                tower.memory.alert = false
+                tower.memory.alert = False
                 continue
             tower.attack(target)
         else:
             targets = tower.room.find(FIND_HOSTILE_CREEPS)
             if targets:
-                tower.memory.alert = true
+                tower.memory.alert = True
                 tower.attack(targets[0])
                 continue
 

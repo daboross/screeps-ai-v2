@@ -220,7 +220,7 @@ def harvest_energy(creep):
     containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
         (struct.structureType == STRUCTURE_CONTAINER
          or struct.structureType == STRUCTURE_STORAGE)
-        and structure.store >= 0
+        and struct.store >= 0
     )})
     if containers.length > 0:
         result = creep.withdraw(containers[0], RESOURCE_ENERGY)
@@ -355,7 +355,7 @@ def clear_memory():
 # ***
 
 def is_next_block_clear(creep, target):
-    next_pos = new(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
+    next_pos = RoomPosition(target.pos.x, target.pos.y, target.pos.roomName)
     creep_pos = creep.pos
 
     # Apparently, I thought it would be best if we start at the target position, and continue looking for open spaces
