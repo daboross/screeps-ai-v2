@@ -1,8 +1,10 @@
 from math import floor
 
 import creep_utils
+from base import *
 
 __pragma__('noalias', 'name')
+
 
 def run(spawn):
     spawn_with_energy(spawn, spawn.room.energyCapacityAvailable)
@@ -21,14 +23,14 @@ def spawn_with_energy(spawn, energy):
                     parts = [MOVE, MOVE]
                     energyUsed = 100
                     while energyUsed <= energy - 100:
-                        parts.push(WORK)
+                        parts.append(WORK)
                         energyUsed += 100
                     spawn_with_array(spawn, role, parts)
                 else:
                     parts = [MOVE]
                     energyUsed = 50
                     while energyUsed <= energy - 100:
-                        parts.push(WORK)
+                        parts.append(WORK)
                         energyUsed += 100
                     spawn_with_array(spawn, role, parts)
             else:
@@ -40,7 +42,7 @@ def spawn_with_energy(spawn, energy):
             num_sections = int(floor(energy / 250))
             for i in range(0, num_sections):
                 for part in part_idea:
-                    parts.push(part)
+                    parts.append(part)
             spawn_with_array(spawn, role, parts)
         elif energy >= 400:
             spawn_with_array(spawn, role, [

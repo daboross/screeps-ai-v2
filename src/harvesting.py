@@ -1,5 +1,6 @@
 import creep_utils
 import upgrading
+from base import *
 
 __pragma__('noalias', 'name')
 

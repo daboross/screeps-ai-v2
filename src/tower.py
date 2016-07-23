@@ -1,4 +1,5 @@
 import creep_utils
+from base import *
 
 __pragma__('noalias', 'name')
 
@@ -16,7 +17,7 @@ def run():
         for id in Object.keys(Game.structures):
             struct = Game.structures[id]
             if struct.structureType == STRUCTURE_TOWER and struct.my:
-                towers.push(id)
+                towers.append(id)
 
         Memory.tower.towers = towers
 

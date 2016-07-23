@@ -1,3 +1,5 @@
+from base import *
+
 __pragma__('noalias', 'name')
 
 
@@ -52,7 +54,7 @@ def move_to_path(creep, target, same_position_ok=False, times_tried=0):
 
         if result != OK:
             if result != ERR_NOT_FOUND:
-                console.log("[{}] Unknown result from creep.moveByPath: {}".format(
+                print("[{}] Unknown result from creep.moveByPath: {}".format(
                     creep.name, result
                 ))
 
@@ -65,7 +67,7 @@ def move_to_path(creep, target, same_position_ok=False, times_tried=0):
             if times_tried < 3:
                 move_to_path(creep, target, False, times_tried + 1)
             else:
-                console.log("[{}] Continually failed to move from {} to {}!".format(creep.pos, target.pos))
+                print("[{}] Continually failed to move from {} to {}!".format(creep.name, creep.pos, target.pos))
 
 
 def get_spread_out_target(creep, resource, find_list, limit_by=None, true_limit=False):
@@ -356,7 +358,7 @@ def clear_memory():
                 del Memory.big_harvesters_placed[Memory.creeps[name].targets["big_source"]]
 
             for resource in Memory.creeps[name].targets:
-                untarget_spread_out_target(creep, resource)
+                untarget_spread_out_target(Game.creeps[name], resource)
 
             del Memory.creeps[name]
 
@@ -374,6 +376,8 @@ def is_next_block_clear(creep, target):
     # that we've reached the creep position, we return false.
     while True:
         if next_pos.x == creep_pos.x and next_pos.y == creep_pos.y:
+            return False
+        elif next_pos.x < 0 or next_pos.y < 0 or next_pos.x > 50 or next_pos.y > 50:
             return False
 
         dir = next_pos.getDirectionTo(creep_pos)
