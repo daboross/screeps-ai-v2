@@ -1,25 +1,26 @@
-import creep_utils
 from base import *
+from role_base import RoleBase
 
 __pragma__('noalias', 'name')
 
 
-def run(creep):
-    source = creep_utils.get_spread_out_target(creep, "big_source", lambda: creep.room.find(FIND_SOURCES))
-    if not source:
-        print("[{}] No sources found.".format(creep.name))
+class BigHarvester(RoleBase):
+    def run(self):
+        source = self.get_spread_out_target("big_source", lambda: self.creep.room.find(FIND_SOURCES))
+        if not source:
+            print("[{}] No sources found.".format(self.name))
 
-    result = creep.harvest(source)
-    if result == ERR_NOT_IN_RANGE:
-        creep_utils.move_to_path(creep, source)
-    elif result == OK:
-        if Memory.big_harvesters_placed:
-            Memory.big_harvesters_placed[source.id] = creep.name
+        result = self.creep.harvest(source)
+        if result == ERR_NOT_IN_RANGE:
+            self.move_to(source)
+        elif result == OK:
+            if Memory.big_harvesters_placed:
+                Memory.big_harvesters_placed[source.id] = self.name
+            else:
+                Memory.big_harvesters_placed = {
+                    source.id: self.name
+                }
         else:
-            Memory.big_harvesters_placed = {
-                source.id: creep.name
-            }
-    else:
-        print("[{}] Unknown result from creep.harvest({}): {}".format(
-            creep.name, source, result
-        ))
+            print("[{}] Unknown result from creep.harvest({}): {}".format(
+                self.name, source, result
+            ))

@@ -11,12 +11,12 @@ from base import *
 __pragma__('noalias', 'name')
 require("perf")()
 
-role_functions = {
-    "upgrader": upgrading.run,
-    "harvester": harvesting.run,
-    "big_harvester": harvesting_big.run,
-    "builder": building.run,
-    "tower_fill": tower_fill.run,
+role_classes = {
+    "upgrader": upgrading.Upgrader,
+    "harvester": harvesting.Harvester,
+    "big_harvester": harvesting_big.BigHarvester,
+    "builder": building.Builder,
+    "tower_fill": tower_fill.TowerFill,
 }
 
 
@@ -34,7 +34,6 @@ class Profiler:
 def main():
     p = Profiler()
     time = Game.time
-    print("Game time: {}".format(time))
     if time % 100 == 0 or Memory.needs_clearing:
         print("Clearing memory")
         creep_utils.clear_memory()
@@ -49,33 +48,26 @@ def main():
         creep_utils.reassign_roles()
         p.check("reassign_roles")
 
-    creeps_needing_attention = []
     for name in Object.keys(Game.creeps):
         creep = Game.creeps[name]
         if creep.spawning:
             continue
         role = creep.memory.role
-        if role in role_functions:
-            role_functions[role](creep)
+        if role in role_classes:
+            creep_wrapper = role_classes[role](creep)
+            creep_wrapper.run()
         else:
-            creeps_needing_attention.append(creep)
-        p.check("creep {} ({})", name, role)
-
-    if creeps_needing_attention:
-        print("Assigning roles to unassigned creeps")
-        for creep in creeps_needing_attention:
             role = creep_utils.get_role_name()
             creep.memory.role = role
             Memory.role_counts[role] += 1
-            role_functions[role](creep)
-    p.check("creeps_needing_attention")
+            creep_wrapper = role_classes[role](creep)
+            creep_wrapper.run()
+        p.check("creep {} ({})", name, role)
 
-    print("Performing spawns")
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
         p.check("spawn {}", name)
 
-    print("Performing tower")
     tower.run()
     p.check("tower")
 

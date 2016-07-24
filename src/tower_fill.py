@@ -1,47 +1,46 @@
-import creep_utils
 import harvesting
 from base import *
 
 __pragma__('noalias', 'name')
 
 
-def run(creep, second_run=False):
-    if creep.memory.harvesting and creep.carry.energy >= creep.carryCapacity:
-        creep.memory.harvesting = False
-        creep_utils.finished_energy_harvest(creep)
-    elif not creep.memory.harvesting and creep.carry.energy <= 0:
-        creep.memory.harvesting = True
-        creep_utils.untarget_spread_out_target(creep, "tower_fill")
-        creep_utils.untarget_spread_out_target(creep, "harvester_deposit")
+class TowerFill(harvesting.Harvester):
+    def run(self, second_run=False):
+        if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
+            self.memory.harvesting = False
+            self.finished_energy_harvest()
+        elif not self.memory.harvesting and self.creep.carry.energy <= 0:
+            self.memory.harvesting = True
+            self.untarget_spread_out_target("tower_fill")
+            self.untarget_spread_out_target("harvester_deposit")
 
-    if creep.memory.harvesting:
-        creep_utils.harvest_energy(creep)
-    else:
-        target = get_new_target(creep)
-        if target:
-            result = creep.transfer(target, RESOURCE_ENERGY)
-            if result == ERR_NOT_IN_RANGE:
-                creep_utils.move_to_path(creep, target)
-            elif result == ERR_FULL:
-                creep_utils.untarget_spread_out_target(creep, "tower_fill")
-                if not second_run:
-                    run(creep, True)
-            elif result != OK:
-                print("[{}] Unknown result from creep.transfer({}): {}".format(
-                    creep.name, target, result
-                ))
+        if self.memory.harvesting:
+            self.harvest_energy()
         else:
-            print("[{}] No tower found.".format(creep.name))
-            harvesting.run(creep)
+            target = self.get_new_tower_target()
+            if target:
+                result = self.creep.transfer(target, RESOURCE_ENERGY)
+                if result == ERR_NOT_IN_RANGE:
+                    self.creep.move_to_path(target)
+                elif result == ERR_FULL:
+                    self.untarget_spread_out_target("tower_fill")
+                    if not second_run:
+                        self.run(True)
+                elif result != OK:
+                    print("[{}] Unknown result from creep.transfer({}): {}".format(
+                        self.name, target, result
+                    ))
+            else:
+                # print("[{}] No tower found.".format(self.name))
+                harvesting.Harvester.run(self)
 
+    def get_new_tower_target(self):
+        def find_list():
+            tower_list = []
+            for id in Memory.tower.towers:
+                tower = Game.getObjectById(id)
+                if tower.energy < tower.energyCapacity:
+                    tower_list.append(tower)
+            return tower_list
 
-def get_new_target(creep):
-    def find_list():
-        tower_list = []
-        for id in Memory.tower.towers:
-            tower = Game.getObjectById(id)
-            if tower.energy < tower.energyCapacity:
-                tower_list.append(tower)
-        return tower_list
-
-    return creep_utils.get_spread_out_target(creep, "tower_fill", find_list)
+        return self.get_spread_out_target("tower_fill", find_list)

@@ -1,4 +1,3 @@
-import creep_utils
 from base import *
 
 __pragma__('noalias', 'name')
@@ -60,9 +59,81 @@ def get_new_repair_target(tower):
             )
         })
 
-    return creep_utils.get_spread_out_target(tower, "structure_repair", find_list)
+    return get_spread_out_target(tower, "structure_repair", find_list)
 
 
 def execute_repair_target(tower, target):
     if not target or target.hits >= target.hitsMax or target.hits >= 400000:
-        creep_utils.untarget_spread_out_target(tower, "structure_repair")
+        untarget_spread_out_target(tower, "structure_repair")
+
+
+def get_spread_out_target(tower, resource, find_list, limit_by=None, true_limit=False):
+    if not tower.memory.targets:
+        tower.memory.targets = {}
+
+    if tower.memory.targets[resource]:
+        target = Game.getObjectById(tower.memory.targets[resource])
+        if target:
+            # don't return null targets
+            return target
+        else:
+            print("[{}] Retargetting {}!".format(tower.name, resource))
+            id = tower.memory.targets[resource]
+            del tower.memory.targets[resource]
+            del Memory.targets_used[resource][id]
+
+    if not Memory.targets_used:
+        Memory.targets_used = {
+            resource: {}
+        }
+    elif not Memory.targets_used[resource]:
+        Memory.targets_used[resource] = {}
+
+    list = find_list()
+    min_count = 8000
+    min_target = None
+    min_target_id = None
+    for prop in Object.keys(list):
+        possible_target = list[prop]
+        id = possible_target.id
+        if not id:
+            print("No ID on possible target {}".format(possible_target))
+            id = possible_target.name
+
+        if not Memory.targets_used[resource][id]:
+            tower.memory.targets[resource] = id
+            Memory.targets_used[resource][id] = 1
+            return possible_target
+        elif limit_by:
+            if typeof(limit_by) == "number":
+                limit = limit_by
+            else:
+                limit = limit_by(possible_target)
+            if Memory.targets_used[resource][id] < limit:
+                min_target_id = id
+                min_target = possible_target
+                break
+
+        if not limit_by or not true_limit:
+            if Memory.targets_used[resource][id] < min_count:
+                min_count = Memory.targets_used[resource][id]
+                min_target = possible_target
+                min_target_id = id
+
+    if not min_target:
+        return None
+    else:
+        Memory.targets_used[resource][min_target_id] += 1
+        tower.memory.targets[resource] = min_target_id
+        return min_target
+
+
+def untarget_spread_out_target(tower, resource):
+    if tower.memory.targets:
+        id = tower.memory.targets[resource]
+        if id:
+            if (Memory.targets_used and Memory.targets_used[resource] and
+                    Memory.targets_used[resource][id]):
+                Memory.targets_used[resource][id] -= 1
+
+            del tower.memory.targets[resource]
