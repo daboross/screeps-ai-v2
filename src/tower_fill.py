@@ -21,7 +21,7 @@ class TowerFill(harvesting.Harvester):
             if target:
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == ERR_NOT_IN_RANGE:
-                    self.creep.move_to_path(target)
+                    self.move_to(target)
                 elif result == ERR_FULL:
                     self.untarget_spread_out_target("tower_fill")
                     if not second_run:

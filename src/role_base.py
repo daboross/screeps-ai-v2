@@ -1,8 +1,16 @@
+import hivemind
 from base import *
+
+__pragma__('noalias', 'name')
 
 
 class RoleBase:
-    def __init__(self, creep):
+    """
+    :type target_mind: hivemind.TargetMind
+    """
+
+    def __init__(self, target_mind, creep):
+        self.target_mind = target_mind
         self.creep = creep
         if creep.memory:
             self.memory = creep.memory
@@ -24,25 +32,24 @@ class RoleBase:
 
     harvesting = property(get_harvesting, set_harvesting)
 
-    @property
-    def name(self):
+    def get_name(self):
         return self.creep.name
 
-    def get_path_to(self, target, same_position_ok=False):
+    name = property(get_name)
+
+    def _get_path_to(self, pos, same_position_ok=False):
         if not self.memory.path:
             self.memory.path = {}
+        if not self.memory.reset_path:
+            self.memory.reset_path = {}
 
-        id = target.id
-        if not id:
-            print("[{}] Warning! Tried to get_path_to({}) which doesn't have an id!".format(
-                self.name, target
-            ))
+        id = pos.x + "_" + pos.y + "_" + pos.roomName
+
+        if self.creep.pos == pos:
             return None
 
-        if self.creep.pos == target.pos:
-            return None
-
-        if self.memory.path[id]:
+        if self.memory.path[id] and self.memory.reset_path \
+                and self.memory.reset_path[id] > Game.time:
             if not same_position_ok:
                 if (self.memory.last_pos and
                             self.memory.last_pos.x == self.creep.pos.x and
@@ -53,9 +60,9 @@ class RoleBase:
                         self.memory.same_place_ticks += 1
                     else:
                         print("[{}] Regenerating path from {} to {}".format(
-                            self.name, self.creep.pos, target.pos
+                            self.name, self.creep.pos, pos.pos
                         ))
-                        path = self.creep.pos.findPathTo(target)
+                        path = self.creep.pos.findPathTo(pos)
                         self.memory.path[id] = Room.serializePath(path)
                         self.memory.same_place_ticks = 0
                         return path
@@ -67,13 +74,19 @@ class RoleBase:
             except:
                 del self.memory.path[id]
 
-        path = self.creep.pos.findPathTo(target)
+        path = self.creep.pos.findPathTo(pos)
         self.memory.path[id] = Room.serializePath(path)
+        self.memory.reset_path[id] = Game.time + 100  # Reset every 100 ticks
         return path
 
     def move_to(self, target, same_position_ok=False, times_tried=0):
+        if target.pos:
+            pos = target.pos
+        else:
+            pos = target
         if self.creep.fatigue <= 0:
-            result = self.creep.moveByPath(self.get_path_to(target, same_position_ok))
+            path = self._get_path_to(pos, same_position_ok)
+            result = self.creep.moveByPath(path)
 
             if result != OK:
                 if result != ERR_NOT_FOUND:
@@ -81,17 +94,16 @@ class RoleBase:
                         self.name, result
                     ))
 
-                id = target.id
-                if not id:
-                    id = target.pos.x + "_" + target.pos.y + "_" + target.pos.roomName
+                id = target.pos.x + "_" + target.pos.y + "_" + target.pos.roomName
                 del self.memory.path[id]
                 if not times_tried:
                     times_tried = 0
-                if times_tried < 3:
+                if times_tried < 2:
                     self.move_to(target, False, times_tried + 1)
                 else:
-                    print("[{}] Continually failed to move from {} to {}!".format(self.name, self.creep.pos,
-                                                                                  target.pos))
+                    print("[{}] Continually failed to move from {} to {} (path: {})!".format(
+                        self.name, self.creep.pos, target.pos, path))
+                    self.creep.moveTo(target)
 
     def get_spread_out_target(self, resource, find_list, limit_by=None, true_limit=False):
         if not self.memory.targets:
@@ -189,23 +201,29 @@ class RoleBase:
         #
         #     return True
 
-        def find_list():
-            list = self.creep.room.find(FIND_SOURCES)
-            # for name in Object.keys(Game.flags):
-            #     flag = Game.flags[name]
-            #     if flag.memory.harvesting_spot:
-            #         list.extend(flag.pos.lookFor(LOOK_SOURCES))
-            return list
-
-        source = self.get_spread_out_target("source", find_list)
+        source = self.target_mind.get_new_target(self.creep, hivemind.target_source)
 
         if not source:
             print("[{}] Wasn't able to find source {}".format(
-                self.name, self.memory.targets["source"]
+                self.name, self.target_mind._get_existing_target_id(hivemind.target_source, self.creep.id)
             ))
             self.finished_energy_harvest()
             self.go_to_depot()
             return
+
+        if source.pos.roomName != self.creep.pos.roomName:
+            self.move_to(source)
+            return
+
+        if source.color:
+            # this is a flag
+            sources = source.pos.lookFor(LOOK_SOURCES)
+            if not len(sources):
+                print("[{}] Warning! Couldn't find any sources at flag {}!".format(self.name, source))
+                self.finished_energy_harvest()
+                self.go_to_depot()
+                return
+            source = sources[0]
 
         piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
         if len(piles) > 0:
@@ -241,19 +259,20 @@ class RoleBase:
             self.move_to(source)
         else:
             # TODO: Hardcoded 2 here!
-            from creep_utils import role_count
-            if role_count("big_harvester") < 2:
-                result = self.creep.harvest(source)
+            # from creep_utils import role_count
+            # if role_count("big_harvester") < 2:
+            result = self.creep.harvest(source)
 
-                if result == ERR_NOT_IN_RANGE:
-                    self.move_to(source)
-                elif result != OK:
-                    print("[{}] Unknown result from creep.harvest({}): {}".format(
-                        self.name, source, result))
-            else:
-                self.go_to_depot()
+            if result == ERR_NOT_IN_RANGE:
+                self.move_to(source)
+            elif result != OK:
+                print("[{}] Unknown result from creep.harvest({}): {}".format(
+                    self.name, source, result))
+                # else:
+                #     self.go_to_depot()
 
     def finished_energy_harvest(self):
+        self.target_mind.untarget(self.creep, hivemind.target_source)
         self.untarget_spread_out_target("source")
 
     def go_to_depot(self):

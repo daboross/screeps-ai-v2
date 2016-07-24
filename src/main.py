@@ -7,6 +7,7 @@ import tower
 import tower_fill
 import upgrading
 from base import *
+from hivemind import TargetMind
 
 __pragma__('noalias', 'name')
 require("perf")()
@@ -22,7 +23,7 @@ role_classes = {
 
 class Profiler:
     def __init__(self):
-        self.last = Game.cpu.getUsed()
+        self.last = 0
 
     def check(self, name, *args):
         time = Game.cpu.getUsed()
@@ -33,6 +34,7 @@ class Profiler:
 
 def main():
     p = Profiler()
+    p.check("initial_load")
     time = Game.time
     if time % 100 == 0 or Memory.needs_clearing:
         print("Clearing memory")
@@ -48,19 +50,23 @@ def main():
         creep_utils.reassign_roles()
         p.check("reassign_roles")
 
+    target_mind = TargetMind()
+
+    p.check("create_target_mind")
+
     for name in Object.keys(Game.creeps):
         creep = Game.creeps[name]
         if creep.spawning:
             continue
         role = creep.memory.role
         if role in role_classes:
-            creep_wrapper = role_classes[role](creep)
+            creep_wrapper = role_classes[role](target_mind, creep)
             creep_wrapper.run()
         else:
             role = creep_utils.get_role_name()
             creep.memory.role = role
             Memory.role_counts[role] += 1
-            creep_wrapper = role_classes[role](creep)
+            creep_wrapper = role_classes[role](target_mind, creep)
             creep_wrapper.run()
         p.check("creep {} ({})", name, role)
 

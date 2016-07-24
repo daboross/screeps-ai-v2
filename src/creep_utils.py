@@ -1,5 +1,4 @@
 from base import *
-from role_base import RoleBase
 
 __pragma__('noalias', 'name')
 
@@ -115,7 +114,10 @@ def reassign_roles():
         count_roles()
 
 
-def clear_memory():
+def clear_memory(target_mind):
+    """
+    :type target_mind: hivemind.TargetMind
+    """
     for name in Object.keys(Memory.creeps):
         if not Game.creeps[name]:
             role = Memory.creeps[name].role
@@ -125,8 +127,6 @@ def clear_memory():
             if role == "big_harvester":
                 del Memory.big_harvesters_placed[Memory.creeps[name].targets["big_source"]]
 
-            for resource in Memory.creeps[name].targets:
-                # TODO: This isn't entirely correct, as it should be a RoleBase object, not direct creep.
-                RoleBase.untarget_spread_out_target(Game.creeps[name], resource)
+            target_mind._unregister_all(name)
 
             del Memory.creeps[name]

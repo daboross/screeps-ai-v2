@@ -1,3 +1,4 @@
+__pragma__('noalias', 'name')
 __pragma__('skip')
 # This file defines names that we expect to exist in screeps, so as to allow editor warnings
 # without spamming them everywhere.
@@ -18,9 +19,11 @@ FIND_STRUCTURES = None
 FIND_DROPPED_ENERGY = None
 FIND_CONSTRUCTION_SITES = None
 FIND_HOSTILE_CREEPS = None
+FIND_MY_CREEPS = None
 LOOK_CREEPS = None
 LOOK_TERRAIN = None
 LOOK_STRUCTURES = None
+LOOK_SOURCES = None
 STRUCTURE_CONTAINER = None
 STRUCTURE_STORAGE = None
 STRUCTURE_SPAWN = None

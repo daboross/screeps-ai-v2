@@ -21,6 +21,6 @@ class BigHarvester(RoleBase):
                     source.id: self.name
                 }
         else:
-            print("[{}] Unknown result from creep.harvest({}): {}".format(
+            print("[{}] Unknown result from creep.harvest({}) (big): {}".format(
                 self.name, source, result
             ))
