@@ -156,7 +156,7 @@ class TargetMind:
         best_source_id = None
         for structure in room.find(FIND_STRUCTURES):
             if (structure.my != False and structure.hits < structure.hitsMax
-                and (not max_hits or structure.hits >= max_hits)):
+                and (not max_hits or structure.hits < max_hits)):
 
                 id = structure.id
                 if not self.targets[target_repair][id]:

@@ -82,12 +82,8 @@ class Builder(upgrading.Upgrader):
                 self.move_to(target, True)
         elif result == ERR_NOT_IN_RANGE:
             self.move_to(target)
-        else:
-            print("[{}] Unknown result from creep.repair({}): {}".format(
-                self.name, target, result
-            ))
-            if result == ERR_INVALID_TARGET:
-                self.target_mind.untarget(self.creep, type)
+        elif result == ERR_INVALID_TARGET:
+            self.target_mind.untarget(self.creep, type)
 
     def execute_construction_target(self, target):
         result = self.creep.build(target)
@@ -96,9 +92,5 @@ class Builder(upgrading.Upgrader):
                 self.move_to(target, True)
         elif result == ERR_NOT_IN_RANGE:
             self.move_to(target)
-        else:
-            print("[{}] Unknown result from creep.build({}): {}".format(
-                self.name, target, result
-            ))
-            if result == ERR_INVALID_TARGET:
-                self.target_mind.untarget(self.creep, hivemind.target_construction)
+        elif result == ERR_INVALID_TARGET:
+            self.target_mind.untarget(self.creep, hivemind.target_construction)
