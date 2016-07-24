@@ -27,6 +27,7 @@ class TargetMind:
             target_source: self._find_new_source,
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
+            target_big_repair: self._find_new_big_repair_site,
         }
 
     def _register_new_targeter(self, type, targeter_id, target_id):
