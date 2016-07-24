@@ -8,13 +8,13 @@ __pragma__('noalias', 'name')
 
 class Builder(upgrading.Upgrader):
     def run(self):
-        if self.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
-            self.harvesting = False
+        if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
+            self.memory.harvesting = False
             self.target_mind.untarget_all(self.creep)
-        elif not self.harvesting and self.creep.carry.energy <= 0:
-            self.harvesting = True
+        elif not self.memory.harvesting and self.creep.carry.energy <= 0:
+            self.memory.harvesting = True
 
-        if self.harvesting:
+        if self.memory.harvesting:
             self.harvest_energy()
         else:
             target = self.target_mind.get_existing_target(self.creep,

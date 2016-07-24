@@ -20,6 +20,10 @@ class BigHarvester(RoleBase):
                 Memory.big_harvesters_placed = {
                     source.id: self.name
                 }
+        elif result == -6:
+            # TODO: get the enum name for -6 (no resources available)
+            # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
+            pass
         else:
             print("[{}] Unknown result from creep.harvest({}) (big): {}".format(
                 self.name, source, result

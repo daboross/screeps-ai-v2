@@ -35,10 +35,13 @@ class Profiler:
 def main():
     p = Profiler()
     p.check("initial_load")
+    target_mind = TargetMind()
+
+    p.check("create_target_mind")
     time = Game.time
     if time % 100 == 0 or Memory.needs_clearing:
         print("Clearing memory")
-        creep_utils.clear_memory()
+        creep_utils.clear_memory(target_mind)
         p.check("clear_memory")
         creep_utils.recheck_targets_used()
         p.check("recheck_targets_used")
@@ -49,10 +52,6 @@ def main():
         print("Reassigning roles")
         creep_utils.reassign_roles()
         p.check("reassign_roles")
-
-    target_mind = TargetMind()
-
-    p.check("create_target_mind")
 
     for name in Object.keys(Game.creeps):
         creep = Game.creeps[name]

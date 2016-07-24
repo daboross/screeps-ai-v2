@@ -265,6 +265,10 @@ class RoleBase:
 
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(source)
+            elif result == -6:
+                # TODO: get the enum name for -6 (no resources available)
+                # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
+                pass
             elif result != OK:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))
