@@ -5,7 +5,7 @@ __pragma__('noalias', 'name')
 
 
 class TowerFill(harvesting.Harvester):
-    def run(self, second_run=False):
+    def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.finished_energy_harvest()
@@ -24,15 +24,16 @@ class TowerFill(harvesting.Harvester):
                     self.move_to(target)
                 elif result == ERR_FULL:
                     self.untarget_spread_out_target("tower_fill")
-                    if not second_run:
-                        self.run(True)
+                    return True
                 elif result != OK:
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
                         self.name, target, result
                     ))
             else:
                 # print("[{}] No tower found.".format(self.name))
-                harvesting.Harvester.run(self)
+                return harvesting.Harvester.run(self)
+
+        return False
 
     def get_new_tower_target(self):
         def find_list():

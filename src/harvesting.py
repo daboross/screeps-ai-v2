@@ -5,7 +5,7 @@ __pragma__('noalias', 'name')
 
 
 class Harvester(upgrading.Upgrader):
-    def run(self, second_run=False):
+    def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.finished_energy_harvest()
@@ -20,24 +20,23 @@ class Harvester(upgrading.Upgrader):
             if target:
                 if target.energy >= target.energyCapacity:
                     self.untarget_spread_out_target("harvester_deposit")
-                    if not second_run:
-                        self.run(True)
-                    return
+                    return True
                 else:
                     result = self.creep.transfer(target, RESOURCE_ENERGY)
                     if result == ERR_NOT_IN_RANGE:
                         self.move_to(target)
                     elif result == ERR_FULL:
                         self.untarget_spread_out_target("harvester_deposit")
-                        if not second_run:
-                            self.run(True)
+                        return True
                     elif result != OK:
                         print("[{}] Unknown result from creep.transfer({}): {}".format(
                             self.name, target, result
                         ))
                         self.untarget_spread_out_target("harvester_deposit")
+                        return True
             else:
-                upgrading.Upgrader.run(self)
+                return upgrading.Upgrader.run(self)
+        return False
 
     def get_new_target(self):
         def find_list():

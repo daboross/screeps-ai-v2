@@ -37,6 +37,14 @@ class RoleBase:
 
     name = property(get_name)
 
+    def run(self):
+        """
+        Runs this role's actions.
+        :return: False if completed sucessfully, true if this method should be called a second time.
+        :rtype Boolean:
+        """
+        pass
+
     def _get_path_to(self, pos, same_position_ok=False):
         if not self.memory.path:
             self.memory.path = {}

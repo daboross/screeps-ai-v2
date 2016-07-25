@@ -29,6 +29,8 @@ class Profiler:
         time = Game.cpu.getUsed()
         if time - self.last > 1.5:
             print("Used up {} time with `{}`!".format(time - self.last, name.format(*args)))
+        if time > 15:
+            print("Already used up {} time! (just finished `{}`)".format(time, name.format(*args)))
         self.last = time
 
 
@@ -60,13 +62,17 @@ def main():
         role = creep.memory.role
         if role in role_classes:
             creep_wrapper = role_classes[role](target_mind, creep)
-            creep_wrapper.run()
         else:
             role = creep_utils.get_role_name()
             creep.memory.role = role
             Memory.role_counts[role] += 1
             creep_wrapper = role_classes[role](target_mind, creep)
-            creep_wrapper.run()
+
+        rerun = creep_wrapper.run()
+        if rerun:
+            rerun = creep_wrapper.run()
+        if rerun:
+            print("[{}] Tried to rerun twice!".format(name))
         p.check("creep {} ({})", name, role)
 
     for name in Object.keys(Game.spawns):

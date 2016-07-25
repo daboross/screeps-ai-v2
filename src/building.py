@@ -24,31 +24,36 @@ class Builder(upgrading.Upgrader):
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_construction)
             if target:
-                self.execute_construction_target(target)
-                return
+                return self.execute_construction_target(target)
 
             target = self.get_new_repair_target(350000, hivemind.target_repair)
             if target:
                 self.target_mind.untarget(self.creep, hivemind.target_big_repair)
-                self.execute_repair_target(target, 350000, hivemind.target_repair)
-                return
+                del self.memory.last_big_repair_max_hits
+                return self.execute_repair_target(target, 350000, hivemind.target_repair)
 
             target = self.get_new_construction_target()
             if target:
                 self.target_mind.untarget(self.creep, hivemind.target_big_repair)
-                self.execute_construction_target(target)
-                return
+                del self.memory.last_big_repair_max_hits
+                return self.execute_construction_target(target)
 
-            for max_energy in range(400000, 600000, 50000):
-                target = self.get_new_repair_target(max_energy,
+            if self.memory.last_big_repair_max_hits:
+                max_hits = self.memory.last_big_repair_max_hits
+                target = self.get_new_repair_target(max_hits,
                                                     hivemind.target_big_repair)
                 if target:
-                    self.execute_repair_target(target, max_energy,
-                                               hivemind.target_big_repair)
-                    return
+                    return self.execute_repair_target(
+                        target, max_hits, hivemind.target_big_repair)
+            for max_hits in range(400000, 600000, 50000):
+                target = self.get_new_repair_target(max_hits,
+                                                    hivemind.target_big_repair)
+                if target:
+                    return self.execute_repair_target(
+                        target, max_hits, hivemind.target_big_repair)
 
             print("[{}] Couldn't find any building targets.".format(self.name))
-            upgrading.Upgrader.run(self)
+            return upgrading.Upgrader.run(self)
 
     def get_new_repair_target(self, max_hits, type):
         # def find_list():
@@ -74,7 +79,8 @@ class Builder(upgrading.Upgrader):
     def execute_repair_target(self, target, max_hits, type):
         if target.hits >= target.hitsMax or target.hits >= max_hits + 2000:
             self.target_mind.untarget(self.creep, type)
-            return
+            del self.memory.last_big_repair_max_hits
+            return True
 
         result = self.creep.repair(target)
         if result == OK:
@@ -84,6 +90,9 @@ class Builder(upgrading.Upgrader):
             self.move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self.creep, type)
+            del self.memory.last_big_repair_max_hits
+            return True
+        return False
 
     def execute_construction_target(self, target):
         result = self.creep.build(target)
@@ -94,3 +103,4 @@ class Builder(upgrading.Upgrader):
             self.move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self.creep, hivemind.target_construction)
+            return True

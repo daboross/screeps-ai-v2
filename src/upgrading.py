@@ -33,3 +33,5 @@ class Upgrader(RoleBase):
                     self.harvesting = True
                 else:
                     self.go_to_depot()
+
+        return False
