@@ -56,6 +56,7 @@ def main():
         p.check("reassign_roles")
 
     for name in Object.keys(Game.creeps):
+        print("Starting creep {}".format(name))
         creep = Game.creeps[name]
         if creep.spawning:
             continue
@@ -74,6 +75,7 @@ def main():
         if rerun:
             print("[{}] Tried to rerun twice!".format(name))
         p.check("creep {} ({})", name, role)
+        print("Ending creep {}".format(name))
 
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
