@@ -25,6 +25,7 @@ class Harvester(upgrading.Upgrader):
                     result = self.creep.transfer(target, RESOURCE_ENERGY)
                     if result == ERR_NOT_IN_RANGE:
                         self.move_to(target)
+                        self.creep.say("H. Find.")
                     elif result == ERR_FULL:
                         self.untarget_spread_out_target("harvester_deposit")
                         return True
@@ -34,6 +35,8 @@ class Harvester(upgrading.Upgrader):
                         ))
                         self.untarget_spread_out_target("harvester_deposit")
                         return True
+                    else:
+                        self.creep.say("H. Fill.")
             else:
                 return upgrading.Upgrader.run(self)
         return False

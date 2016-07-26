@@ -16,14 +16,17 @@ class Upgrader(RoleBase):
             self.harvest_energy()
         elif not self.creep.room.controller.my:
             self.go_to_depot()
+            self.creep.say("U. D!!")
         else:
             result = self.creep.upgradeController(self.creep.room.controller)
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(self.creep.room.controller)
+                self.creep.say("U. F. C.")
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.harvesting = True
             elif result == OK:
                 self.move_to(self.creep.room.controller, True)
+                self.creep.say("U.")
             else:
                 print("[{}] Unknown result from upgradeController({}): {}".format(
                     self.name, self.creep.room.controller, result
@@ -33,5 +36,6 @@ class Upgrader(RoleBase):
                     self.harvesting = True
                 else:
                     self.go_to_depot()
+                self.creep.say("U. ???")
 
         return False

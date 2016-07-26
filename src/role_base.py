@@ -224,11 +224,13 @@ class RoleBase:
                 self.name, self.target_mind._get_existing_target_id(hivemind.target_source, self.creep.id)
             ))
             self.finished_energy_harvest()
+            self.creep.say("D! !s")
             self.go_to_depot()
             return
 
         if source.pos.roomName != self.creep.pos.roomName:
             self.move_to(source)
+            self.creep.say("G. F. BR.")
             return
 
         if source.color:
@@ -237,6 +239,7 @@ class RoleBase:
             if not len(sources):
                 print("[{}] Warning! Couldn't find any sources at flag {}!".format(self.name, source))
                 self.finished_energy_harvest()
+                self.creep.say("D! F!s")
                 self.go_to_depot()
                 return
             source = sources[0]
@@ -246,9 +249,13 @@ class RoleBase:
             result = self.creep.pickup(piles[0])
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(piles[0])
+                self.creep.say("G. Find. E.")
             elif result != OK:
                 print("[{}] Unknown result from creep.pickup({}): {}".format(
                     self.name, piles[0], result))
+                self.creep.say("???")
+            else:
+                self.creep.say("G. E.")
             return
 
         containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
@@ -260,9 +267,12 @@ class RoleBase:
             result = self.creep.withdraw(containers[0], RESOURCE_ENERGY)
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(containers[0])
+                self.creep.say("G. Find. C.")
             elif result != OK:
                 print("[{}] Unknown result from creep.withdraw({}): {}".format(
                     self.name, containers[0], result))
+            else:
+                self.creep.say("G. C.")
             return
 
         # at this point, there is no energy and no container filled.
@@ -272,6 +282,7 @@ class RoleBase:
             and not Game.creeps[Memory.big_harvesters_placed[source.id]]):
             Memory.needs_clearing = True
             del Memory.big_harvesters_placed[source.id]
+            self.creep.say("G. Find. S.")
             self.move_to(source)
         else:
             # TODO: Hardcoded 2 here!
@@ -280,6 +291,7 @@ class RoleBase:
             result = self.creep.harvest(source)
 
             if result == ERR_NOT_IN_RANGE:
+                self.creep.say("G. Find. S.")
                 self.move_to(source)
             elif result == -6:
                 # TODO: get the enum name for -6 (no resources available)
@@ -288,8 +300,11 @@ class RoleBase:
             elif result != OK:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))
+                self.creep.say("G. ???")
                 # else:
                 #     self.go_to_depot()
+            else:
+                self.creep.say("G. S.")
 
     def finished_energy_harvest(self):
         self.target_mind.untarget(self.creep, hivemind.target_source)

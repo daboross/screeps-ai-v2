@@ -21,6 +21,7 @@ class TowerFill(harvesting.Harvester):
             if target:
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == ERR_NOT_IN_RANGE:
+                    self.creep.say("TF. F. T.")
                     self.move_to(target)
                 elif result == ERR_FULL:
                     self.untarget_spread_out_target("tower_fill")
@@ -29,8 +30,12 @@ class TowerFill(harvesting.Harvester):
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
                         self.name, target, result
                     ))
+                    self.creep.say("TF. ???")
+                else:
+                    self.creep.say("TF.")
             else:
                 # print("[{}] No tower found.".format(self.name))
+                self.creep.say("TF. H.")
                 return harvesting.Harvester.run(self)
 
         return False

@@ -54,6 +54,7 @@ class Builder(upgrading.Upgrader):
                         target, max_hits, hivemind.target_big_repair)
 
             print("[{}] Couldn't find any building targets.".format(self.name))
+            self.creep.say("B. U.")
             return upgrading.Upgrader.run(self)
 
     def get_new_repair_target(self, max_hits, type):
@@ -78,6 +79,7 @@ class Builder(upgrading.Upgrader):
                                                hivemind.target_construction)
 
     def execute_repair_target(self, target, max_hits, type):
+        self.creep.say("R. {}.".format(target.structureType))
         # if target.hits >= target.hitsMax or target.hits >= max_hits + 2000:
         #     self.target_mind.untarget(self.creep, type)
         #     del self.memory.last_big_repair_max_hits
@@ -96,6 +98,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
+        self.creep.say("B. {}.".format(target.structureType))
         result = self.creep.build(target)
         if result == OK:
             if self.is_next_block_clear(target):
