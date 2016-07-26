@@ -1,17 +1,36 @@
+import hivemind
 from base import *
 
 __pragma__('noalias', 'name')
-
 
 # ***
 # SPAWNING
 # ***
 
+creep_base_base = "base"
+creep_base_big_harvester = "big_harvester"
+
+role_requirements = [
+    ["harvester", 2, creep_base_base],
+    # TODO: 2 is currently hardcoded for my map.
+    ["big_harvester", 2, creep_base_big_harvester],
+    ["harvester", 4, creep_base_base],
+    ["upgrader", 1, creep_base_base],
+    ["tower_fill", 2, creep_base_base],
+    ["upgrader", 2, creep_base_base],
+    ["harvester", 6, creep_base_base],
+    ["builder", 6, creep_base_base]
+]
+
+
 def role_count(role):
     if not Memory.role_counts:
         count_roles()
     count = Memory.role_counts[role]
-    return count if count else 0
+    if not count and count != 0:
+        count = 0
+        Memory.role_counts[role] = 0
+    return count
 
 
 def get_role_name(new_spawn=False):
@@ -25,29 +44,29 @@ def get_role_name(new_spawn=False):
         harvester_count, big_harvester_count, upgrader_count, tower_fill_count, builder_count,
         "is" if new_spawn else "isn't"))
 
-    if harvester_count < 2:
-        return "harvester"
-    elif big_harvester_count < 2 and new_spawn:
-        # TODO: 2 is currently hardcoded for our map section.
-        return "big_harvester"
-    elif harvester_count < 4:
-        return "harvester"
-    elif upgrader_count < 1:
-        return "upgrader"
-    elif tower_fill_count < 2:
-        return "tower_fill"
-    elif upgrader_count < 2:
-        return "upgrader"
-    elif harvester_count * 2 < builder_count:
-        return "harvester"
-    else:
-        # these builders will repurpose as upgraders if need be
-        return "builder"
+    for role, count in role_requirements:
+        if Memory.role_counts[role] < count:
+            return role
+    return None
 
 
 # ***
 # CONSISTENCY
 # ***
+
+def reassign_roles():
+    # TODO: hardcoded 2 here
+    if role_count("harvester") < 4 and role_count("big_harvester") < 2:
+        num = 0
+        for name in Object.keys(Memory.creeps):
+            memory = Memory.creeps[name]
+            if memory.role != "big_harvester":
+                memory.role = "harvester"
+            num += 1
+            if num > 4:
+                break
+        count_roles()
+
 
 def count_roles():
     old_roles = Memory.role_counts
@@ -104,29 +123,29 @@ def recheck_targets_used():
     Memory.targets_used = targets_used
 
 
-def reassign_roles():
-    # TODO: hardcoded 2 here
-    if role_count("harvester") < 4 and role_count("big_harvester") < 2:
-        for name in Object.keys(Memory.creeps):
-            memory = Memory.creeps[name]
-            if memory.role != "big_harvester":
-                memory.role = "harvester"
-        count_roles()
-
-
 def clear_memory(target_mind):
     """
     :type target_mind: hivemind.TargetMind
     """
+    smallest_ticks_to_live = 2000
     for name in Object.keys(Memory.creeps):
-        if not Game.creeps[name]:
+        creep = Game.creeps[name]
+        if not creep:
+            # Do spawn more now! If we had reached max creeps.
+            del Memory.no_more_spawning
             role = Memory.creeps[name].role
             if role:
                 print("[{}] {} died".format(name, role))
 
             if role == "big_harvester":
-                del Memory.big_harvesters_placed[Memory.creeps[name].targets["big_source"]]
-
+                source_id = target_mind._get_existing_target_id(hivemind.target_big_source, name)
+                if source_id:
+                    del Memory.big_harvesters_placed[source_id]
+                else:
+                    print("[{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(name))
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]
+        elif creep.ticksToLive < smallest_ticks_to_live:
+            smallest_ticks_to_live = creep.ticksToLive
+    Memory.clear_memory_next = Game.time + smallest_ticks_to_live

@@ -7,7 +7,8 @@ __pragma__('noalias', 'name')
 
 
 def run(spawn):
-    spawn_with_energy(spawn, spawn.room.energyCapacityAvailable)
+    if not Memory.no_more_spawning and not spawn.spawning:
+        spawn_with_energy(spawn, spawn.room.energyCapacityAvailable)
 
 
 def spawn_with_energy(spawn, energy):
@@ -17,6 +18,8 @@ def spawn_with_energy(spawn, energy):
 
     if spawn.room.energyAvailable >= energy:
         role = creep_utils.get_role_name(True)
+        if not role:
+            Memory.no_more_spawning = True
         if role == "big_harvester":
             if energy < 550:
                 if energy % 100 == 0:

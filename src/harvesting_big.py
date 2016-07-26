@@ -1,3 +1,4 @@
+import hivemind
 from base import *
 from role_base import RoleBase
 
@@ -6,9 +7,11 @@ __pragma__('noalias', 'name')
 
 class BigHarvester(RoleBase):
     def run(self):
-        source = self.get_spread_out_target("big_source", lambda: self.creep.room.find(FIND_SOURCES))
+        source = self.target_mind.get_new_target(self.creep, hivemind.target_big_source)
+
         if not source:
-            print("[{}] No sources found.".format(self.name))
+            print("[{}] No big sources found.".format(self.name))
+            return
 
         result = self.creep.harvest(source)
         if result == ERR_NOT_IN_RANGE:
@@ -25,7 +28,7 @@ class BigHarvester(RoleBase):
         elif result == -6:
             # TODO: get the enum name for -6 (no resources available)
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-            pass
+            self.creep.say("HB. WW.")
         else:
             print("[{}] Unknown result from creep.harvest({}) (big): {}".format(
                 self.name, source, result

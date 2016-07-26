@@ -271,6 +271,7 @@ class RoleBase:
             elif result != OK:
                 print("[{}] Unknown result from creep.withdraw({}): {}".format(
                     self.name, containers[0], result))
+                self.creep.say("G. C. ???!")
             else:
                 self.creep.say("G. C.")
             return
@@ -282,8 +283,8 @@ class RoleBase:
             and not Game.creeps[Memory.big_harvesters_placed[source.id]]):
             Memory.needs_clearing = True
             del Memory.big_harvesters_placed[source.id]
-            self.creep.say("G. Find. S.")
             self.move_to(source)
+            self.creep.say("G. Find. S.")
         else:
             # TODO: Hardcoded 2 here!
             # from creep_utils import role_count
@@ -291,12 +292,13 @@ class RoleBase:
             result = self.creep.harvest(source)
 
             if result == ERR_NOT_IN_RANGE:
-                self.creep.say("G. Find. S.")
                 self.move_to(source)
+                self.creep.say("G. Find. S.")
             elif result == -6:
                 # TODO: get the enum name for -6 (no resources available)
                 # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
                 pass
+                self.creep.say("G. W.")
             elif result != OK:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))

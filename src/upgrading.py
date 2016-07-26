@@ -6,14 +6,14 @@ __pragma__('noalias', 'name')
 
 class Upgrader(RoleBase):
     def run(self):
-        if self.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
-            self.harvesting = False
+        if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
+            self.memory.harvesting = False
             self.finished_energy_harvest()
-        elif not self.harvesting and self.creep.carry.energy <= 0:
-            self.harvesting = True
+        elif not self.memory.harvesting and self.creep.carry.energy <= 0:
+            self.memory.harvesting = True
 
-        if self.harvesting:
-            self.harvest_energy()
+        if self.memory.harvesting:
+            return self.harvest_energy()
         elif not self.creep.room.controller.my:
             self.go_to_depot()
             self.creep.say("U. D!!")
@@ -24,6 +24,7 @@ class Upgrader(RoleBase):
                 self.creep.say("U. F. C.")
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.harvesting = True
+                self.creep.say("U. NER.")
             elif result == OK:
                 self.move_to(self.creep.room.controller, True)
                 self.creep.say("U.")

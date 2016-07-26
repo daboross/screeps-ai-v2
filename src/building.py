@@ -15,7 +15,7 @@ class Builder(upgrading.Upgrader):
             self.memory.harvesting = True
 
         if self.memory.harvesting:
-            self.harvest_energy()
+            return self.harvest_energy()
         else:
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_repair)

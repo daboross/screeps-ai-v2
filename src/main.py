@@ -40,20 +40,23 @@ class Profiler:
 
 
 def main():
-    if Memory.did_not_finish:
-        if Memory.last_creep:
-            print("Didn't finish! Last creep run: {}: {}".format(
-                Memory.last_creep, Game.creeps[Memory.last_creep].saying))
-            del Memory.last_creep
-        return
-    Memory.did_not_finish = True
+    # if Memory.did_not_finish:
+    #     if Memory.last_creep:
+    #         print("Didn't finish! Last creep run: {}: {}".format(
+    #             Memory.last_creep, Game.creeps[Memory.last_creep].saying))
+    #         del Memory.last_creep
+    #     return
+
+    # Memory.did_not_finish = True
+
     p = Profiler()
+
     p.check("initial_load")
     target_mind = TargetMind()
-
     p.check("create_target_mind")
+
     time = Game.time
-    if time % 100 == 0 or Memory.needs_clearing:
+    if Memory.needs_clearing or not Memory.clear_memory_next or time > Memory.clear_memory_next:
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
         p.check("clear_memory")
@@ -61,14 +64,12 @@ def main():
         p.check("recheck_targets_used")
         creep_utils.count_roles()
         p.check("count_roles")
-        Memory.needs_clearing = False
-    elif (time + 75) % 200 == 0:
-        print("Reassigning roles")
         creep_utils.reassign_roles()
         p.check("reassign_roles")
+        Memory.needs_clearing = False
 
     for name in Object.keys(Game.creeps):
-        Memory.last_creep = name
+        # Memory.last_creep = name
         creep = Game.creeps[name]
         if creep.spawning:
             continue
@@ -87,9 +88,8 @@ def main():
         if rerun:
             print("[{}] Tried to rerun twice!".format(name))
         p.check("creep {} ({})", name, role)
-        Memory.last_creep_saying = creep.saying
 
-    del Memory.last_creep
+    # del Memory.last_creep
 
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
@@ -97,7 +97,7 @@ def main():
 
     tower.run()
     p.check("tower")
-    del Memory.did_not_finish
+    # del Memory.did_not_finish
 
 
 module.exports.loop = profiling.profiler.wrap(main)

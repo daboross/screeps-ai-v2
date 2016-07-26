@@ -2,49 +2,11 @@ __pragma__('noalias', 'name')
 __pragma__('skip')
 # This file defines names that we expect to exist in screeps, so as to allow editor warnings
 # without spamming them everywhere.
-Game = None
-Memory = None
-Room = None
-RoomPosition = None
-Object = None
-Math = None
-OK = None
-ERR_NOT_FOUND = None
-ERR_NOT_IN_RANGE = None
-ERR_FULL = None
-ERR_INVALID_TARGET = None
-ERR_NOT_ENOUGH_RESOURCES = None
-FIND_SOURCES = None
-FIND_STRUCTURES = None
-FIND_DROPPED_ENERGY = None
-FIND_CONSTRUCTION_SITES = None
-FIND_HOSTILE_CREEPS = None
-FIND_MY_CREEPS = None
-LOOK_CREEPS = None
-LOOK_TERRAIN = None
-LOOK_STRUCTURES = None
-LOOK_SOURCES = None
-STRUCTURE_CONTAINER = None
-STRUCTURE_STORAGE = None
-STRUCTURE_SPAWN = None
-STRUCTURE_EXTENSION = None
-STRUCTURE_TOWER = None
-RESOURCE_ENERGY = None
-TERRAIN_MASK_WALL = None
-TERRAIN_MASK_LAVA = None
-TOP = None
-TOP_RIGHT = None
-RIGHT = None
-BOTTOM_RIGHT = None
-BOTTOM = None
-BOTTOM_LEFT = None
-LEFT = None
-TOP_LEFT = None
-MOVE = None
-CARRY = None
-WORK = None
-typeof = None
-require = None
-module = None
-JSON = None
+__all__ = ["Game", "Memory", "Room", "RoomPosition", "Object", "Math", "OK", "ERR_NOT_FOUND", "ERR_NOT_IN_RANGE",
+           "ERR_FULL", "ERR_INVALID_TARGET", "ERR_NOT_ENOUGH_RESOURCES", "FIND_SOURCES", "FIND_STRUCTURES",
+           "FIND_DROPPED_ENERGY", "FIND_CONSTRUCTION_SITES", "FIND_HOSTILE_CREEPS", "FIND_MY_CREEPS", "LOOK_CREEPS",
+           "LOOK_TERRAIN", "LOOK_STRUCTURES", "LOOK_SOURCES", "STRUCTURE_CONTAINER", "STRUCTURE_STORAGE",
+           "STRUCTURE_SPAWN", "STRUCTURE_EXTENSION", "STRUCTURE_TOWER", "RESOURCE_ENERGY", "TERRAIN_MASK_WALL",
+           "TERRAIN_MASK_LAVA", "TOP", "TOP_RIGHT", "RIGHT", "BOTTOM_RIGHT", "BOTTOM", "BOTTOM_LEFT", "LEFT",
+           "TOP_LEFT", "MOVE", "CARRY", "WORK", "typeof", "require", "module", "JSON", "_", "__pragma__"]
 __pragma__('noskip')

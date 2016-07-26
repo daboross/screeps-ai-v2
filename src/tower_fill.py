@@ -15,7 +15,7 @@ class TowerFill(harvesting.Harvester):
             self.untarget_spread_out_target("harvester_deposit")
 
         if self.memory.harvesting:
-            self.harvest_energy()
+            return self.harvest_energy()
         else:
             target = self.get_new_tower_target()
             if target:
