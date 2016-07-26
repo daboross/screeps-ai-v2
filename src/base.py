@@ -46,4 +46,5 @@ WORK = None
 typeof = None
 require = None
 module = None
+JSON = None
 __pragma__('noskip')

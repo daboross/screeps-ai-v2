@@ -1,3 +1,4 @@
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -29,6 +30,10 @@ class TargetMind:
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
         }
+        self.get_new_target = profiling.profile_func(
+            self.__get_new_target, "TargetMind.get_new_target")
+        self.get_existing_target = profiling.profile_func(
+            self.__get_existing_target, "TargetMind.get_existing_target")
 
     def _register_new_targeter(self, type, targeter_id, target_id):
         if not self.targeters[targeter_id]:
@@ -88,7 +93,7 @@ class TargetMind:
         self._register_new_targeter(type, targeter_id, new_target)
         return new_target
 
-    def get_new_target(self, creep, type, extra_var=None, second_time=False):
+    def __get_new_target(self, creep, type, extra_var=None, second_time=False):
         id = self._get_new_target_id(type, creep.name, creep.room, extra_var)
         if not id:
             return None
@@ -102,7 +107,7 @@ class TargetMind:
                 return self.get_new_target(creep, type, extra_var, True)
         return target
 
-    def get_existing_target(self, creep, type):
+    def __get_existing_target(self, creep, type):
         id = self._get_existing_target_id(type, creep.name)
         if not id:
             return None

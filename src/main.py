@@ -2,6 +2,7 @@ import building
 import creep_utils
 import harvesting
 import harvesting_big
+import profiling
 import spawning
 import tower
 import tower_fill
@@ -10,7 +11,11 @@ from base import *
 from hivemind import TargetMind
 
 __pragma__('noalias', 'name')
+
 require("perf")()
+
+# Needs to be below require("perf") and all other imports
+profiling.init()
 
 role_classes = {
     "upgrader": upgrading.Upgrader,
@@ -27,14 +32,21 @@ class Profiler:
 
     def check(self, name, *args):
         time = Game.cpu.getUsed()
-        if time - self.last > 1.5:
+        if time - self.last > 4:
             print("Used up {} time with `{}`!".format(time - self.last, name.format(*args)))
-        if time > 15:
+        if time > 30:
             print("Already used up {} time! (just finished `{}`)".format(time, name.format(*args)))
         self.last = time
 
 
 def main():
+    if Memory.did_not_finish:
+        if Memory.last_creep:
+            print("Didn't finish! Last creep run: {}: {}".format(
+                Memory.last_creep, Game.creeps[Memory.last_creep].saying))
+            del Memory.last_creep
+        return
+    Memory.did_not_finish = True
     p = Profiler()
     p.check("initial_load")
     target_mind = TargetMind()
@@ -56,7 +68,7 @@ def main():
         p.check("reassign_roles")
 
     for name in Object.keys(Game.creeps):
-        print("Starting creep {}".format(name))
+        Memory.last_creep = name
         creep = Game.creeps[name]
         if creep.spawning:
             continue
@@ -75,7 +87,9 @@ def main():
         if rerun:
             print("[{}] Tried to rerun twice!".format(name))
         p.check("creep {} ({})", name, role)
-        print("Ending creep {}".format(name))
+        Memory.last_creep_saying = creep.saying
+
+    del Memory.last_creep
 
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
@@ -83,6 +97,7 @@ def main():
 
     tower.run()
     p.check("tower")
+    del Memory.did_not_finish
 
 
-module.exports.loop = main
+module.exports.loop = profiling.profiler.wrap(main)

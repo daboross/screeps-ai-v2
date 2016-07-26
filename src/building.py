@@ -20,7 +20,7 @@ class Builder(upgrading.Upgrader):
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_repair)
             if target:
-                self.execute_repair_target(target, 350000, hivemind.target_repair)
+                return self.execute_repair_target(target, 350000, hivemind.target_repair)
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_construction)
             if target:
@@ -49,6 +49,7 @@ class Builder(upgrading.Upgrader):
                 target = self.get_new_repair_target(max_hits,
                                                     hivemind.target_big_repair)
                 if target:
+                    self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(
                         target, max_hits, hivemind.target_big_repair)
 
@@ -77,11 +78,11 @@ class Builder(upgrading.Upgrader):
                                                hivemind.target_construction)
 
     def execute_repair_target(self, target, max_hits, type):
-        if target.hits >= target.hitsMax or target.hits >= max_hits + 2000:
-            self.target_mind.untarget(self.creep, type)
-            del self.memory.last_big_repair_max_hits
-            return True
-
+        # if target.hits >= target.hitsMax or target.hits >= max_hits + 2000:
+        #     self.target_mind.untarget(self.creep, type)
+        #     del self.memory.last_big_repair_max_hits
+        #     return True
+        # Will automatically untarget when done spending all energy.
         result = self.creep.repair(target)
         if result == OK:
             if self.is_next_block_clear(target):

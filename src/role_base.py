@@ -1,4 +1,5 @@
 import hivemind
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -24,6 +25,13 @@ class RoleBase:
             Memory.creeps[creep.name] = memory
             self.memory = memory
 
+        self._get_path_to = profiling.profile_func(
+            self.___get_path_to, "RoleBase._get_path_to")
+        self.is_next_block_clear = profiling.profile_func(
+            self.__is_next_block_clear, "RoleBase.is_next_block_clear")
+        self.move_to = profiling.profile_func(
+            self.__move_to, "RoleBase.move_to")
+
     def get_harvesting(self):
         return self.memory.harvesting
 
@@ -45,7 +53,7 @@ class RoleBase:
         """
         pass
 
-    def _get_path_to(self, pos, same_position_ok=False):
+    def ___get_path_to(self, pos, same_position_ok=False):
         if not self.memory.path:
             self.memory.path = {}
         if not self.memory.reset_path:
@@ -87,7 +95,7 @@ class RoleBase:
         self.memory.reset_path[id] = Game.time + 100  # Reset every 100 ticks
         return path
 
-    def move_to(self, target, same_position_ok=False, times_tried=0):
+    def __move_to(self, target, same_position_ok=False, times_tried=0):
         if target.pos:
             pos = target.pos
         else:
@@ -294,13 +302,13 @@ class RoleBase:
         else:
             self.move_to(Game.spawns[0], True)
 
-    def is_next_block_clear(self, target):
+    def __is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
         creep_pos = self.creep.pos
 
-        # Apparently, I thought it would be best if we start at the target position, and continue looking for open spaces
-        # until we get to the origin position. Thus, if we encounter an obstacle, we use "continue", and if the result is
-        # that we've reached the creep position, we return false.
+        # Apparently, I thought it would be best if we start at the target position, and continue looking for open
+        # spaces until we get to the origin position. Thus, if we encounter an obstacle, we use "continue", and if the
+        # result is that we've reached the creep position, we return false.
         while True:
             if next_pos.x == creep_pos.x and next_pos.y == creep_pos.y:
                 return False
