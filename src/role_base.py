@@ -343,7 +343,6 @@ class RoleBase:
                 next_pos.x += 1
                 next_pos.y -= 1
             elif dir == BOTTOM:
-                next_pos.x -= 1
                 next_pos.y += 1
             elif dir == BOTTOM_LEFT:
                 next_pos.x -= 1
