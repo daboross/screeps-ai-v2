@@ -31,12 +31,13 @@ class Profiler:
         self.last = 0
 
     def check(self, name, *args):
-        time = Game.cpu.getUsed()
-        if time - self.last > 4:
-            print("Used up {} time with `{}`!".format(time - self.last, name.format(*args)))
-        if time > 30:
-            print("Already used up {} time! (just finished `{}`)".format(time, name.format(*args)))
-        self.last = time
+        pass
+        # time = Game.cpu.getUsed()
+        # if time - self.last > 4:
+        #     print("Used up {} time with `{}`!".format(time - self.last, name.format(*args)))
+        # if time > 30:
+        #     print("Already used up {} time! (just finished `{}`)".format(time, name.format(*args)))
+        # self.last = time
 
 
 def main():
