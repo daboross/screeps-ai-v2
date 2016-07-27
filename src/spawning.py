@@ -9,7 +9,7 @@ __pragma__('noalias', 'name')
 def run(spawn):
     if not Memory.no_more_spawning and not spawn.spawning:
         # TODO: extra roles which might need >1000 energy!
-        max = min(spawn.room.energyCapacityAvailable, 1000)
+        max = min(spawn.room.energyCapacityAvailable, 1250)
         spawn_with_energy(spawn, max)
 
 
