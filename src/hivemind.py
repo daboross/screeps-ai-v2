@@ -10,6 +10,7 @@ target_construction = "construction_site"
 target_repair = "repair_site"
 target_big_repair = "extra_repair_site"
 target_harvester_deposit = "harvester_deposit_site"
+target_tower_fill = "fillable_tower"
 
 
 class TargetMind:
@@ -33,6 +34,7 @@ class TargetMind:
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
             target_harvester_deposit: self._find_new_harvester_deposit_site,
+            target_tower_fill: self._find_new_tower,
         }
         self.get_new_target = profiling.profile_func(
             self.__get_new_target, "TargetMind.get_new_target")
@@ -139,10 +141,10 @@ class TargetMind:
                 return id
             elif self.targets[target_source][id] <= smallest_num_harvesters + 1:
                 range = source.pos.getRangeTo(creep.pos)
-                smallest_num_harvesters = self.targets[target_source][id]
                 if range < closest_distance:
                     best_id = id
                     closest_distance = range
+                    smallest_num_harvesters = self.targets[target_source][id]
 
         return best_id
 
@@ -170,8 +172,8 @@ class TargetMind:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
-                        best_id = id
                         closest_distance = range
+                        best_id = id
 
         return best_id
 
@@ -184,8 +186,8 @@ class TargetMind:
                 range = site.pos.getRangeTo(creep.pos)
                 # TODO: use squared distance for faster calculation!
                 if range < closest_distance:
-                    best_id = id
                     closest_distance = range
+                    best_id = id
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits):
@@ -199,12 +201,12 @@ class TargetMind:
                 id = structure.id
                 if not self.targets[target_repair][id] or self.targets[target_source][id] < _MAX_BUILDERS \
                         or self.targets[target_repair][id] <= smallest_num_builders + 1:
-                    smallest_num_builders = self.targets[target_repair][id]
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
-                        best_id = id
+                        smallest_num_builders = self.targets[target_repair][id]
                         closest_distance = range
+                        best_id = id
 
         return best_id
 
@@ -223,6 +225,19 @@ class TargetMind:
                 if range < closest_distance:
                     best_id = id
                     closest_distance = range
+        return best_id
+
+    def _find_new_tower(self, creep):
+        most_lacking = 0
+        best_id = None
+        for id in Memory.tower.towers:
+            tower = Game.getObjectById(id)
+            if tower.room != creep.room:
+                continue
+            if tower.energyCapacity - tower.energy > most_lacking:
+                most_lacking = tower.energyCapacity - tower.energy
+                best_id = id
+
         return best_id
 
 

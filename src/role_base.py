@@ -121,89 +121,6 @@ class RoleBase:
                         self.name, self.creep.pos, target.pos, path))
                     self.creep.moveTo(target)
 
-    def get_spread_out_target(self, resource, find_list, limit_by=None, true_limit=False):
-        if not self.memory.targets:
-            self.memory.targets = {}
-
-        if self.memory.targets[resource]:
-            target = Game.getObjectById(self.memory.targets[resource])
-            if target:
-                # don't return null targets
-                return target
-            else:
-                print("[{}] Retargetting {}!".format(self.name, resource))
-                id = self.memory.targets[resource]
-                del self.memory.targets[resource]
-                del Memory.targets_used[resource][id]
-
-        if not Memory.targets_used:
-            Memory.targets_used = {
-                resource: {}
-            }
-        elif not Memory.targets_used[resource]:
-            Memory.targets_used[resource] = {}
-
-        list = find_list()
-        min_count = 8000
-        min_target = None
-        min_target_id = None
-        for prop in Object.keys(list):
-            possible_target = list[prop]
-            id = possible_target.id
-            if not id:
-                print("No ID on possible target {}".format(possible_target))
-                id = possible_target.name
-
-            if not Memory.targets_used[resource][id]:
-                self.memory.targets[resource] = id
-                Memory.targets_used[resource][id] = 1
-                return possible_target
-            elif limit_by:
-                if typeof(limit_by) == "number":
-                    limit = limit_by
-                else:
-                    limit = limit_by(possible_target)
-                if Memory.targets_used[resource][id] < limit:
-                    min_target_id = id
-                    min_target = possible_target
-                    break
-
-            if not limit_by or not true_limit:
-                if Memory.targets_used[resource][id] < min_count:
-                    min_count = Memory.targets_used[resource][id]
-                    min_target = possible_target
-                    min_target_id = id
-
-        if not min_target:
-            return None
-        else:
-            Memory.targets_used[resource][min_target_id] += 1
-            self.memory.targets[resource] = min_target_id
-            return min_target
-
-    def get_possible_spread_out_target(self, resource):
-        if self.memory.targets and self.memory.targets[resource]:
-            target = Game.getObjectById(self.memory.targets[resource])
-            if target:
-                return target
-            else:
-                id = self.memory.targets[resource]
-                del self.memory.targets[resource]
-                del Memory.targets_used[resource][id]
-
-        return None
-
-    def untarget_spread_out_target(self, resource):
-        if self.memory.targets:
-            id = self.memory.targets[resource]
-            if id:
-                if (Memory.targets_used and Memory.targets_used[resource] and
-                        Memory.targets_used[resource][id]):
-                    Memory.targets_used[resource][id] -= 1
-
-                del self.memory.targets[resource]
-                del self.memory.path[id]
-
     def harvest_energy(self):
         # def filter(source):
         #     if not Memory.big_harvesters_placed or not Memory.big_harvesters_placed[source.id]:
@@ -310,7 +227,6 @@ class RoleBase:
 
     def finished_energy_harvest(self):
         self.target_mind.untarget(self.creep, hivemind.target_source)
-        self.untarget_spread_out_target("source")
 
     def go_to_depot(self):
         flag = Game.flags["depot"]

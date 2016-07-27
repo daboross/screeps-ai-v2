@@ -1,4 +1,5 @@
 import harvesting
+import hivemind
 from base import *
 
 __pragma__('noalias', 'name')
@@ -11,20 +12,20 @@ class TowerFill(harvesting.Harvester):
             self.finished_energy_harvest()
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.untarget_spread_out_target("tower_fill")
-            self.untarget_spread_out_target("harvester_deposit")
+            self.target_mind.untarget(self.creep, hivemind.target_tower_fill)
+            self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
 
         if self.memory.harvesting:
             return self.harvest_energy()
         else:
-            target = self.get_new_tower_target()
+            target = self.target_mind.get_new_target(self.creep, hivemind.target_tower_fill)
             if target:
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == ERR_NOT_IN_RANGE:
                     self.creep.say("TF. F. T.")
                     self.move_to(target)
                 elif result == ERR_FULL:
-                    self.untarget_spread_out_target("tower_fill")
+                    self.target_mind.untarget(self.creep, hivemind.target_tower_fill)
                     return True
                 elif result != OK:
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
@@ -39,14 +40,3 @@ class TowerFill(harvesting.Harvester):
                 return harvesting.Harvester.run(self)
 
         return False
-
-    def get_new_tower_target(self):
-        def find_list():
-            tower_list = []
-            for id in Memory.tower.towers:
-                tower = Game.getObjectById(id)
-                if tower.energy < tower.energyCapacity:
-                    tower_list.append(tower)
-            return tower_list
-
-        return self.get_spread_out_target("tower_fill", find_list)

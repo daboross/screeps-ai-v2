@@ -23,7 +23,7 @@ class Upgrader(RoleBase):
                 self.move_to(self.creep.room.controller)
                 self.creep.say("U. F. C.")
             elif result == ERR_NOT_ENOUGH_RESOURCES:
-                self.harvesting = True
+                self.memory.harvesting = True
                 self.creep.say("U. NER.")
             elif result == OK:
                 self.move_to(self.creep.room.controller, True)
@@ -34,7 +34,7 @@ class Upgrader(RoleBase):
                 ))
 
                 if self.creep.carry.energy < self.creep.carryCapacity:
-                    self.harvesting = True
+                    self.memory.harvesting = True
                 else:
                     self.go_to_depot()
                 self.creep.say("U. ???")
