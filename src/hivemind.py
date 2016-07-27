@@ -254,6 +254,20 @@ class HiveMind:
 
 
 class RoomMind:
+    """
+    Modes to create:
+
+    - Whether or not to use STORAGE
+    - When to create Big Harvesters
+    - When to set workers to TOWER FILL
+
+    Variables to consider
+    - WORK_MASS: a total count of all WORK bodyparts on worker creeps
+    - BIG_HARVESTERS_PLACED: where big harvesters exist
+    - TIME_TO_REPLACE_BIG_HARVESTER: We need to count how long till the next big harvester dies plus how long it should
+                                     take for the new big harvester to move from spawn to the big harvester's location
+    """
+
     def __init__(self, hivemind, room):
         self.hivemind = hivemind
         self.room = room
