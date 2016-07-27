@@ -1,27 +1,29 @@
+import building
 import hivemind
-import upgrading
 from base import *
 
 __pragma__('noalias', 'name')
 
 
-class Harvester(upgrading.Upgrader):
+class Harvester(building.Builder):
     def run(self):
         if _.size(Game.creeps) > 16:
             # TODO: currently fixed 16 cap
             # we have enough creeps right now, upgrade instead!
             # just do this so that someone reading memory can tell
-            self.memory.running_as_upgrader = True
+            self.memory.running_as_builder = True
             self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
-            upgrading.Upgrader.run(self)
+            building.Builder.run(self)
             return
         else:
+            del self.memory.running_as_builder
             del self.memory.running_as_upgrader
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.finished_energy_harvest()
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
+            self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
 
         if self.memory.harvesting:
             return self.harvest_energy()
@@ -49,5 +51,6 @@ class Harvester(upgrading.Upgrader):
                     else:
                         self.creep.say("H. Fill.")
             else:
-                return upgrading.Upgrader.run(self)
+                self.memory.running_as_builder = True
+                return building.Builder.run(self)
         return False
