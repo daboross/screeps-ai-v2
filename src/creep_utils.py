@@ -10,6 +10,7 @@ __pragma__('noalias', 'name')
 creep_base_base = "base"
 creep_base_big_harvester = "big_harvester"
 
+# TODO: the third argument of each subarray isn't used at all.
 role_requirements = [
     ["harvester", 2, creep_base_base],
     # TODO: 2 is currently hardcoded for my map.
@@ -33,17 +34,7 @@ def role_count(role):
     return count
 
 
-def get_role_name(new_spawn=False):
-    harvester_count = role_count("harvester")
-    upgrader_count = role_count("upgrader")
-    builder_count = role_count("builder")
-    big_harvester_count = role_count("big_harvester")
-    tower_fill_count = role_count("tower_fill")
-    print("Getting role: assuming {} harvesters exist, {} big harvesters exist, {} upgraders exist,"
-          "{} tower_fillers exist, {} builders exist, and this {} a new spawn.".format(
-        harvester_count, big_harvester_count, upgrader_count, tower_fill_count, builder_count,
-        "is" if new_spawn else "isn't"))
-
+def get_role_name():
     for role, count in role_requirements:
         if Memory.role_counts[role] < count:
             return role
@@ -148,4 +139,4 @@ def clear_memory(target_mind):
             del Memory.creeps[name]
         elif creep.ticksToLive < smallest_ticks_to_live:
             smallest_ticks_to_live = creep.ticksToLive
-    Memory.clear_memory_next = Game.time + smallest_ticks_to_live + 3 # some leeway
+    Memory.clear_memory_next = Game.time + smallest_ticks_to_live + 3  # some leeway
