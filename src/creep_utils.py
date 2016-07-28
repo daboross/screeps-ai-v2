@@ -7,20 +7,20 @@ __pragma__('noalias', 'name')
 # SPAWNING
 # ***
 
-creep_base_base = "base"
+creep_base_worker = "worker"
 creep_base_big_harvester = "big_harvester"
 
 # TODO: the third argument of each subarray isn't used at all.
 role_requirements = [
-    ["harvester", 2, creep_base_base],
+    ["harvester", 2, creep_base_worker],
     # TODO: 2 is currently hardcoded for my map.
     ["big_harvester", 2, creep_base_big_harvester],
-    ["harvester", 4, creep_base_base],
-    ["upgrader", 1, creep_base_base],
-    ["tower_fill", 2, creep_base_base],
-    ["upgrader", 2, creep_base_base],
-    ["harvester", 6, creep_base_base],
-    ["builder", 6, creep_base_base]
+    ["harvester", 4, creep_base_worker],
+    ["upgrader", 1, creep_base_worker],
+    ["tower_fill", 2, creep_base_worker],
+    ["upgrader", 2, creep_base_worker],
+    ["harvester", 6, creep_base_worker],
+    ["builder", 6, creep_base_worker]
 ]
 
 
@@ -34,11 +34,36 @@ def role_count(role):
     return count
 
 
-def get_role_name():
-    for role, count in role_requirements:
-        if Memory.role_counts[role] < count:
-            return role
-    return None
+def get_role_name(existing_base=None):
+    for role, ideal, base in role_requirements:
+        current = role_count(role)
+        if current < ideal or (not current and ideal > 0):
+            if (not existing_base) or existing_base == base:
+                print("[roles] Found role {}! {} < {}".format(role, current, ideal))
+                return base, role
+            else:
+                print("[roles] Found role {} didn't match existing base {}.".format(role, existing_base))
+        else:
+            print("[roles] We're good with {} {}! (ideal={}, actual={})".format(ideal, role, ideal, current))
+    if existing_base == creep_base_worker:
+        print("[roles] No new roles needed! Existing worker set as builder.")
+        return creep_base_worker, "builder"
+    elif existing_base == creep_base_big_harvester:
+        print("[roles] No new roles needed! Existing big_harvester set as big_harvester")
+        return creep_base_big_harvester, "big_harvester"
+    else:
+        print("[roles] No new roles needed!")
+        return None, None
+
+
+def find_base(creep):
+    part_counts = _.countBy(creep.body, lambda p: p.type)
+    if part_counts[MOVE] > part_counts[WORK]:
+        base = creep_base_worker
+    else:
+        base = creep_base_big_harvester
+    print("[roles] Body {} found to be {}.".format(JSON.stringify(part_counts), base))
+    return base
 
 
 # ***
@@ -80,40 +105,6 @@ def count_roles():
     Memory.role_counts = role_counts
 
 
-def recheck_targets_used():
-    old_targets = Memory.targets_used
-    targets_used = {}
-
-    for name in Object.keys(Memory.creeps):
-        memory = Memory.creeps[name]
-        if not memory.targets:
-            continue
-        for resource in Object.keys(memory.targets):
-            id = memory.targets[resource]
-            if not targets_used[resource]:
-                targets_used[resource] = {}
-            if not targets_used[resource][id]:
-                targets_used[resource][id] = 1
-            else:
-                targets_used[resource][id] += 1
-
-    if old_targets:
-        for resource in targets_used.keys():
-            for id in targets_used[resource].keys():
-                if old_targets[resource][id] != targets_used[resource][id]:
-                    print("Target {}:{} didn't match. {} != {}".format(
-                        resource, id, old_targets[resource][id], targets_used[resource][id]
-                    ))
-            if old_targets[type]:
-                for id in Object.keys(old_targets[type]):
-                    if not targets_used[type][id] and old_targets[type][id]:
-                        print("Target {}:{} didn't match. {} != {}".format(
-                            resource, id, old_targets[resource][id], 0
-                        ))
-
-    Memory.targets_used = targets_used
-
-
 def clear_memory(target_mind):
     """
     :type target_mind: hivemind.TargetMind
@@ -139,4 +130,4 @@ def clear_memory(target_mind):
             del Memory.creeps[name]
         elif creep.ticksToLive < smallest_ticks_to_live:
             smallest_ticks_to_live = creep.ticksToLive
-    Memory.clear_memory_next = Game.time + smallest_ticks_to_live + 3  # some leeway
+    Memory.meta.clear_next = Game.time + smallest_ticks_to_live + 3  # some leeway

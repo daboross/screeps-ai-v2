@@ -1,4 +1,5 @@
-import profiling
+import math
+
 from base import *
 
 __pragma__('noalias', 'name')
@@ -36,10 +37,6 @@ class TargetMind:
             target_harvester_deposit: self._find_new_harvester_deposit_site,
             target_tower_fill: self._find_new_tower,
         }
-        self.get_new_target = profiling.profile_func(
-            self.__get_new_target, "TargetMind.get_new_target")
-        self.get_existing_target = profiling.profile_func(
-            self.__get_existing_target, "TargetMind.get_existing_target")
 
     def _register_new_targeter(self, type, targeter_id, target_id):
         if not self.targeters[targeter_id]:
@@ -82,7 +79,11 @@ class TargetMind:
         if not self.targets[type]:
             self.targets[type] = {}
             print("Creating targets[{}]".format(type))
-        return self.find_functions[type](creep, extra_var)
+        func = self.find_functions[type]
+        if func:
+            return func(creep, extra_var)
+        else:
+            raise "Couldn't find find_function for '{}'!".format(type)
 
     def _get_existing_target_id(self, type, targeter_id):
         if self.targeters[targeter_id]:
@@ -99,7 +100,7 @@ class TargetMind:
         self._register_new_targeter(type, targeter_id, new_target)
         return new_target
 
-    def __get_new_target(self, creep, type, extra_var=None, second_time=False):
+    def get_new_target(self, creep, type, extra_var=None, second_time=False):
         id = self._get_new_target_id(type, creep.name, creep, extra_var)
         if not id:
             return None
@@ -113,7 +114,7 @@ class TargetMind:
                 return self.get_new_target(creep, type, extra_var, True)
         return target
 
-    def __get_existing_target(self, creep, type):
+    def get_existing_target(self, creep, type):
         id = self._get_existing_target_id(type, creep.name)
         if not id:
             return None
@@ -137,29 +138,26 @@ class TargetMind:
         closest_distance = 8192
         for source in creep.room.find(FIND_SOURCES):
             id = source.id
-            if not self.targets[target_source][id]:
+            current_harvesters = self.targets[target_source][id]
+            if not current_harvesters:
                 return id
-            elif self.targets[target_source][id] <= smallest_num_harvesters + 1:
+            elif current_harvesters <= smallest_num_harvesters + 1:
                 range = source.pos.getRangeTo(creep.pos)
-                if range < closest_distance:
+                if range < closest_distance or current_harvesters < smallest_num_harvesters - 1:
                     best_id = id
                     closest_distance = range
-                    smallest_num_harvesters = self.targets[target_source][id]
+                    smallest_num_harvesters = current_harvesters
 
         return best_id
 
     def _find_new_big_h_source(self, creep):
-        smallest_num_harvesters = 1
-        best_id = None
         for source in creep.room.find(FIND_SOURCES):
             id = source.id
-            if not self.targets[target_big_source][id]:
+            current_harvesters = self.targets[target_big_source][id]
+            if not current_harvesters or current_harvesters < 1:
                 return id
-            elif self.targets[target_big_source][id] < smallest_num_harvesters:
-                smallest_num_harvesters = self.targets[target_big_source][id]
-                best_id = id
 
-        return best_id
+        return None
 
     def _find_new_harvester_deposit_site(self, creep):
         closest_distance = 8192
@@ -168,7 +166,9 @@ class TargetMind:
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
                 id = structure.id
-                if not self.targets[target_repair][id] or self.targets[target_source][id] < 1:
+                current_num = self.targets[target_source][id]
+                # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
+                if not current_num or current_num < 1:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
@@ -182,7 +182,10 @@ class TargetMind:
         best_id = None
         for site in creep.room.find(FIND_CONSTRUCTION_SITES):
             id = site.id
-            if not self.targets[target_source][id] or self.targets[target_source][id] < _MAX_BUILDERS:
+            current_num = self.targets[target_construction][id]
+            # TODO: this 200 should be a decided factor based off of spawn extensions
+            if not current_num or current_num < \
+                    min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200)):
                 range = site.pos.getRangeTo(creep.pos)
                 # TODO: use squared distance for faster calculation!
                 if range < closest_distance:
@@ -196,15 +199,17 @@ class TargetMind:
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax \
-                    and (not max_hits or structure.hits < max_hits):
-
+                    and (structure.hits < max_hits or not max_hits):
                 id = structure.id
-                if not self.targets[target_repair][id] or self.targets[target_source][id] < _MAX_BUILDERS \
-                        or self.targets[target_repair][id] <= smallest_num_builders + 1:
+                current_num = self.targets[target_repair][id]
+                # TODO: this 200 should be a decided factor based off of spawn extensions
+                if not current_num or current_num < \
+                        min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax) - structure.hits) / 200)) \
+                        or current_num <= smallest_num_builders + 1:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
-                        smallest_num_builders = self.targets[target_repair][id]
+                        smallest_num_builders = current_num
                         closest_distance = range
                         best_id = id
 
@@ -214,17 +219,17 @@ class TargetMind:
         closest_distance = 8192
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
-            if (structure.my == False or
-                        structure.hits >= structure.hitsMax or
-                    (max_hits and structure.hits >= max_hits)):
-                continue
-            id = structure.id
-            if not self.targets[target_repair][id] or self.targets[target_source][id] < 1:
-                range = structure.pos.getRangeTo(creep.pos)
-                # TODO: use squared distance for faster calculation!
-                if range < closest_distance:
-                    best_id = id
-                    closest_distance = range
+            if structure.my != False and structure.hits < structure.hitsMax \
+                    and (structure.hits < max_hits or not max_hits):
+                id = structure.id
+                current_num = self.targets[target_big_repair][id]
+                if not current_num or current_num < 1:
+                    range = structure.pos.getRangeTo(creep.pos)
+                    # TODO: use squared distance for faster calculation!
+                    if range < closest_distance:
+                        closest_distance = range
+                        best_id = id
+
         return best_id
 
     def _find_new_tower(self, creep):
@@ -240,6 +245,16 @@ class TargetMind:
 
         return best_id
 
+
+# methods_to_profile = (
+#     "get_new_target", "get_existing_target", "_find_new_source", "_find_new_big_h_source",
+#     "_find_new_construction_site", "_find_new_repair_site", "_find_new_big_repair_site",
+#     "_find_new_harvester_deposit_site", "_find_new_tower"
+# )
+#
+# for name in methods_to_profile:
+#     profiling.profile_method(TargetMind, name)
+#
 
 class HiveMind:
     def __init__(self, target_mind):

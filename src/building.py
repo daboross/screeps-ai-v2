@@ -20,42 +20,36 @@ class Builder(upgrading.Upgrader):
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_repair)
             if target:
-                return self.execute_repair_target(target, 350000, hivemind.target_repair)
+                return self.execute_repair_target(target, hivemind.target_repair)
             target = self.target_mind.get_existing_target(self.creep,
                                                           hivemind.target_construction)
             if target:
                 return self.execute_construction_target(target)
-
             target = self.get_new_repair_target(350000, hivemind.target_repair)
             if target:
                 self.target_mind.untarget(self.creep, hivemind.target_big_repair)
                 del self.memory.last_big_repair_max_hits
-                return self.execute_repair_target(target, 350000, hivemind.target_repair)
+                return self.execute_repair_target(target, hivemind.target_repair)
 
             target = self.get_new_construction_target()
             if target:
                 self.target_mind.untarget(self.creep, hivemind.target_big_repair)
                 del self.memory.last_big_repair_max_hits
                 return self.execute_construction_target(target)
-            else:
-                print("Couldn't find a construction target for creep {}!".format(self.name))
 
             if self.memory.last_big_repair_max_hits:
                 max_hits = self.memory.last_big_repair_max_hits
-                target = self.get_new_repair_target(max_hits,
-                                                    hivemind.target_big_repair)
+                target = self.get_new_repair_target(max_hits, hivemind.target_big_repair)
                 if target:
                     return self.execute_repair_target(
-                        target, max_hits, hivemind.target_big_repair)
+                        target, hivemind.target_big_repair)
             for max_hits in range(400000, 600000, 50000):
-                target = self.get_new_repair_target(max_hits,
-                                                    hivemind.target_big_repair)
+                target = self.get_new_repair_target(max_hits, hivemind.target_big_repair)
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(
-                        target, max_hits, hivemind.target_big_repair)
+                        target, hivemind.target_big_repair)
 
-            print("[{}] Couldn't find any building targets.".format(self.name))
             self.creep.say("B. U.")
             return upgrading.Upgrader.run(self)
 
@@ -68,36 +62,42 @@ class Builder(upgrading.Upgrader):
         return self.target_mind.get_new_target(self.creep,
                                                hivemind.target_construction)
 
-    def execute_repair_target(self, target, max_hits, type):
+    def execute_repair_target(self, target, type):
         self.creep.say("R. {}.".format(target.structureType))
         if target.hits >= target.hitsMax:
             self.target_mind.untarget(self.creep, type)
             del self.memory.last_big_repair_max_hits
             return True
+        if not self.creep.pos.inRangeTo(target.pos, 3):
+            self.move_to(target, True)
+            return False
+
         result = self.creep.repair(target)
         if result == OK:
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
-        elif result == ERR_NOT_IN_RANGE:
-            self.move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self.creep, type)
             del self.memory.last_big_repair_max_hits
             return True
         else:
             print("[{}] Unknown result from creep.repair({}): {}".format(self.name, target, result))
+
         return False
 
     def execute_construction_target(self, target):
         self.creep.say("B. {}.".format(target.structureType))
+        if not self.creep.pos.inRangeTo(target.pos, 3):
+            self.move_to(target, True)
+            return False
         result = self.creep.build(target)
         if result == OK:
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
-        elif result == ERR_NOT_IN_RANGE:
-            self.move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self.creep, hivemind.target_construction)
         else:
             print("[{}] Unknown result from creep.build({}): {}".format(self.name, target, result))
             return True
+
+        return False

@@ -18,11 +18,13 @@ class Upgrader(RoleBase):
             self.go_to_depot()
             self.creep.say("U. D!!")
         else:
+            target = self.creep.room.controller
+            if not self.creep.pos.inRangeTo(target.pos, 3):
+                self.move_to(target)
+                return False
+
             result = self.creep.upgradeController(self.creep.room.controller)
-            if result == ERR_NOT_IN_RANGE:
-                self.move_to(self.creep.room.controller)
-                self.creep.say("U. F. C.")
-            elif result == ERR_NOT_ENOUGH_RESOURCES:
+            if result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 self.creep.say("U. NER.")
             elif result == OK:
@@ -37,6 +39,6 @@ class Upgrader(RoleBase):
                     self.memory.harvesting = True
                 else:
                     self.go_to_depot()
-                self.creep.say("U. ???")
+                    self.creep.say("U. ???")
 
         return False

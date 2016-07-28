@@ -29,27 +29,29 @@ class Harvester(building.Builder):
             return self.harvest_energy()
         else:
             target = self.target_mind.get_new_target(self.creep, hivemind.target_harvester_deposit)
-
             if target:
                 if target.energy >= target.energyCapacity:
                     self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
                     return True
                 else:
-                    result = self.creep.transfer(target, RESOURCE_ENERGY)
-                    if result == ERR_NOT_IN_RANGE:
+                    if not self.creep.pos.isNearTo(target.pos):
                         self.move_to(target)
                         self.creep.say("H. Find.")
+                        return False
+
+                    result = self.creep.transfer(target, RESOURCE_ENERGY)
+
+                    if result == OK:
+                        self.creep.say("H. Fill.")
                     elif result == ERR_FULL:
                         self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
                         return True
-                    elif result != OK:
+                    else:
                         print("[{}] Unknown result from creep.transfer({}): {}".format(
                             self.name, target, result
                         ))
                         self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
                         return True
-                    else:
-                        self.creep.say("H. Fill.")
             else:
                 self.memory.running_as_builder = True
                 return building.Builder.run(self)

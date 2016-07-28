@@ -1,8 +1,9 @@
 import hivemind
-import profiling
 from base import *
 
 __pragma__('noalias', 'name')
+
+PathFinder.use(True)
 
 
 class RoleBase:
@@ -25,13 +26,6 @@ class RoleBase:
             Memory.creeps[creep.name] = memory
             self.memory = memory
 
-        self._get_path_to = profiling.profile_func(
-            self.___get_path_to, "RoleBase._get_path_to")
-        self.is_next_block_clear = profiling.profile_func(
-            self.__is_next_block_clear, "RoleBase.is_next_block_clear")
-        self.move_to = profiling.profile_func(
-            self.__move_to, "RoleBase.move_to")
-
     def get_harvesting(self):
         return self.memory.harvesting
 
@@ -48,12 +42,12 @@ class RoleBase:
     def run(self):
         """
         Runs this role's actions.
-        :return: False if completed sucessfully, true if this method should be called a second time.
+        :return: False if completed successfully, true if this method should be called a second time.
         :rtype Boolean:
         """
         pass
 
-    def ___get_path_to(self, pos, same_position_ok=False):
+    def _get_path_to(self, pos, same_position_ok=False):
         if not self.memory.path:
             self.memory.path = {}
         if not self.memory.reset_path:
@@ -76,9 +70,9 @@ class RoleBase:
                         self.memory.same_place_ticks += 1
                     else:
                         print("[{}] Regenerating path from {} to {}".format(
-                            self.name, self.creep.pos, pos.pos
+                            self.name, self.creep.pos, pos
                         ))
-                        path = self.creep.pos.findPathTo(pos)
+                        path = self.creep.pos.findPathTo(pos, {"maxRooms": 4})
                         self.memory.path[id] = Room.serializePath(path)
                         self.memory.same_place_ticks = 0
                         return path
@@ -95,7 +89,7 @@ class RoleBase:
         self.memory.reset_path[id] = Game.time + 100  # Reset every 100 ticks
         return path
 
-    def __move_to(self, target, same_position_ok=False, times_tried=0):
+    def move_to(self, target, same_position_ok=False, times_tried=0):
         if target.pos:
             pos = target.pos
         else:
@@ -104,7 +98,12 @@ class RoleBase:
             path = self._get_path_to(pos, same_position_ok)
             result = self.creep.moveByPath(path)
 
-            if result != OK:
+            if result == ERR_NO_BODYPART:
+                # TODO: check for towers here, or use RoomMind to do that.
+                print("[{}] Couldn't move, all move parts dead!".format(self.name))
+                self.creep.suicide()
+                Memory.meta.clear_now = False
+            elif result != OK:
                 if result != ERR_NOT_FOUND:
                     print("[{}] Unknown result from creep.moveByPath: {}".format(
                         self.name, result
@@ -122,33 +121,18 @@ class RoleBase:
                     self.creep.moveTo(target)
 
     def harvest_energy(self):
-        # def filter(source):
-        #     if not Memory.big_harvesters_placed or not Memory.big_harvesters_placed[source.id]:
-        #         return True
-        #
-        #     harvester = Game.getObjectById(Memory.big_harvesters_placed[source.id])
-        #     if harvester:
-        #         pos = harvester.pos
-        #         energy_piles = pos.look(LOOK_ENERGY)
-        #         return energy_piles.length > 0 and energy_piles[0].amount > 20
-        #
-        #     return True
-
         source = self.target_mind.get_new_target(self.creep, hivemind.target_source)
-
         if not source:
-            print("[{}] Wasn't able to find source {}".format(
-                self.name, self.target_mind._get_existing_target_id(hivemind.target_source, self.creep.id)
-            ))
+            print("[{}] Wasn't able to find a source!".format(self.name))
             self.finished_energy_harvest()
-            self.creep.say("D! !s")
+            self.creep.say("D! G No S.")
             self.go_to_depot()
-            return
+            return True
 
         if source.pos.roomName != self.creep.pos.roomName:
             self.move_to(source)
             self.creep.say("G. F. BR.")
-            return
+            return False
 
         if source.color:
             # this is a flag
@@ -156,9 +140,9 @@ class RoleBase:
             if not len(sources):
                 print("[{}] Warning! Couldn't find any sources at flag {}!".format(self.name, source))
                 self.finished_energy_harvest()
-                self.creep.say("D! F!s")
+                self.creep.say("D! G F No S.")
                 self.go_to_depot()
-                return
+                return True
             source = sources[0]
 
         piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
@@ -173,7 +157,7 @@ class RoleBase:
                 self.creep.say("???")
             else:
                 self.creep.say("G. E.")
-            return
+            return False
 
         containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
             (struct.structureType == STRUCTURE_CONTAINER
@@ -191,14 +175,14 @@ class RoleBase:
                 self.creep.say("G. C. ???!")
             else:
                 self.creep.say("G. C.")
-            return
+            return False
 
         # at this point, there is no energy and no container filled.
         # we should ensure that if there's a big harvester, it hasn't died!
         if (Memory.big_harvesters_placed
             and Memory.big_harvesters_placed[source.id]
             and not Game.creeps[Memory.big_harvesters_placed[source.id]]):
-            Memory.needs_clearing = True
+            Memory.meta.clear_now = True
             del Memory.big_harvesters_placed[source.id]
             self.move_to(source)
             self.creep.say("G. Find. S.")
@@ -211,19 +195,16 @@ class RoleBase:
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(source)
                 self.creep.say("G. Find. S.")
-            elif result == -6:
-                # TODO: get the enum name for -6 (no resources available)
+            elif result == ERR_NOT_ENOUGH_RESOURCES:
                 # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-                pass
                 self.creep.say("G. W.")
             elif result != OK:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))
                 self.creep.say("G. ???")
-                # else:
-                #     self.go_to_depot()
             else:
                 self.creep.say("G. S.")
+        return False
 
     def finished_energy_harvest(self):
         self.target_mind.untarget(self.creep, hivemind.target_source)
@@ -235,7 +216,7 @@ class RoleBase:
         else:
             self.move_to(Game.spawns[0], True)
 
-    def __is_next_block_clear(self, target):
+    def is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
         creep_pos = self.creep.pos
 

@@ -2,7 +2,6 @@ import building
 import creep_utils
 import harvesting
 import harvesting_big
-import profiling
 import spawning
 import tower
 import tower_fill
@@ -15,7 +14,7 @@ __pragma__('noalias', 'name')
 require("perf")()
 
 # Needs to be below require("perf") and all other imports
-profiling.init()
+# profiling.init()
 
 role_classes = {
     "upgrader": upgrading.Upgrader,
@@ -41,14 +40,8 @@ class Profiler:
 
 
 def main():
-    # if Memory.did_not_finish:
-    #     if Memory.last_creep:
-    #         print("Didn't finish! Last creep run: {}: {}".format(
-    #             Memory.last_creep, Game.creeps[Memory.last_creep].saying))
-    #         del Memory.last_creep
-    #     return
-
-    # Memory.did_not_finish = True
+    if Memory.meta and Memory.meta.pause:
+        return
 
     p = Profiler()
 
@@ -56,41 +49,48 @@ def main():
     target_mind = TargetMind()
     p.check("create_target_mind")
 
+    if not Memory.creeps:
+        Memory.creeps = {}
+        for name in Object.keys(Game.creeps):
+            Memory.creeps[name] = {}
+
     time = Game.time
-    if Memory.needs_clearing or not Memory.clear_memory_next or time > Memory.clear_memory_next:
+    if not Memory.meta or Memory.meta.clear_now or \
+            not Memory.meta.clear_next or time > Memory.meta.clear_next:
+        if not Memory.meta:
+            Memory.meta = {"pause": False}
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
         p.check("clear_memory")
-        creep_utils.recheck_targets_used()
-        p.check("recheck_targets_used")
         creep_utils.count_roles()
         p.check("count_roles")
         creep_utils.reassign_roles()
         p.check("reassign_roles")
-        Memory.needs_clearing = False
+        Memory.meta.clear_now = False
 
     for name in Object.keys(Game.creeps):
-        # Memory.last_creep = name
         creep = Game.creeps[name]
         if creep.spawning:
             continue
+        if not creep.memory.base:
+            creep.memory.base = creep_utils.find_base(creep)
         role = creep.memory.role
         if role in role_classes:
-            creep_wrapper = role_classes[role](target_mind, creep)
+            creep_instance = role_classes[role](target_mind, creep)
         else:
-            role = creep_utils.get_role_name()
+            role = creep_utils.get_role_name(creep.memory.base)[1]
             creep.memory.role = role
-            Memory.role_counts[role] += 1
-            creep_wrapper = role_classes[role](target_mind, creep)
-
-        rerun = creep_wrapper.run()
+            if Memory.role_counts[role]:
+                Memory.role_counts[role] += 1
+            else:
+                Memory.role_counts[role] = 1
+            creep_instance = role_classes[role](target_mind, creep)
+        rerun = creep_instance.run()
         if rerun:
-            rerun = creep_wrapper.run()
+            rerun = creep_instance.run()
         if rerun:
             print("[{}] Tried to rerun twice!".format(name))
         p.check("creep {} ({})", name, role)
-
-    # del Memory.last_creep
 
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
@@ -98,7 +98,6 @@ def main():
 
     tower.run()
     p.check("tower")
-    # del Memory.did_not_finish
 
 
-module.exports.loop = profiling.profiler.wrap(main)
+module.exports.loop = main  #profiling.profiler.wrap(main)

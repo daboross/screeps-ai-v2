@@ -13,20 +13,21 @@ class BigHarvester(RoleBase):
             print("[{}] No big sources found.".format(self.name))
             return
 
-        result = self.creep.harvest(source)
-        if result == ERR_NOT_IN_RANGE:
-            self.move_to(source)
+        if not self.creep.pos.isNearTo(source.pos):
+            self.move_to(source, True)
             self.creep.say("HB. F. S.")
-        elif result == OK:
+            return False
+
+        result = self.creep.harvest(source)
+        if result == OK:
             if Memory.big_harvesters_placed:
                 Memory.big_harvesters_placed[source.id] = self.name
             else:
                 Memory.big_harvesters_placed = {
                     source.id: self.name
                 }
-            self.creep.say("HB.")
-        elif result == -6:
-            # TODO: get the enum name for -6 (no resources available)
+                self.creep.say("HB.")
+        elif result == ERR_NOT_ENOUGH_RESOURCES:
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
             self.creep.say("HB. WW.")
         else:
