@@ -50,8 +50,13 @@ class RoleBase:
         pass
 
     def _get_new_path_to(self, target_id, pos):
-        # TODO: custom cost matrices with other options like ignoring creeps, and range away.
-        path = PathFinder.search(self.creep.pos, pos, {"maxRooms": 1})
+        # TODO: Use this once we get a custom CostMatrix with/ creeps figured out.
+        # path = PathFinder.search(self.creep.pos, pos, {"maxRooms": 1})
+        # if not path:
+        #     return None
+        # else:
+        #     path = path.path  # it's an object
+        path = self.creep.pos.findPathTo(pos, {"maxRooms": 1})
         self.memory.path[target_id] = Room.serializePath(path)
         self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
         self.memory.same_place_ticks = 0
