@@ -43,6 +43,9 @@ class Profiler:
 def main():
     if Memory.meta and Memory.meta.pause:
         return
+    # maybe this isn't the best way to do this, but eh.
+    if Memory.meta and Memory.meta.quiet:
+        Creep.prototype.say = lambda: None
 
     p = Profiler()
 
@@ -59,7 +62,7 @@ def main():
     if not Memory.meta or Memory.meta.clear_now or \
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
         if not Memory.meta:
-            Memory.meta = {"pause": False}
+            Memory.meta = {"pause": False, "quiet": False}
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
         p.check("clear_memory")
