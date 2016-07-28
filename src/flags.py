@@ -1,4 +1,3 @@
-import creep_utils
 from base import *
 
 DEPOT = "depot"
@@ -82,5 +81,10 @@ def get_global_flags(type):
 
 def create_flag(position, type):
     flag_def = flag_definitions[type]
-    name = "{}_{}".format(type, creep_utils.random_four_digits())
+    name = "{}_{}".format(type, random_digits())
     position.createFlag(name, flag_def[0], flag_def[1])
+
+
+def random_digits():
+    # JavaScript trickery here - TODO: pythonize
+    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)

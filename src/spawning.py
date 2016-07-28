@@ -66,10 +66,15 @@ def spawn_with_energy(spawn, energy):
 
 
 def spawn_with_array(spawn, role, base, parts):
-    name = creep_utils.random_four_digits()
+    name = random_four_digits()
     print("[spawning] Choosing role {} with parts {}".format(role, parts))
     result = spawn.createCreep(parts, name, {"role": role, "base": base})
     if result != OK and not Game.creeps[result]:
         print("[spawning] Invalid response from createCreep: {}".format(result))
     else:
         Memory.role_counts[role] += 1
+
+
+def random_four_digits():
+    # JavaScript trickery here - TODO: pythonize
+    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)

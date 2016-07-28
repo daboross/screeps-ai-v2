@@ -70,12 +70,6 @@ def find_base(creep):
 # RANDOM STUFF
 # ***
 
-
-def random_four_digits():
-    # JavaScript trickery here - TODO: pythonize
-    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
-
-
 room_regex = __new__(RegExp("(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})"))
 
 
