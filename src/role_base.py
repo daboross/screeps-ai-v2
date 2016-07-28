@@ -230,9 +230,9 @@ class RoleBase:
         self.target_mind.untarget(self.creep, hivemind.target_source)
 
     def go_to_depot(self):
-        flag = Game.flags["depot"]
-        if flag:
-            self.move_to(flag, True)
+        depots = flags.get_global_flags(flags.DEPOT)
+        if len(depots):
+            self.move_to(depots[0], True)
         else:
             self.move_to(Game.spawns[0], True)
 

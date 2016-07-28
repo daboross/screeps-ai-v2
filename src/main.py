@@ -102,3 +102,5 @@ def main():
 
 
 module.exports.loop = main  #profiling.profiler.wrap(main)
+
+RoomPosition.prototype.createFlag2 = lambda pos: flags.create_flag(this, pos)

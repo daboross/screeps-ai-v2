@@ -33,11 +33,20 @@ def is_def(flag, type):
 _room_flag_cache = {}
 
 
-def get_flags(room_name, type):
+def get_flags(room, type):
+    if room.name:
+        room_name = room.name
+    else:
+        room_name = room
     if _room_flag_cache[room_name] and _room_flag_cache[room_name][type]:
         return _room_flag_cache[room_name][type]
     flag_def = flag_definitions[type]
-    if Game.rooms[room_name]:
+    if room.find:
+        # this is a room object
+        list = room.find(FIND_FLAGS, {
+            filter: {"color": flag_def[0], "secondaryColor": flag_def[1]}
+        })
+    elif Game.rooms[room_name]:
         list = Game.rooms[room_name].find(FIND_FLAGS, {
             filter: {"color": flag_def[0], "secondaryColor": flag_def[1]}
         })
