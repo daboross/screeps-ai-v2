@@ -14,7 +14,7 @@ class BigHarvester(RoleBase):
             return
 
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source, True)
+            self.move_to(source, False, _MOVE_OPTIONS)
             self.report("HB. F. S.")
             return False
 
@@ -37,3 +37,6 @@ class BigHarvester(RoleBase):
             self.report("HB. ???")
 
         return False
+
+
+_MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}

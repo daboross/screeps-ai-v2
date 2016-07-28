@@ -7,6 +7,8 @@ __pragma__('noalias', 'name')
 
 PathFinder.use(True)
 
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
+
 
 class RoleBase:
     """
@@ -49,20 +51,22 @@ class RoleBase:
         """
         pass
 
-    def _get_new_path_to(self, target_id, pos):
+    def _get_new_path_to(self, target_id, pos, options):
         # TODO: Use this once we get a custom CostMatrix with/ creeps figured out.
         # path = PathFinder.search(self.creep.pos, pos, {"maxRooms": 1})
         # if not path:
         #     return None
         # else:
         #     path = path.path  # it's an object
-        path = self.creep.pos.findPathTo(pos, {"maxRooms": 1})
+        if not options:
+            options = _DEFAULT_PATH_OPTIONS
+        path = self.creep.pos.findPathTo(pos, options)
         self.memory.path[target_id] = Room.serializePath(path)
         self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
         self.memory.same_place_ticks = 0
         return path
 
-    def _get_path_to(self, pos, same_position_ok=False):
+    def _get_path_to(self, pos, same_position_ok=False, options=None):
         if not self.memory.path:
             self.memory.path = {}
         if not self.memory.reset_path:
@@ -104,7 +108,7 @@ class RoleBase:
                             self.name, here, pos
                         ))
 
-                        return self._get_new_path_to(target_id, pos)
+                        return self._get_new_path_to(target_id, pos, options)
                 else:
                     del self.memory.same_place_ticks
                     self.memory.last_pos = here
@@ -112,15 +116,15 @@ class RoleBase:
                 return Room.deserializePath(self.memory.path[target_id])
             except:
                 del self.memory.path[target_id]
-        return self._get_new_path_to(target_id, pos)
+        return self._get_new_path_to(target_id, pos, options)
 
-    def move_to(self, target, same_position_ok=False, times_tried=0):
+    def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
         if target.pos:
             pos = target.pos
         else:
             pos = target
         if self.creep.fatigue <= 0:
-            path = self._get_path_to(pos, same_position_ok)
+            path = self._get_path_to(pos, same_position_ok, options)
             result = self.creep.moveByPath(path)
 
             if result == ERR_NO_BODYPART:
@@ -139,7 +143,7 @@ class RoleBase:
                 if not times_tried:
                     times_tried = 0
                 if times_tried < 2:
-                    self.move_to(target, False, times_tried + 1)
+                    self.move_to(target, same_position_ok, options, times_tried + 1)
                 else:
                     print("[{}] Continually failed to move from {} to {} (path: {})!".format(
                         self.name, self.creep.pos, target.pos, path))
@@ -277,7 +281,8 @@ class RoleBase:
                 next_pos.y -= 1
                 next_pos.x -= 1
             else:
-                print("Unknown result from pos.getDirectionTo(): {}".format(dir))
+                print("[{}] Unknown result from pos.getDirectionTo(): {}".format(
+                    self.name, dir))
                 return False
 
             creeps = next_pos.lookFor(LOOK_CREEPS)
