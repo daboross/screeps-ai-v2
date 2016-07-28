@@ -1,5 +1,6 @@
 import math
 
+import flags
 from base import *
 
 __pragma__('noalias', 'name')
@@ -12,6 +13,8 @@ target_repair = "repair_site"
 target_big_repair = "extra_repair_site"
 target_harvester_deposit = "harvester_deposit_site"
 target_tower_fill = "fillable_tower"
+target_remote_mine_miner = "remote_miner_mine"
+target_remote_mine_hauler = "remote_mine_hauler"
 
 
 class TargetMind:
@@ -36,6 +39,8 @@ class TargetMind:
             target_big_repair: self._find_new_big_repair_site,
             target_harvester_deposit: self._find_new_harvester_deposit_site,
             target_tower_fill: self._find_new_tower,
+            target_remote_mine_miner: self._find_new_remote_miner_mine,
+            target_remote_mine_hauler: self._find_new_remote_hauler_mine,
         }
 
     def _register_new_targeter(self, type, targeter_id, target_id):
@@ -244,6 +249,24 @@ class TargetMind:
                 best_id = id
 
         return best_id
+
+    def _find_new_remote_miner_mine(self, creep):
+        for flag in flags.get_global_flags(flags.REMOTE_MINE):
+            id = "flag-{}".format(flag.name)
+            miners = self.targets[target_remote_mine_miner][id]
+            if not miners or miners < 1:
+                return id
+
+        return None
+
+    def _find_new_remote_hauler_mine(self, creep):
+        for flag in flags.get_global_flags(flags.REMOTE_MINE):
+            id = "flag-{}".format(flag.name)
+            miners = self.targets[target_remote_mine_hauler][id]
+            if not miners or miners < 2:
+                return id
+
+        return None
 
 
 # methods_to_profile = (

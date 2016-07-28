@@ -1,5 +1,6 @@
 import building
 import creep_utils
+import flags
 import harvesting
 import harvesting_big
 import spawning

@@ -67,6 +67,63 @@ def find_base(creep):
 
 
 # ***
+# RANDOM STUFF
+# ***
+
+
+def random_four_digits():
+    # JavaScript trickery here - TODO: pythonize
+    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+
+
+room_regex = __new__(RegExp("(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})"))
+
+
+def parse_room_direction_to(room1, room2):
+    """
+    Parse the general direction from room1 to room2. This only works for directly adjecent rooms - longer paths are a
+    TODO.
+    :param room1: The room from
+    :param room2: The room to
+    :return: TOP, RIGHT, BOTTOM, LEFT constants, or None if rooms have the same location
+    """
+    # example room string: W47N26 or E1S1 or E1N1
+    pos1 = parse_room_to_xy(room1)
+    pos2 = parse_room_to_xy(room2)
+    if not pos1 or not pos2:
+        return None
+    x1, y1 = pos1
+    x2, y2 = pos2
+    if x1 > x2:
+        # room1 is to the right of room2
+        return LEFT
+    elif x1 < x2:
+        return RIGHT
+    elif y1 > y2:
+        # room1 is below room2
+        return TOP
+    elif y2 < y1:
+        return BOTTOM
+    else:
+        return None
+
+
+def parse_room_to_xy(room_name):
+    matches = room_regex.match(room_name)
+    if not matches:
+        return None
+    if matches[1] == "W":
+        x = -int(matches[2])
+    else:
+        x = +int(matches[2])
+    if matches[3] == "N":
+        y = -int(matches[4])
+    else:
+        y = +int(matches[4])
+    return x, y
+
+
+# ***
 # CONSISTENCY
 # ***
 

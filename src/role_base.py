@@ -1,3 +1,5 @@
+import creep_utils
+import flags
 import hivemind
 from base import *
 
@@ -47,47 +49,65 @@ class RoleBase:
         """
         pass
 
+    def _get_new_path_to(self, target_id, pos):
+        # TODO: custom cost matrices with other options like ignoring creeps, and range away.
+        path = PathFinder.search(self.creep.pos, pos, {"maxRooms": 1})
+        self.memory.path[target_id] = Room.serializePath(path)
+        self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
+        self.memory.same_place_ticks = 0
+        return path
+
     def _get_path_to(self, pos, same_position_ok=False):
         if not self.memory.path:
             self.memory.path = {}
         if not self.memory.reset_path:
             self.memory.reset_path = {}
 
-        id = pos.x + "_" + pos.y + "_" + pos.roomName
+        target_id = pos.x + "_" + pos.y + "_" + pos.roomName
 
-        if self.creep.pos == pos:
+        here = self.creep.pos
+
+        if here == pos:
             return None
 
-        if self.memory.path[id] and self.memory.reset_path \
-                and self.memory.reset_path[id] > Game.time:
+        if here.roomName != pos.roomName:
+            direction = creep_utils.parse_room_direction_to(here.roomName, pos.roomName)
+            if not direction:
+                print("[{}] Couldn't find direction from {} to {}!!".format(
+                    self.name, here.roomName, pos.roomName))
+                return None
+            flag = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            if not flag:
+                print("[{}] Couldn't find exit flag in room {} to direction {}!".format(
+                    self.name, here.roomName, direction))
+
+            # pathfind to the flag instead
+            pos = flag.pos
+
+        if self.memory.path[target_id] and self.memory.reset_path \
+                and self.memory.reset_path[target_id] > Game.time:
             if not same_position_ok:
                 if (self.memory.last_pos and
-                            self.memory.last_pos.x == self.creep.pos.x and
-                            self.memory.last_pos.y == self.creep.pos.y):
+                            self.memory.last_pos.x == here.x and
+                            self.memory.last_pos.y == here.y):
                     if not self.memory.same_place_ticks:
                         self.memory.same_place_ticks = 1
                     elif self.memory.same_place_ticks < 3:
                         self.memory.same_place_ticks += 1
                     else:
                         print("[{}] Regenerating path from {} to {}".format(
-                            self.name, self.creep.pos, pos
+                            self.name, here, pos
                         ))
-                        path = self.creep.pos.findPathTo(pos, {"maxRooms": 4})
-                        self.memory.path[id] = Room.serializePath(path)
-                        self.memory.same_place_ticks = 0
-                        return path
+
+                        return self._get_new_path_to(target_id, pos)
                 else:
                     del self.memory.same_place_ticks
-                    self.memory.last_pos = self.creep.pos
+                    self.memory.last_pos = here
             try:
-                return Room.deserializePath(self.memory.path[id])
+                return Room.deserializePath(self.memory.path[target_id])
             except:
-                del self.memory.path[id]
-
-        path = self.creep.pos.findPathTo(pos)
-        self.memory.path[id] = Room.serializePath(path)
-        self.memory.reset_path[id] = Game.time + 100  # Reset every 100 ticks
-        return path
+                del self.memory.path[target_id]
+        return self._get_new_path_to(target_id, pos)
 
     def move_to(self, target, same_position_ok=False, times_tried=0):
         if target.pos:
@@ -109,8 +129,8 @@ class RoleBase:
                         self.name, result
                     ))
 
-                id = target.pos.x + "_" + target.pos.y + "_" + target.pos.roomName
-                del self.memory.path[id]
+                target_id = target.pos.x + "_" + target.pos.y + "_" + target.pos.roomName
+                del self.memory.path[target_id]
                 if not times_tried:
                     times_tried = 0
                 if times_tried < 2:
