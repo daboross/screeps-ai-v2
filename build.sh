@@ -11,7 +11,7 @@ rm -rf target/
 mkdir -p target/
 
 cd "src"
-"$TRANSCRYPT" -n -b -p .none -e 6 main.py
+"$TRANSCRYPT" -n -b -p .none main.py
 cp __javascript__/main.* ../target/
 cd ../
 
