@@ -8,6 +8,8 @@
 __pycache__/
 *.py[cod]
 __javascript__/
+target/
+js_files/main.js
 
 # Git #
 #######
