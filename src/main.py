@@ -43,9 +43,6 @@ class Profiler:
 def main():
     if Memory.meta and Memory.meta.pause:
         return
-    # maybe this isn't the best way to do this, but eh.
-    if Memory.meta and Memory.meta.quiet:
-        Creep.prototype.say = lambda: None
 
     p = Profiler()
 

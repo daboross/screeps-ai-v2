@@ -22,11 +22,11 @@ class TowerFill(harvesting.Harvester):
             if target:
                 if not self.creep.pos.isNearTo(target.pos):
                     self.move_to(target)
-                    self.creep.say("T. Find.")
+                    self.report("T. Find.")
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == OK:
-                    self.creep.say("TF.")
+                    self.report("TF.")
                 elif result == ERR_FULL:
                     self.target_mind.untarget(self.creep, hivemind.target_tower_fill)
                     return True
@@ -34,10 +34,10 @@ class TowerFill(harvesting.Harvester):
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
                         self.name, target, result
                     ))
-                    self.creep.say("TF. ???")
+                    self.report("TF. ???")
             else:
                 # print("[{}] No tower found.".format(self.name))
-                self.creep.say("TF. H.")
+                self.report("TF. H.")
                 return harvesting.Harvester.run(self)
 
         return False

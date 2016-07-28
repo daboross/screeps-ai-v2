@@ -50,7 +50,7 @@ class Builder(upgrading.Upgrader):
                     return self.execute_repair_target(
                         target, hivemind.target_big_repair)
 
-            self.creep.say("B. U.")
+            self.report("B. U.")
             return upgrading.Upgrader.run(self)
 
     def get_new_repair_target(self, max_hits, type):
@@ -63,7 +63,7 @@ class Builder(upgrading.Upgrader):
                                                hivemind.target_construction)
 
     def execute_repair_target(self, target, type):
-        self.creep.say("R. {}.".format(target.structureType))
+        self.report("R. {}.".format(target.structureType))
         if target.hits >= target.hitsMax:
             self.target_mind.untarget(self.creep, type)
             del self.memory.last_big_repair_max_hits
@@ -86,7 +86,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
-        self.creep.say("B. {}.".format(target.structureType))
+        self.report("B. {}.".format(target.structureType))
         if not self.creep.pos.inRangeTo(target.pos, 3):
             self.move_to(target, True)
             return False

@@ -15,7 +15,7 @@ class BigHarvester(RoleBase):
 
         if not self.creep.pos.isNearTo(source.pos):
             self.move_to(source, True)
-            self.creep.say("HB. F. S.")
+            self.report("HB. F. S.")
             return False
 
         result = self.creep.harvest(source)
@@ -26,14 +26,14 @@ class BigHarvester(RoleBase):
                 Memory.big_harvesters_placed = {
                     source.id: self.name
                 }
-                self.creep.say("HB.")
+                self.report("HB.")
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-            self.creep.say("HB. WW.")
+            self.report("HB. WW.")
         else:
             print("[{}] Unknown result from creep.harvest({}) (big): {}".format(
                 self.name, source, result
             ))
-            self.creep.say("HB. ???")
+            self.report("HB. ???")
 
         return False

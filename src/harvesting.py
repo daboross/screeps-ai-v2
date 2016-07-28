@@ -36,13 +36,13 @@ class Harvester(building.Builder):
                 else:
                     if not self.creep.pos.isNearTo(target.pos):
                         self.move_to(target)
-                        self.creep.say("H. Find.")
+                        self.report("H. Find.")
                         return False
 
                     result = self.creep.transfer(target, RESOURCE_ENERGY)
 
                     if result == OK:
-                        self.creep.say("H. Fill.")
+                        self.report("H. Fill.")
                     elif result == ERR_FULL:
                         self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
                         return True
