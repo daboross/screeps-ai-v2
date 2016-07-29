@@ -8,17 +8,6 @@ __pragma__('noalias', 'name')
 
 class Harvester(building.Builder):
     def run(self):
-        if _.size(Game.creeps) > 16:
-            # TODO: currently fixed 16 cap
-            # we have enough creeps right now, upgrade instead!
-            # just do this so that someone reading memory can tell
-            self.memory.running_as_builder = True
-            self.target_mind.untarget(self.creep, target_harvester_deposit)
-            building.Builder.run(self)
-            return
-        else:
-            del self.memory.running_as_builder
-            del self.memory.running_as_upgrader
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.finished_energy_harvest()

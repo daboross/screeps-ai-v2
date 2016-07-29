@@ -1,4 +1,5 @@
 import building
+import context
 import creep_utils
 import flags
 import harvesting
@@ -9,7 +10,7 @@ import tower
 import tower_fill
 import upgrading
 from base import *
-from hivemind import TargetMind
+from hivemind import TargetMind, HiveMind
 
 __pragma__('noalias', 'name')
 
@@ -29,6 +30,9 @@ def main():
         return
 
     target_mind = TargetMind()
+    hive_mind = HiveMind(target_mind)
+    context.set_targets(target_mind)
+    context.set_hive(hive_mind)
 
     if not Memory.creeps:
         Memory.creeps = {}
@@ -46,33 +50,37 @@ def main():
         creep_utils.reassign_roles()
         Memory.meta.clear_now = False
 
-    for name in Object.keys(Game.creeps):
-        creep = Game.creeps[name]
-        if creep.spawning:
-            continue
-        if not creep.memory.base:
-            creep.memory.base = creep_utils.find_base(creep)
-        role = creep.memory.role
-        if role in role_classes:
-            creep_instance = role_classes[role](target_mind, creep)
-        else:
-            role = creep_utils.get_role_name(creep.memory.base)[1]
-            creep.memory.role = role
-            if Memory.role_counts[role]:
-                Memory.role_counts[role] += 1
+    for room in hive_mind.my_rooms:
+        context.set_room(room)
+        for creep in room.creeps:
+            if creep.spawning:
+                continue
+            if not creep.memory.base:
+                creep.memory.base = creep_utils.find_base(creep)
+            role = creep.memory.role
+            if role in role_classes:
+                creep_instance = role_classes[role](target_mind, creep)
             else:
-                Memory.role_counts[role] = 1
-            creep_instance = role_classes[role](target_mind, creep)
-        rerun = creep_instance.run()
-        if rerun:
+                role = creep_utils.get_role_name(creep.memory.base)[1]
+                creep.memory.role = role
+                if Memory.role_counts[role]:
+                    Memory.role_counts[role] += 1
+                else:
+                    Memory.role_counts[role] = 1
+                creep_instance = role_classes[role](target_mind, creep)
             rerun = creep_instance.run()
-        if rerun:
-            print("[{}] Tried to rerun twice!".format(name))
+            if rerun:
+                rerun = creep_instance.run()
+            if rerun:
+                print("[{}] Tried to rerun twice!".format(creep.name))
 
     for name in Object.keys(Game.spawns):
-        spawning.run(Game.spawns[name])
+        spawn = Game.spawns[name]
+        context.set_room(hive_mind.get_room(spawn.pos.roomName))
+        spawning.run(spawn)
 
     tower.run()
+    context.clear()
 
 
 module.exports.loop = profiling.wrap_main(main)

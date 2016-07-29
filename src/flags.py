@@ -66,8 +66,8 @@ def get_flags(room, type):
 _global_flag_cache = {}
 
 
-def get_global_flags(type):
-    if _global_flag_cache[type]:
+def get_global_flags(type, reload=False):
+    if _global_flag_cache[type] and not reload:
         return _global_flag_cache[type]
     flag_def = flag_definitions[type]
     list = []

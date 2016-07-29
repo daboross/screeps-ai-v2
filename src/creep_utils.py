@@ -1,3 +1,4 @@
+import context
 from base import *
 from constants import creep_base_worker, creep_base_big_harvester, target_big_source
 
@@ -7,11 +8,9 @@ __pragma__('noalias', 'name')
 # SPAWNING
 # ***
 
-# TODO: the third argument of each subarray isn't used at all.
 role_requirements = [
     ["harvester", 2, creep_base_worker],
-    # TODO: 2 is currently hardcoded for my map.
-    ["big_harvester", 2, creep_base_big_harvester],
+    ["big_harvester", -5, creep_base_big_harvester],
     ["harvester", 4, creep_base_worker],
     ["upgrader", 1, creep_base_worker],
     ["tower_fill", 2, creep_base_worker],
@@ -33,6 +32,9 @@ def role_count(role):
 
 def get_role_name(existing_base=None):
     for role, ideal, base in role_requirements:
+        if ideal == -5:
+            # TODO: better way to do this?
+            ideal = context.room().target_big_harvester_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             if (not existing_base) or existing_base == base:
@@ -119,8 +121,8 @@ def parse_room_to_xy(room_name):
 # ***
 
 def reassign_roles():
-    # TODO: hardcoded 2 here
-    if role_count("harvester") < 4 and role_count("big_harvester") < 2:
+    if role_count("harvester") < 4 and \
+                    role_count("big_harvester") < context.room().target_big_harvester_count:
         num = 0
         for name in Object.keys(Memory.creeps):
             memory = Memory.creeps[name]

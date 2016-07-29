@@ -267,18 +267,54 @@ profiling.profile_class(TargetMind)
 
 
 class HiveMind:
+    """
+    :type target_mind: TargetMind
+    :type my_rooms: list[RoomMind]
+    """
+
     def __init__(self, target_mind):
         self.target_mind = target_mind
-        self.my_rooms = self._find_my_rooms()
+        self._my_rooms = None
+        self._room_to_mind = {}
 
-    def _find_my_rooms(self):
-        result = []
-        for name in Object.keys(Game.rooms):
-            if Game.rooms[name].controller.my:
-                result.append(RoomMind(self, Game.rooms[name]))
+    def find_my_rooms(self):
+        if not self._my_rooms:
+            rooms = []
+            for name in Object.keys(Game.rooms):
+                if Game.rooms[name].controller and Game.rooms[name].controller.my:
+                    room_mind = RoomMind(self, Game.rooms[name])
+                    rooms.append(room_mind)
+                    self._room_to_mind[name] = room_mind
+            self._my_rooms = rooms
+        return self._my_rooms
+
+    def get_room(self, room_name):
+        return self._room_to_mind[room_name]
+
+    def get_remote_mining_flags(self):
+        if not self._remote_mining_flags:
+            self._remote_mining_flags = flags.get_global_flags(flags.REMOTE_MINE)
+            altered = False
+            for flag in self._remote_mining_flags:
+                if Game.rooms[flag.roomName] and Game.rooms[flag.roomName].controller \
+                        and Game.rooms[flag.roomName].controller.my:
+                    print("[room: {}] Removing remote mining flag, now that room is owned.".format(flag.roomName))
+                    flag.remove()
+                    altered = True
+            if altered:
+                self._remote_mining_flags = flags.get_global_flags(flags.REMOTE_MINE, True)
+        return self._remote_mining_flags
+
+    my_rooms = property(find_my_rooms)
+    remote_mining_flags = property(get_remote_mining_flags)
 
 
-profiling.profile_class(HiveMind)
+profiling.profile_class(HiveMind, ["my_rooms"])
+
+_min_work_mass_big_miner = 15
+_extra_work_mass_per_big_miner = 10
+_min_work_mass_remote_mining_operation = 50
+_extra_work_mass_per_extra_remote_mining_operation = 30
 
 
 class RoomMind:
@@ -294,16 +330,85 @@ class RoomMind:
     - BIG_HARVESTERS_PLACED: where big harvesters exist
     - TIME_TO_REPLACE_BIG_HARVESTER: We need to count how long till the next big harvester dies plus how long it should
                                      take for the new big harvester to move from spawn to the big harvester's location
+    :type hive_mind: HiveMind
+    :type room: Room
+    :type sources: list[Source]
+    :type creeps: list[Creep]
+    :type work_mass: int
+    :type target_big_harvester_count: int
+    :type target_remote_miner_count: int
     """
 
-    def __init__(self, hivemind, room):
-        self.hivemind = hivemind
+    def __init__(self, hive_mind, room):
+        self.hive_mind = hive_mind
         self.room = room
-        self.sources = None
+        self._sources = None
+        self._creeps = None
+        self._work_mass = None
+        self._ideal_big_miner_count = None
+        self._target_remote_mining_operation_count = None
+
+    def get_name(self):
+        return self.room.name
 
     def get_sources(self):
-        if not self.sources:
-            self.sources = self.room.find(FIND_SOURCES)
+        if not self._sources:
+            self._sources = self.room.find(FIND_SOURCES)
+        return self._sources
+
+    def get_creeps(self):
+        if not self._creeps:
+            self._creeps = self.room.find(FIND_MY_CREEPS)
+        return self._creeps
+
+    def get_work_mass(self):
+        if not self._work_mass:
+            mass = 0
+            for creep in self.get_creeps():
+                if creep.memory.base == creep_base_worker:
+                    for part in creep.body:
+                        if part.type == WORK:
+                            mass += 1
+            self._work_mass = mass
+        return self._work_mass
+
+    def get_target_big_harvester_count(self):
+        if not self._ideal_big_miner_count:
+            if self.work_mass > _min_work_mass_big_miner:
+                self._ideal_big_miner_count = min(
+                    len(self.sources),
+                    1 + math.floor((self.work_mass - _min_work_mass_big_miner) /
+                                   _extra_work_mass_per_extra_remote_mining_operation)
+                )
+            else:
+                self._ideal_big_miner_count = 0
+        return self._ideal_big_miner_count
+
+    def get_target_remote_mining_operation_count(self):
+        if not self._target_remote_mining_operation_count:
+            if self.work_mass > _min_work_mass_remote_mining_operation:
+                self._target_remote_mining_operation_count = 1 + math.floor(
+                    (self.work_mass - _min_work_mass_big_miner)
+                    / _extra_work_mass_per_extra_remote_mining_operation
+                )
+            else:
+                self._target_remote_mining_operation_count = 0
+        return self._target_remote_mining_operation_count
+
+    room_name = property(get_name)
+    sources = property(get_sources)
+    creeps = property(get_creeps)
+    work_mass = property(get_work_mass)
+    target_big_harvester_count = property(get_target_big_harvester_count)
+    target_remote_miner_count = property(get_target_remote_mining_operation_count)
 
 
-profiling.profile_class(RoomMind)
+profiling.profile_class(RoomMind, [
+    "room_name",
+    "sources",
+    "creeps",
+    "body_mass",
+    "ideal_big_miner_count",
+    "target_big_harvester_count",
+    "target_remote_miner_count"
+])

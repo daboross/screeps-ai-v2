@@ -217,9 +217,6 @@ class RoleBase:
             self.move_to(source)
             self.report("G. Find. S.")
         else:
-            # TODO: Hardcoded 2 here!
-            # from creep_utils import role_count
-            # if role_count("big_harvester") < 2:
             result = self.creep.harvest(source)
 
             if result == ERR_NOT_IN_RANGE:
