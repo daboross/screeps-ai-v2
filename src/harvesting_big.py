@@ -1,6 +1,6 @@
-import hivemind
 import profiling
 from base import *
+from constants import target_big_source
 from role_base import RoleBase
 
 __pragma__('noalias', 'name')
@@ -10,7 +10,7 @@ _MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}
 
 class BigHarvester(RoleBase):
     def run(self):
-        source = self.target_mind.get_new_target(self.creep, hivemind.target_big_source)
+        source = self.target_mind.get_new_target(self.creep, target_big_source)
 
         if not source:
             print("[{}] No big sources found.".format(self.name))

@@ -1,7 +1,7 @@
 import building
-import hivemind
 import profiling
 from base import *
+from constants import target_harvester_deposit
 
 __pragma__('noalias', 'name')
 
@@ -13,7 +13,7 @@ class Harvester(building.Builder):
             # we have enough creeps right now, upgrade instead!
             # just do this so that someone reading memory can tell
             self.memory.running_as_builder = True
-            self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
+            self.target_mind.untarget(self.creep, target_harvester_deposit)
             building.Builder.run(self)
             return
         else:
@@ -24,15 +24,15 @@ class Harvester(building.Builder):
             self.finished_energy_harvest()
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
+            self.target_mind.untarget(self.creep, target_harvester_deposit)
 
         if self.memory.harvesting:
             return self.harvest_energy()
         else:
-            target = self.target_mind.get_new_target(self.creep, hivemind.target_harvester_deposit)
+            target = self.target_mind.get_new_target(self.creep, target_harvester_deposit)
             if target:
                 if target.energy >= target.energyCapacity:
-                    self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
+                    self.target_mind.untarget(self.creep, target_harvester_deposit)
                     return True
                 else:
                     if not self.creep.pos.isNearTo(target.pos):
@@ -45,13 +45,13 @@ class Harvester(building.Builder):
                     if result == OK:
                         self.report("H. Fill.")
                     elif result == ERR_FULL:
-                        self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
+                        self.target_mind.untarget(self.creep, target_harvester_deposit)
                         return True
                     else:
                         print("[{}] Unknown result from creep.transfer({}): {}".format(
                             self.name, target, result
                         ))
-                        self.target_mind.untarget(self.creep, hivemind.target_harvester_deposit)
+                        self.target_mind.untarget(self.creep, target_harvester_deposit)
                         return True
             else:
                 self.memory.running_as_builder = True

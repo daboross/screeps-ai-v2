@@ -2,6 +2,7 @@ from math import floor
 
 import creep_utils
 from base import *
+from constants import creep_base_big_harvester, creep_base_worker
 
 __pragma__('noalias', 'name')
 
@@ -25,7 +26,7 @@ def spawn_with_energy(spawn, energy):
             Memory.meta.no_more_spawning = True
             return
 
-        if base is creep_utils.creep_base_big_harvester:
+        if base is creep_base_big_harvester:
             if energy < 550:
                 if energy % 100 == 0:
                     parts = [MOVE, MOVE]
@@ -44,7 +45,7 @@ def spawn_with_energy(spawn, energy):
             else:
                 parts = [WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]
                 spawn_with_array(spawn, role, base, parts)
-        elif base is creep_utils.creep_base_worker:
+        elif base is creep_base_worker:
             if energy >= 500:
                 parts = []
                 part_idea = [MOVE, MOVE, CARRY, WORK]

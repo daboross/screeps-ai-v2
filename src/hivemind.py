@@ -3,19 +3,12 @@ import math
 import flags
 import profiling
 from base import *
+from constants import target_big_source, target_big_repair, target_harvester_deposit, target_tower_fill, \
+    target_remote_mine_miner, target_remote_mine_hauler, creep_base_worker, target_source, target_construction, \
+    target_repair
 
 __pragma__('noalias', 'name')
 _MAX_BUILDERS = 3
-
-target_source = "source"
-target_big_source = "big_h_source"
-target_construction = "construction_site"
-target_repair = "repair_site"
-target_big_repair = "extra_repair_site"
-target_harvester_deposit = "harvester_deposit_site"
-target_tower_fill = "fillable_tower"
-target_remote_mine_miner = "remote_miner_mine"
-target_remote_mine_hauler = "remote_mine_hauler"
 
 
 class TargetMind:
@@ -89,7 +82,7 @@ class TargetMind:
         if func:
             return func(creep, extra_var)
         else:
-            raise "Couldn't find find_function for '{}'!".format(type)
+            raise ValueError("Couldn't find find_function for '{}'!".format(type))
 
     def _get_existing_target_id(self, type, targeter_id):
         if self.targeters[targeter_id]:

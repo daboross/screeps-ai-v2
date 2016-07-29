@@ -1,8 +1,8 @@
 import creep_utils
 import flags
-import hivemind
 import profiling
 from base import *
+from constants import target_source
 
 __pragma__('noalias', 'name')
 
@@ -151,7 +151,7 @@ class RoleBase:
                     self.creep.moveTo(target)
 
     def harvest_energy(self):
-        source = self.target_mind.get_new_target(self.creep, hivemind.target_source)
+        source = self.target_mind.get_new_target(self.creep, target_source)
         if not source:
             print("[{}] Wasn't able to find a source!".format(self.name))
             self.finished_energy_harvest()
@@ -237,7 +237,7 @@ class RoleBase:
         return False
 
     def finished_energy_harvest(self):
-        self.target_mind.untarget(self.creep, hivemind.target_source)
+        self.target_mind.untarget(self.creep, target_source)
 
     def go_to_depot(self):
         depots = flags.get_global_flags(flags.DEPOT)

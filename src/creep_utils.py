@@ -1,14 +1,11 @@
-import hivemind
 from base import *
+from constants import creep_base_worker, creep_base_big_harvester, target_big_source
 
 __pragma__('noalias', 'name')
 
 # ***
 # SPAWNING
 # ***
-
-creep_base_worker = "worker"
-creep_base_big_harvester = "big_harvester"
 
 # TODO: the third argument of each subarray isn't used at all.
 role_requirements = [
@@ -171,7 +168,7 @@ def clear_memory(target_mind):
                 print("[{}] {} died".format(name, role))
 
             if role == "big_harvester":
-                source_id = target_mind._get_existing_target_id(hivemind.target_big_source, name)
+                source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:
                     del Memory.big_harvesters_placed[source_id]
                 else:
