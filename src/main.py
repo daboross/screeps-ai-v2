@@ -4,7 +4,7 @@ import flags
 import profiling
 import spawning
 import tower
-from constants import role_classes, role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill
+from constants import role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill
 from hivemind import TargetMind, HiveMind
 from roles import building
 from roles import dedi_miner
