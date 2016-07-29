@@ -1,5 +1,6 @@
 import harvesting
 import hivemind
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -41,3 +42,6 @@ class TowerFill(harvesting.Harvester):
                 return harvesting.Harvester.run(self)
 
         return False
+
+
+profiling.profile_class(TowerFill, profiling.ROLE_BASE_IGNORE)

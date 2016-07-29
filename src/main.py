@@ -3,6 +3,7 @@ import creep_utils
 import flags
 import harvesting
 import harvesting_big
+import profiling
 import spawning
 import tower
 import tower_fill
@@ -15,7 +16,7 @@ __pragma__('noalias', 'name')
 require("perf")()
 
 # Needs to be below require("perf") and all other imports
-# profiling.init()
+profiling.init()
 
 role_classes = {
     "upgrader": upgrading.Upgrader,
@@ -101,6 +102,6 @@ def main():
     p.check("tower")
 
 
-module.exports.loop = main  #profiling.profiler.wrap(main)
+module.exports.loop = profiling.profiler.wrap(main)
 
 RoomPosition.prototype.createFlag2 = lambda pos: flags.create_flag(this, pos)

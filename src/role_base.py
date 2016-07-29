@@ -1,6 +1,7 @@
 import creep_utils
 import flags
 import hivemind
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -302,3 +303,6 @@ class RoleBase:
     def report(self, current_task):
         if not Memory.meta.quiet:
             self.creep.say(current_task, True)
+
+
+profiling.profile_class(RoleBase, profiling.ROLE_BASE_IGNORE)

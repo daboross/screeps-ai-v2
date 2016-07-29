@@ -1,6 +1,7 @@
 import math
 
 import flags
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -269,15 +270,8 @@ class TargetMind:
         return None
 
 
-# methods_to_profile = (
-#     "get_new_target", "get_existing_target", "_find_new_source", "_find_new_big_h_source",
-#     "_find_new_construction_site", "_find_new_repair_site", "_find_new_big_repair_site",
-#     "_find_new_harvester_deposit_site", "_find_new_tower"
-# )
-#
-# for name in methods_to_profile:
-#     profiling.profile_method(TargetMind, name)
-#
+profiling.profile_class(TargetMind)
+
 
 class HiveMind:
     def __init__(self, target_mind):
@@ -289,6 +283,9 @@ class HiveMind:
         for name in Object.keys(Game.rooms):
             if Game.rooms[name].controller.my:
                 result.append(RoomMind(self, Game.rooms[name]))
+
+
+profiling.profile_class(HiveMind)
 
 
 class RoomMind:
@@ -314,3 +311,6 @@ class RoomMind:
     def get_sources(self):
         if not self.sources:
             self.sources = self.room.find(FIND_SOURCES)
+
+
+profiling.profile_class(RoomMind)

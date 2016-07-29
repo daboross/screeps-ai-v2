@@ -1,3 +1,4 @@
+import profiling
 from base import *
 from role_base import RoleBase
 
@@ -42,3 +43,6 @@ class Upgrader(RoleBase):
                     self.report("U. ???")
 
         return False
+
+
+profiling.profile_class(Upgrader, profiling.ROLE_BASE_IGNORE)

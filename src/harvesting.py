@@ -1,5 +1,6 @@
 import building
 import hivemind
+import profiling
 from base import *
 
 __pragma__('noalias', 'name')
@@ -56,3 +57,6 @@ class Harvester(building.Builder):
                 self.memory.running_as_builder = True
                 return building.Builder.run(self)
         return False
+
+
+profiling.profile_class(Harvester, profiling.ROLE_BASE_IGNORE)

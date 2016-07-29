@@ -1,4 +1,5 @@
 import hivemind
+import profiling
 import upgrading
 
 from base import *
@@ -101,3 +102,6 @@ class Builder(upgrading.Upgrader):
             return True
 
         return False
+
+
+profiling.profile_class(Builder, profiling.ROLE_BASE_IGNORE)

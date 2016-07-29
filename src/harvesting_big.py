@@ -1,8 +1,11 @@
 import hivemind
+import profiling
 from base import *
 from role_base import RoleBase
 
 __pragma__('noalias', 'name')
+
+_MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}
 
 
 class BigHarvester(RoleBase):
@@ -39,4 +42,4 @@ class BigHarvester(RoleBase):
         return False
 
 
-_MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}
+profiling.profile_class(BigHarvester, profiling.ROLE_BASE_IGNORE)
