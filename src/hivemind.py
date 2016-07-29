@@ -100,13 +100,13 @@ class TargetMind:
         return new_target
 
     def get_new_target(self, creep, type, extra_var=None, second_time=False):
-        id = self._get_new_target_id(type, creep.name, creep, extra_var)
-        if not id:
+        target_id = self._get_new_target_id(type, creep.name, creep, extra_var)
+        if not target_id:
             return None
-        if id.startswith("flag-"):
-            target = Game.flags[id[5:]]
+        if target_id.startswith("flag-"):
+            target = Game.flags[target_id[5:]]
         else:
-            target = Game.getObjectById(id)
+            target = Game.getObjectById(target_id)
         if not target:
             self._unregister_targeter(type, creep.name)
             if not second_time:
@@ -114,13 +114,13 @@ class TargetMind:
         return target
 
     def get_existing_target(self, creep, type):
-        id = self._get_existing_target_id(type, creep.name)
-        if not id:
+        target_id = self._get_existing_target_id(type, creep.name)
+        if not target_id:
             return None
-        if id.startswith("flag-"):
-            target = Game.flags[id[5:]]
+        if target_id.startswith("flag-"):
+            target = Game.flags[target_id[5:]]
         else:
-            target = Game.getObjectById(id)
+            target = Game.getObjectById(target_id)
         if not target:
             self._unregister_targeter(type, creep.name)
         return target
@@ -136,14 +136,14 @@ class TargetMind:
         best_id = None
         closest_distance = 8192
         for source in creep.room.find(FIND_SOURCES):
-            id = source.id
-            current_harvesters = self.targets[target_source][id]
+            source_id = source.id
+            current_harvesters = self.targets[target_source][source_id]
             if not current_harvesters:
-                return id
+                return source_id
             elif current_harvesters <= smallest_num_harvesters + 1:
                 range = source.pos.getRangeTo(creep.pos)
                 if range < closest_distance or current_harvesters < smallest_num_harvesters - 1:
-                    best_id = id
+                    best_id = source_id
                     closest_distance = range
                     smallest_num_harvesters = current_harvesters
 
@@ -151,10 +151,10 @@ class TargetMind:
 
     def _find_new_big_h_source(self, creep):
         for source in creep.room.find(FIND_SOURCES):
-            id = source.id
-            current_harvesters = self.targets[target_big_source][id]
+            source_id = source.id
+            current_harvesters = self.targets[target_big_source][source_id]
             if not current_harvesters or current_harvesters < 1:
-                return id
+                return source_id
 
         return None
 
@@ -164,15 +164,15 @@ class TargetMind:
         for structure in creep.room.find(FIND_STRUCTURES):
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
-                id = structure.id
-                current_num = self.targets[target_source][id]
+                source_id = structure.id
+                current_num = self.targets[target_source][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 if not current_num or current_num < 1:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
                         closest_distance = range
-                        best_id = id
+                        best_id = source_id
 
         return best_id
 
@@ -180,8 +180,8 @@ class TargetMind:
         closest_distance = 8192
         best_id = None
         for site in creep.room.find(FIND_CONSTRUCTION_SITES):
-            id = site.id
-            current_num = self.targets[target_construction][id]
+            site_id = site.id
+            current_num = self.targets[target_construction][site_id]
             # TODO: this 200 should be a decided factor based off of spawn extensions
             if not current_num or current_num < \
                     min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200)):
@@ -189,7 +189,7 @@ class TargetMind:
                 # TODO: use squared distance for faster calculation!
                 if range < closest_distance:
                     closest_distance = range
-                    best_id = id
+                    best_id = site_id
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits):
@@ -199,8 +199,8 @@ class TargetMind:
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
-                id = structure.id
-                current_num = self.targets[target_repair][id]
+                struct_id = structure.id
+                current_num = self.targets[target_repair][struct_id]
                 # TODO: this 200 should be a decided factor based off of spawn extensions
                 if not current_num or current_num < \
                         min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 200)) \
@@ -210,7 +210,7 @@ class TargetMind:
                     if range < closest_distance:
                         smallest_num_builders = current_num
                         closest_distance = range
-                        best_id = id
+                        best_id = struct_id
 
         return best_id
 
@@ -220,45 +220,45 @@ class TargetMind:
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
-                id = structure.id
-                current_num = self.targets[target_big_repair][id]
+                struct_id = structure.id
+                current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
                     if range < closest_distance:
                         closest_distance = range
-                        best_id = id
+                        best_id = struct_id
 
         return best_id
 
     def _find_new_tower(self, creep):
         most_lacking = 0
         best_id = None
-        for id in Memory.tower.towers:
-            tower = Game.getObjectById(id)
+        for tower_id in Memory.tower.towers:
+            tower = Game.getObjectById(tower_id)
             if tower.room != creep.room:
                 continue
             if tower.energyCapacity - tower.energy > most_lacking:
                 most_lacking = tower.energyCapacity - tower.energy
-                best_id = id
+                best_id = tower_id
 
         return best_id
 
     def _find_new_remote_miner_mine(self):
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
-            id = "flag-{}".format(flag.name)
-            miners = self.targets[target_remote_mine_miner][id]
+            flag_id = "flag-{}".format(flag.name)
+            miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
-                return id
+                return flag_id
 
         return None
 
     def _find_new_remote_hauler_mine(self):
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
-            id = "flag-{}".format(flag.name)
-            miners = self.targets[target_remote_mine_hauler][id]
+            flag_id = "flag-{}".format(flag.name)
+            miners = self.targets[target_remote_mine_hauler][flag_id]
             if not miners or miners < 2:
-                return id
+                return flag_id
 
         return None
 
