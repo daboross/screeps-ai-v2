@@ -15,9 +15,6 @@ __pragma__('noalias', 'name')
 
 require("perf")()
 
-# Needs to be below require("perf") and all other imports
-profiling.init()
-
 role_classes = {
     "upgrader": upgrading.Upgrader,
     "harvester": harvesting.Harvester,
@@ -27,29 +24,11 @@ role_classes = {
 }
 
 
-class Profiler:
-    def __init__(self):
-        self.last = 0
-
-    def check(self, name, *args):
-        pass
-        # time = Game.cpu.getUsed()
-        # if time - self.last > 4:
-        #     print("Used up {} time with `{}`!".format(time - self.last, name.format(*args)))
-        # if time > 30:
-        #     print("Already used up {} time! (just finished `{}`)".format(time, name.format(*args)))
-        # self.last = time
-
-
 def main():
     if Memory.meta and Memory.meta.pause:
         return
 
-    p = Profiler()
-
-    p.check("initial_load")
     target_mind = TargetMind()
-    p.check("create_target_mind")
 
     if not Memory.creeps:
         Memory.creeps = {}
@@ -63,11 +42,8 @@ def main():
             Memory.meta = {"pause": False, "quiet": False}
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
-        p.check("clear_memory")
         creep_utils.count_roles()
-        p.check("count_roles")
         creep_utils.reassign_roles()
-        p.check("reassign_roles")
         Memory.meta.clear_now = False
 
     for name in Object.keys(Game.creeps):
@@ -92,16 +68,13 @@ def main():
             rerun = creep_instance.run()
         if rerun:
             print("[{}] Tried to rerun twice!".format(name))
-        p.check("creep {} ({})", name, role)
 
     for name in Object.keys(Game.spawns):
         spawning.run(Game.spawns[name])
-        p.check("spawn {}", name)
 
     tower.run()
-    p.check("tower")
 
 
-module.exports.loop = profiling.profiler.wrap(main)
+module.exports.loop = profiling.wrap_main(main)
 
 RoomPosition.prototype.createFlag2 = lambda pos: flags.create_flag(this, pos)

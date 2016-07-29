@@ -251,7 +251,7 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_remote_miner_mine(self, creep):
+    def _find_new_remote_miner_mine(self):
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][id]
@@ -260,7 +260,7 @@ class TargetMind:
 
         return None
 
-    def _find_new_remote_hauler_mine(self, creep):
+    def _find_new_remote_hauler_mine(self):
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_hauler][id]
