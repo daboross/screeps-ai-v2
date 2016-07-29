@@ -49,6 +49,11 @@ def main():
         creep_utils.count_roles()
         creep_utils.reassign_roles()
         Memory.meta.clear_now = False
+        # just deassign this even if we didn't find any dead creeps - if there weren't any dead creep it means
+        # this has reached the maximum wait time of 2000 ticks, in which case if we had any alive creeps, at least one
+        # of them *should* have died - so we probably are completely dead due to some bug. If that happens, it'd
+        # probably be best to start spawning more!
+        Memory.meta.no_more_spawning = False
 
     for room in hive_mind.my_rooms:
         context.set_room(room)

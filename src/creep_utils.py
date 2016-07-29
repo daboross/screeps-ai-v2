@@ -121,20 +121,29 @@ def parse_room_to_xy(room_name):
 # ***
 
 def reassign_roles():
-    if role_count("harvester") < 4 and \
-                    role_count("big_harvester") < context.room().target_big_harvester_count:
+    for room in context.hive().my_rooms:
+        reassign_room_roles(room)
+
+
+def reassign_room_roles(room):
+    if role_count("harvester") < 4 and role_count("big_harvester") < room.target_big_harvester_count:
         num = 0
-        for name in Object.keys(Memory.creeps):
-            memory = Memory.creeps[name]
+        for creep in room.creeps:
+            memory = creep.memory
             if memory.role != "big_harvester":
                 memory.role = "harvester"
             num += 1
             if num > 4:
                 break
-        count_roles()
+        count_room_roles(room)
 
 
 def count_roles():
+    for room in context.hive().my_rooms:
+        count_room_roles(room)
+
+
+def count_room_roles(room):
     old_roles = Memory.role_counts
     role_counts = {}
 
@@ -163,8 +172,6 @@ def clear_memory(target_mind):
     for name in Object.keys(Memory.creeps):
         creep = Game.creeps[name]
         if not creep:
-            # Do spawn more now! If we had reached max creeps.
-            del Memory.no_more_spawning
             role = Memory.creeps[name].role
             if role:
                 print("[{}] {} died".format(name, role))

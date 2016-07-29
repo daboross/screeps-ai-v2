@@ -1,5 +1,6 @@
 from math import floor
 
+import context
 import creep_utils
 from base import *
 from constants import creep_base_big_harvester, creep_base_worker
@@ -15,8 +16,12 @@ def run(spawn):
 
 
 def spawn_with_energy(spawn, energy):
+    # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big harvester.
+    # 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be too bad.
+    # We *can* assume that all work_mass at this point is in harvesters, since creep_utils.reassign_roles() will reassign
+    # everyone to harvester if there are fewer than 2 harvesters existing.
     if creep_utils.role_count("harvester") < 2 \
-            and spawn.room.energyAvailable >= 250:
+            and spawn.room.energyAvailable >= 150 * context.room().work_mass:
         energy = spawn.room.energyAvailable
 
     if spawn.room.energyAvailable >= energy:
