@@ -197,13 +197,13 @@ class TargetMind:
         smallest_num_builders = 8000
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
-            if structure.my != False and structure.hits < structure.hitsMax \
+            if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 id = structure.id
                 current_num = self.targets[target_repair][id]
                 # TODO: this 200 should be a decided factor based off of spawn extensions
                 if not current_num or current_num < \
-                        min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax) - structure.hits) / 200)) \
+                        min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 200)) \
                         or current_num <= smallest_num_builders + 1:
                     range = structure.pos.getRangeTo(creep.pos)
                     # TODO: use squared distance for faster calculation!
@@ -218,7 +218,7 @@ class TargetMind:
         closest_distance = 8192
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
-            if structure.my != False and structure.hits < structure.hitsMax \
+            if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 id = structure.id
                 current_num = self.targets[target_big_repair][id]
