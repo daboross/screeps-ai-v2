@@ -2,10 +2,10 @@ import math
 
 import flags
 import profiling
-from base import *
 from constants import target_big_source, target_big_repair, target_harvester_deposit, target_tower_fill, \
     target_remote_mine_miner, target_remote_mine_hauler, creep_base_worker, target_source, target_construction, \
     target_repair
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 _MAX_BUILDERS = 3

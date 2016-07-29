@@ -1,14 +1,14 @@
 import profiling
-from base import *
 from constants import target_big_source
 from role_base import RoleBase
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
 _MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}
 
 
-class BigHarvester(RoleBase):
+class DedicatedMiner(RoleBase):
     def run(self):
         source = self.target_mind.get_new_target(self.creep, target_big_source)
 
@@ -42,4 +42,4 @@ class BigHarvester(RoleBase):
         return False
 
 
-profiling.profile_class(BigHarvester, profiling.ROLE_BASE_IGNORE)
+profiling.profile_class(DedicatedMiner, profiling.ROLE_BASE_IGNORE)

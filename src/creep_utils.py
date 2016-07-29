@@ -1,6 +1,6 @@
 import context
-from base import *
-from constants import creep_base_worker, creep_base_big_harvester, target_big_source
+from constants import *
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
@@ -9,14 +9,15 @@ __pragma__('noalias', 'name')
 # ***
 
 role_requirements = [
-    ["harvester", 2, creep_base_worker],
-    ["big_harvester", -5, creep_base_big_harvester],
-    ["harvester", 4, creep_base_worker],
-    ["upgrader", 1, creep_base_worker],
-    ["tower_fill", 2, creep_base_worker],
-    ["upgrader", 2, creep_base_worker],
-    ["harvester", 6, creep_base_worker],
-    ["builder", 6, creep_base_worker]
+    [role_spawn_fill, 2, creep_base_worker],
+    [role_dedi_miner, -5, creep_base_big_harvester],
+    [role_spawn_fill, 4, creep_base_worker],
+    [role_upgrader, 1, creep_base_worker],
+    [role_tower_fill, 1, creep_base_worker],
+    [role_upgrader, 2, creep_base_worker],
+    [role_tower_fill, 2, creep_base_worker],
+    [role_spawn_fill, 6, creep_base_worker],
+    [role_builder, 6, creep_base_worker],
 ]
 
 

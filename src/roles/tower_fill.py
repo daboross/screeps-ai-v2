@@ -1,12 +1,12 @@
-import harvesting
 import profiling
-from base import *
 from constants import target_tower_fill, target_harvester_deposit
+from roles import spawn_fill
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
 
-class TowerFill(harvesting.Harvester):
+class TowerFill(spawn_fill.SpawnFill):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
@@ -39,7 +39,7 @@ class TowerFill(harvesting.Harvester):
             else:
                 # print("[{}] No tower found.".format(self.name))
                 self.report("TF. H.")
-                return harvesting.Harvester.run(self)
+                return spawn_fill.SpawnFill.run(self)
 
         return False
 

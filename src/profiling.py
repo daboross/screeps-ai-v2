@@ -1,4 +1,4 @@
-from base import *
+from screeps_constants import *
 from tools import decorate
 
 __pragma__('noalias', 'name')

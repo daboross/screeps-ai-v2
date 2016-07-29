@@ -1,4 +1,4 @@
-from base import *
+from screeps_constants import *
 
 DEPOT = "depot"
 EXIT_NORTH = "exit_north"

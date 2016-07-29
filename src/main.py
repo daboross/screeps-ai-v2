@@ -1,27 +1,28 @@
-import building
 import context
 import creep_utils
 import flags
-import harvesting
-import harvesting_big
 import profiling
 import spawning
 import tower
-import tower_fill
-import upgrading
-from base import *
+from constants import role_classes, role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill
 from hivemind import TargetMind, HiveMind
+from roles import building
+from roles import dedi_miner
+from roles import spawn_fill
+from roles import tower_fill
+from roles import upgrading
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
 require("perf")()
 
 role_classes = {
-    "upgrader": upgrading.Upgrader,
-    "harvester": harvesting.Harvester,
-    "big_harvester": harvesting_big.BigHarvester,
-    "builder": building.Builder,
-    "tower_fill": tower_fill.TowerFill,
+    role_upgrader: upgrading.Upgrader,
+    role_spawn_fill: spawn_fill.SpawnFill,
+    role_dedi_miner: dedi_miner.DedicatedMiner,
+    role_builder: building.Builder,
+    role_tower_fill: tower_fill.TowerFill,
 }
 
 

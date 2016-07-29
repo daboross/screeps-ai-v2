@@ -1,12 +1,12 @@
-import building
 import profiling
-from base import *
 from constants import target_harvester_deposit
+from roles import building
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
 
-class Harvester(building.Builder):
+class SpawnFill(building.Builder):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
@@ -48,4 +48,4 @@ class Harvester(building.Builder):
         return False
 
 
-profiling.profile_class(Harvester, profiling.ROLE_BASE_IGNORE)
+profiling.profile_class(SpawnFill, profiling.ROLE_BASE_IGNORE)

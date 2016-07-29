@@ -1,6 +1,6 @@
 import profiling
-from base import *
 from role_base import RoleBase
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 

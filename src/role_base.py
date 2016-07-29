@@ -1,8 +1,8 @@
 import creep_utils
 import flags
 import profiling
-from base import *
 from constants import target_source
+from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
