@@ -1,5 +1,6 @@
 import math
 
+import creep_utils
 import flags
 import profiling
 from constants import target_big_source, target_big_repair, target_harvester_deposit, target_tower_fill, \
@@ -9,6 +10,7 @@ from screeps_constants import *
 
 __pragma__('noalias', 'name')
 _MAX_BUILDERS = 3
+_MAX_DISTANCE = math.pow(2, 30)
 
 
 class TargetMind:
@@ -50,8 +52,11 @@ class TargetMind:
             if old_target_id == target_id:
                 return  # everything beyond here would be redundant
             self.targets[type][old_target_id] -= 1
+            if len(self.targets[type][old_target_id]) <= 0:
+                del self.targets[type][old_target_id]
 
         if not self.targets[type]:
+            print("[target_mind] Creating targets[{}] (register_new_targeter)".format(type))
             self.targets[type] = {
                 target_id: 1
             }
@@ -64,25 +69,25 @@ class TargetMind:
         existing_target = self._get_existing_target_id(type, targeter_id)
         if existing_target:
             self.targets[type][existing_target] -= 1
+            if len(self.targets[type][existing_target]) <= 0:
+                del self.targets[type][existing_target]
             del self.targeters[targeter_id][type]
             if len(self.targeters[targeter_id]) == 0:
                 del self.targeters[targeter_id]
-            if len(self.targets[type][existing_target]) == 0:
-                del self.targets[type][existing_target]
 
     def _unregister_all(self, targeter_id):
         if self.targeters[targeter_id]:
             for type in Object.keys(self.targeters[targeter_id]):
                 target = self.targeters[targeter_id][type]
                 self.targets[type][target] -= 1
-                if len(self.targets[type][target]) == 0:
+                if len(self.targets[type][target]) <= 0:
                     del self.targets[type][target]
         del self.targeters[targeter_id]
 
     def _find_new_target(self, type, creep, extra_var):
         if not self.targets[type]:
             self.targets[type] = {}
-            print("Creating targets[{}]".format(type))
+            print("[target_mind] Creating targets[{}]".format(type))
         func = self.find_functions[type]
         if func:
             return func(creep, extra_var)
@@ -118,8 +123,9 @@ class TargetMind:
                 return self.get_new_target(creep, type, extra_var, True)
         return target
 
-    def get_existing_target(self, creep, type):
-        target_id = self._get_existing_target_id(type, creep.name)
+    def _get_existing_target_from_name(self, name, type):
+        """Exists to give an interface for when creeps die. TODO: make a full method."""
+        target_id = self._get_existing_target_id(type, name)
         if not target_id:
             return None
         if target_id.startswith("flag-"):
@@ -127,8 +133,11 @@ class TargetMind:
         else:
             target = Game.getObjectById(target_id)
         if not target:
-            self._unregister_targeter(type, creep.name)
+            self._unregister_targeter(type, name)
         return target
+
+    def get_existing_target(self, creep, type):
+        return self._get_existing_target_from_name(creep.name, type)
 
     def untarget(self, creep, type):
         self._unregister_targeter(type, creep.name)
@@ -139,7 +148,7 @@ class TargetMind:
     def _find_new_source(self, creep):
         smallest_num_harvesters = 8000
         best_id = None
-        closest_distance = 8192
+        closest_distance = _MAX_DISTANCE
         for source in creep.room.find(FIND_SOURCES):
             source_id = source.id
             current_harvesters = self.targets[target_source][source_id]
@@ -164,7 +173,7 @@ class TargetMind:
         return None
 
     def _find_new_harvester_deposit_site(self, creep):
-        closest_distance = 8192
+        closest_distance = _MAX_DISTANCE
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
@@ -182,7 +191,7 @@ class TargetMind:
         return best_id
 
     def _find_new_construction_site(self, creep):
-        closest_distance = 8192
+        closest_distance = _MAX_DISTANCE
         best_id = None
         for site in creep.room.find(FIND_CONSTRUCTION_SITES):
             site_id = site.id
@@ -198,7 +207,7 @@ class TargetMind:
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits):
-        closest_distance = 8192
+        closest_distance = _MAX_DISTANCE
         smallest_num_builders = 8000
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
@@ -220,7 +229,7 @@ class TargetMind:
         return best_id
 
     def _find_new_big_repair_site(self, creep, max_hits):
-        closest_distance = 8192
+        closest_distance = _MAX_DISTANCE
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
@@ -286,10 +295,9 @@ class HiveMind:
         if not self._my_rooms:
             rooms = []
             for name in Object.keys(Game.rooms):
-                if Game.rooms[name].controller and Game.rooms[name].controller.my:
-                    room_mind = RoomMind(self, Game.rooms[name])
-                    rooms.append(room_mind)
-                    self._room_to_mind[name] = room_mind
+                room_mind = RoomMind(self, Game.rooms[name])
+                rooms.append(room_mind)
+                self._room_to_mind[name] = room_mind
             self._my_rooms = rooms
         return self._my_rooms
 
@@ -309,6 +317,22 @@ class HiveMind:
             if altered:
                 self._remote_mining_flags = flags.get_global_flags(flags.REMOTE_MINE, True)
         return self._remote_mining_flags
+
+    def get_closest_owned_room(self, current_room_name):
+        current_pos = creep_utils.parse_room_to_xy(current_room_name)
+        if not current_pos:
+            print("[room: {}] Couldn't parse room name!".format(current_room_name))
+            return None
+        closest_squared_distance = _MAX_DISTANCE
+        closest_room = None
+        for room in self.my_rooms:
+            if not room.my:
+                continue
+            distance = creep_utils.squared_distance(current_pos, room.position)
+            if distance < closest_squared_distance:
+                closest_squared_distance = distance
+                closest_room = room
+        return closest_room
 
     my_rooms = property(find_my_rooms)
     remote_mining_flags = property(get_remote_mining_flags)
@@ -347,11 +371,13 @@ class RoomMind:
     def __init__(self, hive_mind, room):
         self.hive_mind = hive_mind
         self.room = room
+        self.my = room.controller and room.controller.my
         self._sources = None
         self._creeps = None
         self._work_mass = None
         self._ideal_big_miner_count = None
         self._target_remote_mining_operation_count = None
+        self._target_remote_hauler_count = None
 
     def get_name(self):
         return self.room.name
@@ -383,7 +409,7 @@ class RoomMind:
                 self._ideal_big_miner_count = min(
                     len(self.sources),
                     1 + math.floor((self.work_mass - _min_work_mass_big_miner) /
-                                   _extra_work_mass_per_extra_remote_mining_operation)
+                                   _extra_work_mass_per_big_miner)
                 )
             else:
                 self._ideal_big_miner_count = 0
@@ -393,14 +419,20 @@ class RoomMind:
         if not self._target_remote_mining_operation_count:
             if self.work_mass > _min_work_mass_remote_mining_operation:
                 self._target_remote_mining_operation_count = 1 + math.floor(
-                    (self.work_mass - _min_work_mass_big_miner)
+                    (self.work_mass - _min_work_mass_remote_mining_operation)
                     / _extra_work_mass_per_extra_remote_mining_operation
                 )
             else:
                 self._target_remote_mining_operation_count = 0
         return self._target_remote_mining_operation_count
 
+    def get_position(self):
+        if not self._position:
+            self._position = creep_utils.parse_room_to_xy(self.room.name)
+        return self._position
+
     room_name = property(get_name)
+    position = property(get_position)
     sources = property(get_sources)
     creeps = property(get_creeps)
     work_mass = property(get_work_mass)

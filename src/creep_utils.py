@@ -73,37 +73,39 @@ def find_base(creep):
 room_regex = __new__(RegExp("(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})"))
 
 
-def parse_room_direction_to(room1, room2):
+def inter_room_difference(from_room, to_room):
     """
-    Parse the general direction from room1 to room2. This only works for directly adjecent rooms - longer paths are a
-    TODO.
-    :param room1: The room from
-    :param room2: The room to
-    :return: TOP, RIGHT, BOTTOM, LEFT constants, or None if rooms have the same location
+    :param from_room: The name of the room to get from.
+    :param to_room: The name of the room to get to.
+    :return: (x_difference, y_difference)
+    :type from_room: Room
+    :type to_room: Room
+    :rtype: (int, int)
     """
     # example room string: W47N26 or E1S1 or E1N1
-    pos1 = parse_room_to_xy(room1)
-    pos2 = parse_room_to_xy(room2)
+    pos1 = parse_room_to_xy(from_room)
+    pos2 = parse_room_to_xy(to_room)
     if not pos1 or not pos2:
         return None
     x1, y1 = pos1
     x2, y2 = pos2
-    if x1 > x2:
-        # room1 is to the right of room2
-        return LEFT
-    elif x1 < x2:
-        return RIGHT
-    elif y1 > y2:
-        # room1 is below room2
-        return TOP
-    elif y2 < y1:
-        return BOTTOM
-    else:
-        return None
+    return (x2 - x1, y2 - y1)
+
+
+def squared_distance(xy1, xy2):
+    """
+    Gets the squared distance between two x, y positions
+    :param xy1: a tuple (x, y)
+    :param xy2: a tuple (x, y)
+    :return: an integer, the squared linear distance
+    """
+    x_diff = (xy1[0] - xy2[0])
+    y_diff = (xy1[1] - xy2[1])
+    return x_diff * x_diff + y_diff * y_diff
 
 
 def parse_room_to_xy(room_name):
-    matches = room_regex.match(room_name)
+    matches = room_regex.exec(room_name)
     if not matches:
         return None
     if matches[1] == "W":

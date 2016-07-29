@@ -40,14 +40,14 @@ def get_flags(room, type):
     if _room_flag_cache[room_name] and _room_flag_cache[room_name][type]:
         return _room_flag_cache[room_name][type]
     flag_def = flag_definitions[type]
-    if room.find:
+    if room.name is room_name:
         # this is a room object
         list = room.find(FIND_FLAGS, {
-            filter: {"color": flag_def[0], "secondaryColor": flag_def[1]}
+            "filter": {"color": flag_def[0], "secondaryColor": flag_def[1]}
         })
     elif Game.rooms[room_name]:
         list = Game.rooms[room_name].find(FIND_FLAGS, {
-            filter: {"color": flag_def[0], "secondaryColor": flag_def[1]}
+            "filter": {"color": flag_def[0], "secondaryColor": flag_def[1]}
         })
     else:
         list = []
@@ -70,13 +70,13 @@ def get_global_flags(type, reload=False):
     if _global_flag_cache[type] and not reload:
         return _global_flag_cache[type]
     flag_def = flag_definitions[type]
-    list = []
+    flag_list = []
     for name in Object.keys(Game.flags):
         flag = Game.flags[name]
         if flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]:
-            list.append(flag)
-    _global_flag_cache[type] = list
-    return list
+            flag_list.append(flag)
+    _global_flag_cache[type] = flag_list
+    return flag_list
 
 
 def create_flag(position, type):

@@ -34,7 +34,7 @@ class DedicatedMiner(RoleBase):
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
             self.report("HB. WW.")
         else:
-            print("[{}] Unknown result from creep.harvest({}) (big): {}".format(
+            print("[{}] Unknown result from mining-creep.harvest({}): {}".format(
                 self.name, source, result
             ))
             self.report("HB. ???")

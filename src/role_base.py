@@ -1,3 +1,4 @@
+import context
 import creep_utils
 import flags
 import profiling
@@ -14,6 +15,9 @@ _DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
 class RoleBase:
     """
     :type target_mind: hivemind.TargetMind
+    :type creep: Creep
+    :type name: str
+    :type home: RoomMind
     """
 
     def __init__(self, target_mind, creep):
@@ -43,6 +47,16 @@ class RoleBase:
         return self.creep.name
 
     name = property(get_name)
+
+    def get_home(self):
+        if self.memory.home:
+            return context.hive().get_room(self.memory.home)
+
+        room = context.hive().get_closest_owned_room(self.creep.pos.roomName)
+        self.memory.home = room.name
+        return room
+
+    home = property(get_home)
 
     def run(self):
         """
@@ -81,18 +95,43 @@ class RoleBase:
             return None
 
         if here.roomName != pos.roomName:
-            direction = creep_utils.parse_room_direction_to(here.roomName, pos.roomName)
-            if not direction:
+            difference = creep_utils.inter_room_difference(here.roomName, pos.roomName)
+            if not difference:
                 print("[{}] Couldn't find direction from {} to {}!!".format(
                     self.name, here.roomName, pos.roomName))
                 return None
-            flag = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
-            if not flag:
+            if abs(difference[0]) > abs(difference[1]):
+                if difference[0] > 0:
+                    direction = RIGHT
+                else:
+                    direction = LEFT
+            else:
+                if difference[1] > 0:
+                    direction = BOTTOM
+                else:
+                    direction = TOP
+
+            flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            if not len(flag_list):
+                # If we have another direction (if path is diagonal), try another way?
+                if (abs(difference[0]) > abs(difference[1])):
+                    if difference[1] > 0:
+                        direction = BOTTOM
+                    elif difference[1] < 0:
+                        direction = TOP
+                else:
+                    if difference[0] > 0:
+                        direction = RIGHT
+                    elif difference[0] < 0:
+                        direction = LEFT
+                flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            if not len(flag_list):
                 print("[{}] Couldn't find exit flag in room {} to direction {}!".format(
-                    self.name, here.roomName, direction))
+                    self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction]))
+                return None
 
             # pathfind to the flag instead
-            pos = flag.pos
+            pos = flag_list[0].pos
 
         if self.memory.path[target_id] and self.memory.reset_path \
                 and self.memory.reset_path[target_id] > Game.time:

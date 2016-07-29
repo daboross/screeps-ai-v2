@@ -73,8 +73,9 @@ def spawn_with_energy(spawn, energy):
 
 def spawn_with_array(spawn, role, base, parts):
     name = random_four_digits()
+    home = context.room().room_name
     print("[spawning] Choosing role {} with parts {}".format(role, parts))
-    result = spawn.createCreep(parts, name, {"role": role, "base": base})
+    result = spawn.createCreep(parts, name, {"role": role, "base": base, "home": home})
     if result != OK and not Game.creeps[result]:
         print("[spawning] Invalid response from createCreep: {}".format(result))
     else:
