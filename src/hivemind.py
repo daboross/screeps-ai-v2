@@ -67,11 +67,16 @@ class TargetMind:
             del self.targeters[targeter_id][type]
             if len(self.targeters[targeter_id]) == 0:
                 del self.targeters[targeter_id]
+            if len(self.targets[type][existing_target]) == 0:
+                del self.targets[type][existing_target]
 
     def _unregister_all(self, targeter_id):
         if self.targeters[targeter_id]:
             for type in Object.keys(self.targeters[targeter_id]):
-                self.targets[type][self.targeters[targeter_id][type]] -= 1
+                target = self.targeters[targeter_id][type]
+                self.targets[type][target] -= 1
+                if len(self.targets[type][target]) == 0:
+                    del self.targets[type][target]
         del self.targeters[targeter_id]
 
     def _find_new_target(self, type, creep, extra_var):
@@ -165,7 +170,7 @@ class TargetMind:
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
                 source_id = structure.id
-                current_num = self.targets[target_source][source_id]
+                current_num = self.targets[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 if not current_num or current_num < 1:
                     range = structure.pos.getRangeTo(creep.pos)
