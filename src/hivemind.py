@@ -260,7 +260,7 @@ class TargetMind:
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
-            if flag_id not in self.targets[target_remote_mine_miner] or miners < 1:
+            if not miners or miners < 1:
                 return flag_id
 
         return None
