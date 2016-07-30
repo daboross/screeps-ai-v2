@@ -17,6 +17,7 @@ role_requirements = [
     [role_remote_miner, -11, creep_base_full_miner],
     # TODO: dynamic creep base based on mining operation!
     [role_remote_hauler, -12, creep_base_hauler],
+    [role_remote_mining_reserve, -13, creep_base_reserving],
     [role_upgrader, 2, creep_base_worker],
     [role_spawn_fill, 6, creep_base_worker],
     [role_builder, 6, creep_base_worker],
@@ -43,6 +44,8 @@ def get_role_name(existing_base=None):
             ideal = context.room().target_remote_miner_count
         elif ideal == -12:
             ideal = context.room().target_remote_hauler_count
+        elif ideal == -13:
+            ideal = context.room().target_remote_reserve_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))
@@ -217,6 +220,10 @@ def clear_memory(target_mind):
                 if flag.memory.remote_miner_targeting == name:
                     del flag.memory.remote_miner_targeting
                     del flag.memory.remote_miner_death_tick
+            elif role == role_remote_mining_reserve:
+                controller = target_mind._get_existing_target_from_name(name, target_remote_reserve)
+                if controller and controller.room.memory.controller_remote_reserve_set == name:
+                    del controller.room.memory.controller_remote_reserve_set
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]

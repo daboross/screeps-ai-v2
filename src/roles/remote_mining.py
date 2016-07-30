@@ -1,4 +1,4 @@
-from constants import target_remote_mine_miner, target_remote_mine_hauler
+from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve
 from role_base import RoleBase
 from screeps_constants import *
 
@@ -127,3 +127,32 @@ class RemoteHauler(RoleBase):
                 self.report("RH. ???")
 
             return False
+
+
+class RemoteReserve(RoleBase):
+    def run(self):
+        controller = self.target_mind.get_new_target(self.creep, target_remote_reserve)
+
+        if not controller:
+            print("[{}] Remote reserve couldn't find controller open!".format(self.name))
+            self.go_to_depot()
+            return
+
+        if not self.creep.pos.isNearTo(controller.pos):
+            self.move_to(controller)
+            self.report("R.R. F. C.")
+            return False
+
+        if not self.memory.currently_upgrading and (not controller.reservation
+                                                    or controller.reservation.ticksToEnd < 4000):
+            self.memory.currently_upgrading = True
+        elif self.memory.currently_upgrading and controller.reservation and controller.reservation.ticksToEnd > 5000:
+            self.memory.currently_upgrading = False
+
+        if self.memory.currently_upgrading:
+            if controller.reservation and controller.reservation.username != self.creep.owner.username:
+                print("[{}] Remote reserve creep target owned by another player! {} has taken our reservation!".format(
+                    self.name, controller.reservation.username
+                ))
+            self.creep.reserveController(controller)
+            self.report("R.R. C. C.")

@@ -23,6 +23,7 @@ role_classes = {
     role_tower_fill: tower_fill.TowerFill,
     role_remote_miner: remote_mining.RemoteMiner,
     role_remote_hauler: remote_mining.RemoteHauler,
+    role_remote_mining_reserve: remote_mining.RemoteReserve,
 }
 
 

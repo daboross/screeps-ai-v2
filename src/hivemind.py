@@ -36,6 +36,7 @@ class TargetMind:
             target_tower_fill: self._find_new_tower,
             target_remote_mine_miner: self._find_new_remote_miner_mine,
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
+            target_remote_reserve: self._find_new_reservable_controller,
         }
 
     def _register_new_targeter(self, type, targeter_id, target_id):
@@ -286,6 +287,27 @@ class TargetMind:
 
         return best_id
 
+    def _find_new_reservable_controller(self, creep):
+        best_id = None
+        closest_room = _MAX_DISTANCE
+        for flag in flags.get_global_flags(flags.REMOTE_MINE):
+            if self.targets[target_remote_reserve] > 2:
+                continue  # already have a reserver creep targetting (undefined > 1 == false)
+            if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
+                # must have a remote miner targetting, and be a room we have a view into.
+                controller = Game.rooms[flag.pos.roomName].controller
+                if not controller.my and (not controller.reservation or
+                                              (controller.reservation.username == creep.owner.username and
+                                                       controller.reservation.ticksToEnd < 3000)):
+                    # Ok, it's a controller we can reserve
+                    controller_id = controller.id
+                    range = creep_utils.distance_squared_room_pos(controller.pos, creep.pos)
+                    if range < closest_room:
+                        closest_room = range
+                        best_id = controller_id
+
+        return best_id
+
 
 profiling.profile_class(TargetMind)
 
@@ -389,6 +411,7 @@ class RoomMind:
         self._ideal_big_miner_count = None
         self._target_remote_mining_operation_count = None
         self._target_remote_hauler_count = None
+        self._target_remote_reserve_count = None
 
     def get_name(self):
         return self.room.name
@@ -449,6 +472,29 @@ class RoomMind:
                                                    creep_utils.role_count(role_remote_miner)) * 3
         return self._target_remote_hauler_count
 
+    def get_target_remote_reserve_count(self):
+        if not self._target_remote_reserve_count:
+            mining_op_count = self.target_remote_miner_count
+            rooms_mining_in = set()
+            rooms_under_4000 = set()
+            for flag in flags.get_global_flags(flags.REMOTE_MINE):
+                # TODO: Should we really be using *existing* miners to determine *target* reservers?
+                # We might want to instead calculate the exact planned operations, but that would require range
+                # calculations.
+                room = Game.rooms[flag.pos.roomName]
+                if flag.memory.remote_miner_targeting and room:
+                    controller = room.controller
+                    if controller:
+                        if mining_op_count <= 0:
+                            break  # let's only process the right number of mining operations
+                        mining_op_count -= 1
+                        rooms_mining_in.add(flag.pos.roomName)
+                        # if (not controller.reservation or (controller.reservation.username == creep.owner.username and
+                        #                                            controller.reservation.ticksToEnd < 3000):
+                        #     rooms_under_4000.add(flag.pos.roomName)
+            self._target_remote_reserve_count = len(rooms_mining_in) * 2  # 2 per room, to reserve for more than 1 tick
+        return self._target_remote_reserve_count
+
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
@@ -457,6 +503,7 @@ class RoomMind:
     target_big_harvester_count = property(get_target_big_harvester_count)
     target_remote_miner_count = property(get_target_remote_mining_operation_count)
     target_remote_hauler_count = property(get_target_remote_hauler_count)
+    target_remote_reserve_count = property(get_target_remote_reserve_count)
 
 
 profiling.profile_class(RoomMind, [
@@ -468,4 +515,5 @@ profiling.profile_class(RoomMind, [
     "target_big_harvester_count",
     "target_remote_miner_count",
     "target_remote_hauler_count",
+    "target_remote_reserve_count",
 ])

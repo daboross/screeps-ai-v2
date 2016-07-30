@@ -48,6 +48,7 @@ __all__ = [
     "TOP_LEFT",
     "MOVE",
     "CARRY",
+    "CLAIM",
     "WORK",
     "COLOR_RED",
     "COLOR_PURPLE",
