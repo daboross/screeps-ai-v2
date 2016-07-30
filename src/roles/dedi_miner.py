@@ -29,7 +29,7 @@ class DedicatedMiner(RoleBase):
                 Memory.big_harvesters_placed = {
                     source.id: self.name
                 }
-                self.report("HB.")
+            self.report("HB.")
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
             self.report("HB. WW.")
