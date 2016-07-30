@@ -8,6 +8,7 @@ import spawning
 import tower
 from constants import *
 from hivemind import TargetMind, HiveMind
+from role_base import RoleBase
 from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading
 from screeps_constants import *
 
@@ -69,6 +70,11 @@ def main():
                 creep_instance = role_classes[role](target_mind, creep)
             else:
                 role = creep_utils.get_role_name(creep.memory.base)[1]
+                if not role:
+                    base = RoleBase(target_mind, creep)
+                    base.go_to_depot()
+                    base.report("No role.")
+                    continue
                 creep.memory.role = role
                 if Memory.role_counts[role]:
                     Memory.role_counts[role] += 1
