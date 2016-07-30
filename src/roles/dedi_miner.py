@@ -103,7 +103,7 @@ class LocalHauler(RoleBase):
                 return False
 
             if not self.creep.pos.isNearTo(storage.pos):
-                self.move_to(storage, False, _MOVE_OPTIONS)
+                self.move_to(storage)
                 self.report("H. Haul.")
                 return False
 

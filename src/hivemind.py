@@ -317,7 +317,7 @@ class TargetMind:
                     continue
                 # Dispatch logic is to send 2 reservers to controllers with ticksToEnd < 4000, and 1 reserver to all
                 # others.
-                if controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
+                if not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
                     # Ok, it's a controller we can reserve
                     controller_id = controller.id
                     range = creep_utils.distance_squared_room_pos(controller.pos, creep.pos)
