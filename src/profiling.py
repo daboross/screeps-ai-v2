@@ -7,7 +7,7 @@ module_profiler = None
 enabled = False
 initialized = False
 
-if Memory.meta.enable_profiling:
+if Memory.meta and Memory.meta.enable_profiling:
     enabled = True
 else:
     enabled = False
