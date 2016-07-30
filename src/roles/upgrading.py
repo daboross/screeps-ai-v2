@@ -1,4 +1,5 @@
 import profiling
+import speach
 from role_base import RoleBase
 from screeps_constants import *
 
@@ -17,20 +18,21 @@ class Upgrader(RoleBase):
             return self.harvest_energy()
         elif not self.creep.room.controller.my:
             self.go_to_depot()
-            self.report("U. D!!")
+            self.report(speach.upgrading_controller_not_owned)
         else:
             target = self.creep.room.controller
             if not self.creep.pos.inRangeTo(target.pos, 3):
                 self.move_to(target)
+                self.report(speach.upgrading_moving_to_controller)
                 return False
 
             result = self.creep.upgradeController(self.creep.room.controller)
             if result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
-                self.report("U. NER.")
+                return True
             elif result == OK:
                 self.move_to(self.creep.room.controller, True)
-                self.report("U.")
+                self.report(speach.upgrading_ok)
             else:
                 print("[{}] Unknown result from upgradeController({}): {}".format(
                     self.name, self.creep.room.controller, result
@@ -40,7 +42,7 @@ class Upgrader(RoleBase):
                     self.memory.harvesting = True
                 else:
                     self.go_to_depot()
-                    self.report("U. ???")
+                    self.report(speach.upgrading_unknown_result)
 
         return False
 

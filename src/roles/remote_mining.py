@@ -1,3 +1,4 @@
+import speach
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve
 from role_base import RoleBase
 from screeps_constants import *
@@ -20,30 +21,30 @@ class RemoteMiner(RoleBase):
         if not source_flag:
             print("[{}] Remote miner can't find any sources!".format(self.name))
             self.go_to_depot()
-            self.report("RM. N. F.")
+            self.report(speach.remote_miner_no_flag)
             return False
 
         if not self.creep.pos.isNearTo(source_flag.pos):
-            self.move_to(source_flag)#, False, _MOVE_OPTIONS)
-            self.report("RM. Moving.")
+            self.move_to(source_flag)
+            self.report(speach.remote_miner_moving)
             return False
 
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             print("[{}] Remote mining source flag {} has no sources under it!".format(self.name, source_flag.name))
-            self.report("RM. N. S!")
+            self.report(speach.remote_miner_flag_no_source)
             return False
 
         result = self.creep.harvest(sources_list[0])
         if result == OK:
-            self.report("RM. Mining.")
+            self.report(speach.remote_miner_ok)
         elif result == ERR_NOT_ENOUGH_RESOURCES:
-            self.report("RM. WW.")
+            self.report(speach.remote_miner_ner)
         else:
             print("[{}] Unknown result from remote-mining-creep.harvest({}): {}".format(
                 self.name, source_flag, result
             ))
-            self.report("RM. ???")
+            self.report(speach.remote_miner_unknown_result)
 
         return False
 
@@ -64,31 +65,31 @@ class RemoteHauler(RoleBase):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
-                self.report("RH. N. S.")
+                self.report(speach.remote_hauler_no_source)
                 self.go_to_depot()
                 return False
 
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]
             if not miner:
                 print("[{}] Remote hauler can't find remote miner!".format(self.name))
-                self.report("RH. N. M.")
+                self.report(speach.remote_hauler_source_no_miner)
                 self.target_mind.untarget(self.creep, target_remote_mine_hauler)
                 return True
 
             if not self.creep.pos.isNearTo(miner.pos):
-                self.move_to(miner)#, False, _MOVE_OPTIONS)
-                self.report("RH. Move.")
+                self.move_to(miner)  #, False, _MOVE_OPTIONS)
+                self.report(speach.remote_hauler_moving_to_miner)
                 return False
 
             piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
-                self.report("RH. WW.")
+                self.report(speach.remote_hauler_ner)
                 return False
 
             result = self.creep.pickup(piles[0])
 
             if result == OK:
-                self.report("RH. Collect!")
+                self.report(speach.remote_hauler_pickup_ok)
             elif result == ERR_FULL:
                 self.memory.harvesting = False
                 return True
@@ -96,7 +97,7 @@ class RemoteHauler(RoleBase):
                 print("[{}] Unknown result from hauler-creep.pickup({}): {}".format(
                     self.name, source_flag, result
                 ))
-                self.report("RH. ???")
+                self.report(speach.remote_hauler_pickup_unknown_result)
 
             return False
         else:
@@ -104,29 +105,29 @@ class RemoteHauler(RoleBase):
             if not storage:
                 print("[{}] Remote hauler can't find storage in home room: {}!".format(self.name, self.memory.home))
                 self.go_to_depot()
-                self.report("RH. N. S!!!")
+                self.report(speach.remote_hauler_no_home_storage)
                 return False
 
             if not self.creep.pos.isNearTo(storage.pos):
                 self.move_to(storage, False, _MOVE_OPTIONS)
-                self.report("RH. Haul.")
+                self.report(speach.remote_hauler_moving_to_storage)
                 return False
 
             result = self.creep.transfer(storage, RESOURCE_ENERGY)
             if result == OK:
-                self.report("RH. Store.")
+                self.report(speach.remote_hauler_transfer_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
                 print("[{}] Storage in room {} full!".format(self.name, storage.room))
                 self.go_to_depot()
-                self.report("RH. Full!!")
+                self.report(speach.remote_hauler_storage_full)
             else:
                 print("[{}] Unknown result from hauler-creep.transfer({}): {}".format(
                     self.name, storage, result
                 ))
-                self.report("RH. ???")
+                self.report(speach.remote_hauler_transfer_unknown_result)
 
             return False
 
@@ -142,7 +143,7 @@ class RemoteReserve(RoleBase):
 
         if not self.creep.pos.isNearTo(controller.pos):
             self.move_to(controller)
-            self.report("R.R. F. C.")
+            self.report(speach.remote_reserve_moving)
             return False
 
         if not self.memory.currently_upgrading and (not controller.reservation
@@ -157,4 +158,4 @@ class RemoteReserve(RoleBase):
                     self.name, controller.reservation.username
                 ))
             self.creep.reserveController(controller)
-            self.report("R.R. C. C.")
+            self.report(speach.remote_reserve_reserving)

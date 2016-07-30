@@ -1,4 +1,5 @@
 import profiling
+import speach
 from constants import target_harvester_deposit
 from roles import building
 from screeps_constants import *
@@ -26,13 +27,13 @@ class SpawnFill(building.Builder):
                 else:
                     if not self.creep.pos.isNearTo(target.pos):
                         self.move_to(target)
-                        self.report("H. Find.")
+                        self.report(speach.spawn_fill_moving_to_target)
                         return False
 
                     result = self.creep.transfer(target, RESOURCE_ENERGY)
 
                     if result == OK:
-                        self.report("H. Fill.")
+                        self.report(speach.spawn_fill_ok)
                     elif result == ERR_FULL:
                         self.target_mind.untarget(self.creep, target_harvester_deposit)
                         return True
@@ -41,6 +42,7 @@ class SpawnFill(building.Builder):
                             self.name, target, result
                         ))
                         self.target_mind.untarget(self.creep, target_harvester_deposit)
+                        self.report(speach.spawn_fill_unknown_result)
                         return True
             else:
                 self.memory.running_as_builder = True

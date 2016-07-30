@@ -1,5 +1,6 @@
 import context
 import profiling
+import speach
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
 from screeps_constants import *
@@ -47,7 +48,6 @@ class Builder(upgrading.Upgrader):
                     self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(target, target_big_repair)
 
-            self.report("B. U.")
             return upgrading.Upgrader.run(self)
 
     def get_new_repair_target(self, max_hits, type):
@@ -57,7 +57,7 @@ class Builder(upgrading.Upgrader):
         return self.target_mind.get_new_target(self.creep, target_construction)
 
     def execute_repair_target(self, target, type):
-        self.report("R. {}.".format(target.structureType))
+        self.report(speach.building_repair_target, target.structureType)
         if target.hits >= target.hitsMax:
             self.target_mind.untarget(self.creep, type)
             del self.memory.last_big_repair_max_hits
@@ -80,7 +80,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
-        self.report("B. {}.".format(target.structureType))
+        self.report(speach.building_build_target.format(target.structureType))
         if not self.creep.pos.inRangeTo(target.pos, 3):
             self.move_to(target)
             return False

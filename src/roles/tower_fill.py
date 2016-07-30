@@ -1,4 +1,5 @@
 import profiling
+import speach
 from constants import target_tower_fill, target_harvester_deposit
 from roles import spawn_fill
 from screeps_constants import *
@@ -23,11 +24,11 @@ class TowerFill(spawn_fill.SpawnFill):
             if target:
                 if not self.creep.pos.isNearTo(target.pos):
                     self.move_to(target)
-                    self.report("T. Find.")
+                    self.report(speach.tower_fill_moving_to_tower)
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == OK:
-                    self.report("TF.")
+                    self.report(speach.tower_fill_ok)
                 elif result == ERR_FULL:
                     self.target_mind.untarget(self.creep, target_tower_fill)
                     return True
@@ -35,10 +36,9 @@ class TowerFill(spawn_fill.SpawnFill):
                     print("[{}] Unknown result from creep.transfer({}): {}".format(
                         self.name, target, result
                     ))
-                    self.report("TF. ???")
+                    self.target_mind.untarget(self.creep, target_tower_fill)
+                    self.report(speach.tower_fill_unknown_result)
             else:
-                # print("[{}] No tower found.".format(self.name))
-                self.report("TF. H.")
                 return spawn_fill.SpawnFill.run(self)
 
         return False

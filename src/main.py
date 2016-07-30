@@ -5,6 +5,7 @@ import flags
 import hivemind
 import profiling
 import spawning
+import speach
 import tower
 from constants import *
 from hivemind import TargetMind, HiveMind
@@ -74,7 +75,7 @@ def main():
                 if not role:
                     base = RoleBase(target_mind, creep)
                     base.go_to_depot()
-                    base.report("No role.")
+                    base.report(speach.base_no_role)
                     continue
                 creep.memory.role = role
                 if Memory.role_counts[role]:
