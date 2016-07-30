@@ -20,6 +20,7 @@ role_classes = {
     role_upgrader: upgrading.Upgrader,
     role_spawn_fill: spawn_fill.SpawnFill,
     role_dedi_miner: dedi_miner.DedicatedMiner,
+    role_local_hauler: dedi_miner.LocalHauler,
     role_builder: building.Builder,
     role_tower_fill: tower_fill.TowerFill,
     role_remote_miner: remote_mining.RemoteMiner,

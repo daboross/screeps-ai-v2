@@ -37,6 +37,7 @@ class TargetMind:
             target_remote_mine_miner: self._find_new_remote_miner_mine,
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
             target_remote_reserve: self._find_new_reservable_controller,
+            target_source_local_hauler: self._find_new_local_hauler_mine,
         }
 
     def _register_new_targeter(self, type, targeter_id, target_id):
@@ -169,6 +170,20 @@ class TargetMind:
                 return source_id
 
         return None
+
+    def _find_new_local_hauler_mine(self, creep):
+        smallest_num_haulers = _SLIGHTLY_SMALLER_THAN_MAX_INT
+        best_id = None
+        for source in creep.room.find(FIND_SOURCES):
+            source_id = source.id
+            current_harvesters = self.targets[target_source_local_hauler][source_id]
+            if not current_harvesters:
+                return source_id
+            elif current_harvesters < smallest_num_haulers:
+                best_id = source_id
+                smallest_num_haulers = current_harvesters
+
+        return best_id
 
     def _find_new_harvester_deposit_site(self, creep):
         closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
@@ -380,6 +395,9 @@ _min_work_mass_big_miner = 15
 _extra_work_mass_per_big_miner = 10
 _min_work_mass_remote_mining_operation = 50
 _extra_work_mass_per_extra_remote_mining_operation = 30
+_min_work_mass_full_storage_use = 35
+
+_min_stored_energy_before_enabling_full_storage_use = 8000
 
 
 class RoomMind:
@@ -400,8 +418,14 @@ class RoomMind:
     :type sources: list[Source]
     :type creeps: list[Creep]
     :type work_mass: int
+    :type are_all_big_miners_placed: bool
+    :type trying_to_get_full_storage_use: bool
+    :type full_storage_use: bool
     :type target_big_harvester_count: int
     :type target_remote_miner_count: int
+    :type target_remote_hauler_count: int
+    :type target_remote_reserve_count: int
+    :type target_local_hauler_count: int
     """
 
     def __init__(self, hive_mind, room):
@@ -413,9 +437,13 @@ class RoomMind:
         self._work_mass = None
         self._position = None
         self._ideal_big_miner_count = None
+        self._all_big_miners_placed = None
+        self._trying_to_get_full_storage_use = None
+        self._full_storage_use = None
         self._target_remote_mining_operation_count = None
         self._target_remote_hauler_count = None
         self._target_remote_reserve_count = None
+        self._target_local_hauler_count = None
 
     def get_name(self):
         return self.room.name
@@ -445,6 +473,30 @@ class RoomMind:
                             mass += 1
             self._work_mass = mass
         return self._work_mass
+
+    def get_if_all_big_miners_are_placed(self):
+        if not self._all_big_miners_placed:
+            all_placed = True
+            for source in self.sources:
+                if not Memory.big_harvesters_placed[source.id]:
+                    all_placed = False
+                    break
+            self._all_big_miners_placed = all_placed
+        return self._all_big_miners_placed
+
+    def get_trying_to_get_full_storage_use(self):
+        if not self._trying_to_get_full_storage_use:
+            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_full_storage_use \
+                                                   and self.are_all_big_miners_placed \
+                                                   and self.room.storage
+        return self._trying_to_get_full_storage_use
+
+    def get_full_storage_use(self):
+        if not self._full_storage_use:
+            self._full_storage_use = self.trying_to_get_full_storage_use and \
+                                     self.room.storage.store[RESOURCE_ENERGY] \
+                                     >= _min_stored_energy_before_enabling_full_storage_use
+        return self._full_storage_use
 
     def get_target_big_harvester_count(self):
         if not self._ideal_big_miner_count:
@@ -500,15 +552,29 @@ class RoomMind:
             self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
         return self._target_remote_reserve_count
 
+    def get_target_local_hauler_count(self):
+        if not self._target_local_hauler_count:
+            if self.trying_to_get_full_storage_use:
+                # TODO: 2 here should ideally be replaced with a calculation taking in path distance from each source to
+                # the storage and hauler capacity.
+                self._target_local_hauler_count = self.target_big_harvester_count * 2
+            else:
+                self._target_local_hauler_count = 0
+        return self._target_local_hauler_count
+
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
     creeps = property(get_creeps)
     work_mass = property(get_work_mass)
+    are_all_big_miners_placed = property(get_if_all_big_miners_are_placed)
+    trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
+    full_storage_use = property(get_full_storage_use)
     target_big_harvester_count = property(get_target_big_harvester_count)
     target_remote_miner_count = property(get_target_remote_mining_operation_count)
     target_remote_hauler_count = property(get_target_remote_hauler_count)
     target_remote_reserve_count = property(get_target_remote_reserve_count)
+    target_local_hauler_count = property(get_target_local_hauler_count)
 
 
 profiling.profile_class(RoomMind, [
@@ -521,4 +587,5 @@ profiling.profile_class(RoomMind, [
     "target_remote_miner_count",
     "target_remote_hauler_count",
     "target_remote_reserve_count",
+    "are_all_big_miners_placed",
 ])

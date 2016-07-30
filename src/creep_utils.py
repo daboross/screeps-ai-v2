@@ -12,6 +12,7 @@ role_requirements = [
     [role_spawn_fill, 2, creep_base_worker],
     [role_dedi_miner, -10, creep_base_big_harvester],
     [role_spawn_fill, 4, creep_base_worker],
+    [role_local_hauler, -14, creep_base_hauler],
     [role_upgrader, 1, creep_base_worker],
     [role_tower_fill, 2, creep_base_worker],
     [role_remote_miner, -11, creep_base_full_miner],
@@ -46,6 +47,8 @@ def get_role_name(existing_base=None):
             ideal = context.room().target_remote_hauler_count
         elif ideal == -13:
             ideal = context.room().target_remote_reserve_count
+        elif ideal == -14:
+            ideal = context.room().target_local_hauler_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))
@@ -54,10 +57,13 @@ def get_role_name(existing_base=None):
             print("[roles] {} {} is good! {} => {}".format(current, role, current, ideal))
     if existing_base == creep_base_worker:
         print("[roles] No new roles needed! Existing worker set as builder.")
-        return creep_base_worker, "builder"
+        return creep_base_worker, role_builder
     elif existing_base == creep_base_big_harvester:
         print("[roles] No new roles needed! Existing big_harvester set as big_harvester")
-        return creep_base_big_harvester, "big_harvester"
+        return creep_base_big_harvester, role_dedi_miner
+    elif existing_base == creep_base_hauler:
+        print("[roles] No new roles needed! Existing hauler set as local_hauler")
+        return creep_base_hauler, role_local_hauler
     else:
         print("[roles] No new roles needed!")
         return None, None

@@ -190,6 +190,23 @@ class RoleBase:
                     self.creep.moveTo(target)
 
     def harvest_energy(self):
+        if context.room().full_storage_use:
+            # Full storage use enabled! Just do that.
+            storage = self.creep.room.storage
+            if not self.creep.pos.isNearTo(storage.pos):
+                self.move_to(storage)
+                self.report("G. F. S.")
+                return False
+
+            result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+
+            if result == OK:
+                self.report("G. S.")
+            else:
+                print("[{}] Unknown result from creep.withdraw({}): {}".format(
+                    self.name, storage, result))
+            return False
+
         source = self.target_mind.get_new_target(self.creep, target_source)
         if not source:
             print("[{}] Wasn't able to find a source!".format(self.name))
