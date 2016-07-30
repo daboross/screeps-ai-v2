@@ -123,6 +123,29 @@ def parse_room_to_xy(room_name):
     return x, y
 
 
+def distance_squared_room_pos(room_position_1, room_position_2):
+    """
+    Gets the squared distance between two RoomPositions, taking into account room difference by parsing room names to
+    x, y coords and counting each room difference at 50 position difference.
+    :param room_position_1: The first RoomPosition
+    :param room_position_2: The second RoomPosition
+    :return: The squared distance as an int
+    """
+    if room_position_1.roomName == room_position_2.roomName:
+        return squared_distance((room_position_1.x, room_position_1.y), (room_position_2.x, room_position_2.y))
+    room_1_pos = parse_room_to_xy(room_position_1.roomName)
+    room_2_pos = parse_room_to_xy(room_position_2.roomName)
+    full_pos_1 = (
+        room_1_pos[0] * 50 + room_position_1.x,
+        room_1_pos[0] * 50 + room_position_1.y
+    )
+    full_pos_2 = (
+        room_2_pos[0] * 50 + room_position_2.x,
+        room_2_pos[0] * 50 + room_position_2.y
+    )
+    return squared_distance(full_pos_1, full_pos_2)
+
+
 # ***
 # CONSISTENCY
 # ***

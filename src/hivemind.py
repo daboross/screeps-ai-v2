@@ -152,7 +152,7 @@ class TargetMind:
             if not current_harvesters:
                 return source_id
             elif current_harvesters <= smallest_num_harvesters + 1:
-                range = source.pos.getRangeTo(creep.pos)
+                range = creep_utils.distance_squared_room_pos(source.pos, creep.pos)
                 if range < closest_distance or current_harvesters <= smallest_num_harvesters - 1:
                     best_id = source_id
                     closest_distance = range
@@ -179,8 +179,7 @@ class TargetMind:
                 current_num = self.targets[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 if not current_num or current_num < 1:
-                    range = structure.pos.getRangeTo(creep.pos)
-                    # TODO: use squared distance for faster calculation!
+                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         closest_distance = range
                         best_id = source_id
@@ -196,8 +195,7 @@ class TargetMind:
             # TODO: this 200 should be a decided factor based off of spawn extensions
             if not current_num or current_num < \
                     min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200)):
-                range = site.pos.getRangeTo(creep.pos)
-                # TODO: use squared distance for faster calculation!
+                range = creep_utils.distance_squared_room_pos(site.pos, creep.pos)
                 if range < closest_distance:
                     closest_distance = range
                     best_id = site_id
@@ -216,8 +214,7 @@ class TargetMind:
                 if not current_num or current_num < \
                         min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 200)) \
                         or current_num <= smallest_num_builders + 1:
-                    range = structure.pos.getRangeTo(creep.pos)
-                    # TODO: use squared distance for faster calculation!
+                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         smallest_num_builders = current_num
                         closest_distance = range
@@ -234,8 +231,7 @@ class TargetMind:
                 struct_id = structure.id
                 current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
-                    range = structure.pos.getRangeTo(creep.pos)
-                    # TODO: use squared distance for faster calculation!
+                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         closest_distance = range
                         best_id = struct_id
@@ -255,16 +251,27 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_remote_miner_mine(self):
+    def _find_new_remote_miner_mine(self, creep):
+        best_id = None
+        closest_flag = _MAX_DISTANCE
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
-                return flag_id
+                range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
+                if range < closest_flag:
+                    closest_flag = range
+                    best_id = flag_id
+                else:
+                    print("[{}] Flag is further than {} away... (range: {})".format(creep.name, closest_flag, range))
+            else:
+                print("[{}] flag has {} miners already...".format(creep.name, miners))
 
-        return None
+        return best_id
 
-    def _find_new_remote_hauler_mine(self):
+    def _find_new_remote_hauler_mine(self, creep):
+        best_id = None
+        closest_flag = _MAX_DISTANCE
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if not flag.memory.remote_miner_targeting:
                 continue  # only target mines with active miners
@@ -272,9 +279,12 @@ class TargetMind:
             haulers = self.targets[target_remote_mine_hauler][flag_id]
             # TODO: hardcoded 3 here - should by dynamic based on distance to storage (cached in flag memory)
             if not haulers or haulers < 3:
-                return flag_id
+                range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
+                if range < closest_flag:
+                    closest_flag = range
+                    best_id = flag_id
 
-        return None
+        return best_id
 
 
 profiling.profile_class(TargetMind)

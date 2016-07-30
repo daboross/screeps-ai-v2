@@ -13,8 +13,9 @@ class RemoteMiner(RoleBase):
         if not source_flag:
             # use get_existing_target in order to set memory.remote_miner_target exactly once.
             source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
-            source_flag.memory.remote_miner_targeting = self.name
-            source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
+            if source_flag:
+                source_flag.memory.remote_miner_targeting = self.name
+                source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
 
         if not source_flag:
             print("[{}] Remote miner can't find any sources!".format(self.name))
@@ -56,6 +57,9 @@ class RemoteHauler(RoleBase):
 
             if not source_flag:
                 print("[{}] Remote hauler can't find any sources!".format(self.name))
+                if self.creep.carry > 0:
+                    self.memory.harvesting = False
+                    return True
                 self.report("RH. N. S.")
                 self.go_to_depot()
                 return False
@@ -74,7 +78,7 @@ class RemoteHauler(RoleBase):
 
             piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
-                self.memory.harvesting = False
+                self.report("RH. WW.")
                 return True
 
             result = self.creep.pickup(piles[0])
