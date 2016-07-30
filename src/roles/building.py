@@ -1,3 +1,4 @@
+import context
 import profiling
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
@@ -40,7 +41,7 @@ class Builder(upgrading.Upgrader):
                 target = self.get_new_repair_target(max_hits, target_big_repair)
                 if target:
                     return self.execute_repair_target(target, target_big_repair)
-            for max_hits in range(400000, 600000, 50000):
+            for max_hits in range(400000, context.room().max_sane_wall_hits, 50000):
                 target = self.get_new_repair_target(max_hits, target_big_repair)
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits

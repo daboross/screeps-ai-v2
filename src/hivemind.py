@@ -399,6 +399,9 @@ _min_work_mass_for_full_storage_use = 35
 
 _min_stored_energy_before_enabling_full_storage_use = 8000
 
+# 0 is rcl 1
+_rcl_to_sane_wall_hits = [100, 5000, 10000, 100000, 500000, 1000000, 5000000, 10000000]
+
 
 class RoomMind:
     """
@@ -426,6 +429,7 @@ class RoomMind:
     :type target_remote_hauler_count: int
     :type target_remote_reserve_count: int
     :type target_local_hauler_count: int
+    :type max_sane_wall_hits: int
     """
 
     def __init__(self, hive_mind, room):
@@ -444,6 +448,7 @@ class RoomMind:
         self._target_remote_hauler_count = None
         self._target_remote_reserve_count = None
         self._target_local_hauler_count = None
+        self._max_sane_wall_hits = None
 
     def get_name(self):
         return self.room.name
@@ -518,7 +523,7 @@ class RoomMind:
                         (self.work_mass - _min_work_mass_remote_mining_operation)
                         / _extra_work_mass_per_extra_remote_mining_operation
                     ),
-                    len(flags.get_global_flags(flags.REMOTE_MINE))
+                    len(self.hive_mind.remote_mining_flags)
                 )
             else:
                 self._target_remote_mining_operation_count = 0
@@ -565,6 +570,11 @@ class RoomMind:
                 self._target_local_hauler_count = 0
         return self._target_local_hauler_count
 
+    def get_max_sane_wall_hits(self):
+        if not self._max_sane_wall_hits:
+            self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
+        return self._max_sane_wall_hits
+
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
@@ -578,6 +588,7 @@ class RoomMind:
     target_remote_hauler_count = property(get_target_remote_hauler_count)
     target_remote_reserve_count = property(get_target_remote_reserve_count)
     target_local_hauler_count = property(get_target_local_hauler_count)
+    max_sane_wall_hits = property(get_max_sane_wall_hits)
 
 
 profiling.profile_class(RoomMind, [
