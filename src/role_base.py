@@ -222,17 +222,6 @@ class RoleBase:
             self.report(speach.default_gather_moving_between_rooms)
             return False
 
-        if source.color:
-            # this is a flag
-            sources = source.pos.lookFor(LOOK_SOURCES)
-            if not len(sources):
-                print("[{}] Warning! Couldn't find any sources at flag {}!".format(self.name, source))
-                self.finished_energy_harvest()
-                self.go_to_depot()
-                self.report(speach.default_gather_flag_no_sources)
-                return True
-            source = sources[0]
-
         piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
         if len(piles) > 0:
             result = self.creep.pickup(piles[0])

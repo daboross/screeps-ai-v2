@@ -67,9 +67,13 @@ class LocalHauler(RoleBase):
 
             miner = Game.creeps[Memory.big_harvesters_placed[source.id]]
             if not miner:
+                if self.creep.carry.energy > 0:
+                    self.memory.harvesting = False
+                    return True
                 self.go_to_depot()
+                self.target_mind.untarget(self.creep, target_source_local_hauler)
                 self.report(speach.local_hauler_no_miner)
-                return True
+                return False
 
             if not self.creep.pos.isNearTo(miner.pos):
                 self.move_to(miner, False, _MOVE_OPTIONS)
