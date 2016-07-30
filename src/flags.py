@@ -1,5 +1,7 @@
 from screeps_constants import *
 
+__pragma__('noalias', 'name')
+
 DEPOT = "depot"
 EXIT_NORTH = "exit_north"
 EXIT_EAST = "exit_east"

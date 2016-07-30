@@ -1,3 +1,7 @@
+from screeps_constants import *
+
+__pragma__('noalias', 'name')
+
 # Creep base parts
 creep_base_worker = "worker"
 creep_base_big_harvester = "big_harvester"

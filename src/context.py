@@ -1,3 +1,7 @@
+from screeps_constants import *
+
+__pragma__('noalias', 'name')
+
 _hive = None
 _targets = None
 _room = None

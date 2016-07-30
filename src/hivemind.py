@@ -3,12 +3,11 @@ import math
 import creep_utils
 import flags
 import profiling
-from constants import target_big_source, target_big_repair, target_harvester_deposit, target_tower_fill, \
-    target_remote_mine_miner, target_remote_mine_hauler, creep_base_worker, target_source, target_construction, \
-    target_repair, role_remote_miner
+from constants import *
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
+
 _MAX_BUILDERS = 3
 _MAX_DISTANCE = math.pow(2, 30)
 
@@ -376,12 +375,18 @@ class RoomMind:
         self._sources = None
         self._creeps = None
         self._work_mass = None
+        self._position = None
         self._ideal_big_miner_count = None
         self._target_remote_mining_operation_count = None
         self._target_remote_hauler_count = None
 
     def get_name(self):
         return self.room.name
+
+    def get_position(self):
+        if not self._position:
+            self._position = creep_utils.parse_room_to_xy(self.room.name)
+        return self._position
 
     def get_sources(self):
         if not self._sources:
@@ -434,11 +439,6 @@ class RoomMind:
                                                    creep_utils.role_count(role_remote_miner)) * 3
         return self._target_remote_hauler_count
 
-    def get_position(self):
-        if not self._position:
-            self._position = creep_utils.parse_room_to_xy(self.room.name)
-        return self._position
-
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
@@ -453,8 +453,9 @@ profiling.profile_class(RoomMind, [
     "room_name",
     "sources",
     "creeps",
-    "body_mass",
+    "work_mass",
     "ideal_big_miner_count",
     "target_big_harvester_count",
-    "target_remote_miner_count"
+    "target_remote_miner_count",
+    "target_remote_hauler_count",
 ])

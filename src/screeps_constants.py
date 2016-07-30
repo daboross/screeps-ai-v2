@@ -1,5 +1,4 @@
-__pragma__('noalias',
-           'name')
+__pragma__('noalias', 'name')
 __pragma__('skip')
 # This file defines names that we expect to exist in screeps, so as to allow editor warnings
 # without spamming them everywhere.

@@ -45,10 +45,10 @@ def get_role_name(existing_base=None):
             ideal = context.room().target_remote_hauler_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
-            print("[roles] Found role {}! {} < {}".format(role, current, ideal))
+            print("[roles] Need more {}! {} < {}".format(role, current, ideal))
             return base, role
         else:
-            print("[roles] We're good with {} {}! (ideal={}, actual={})".format(ideal, role, ideal, current))
+            print("[roles] {} {} is good! {} => {}".format(current, role, current, ideal))
     if existing_base == creep_base_worker:
         print("[roles] No new roles needed! Existing worker set as builder.")
         return creep_base_worker, "builder"

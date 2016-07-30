@@ -1,17 +1,14 @@
+import constants
 import context
 import creep_utils
 import flags
+import hivemind
 import profiling
 import spawning
 import tower
-from constants import role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill, role_remote_miner, \
-    role_remote_hauler
+from constants import *
 from hivemind import TargetMind, HiveMind
-from roles import building, remote_mining
-from roles import dedi_miner
-from roles import spawn_fill
-from roles import tower_fill
-from roles import upgrading
+from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -89,9 +86,16 @@ def main():
         spawning.run(spawn)
 
     tower.run()
-    context.clear()
 
 
 module.exports.loop = profiling.wrap_main(main)
+
+__pragma__('js', 'global').py = {
+    "context": context,
+    "creep_utils": creep_utils,
+    "hivemind": hivemind,
+    "flags": flags,
+    "constants": constants,
+}
 
 RoomPosition.prototype.createFlag2 = lambda pos: flags.create_flag(this, pos)

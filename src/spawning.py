@@ -2,8 +2,7 @@ from math import floor
 
 import context
 import creep_utils
-from constants import creep_base_big_harvester, creep_base_worker, role_spawn_fill, creep_base_full_miner, \
-    creep_base_hauler
+from constants import *
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
