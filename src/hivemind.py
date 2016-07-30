@@ -484,15 +484,16 @@ class RoomMind:
                 room = Game.rooms[flag.pos.roomName]
                 if flag.memory.remote_miner_targeting and room:
                     controller = room.controller
-                    if controller:
+                    # TODO: hardcoded username here
+                    if controller and (not controller.reservation or controller.reservation.username == "daboross"):
                         if mining_op_count <= 0:
                             break  # let's only process the right number of mining operations
                         mining_op_count -= 1
                         rooms_mining_in.add(flag.pos.roomName)
-                        # if (not controller.reservation or (controller.reservation.username == creep.owner.username and
-                        #                                            controller.reservation.ticksToEnd < 3000):
-                        #     rooms_under_4000.add(flag.pos.roomName)
-            self._target_remote_reserve_count = len(rooms_mining_in) * 2  # 2 per room, to reserve for more than 1 tick
+                        if not controller.reservation or controller.reservation.ticksToEnd < 4000:
+                            rooms_under_4000.add(flag.pos.roomName)
+            # Send 2 per room for rooms < 4000, 1 per room otherwise.
+            self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
         return self._target_remote_reserve_count
 
     room_name = property(get_name)
