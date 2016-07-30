@@ -394,8 +394,8 @@ profiling.profile_class(HiveMind, ["my_rooms"])
 _min_work_mass_big_miner = 15
 _extra_work_mass_per_big_miner = 10
 _min_work_mass_remote_mining_operation = 50
-_extra_work_mass_per_extra_remote_mining_operation = 30
-_min_work_mass_full_storage_use = 35
+_extra_work_mass_per_extra_remote_mining_operation = 15
+_min_work_mass_for_full_storage_use = 35
 
 _min_stored_energy_before_enabling_full_storage_use = 8000
 
@@ -486,7 +486,7 @@ class RoomMind:
 
     def get_trying_to_get_full_storage_use(self):
         if not self._trying_to_get_full_storage_use:
-            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_full_storage_use \
+            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_for_full_storage_use \
                                                    and self.are_all_big_miners_placed \
                                                    and self.room.storage
         return self._trying_to_get_full_storage_use
@@ -513,9 +513,12 @@ class RoomMind:
     def get_target_remote_mining_operation_count(self):
         if not self._target_remote_mining_operation_count:
             if self.work_mass > _min_work_mass_remote_mining_operation:
-                self._target_remote_mining_operation_count = 1 + math.floor(
-                    (self.work_mass - _min_work_mass_remote_mining_operation)
-                    / _extra_work_mass_per_extra_remote_mining_operation
+                self._target_remote_mining_operation_count = min(
+                    1 + math.floor(
+                        (self.work_mass - _min_work_mass_remote_mining_operation)
+                        / _extra_work_mass_per_extra_remote_mining_operation
+                    ),
+                    len(flags.get_global_flags(flags.REMOTE_MINE))
                 )
             else:
                 self._target_remote_mining_operation_count = 0
