@@ -1,6 +1,8 @@
 # Creep base parts
 creep_base_worker = "worker"
 creep_base_big_harvester = "big_harvester"
+creep_base_full_miner = "fast_big_miner"
+creep_base_hauler = "med_hauler"
 
 # Hive Mind TargetMind possible targets
 target_source = "source"
@@ -18,3 +20,5 @@ role_spawn_fill = "harvester"
 role_dedi_miner = "big_harvester"
 role_builder = "builder"
 role_tower_fill = "tower_fill"
+role_remote_miner = "remote_miner"
+role_remote_hauler = "remote_hauler"

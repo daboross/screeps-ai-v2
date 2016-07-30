@@ -5,7 +5,7 @@ import flags
 import profiling
 from constants import target_big_source, target_big_repair, target_harvester_deposit, target_tower_fill, \
     target_remote_mine_miner, target_remote_mine_hauler, creep_base_worker, target_source, target_construction, \
-    target_repair
+    target_repair, role_remote_miner
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -262,16 +262,19 @@ class TargetMind:
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
-            if not miners or miners < 1:
+            if flag_id not in self.targets[target_remote_mine_miner] or miners < 1:
                 return flag_id
 
         return None
 
     def _find_new_remote_hauler_mine(self):
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
+            if not flag.memory.remote_miner_targeting:
+                continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
-            miners = self.targets[target_remote_mine_hauler][flag_id]
-            if not miners or miners < 2:
+            haulers = self.targets[target_remote_mine_hauler][flag_id]
+            # TODO: hardcoded 3 here - should by dynamic based on distance to storage (cached in flag memory)
+            if not haulers or haulers < 3:
                 return flag_id
 
         return None
@@ -426,6 +429,13 @@ class RoomMind:
                 self._target_remote_mining_operation_count = 0
         return self._target_remote_mining_operation_count
 
+    def get_target_remote_hauler_count(self):
+        if not self._target_remote_hauler_count:
+            # TODO: hardcoded 3 here - should by dynamic based on distance to storage (cached in flag memory)
+            self._target_remote_hauler_count = min(self.target_remote_miner_count,
+                                                   creep_utils.role_count(role_remote_miner)) * 3
+        return self._target_remote_hauler_count
+
     def get_position(self):
         if not self._position:
             self._position = creep_utils.parse_room_to_xy(self.room.name)
@@ -438,6 +448,7 @@ class RoomMind:
     work_mass = property(get_work_mass)
     target_big_harvester_count = property(get_target_big_harvester_count)
     target_remote_miner_count = property(get_target_remote_mining_operation_count)
+    target_remote_hauler_count = property(get_target_remote_hauler_count)
 
 
 profiling.profile_class(RoomMind, [

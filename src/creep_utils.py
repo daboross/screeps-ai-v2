@@ -10,12 +10,14 @@ __pragma__('noalias', 'name')
 
 role_requirements = [
     [role_spawn_fill, 2, creep_base_worker],
-    [role_dedi_miner, -5, creep_base_big_harvester],
+    [role_dedi_miner, -10, creep_base_big_harvester],
     [role_spawn_fill, 4, creep_base_worker],
     [role_upgrader, 1, creep_base_worker],
-    [role_tower_fill, 1, creep_base_worker],
-    [role_upgrader, 2, creep_base_worker],
     [role_tower_fill, 2, creep_base_worker],
+    [role_remote_miner, -11, creep_base_full_miner],
+    # TODO: dynamic creep base based on mining operation!
+    [role_remote_hauler, -12, creep_base_hauler],
+    [role_upgrader, 2, creep_base_worker],
     [role_spawn_fill, 6, creep_base_worker],
     [role_builder, 6, creep_base_worker],
 ]
@@ -33,16 +35,18 @@ def role_count(role):
 
 def get_role_name(existing_base=None):
     for role, ideal, base in role_requirements:
-        if ideal == -5:
-            # TODO: better way to do this?
+        if existing_base and existing_base != base:
+            continue
+        if ideal == -10:
             ideal = context.room().target_big_harvester_count
+        elif ideal == -11:
+            ideal = context.room().target_remote_miner_count
+        elif ideal == -12:
+            ideal = context.room().target_remote_hauler_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
-            if (not existing_base) or existing_base == base:
-                print("[roles] Found role {}! {} < {}".format(role, current, ideal))
-                return base, role
-            else:
-                print("[roles] Found role {} didn't match existing base {}.".format(role, existing_base))
+            print("[roles] Found role {}! {} < {}".format(role, current, ideal))
+            return base, role
         else:
             print("[roles] We're good with {} {}! (ideal={}, actual={})".format(ideal, role, ideal, current))
     if existing_base == creep_base_worker:
@@ -179,12 +183,17 @@ def clear_memory(target_mind):
             if role:
                 print("[{}] {} died".format(name, role))
 
-            if role == "big_harvester":
+            if role == role_dedi_miner:
                 source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:
                     del Memory.big_harvesters_placed[source_id]
                 else:
                     print("[{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(name))
+            elif role == role_remote_miner:
+                flag = target_mind._get_existing_target_from_name(name, target_remote_mine_miner)
+                if flag.memory.remote_miner_targeting == name:
+                    del flag.memory.remote_miner_targeting
+                    del flag.memory.remote_miner_death_tick
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]

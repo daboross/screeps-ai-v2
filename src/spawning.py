@@ -2,7 +2,8 @@ from math import floor
 
 import context
 import creep_utils
-from constants import creep_base_big_harvester, creep_base_worker, role_spawn_fill
+from constants import creep_base_big_harvester, creep_base_worker, role_spawn_fill, creep_base_full_miner, \
+    creep_base_hauler
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -67,6 +68,31 @@ def spawn_with_energy(spawn, energy):
                 spawn_with_array(spawn, role, base, [MOVE, MOVE, CARRY, WORK])
             elif energy >= 200:
                 spawn_with_array(spawn, role, base, [MOVE, CARRY, WORK])
+        elif base is creep_base_full_miner:
+            if energy >= 750:
+                spawn_with_array(spawn, role, base, [
+                    MOVE, MOVE, MOVE, MOVE, MOVE, WORK, WORK, WORK, WORK, WORK,
+                ])
+            elif energy >= 550:
+                parts = []
+                num_move = floor((energy - 500) / 50)
+                num_work = 5
+                for i in range(0, num_move): parts.append(MOVE)
+                for i in range(0, num_work): parts.append(WORK)
+            else:
+                print("[spawning] Not enough energy to create a remote miner!"
+                      " This WILL block spawning until it is fixed!")
+        elif base is creep_base_hauler:
+            if energy >= 500:
+                parts = [CARRY, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, CARRY, MOVE, MOVE]
+            else:
+                parts = []
+                section = [CARRY, MOVE]
+                num_sections = floor(energy / 100)
+                for i in range(0, num_sections):
+                    for part in section:
+                        parts.append(part)
+            spawn_with_array(spawn, role, base, parts)
         else:
             print("[spawning] Unknown creep base {}!".format(base))
 

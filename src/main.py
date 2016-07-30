@@ -4,9 +4,10 @@ import flags
 import profiling
 import spawning
 import tower
-from constants import role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill
+from constants import role_upgrader, role_spawn_fill, role_dedi_miner, role_builder, role_tower_fill, role_remote_miner, \
+    role_remote_hauler
 from hivemind import TargetMind, HiveMind
-from roles import building
+from roles import building, remote_mining
 from roles import dedi_miner
 from roles import spawn_fill
 from roles import tower_fill
@@ -23,6 +24,8 @@ role_classes = {
     role_dedi_miner: dedi_miner.DedicatedMiner,
     role_builder: building.Builder,
     role_tower_fill: tower_fill.TowerFill,
+    role_remote_miner: remote_mining.RemoteMiner,
+    role_remote_hauler: remote_mining.RemoteHauler,
 }
 
 
