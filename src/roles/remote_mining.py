@@ -20,6 +20,7 @@ class RemoteMiner(RoleBase):
         if not source_flag:
             print("[{}] Remote miner can't find any sources!".format(self.name))
             self.go_to_depot()
+            self.report("RM. N. F.")
             return False
 
         if not self.creep.pos.isNearTo(source_flag.pos):
@@ -30,6 +31,7 @@ class RemoteMiner(RoleBase):
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             print("[{}] Remote mining source flag {} has no sources under it!".format(self.name, source_flag.name))
+            self.report("RM. N. S!")
             return False
 
         result = self.creep.harvest(sources_list[0])
@@ -81,7 +83,7 @@ class RemoteHauler(RoleBase):
             piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
                 self.report("RH. WW.")
-                return True
+                return False
 
             result = self.creep.pickup(piles[0])
 
@@ -102,6 +104,7 @@ class RemoteHauler(RoleBase):
             if not storage:
                 print("[{}] Remote hauler can't find storage in home room: {}!".format(self.name, self.memory.home))
                 self.go_to_depot()
+                self.report("RH. N. S!!!")
                 return False
 
             if not self.creep.pos.isNearTo(storage.pos):

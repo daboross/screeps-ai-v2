@@ -114,7 +114,7 @@ class RoleBase:
             flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
                 # If we have another direction (if path is diagonal), try another way?
-                if (abs(difference[0]) > abs(difference[1])):
+                if abs(difference[0]) > abs(difference[1]):
                     if difference[1] > 0:
                         direction = BOTTOM
                     elif difference[1] < 0:
@@ -234,16 +234,17 @@ class RoleBase:
             and struct.store >= 0
         )})
         if containers.length > 0:
-            result = self.creep.withdraw(containers[0], RESOURCE_ENERGY)
-            if result == ERR_NOT_IN_RANGE:
+            if not self.creep.pos.isNearTo(containers[0]):
                 self.move_to(containers[0])
                 self.report("G. Find. C.")
-            elif result != OK:
+
+            result = self.creep.withdraw(containers[0], RESOURCE_ENERGY)
+            if result == OK:
+                self.report("G. C.")
+            else:
                 print("[{}] Unknown result from creep.withdraw({}): {}".format(
                     self.name, containers[0], result))
                 self.report("G. C. ???!")
-            else:
-                self.report("G. C.")
             return False
 
         # at this point, there is no energy and no container filled.
@@ -256,20 +257,22 @@ class RoleBase:
             self.move_to(source)
             self.report("G. Find. S.")
         else:
-            result = self.creep.harvest(source)
-
-            if result == ERR_NOT_IN_RANGE:
+            if not self.creep.pos.isNearTo(source.pos):
                 self.move_to(source)
                 self.report("G. Find. S.")
+                return False
+
+            result = self.creep.harvest(source)
+
+            if result == OK:
+                self.report("G. S.")
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
                 self.report("G. W.")
-            elif result != OK:
+            else:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))
                 self.report("G. ???")
-            else:
-                self.report("G. S.")
         return False
 
     def finished_energy_harvest(self):
