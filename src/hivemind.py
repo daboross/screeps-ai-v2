@@ -292,9 +292,9 @@ class TargetMind:
         closest_room = _MAX_DISTANCE
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if self.targets[target_remote_reserve] > 2:
-                continue  # already have a reserver creep targetting (undefined > 1 == false)
+                continue  # already have a reserver creep targeting (undefined > 1 == false)
             if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
-                # must have a remote miner targetting, and be a room we have a view into.
+                # must have a remote miner targeting, and be a room we have a view into.
                 controller = Game.rooms[flag.pos.roomName].controller
                 if not controller.my and (not controller.reservation or
                                               (controller.reservation.username == creep.owner.username and
