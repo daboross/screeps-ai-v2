@@ -291,14 +291,18 @@ class TargetMind:
         best_id = None
         closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
-            if self.targets[target_remote_reserve] > 2:
-                continue  # already have a reserver creep targeting (undefined > 1 == false)
             if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
                 # must have a remote miner targeting, and be a room we have a view into.
                 controller = Game.rooms[flag.pos.roomName].controller
-                if not controller.my and (not controller.reservation or
-                                              (controller.reservation.username == creep.owner.username and
-                                                       controller.reservation.ticksToEnd < 3000)):
+                current_reservers = self.targets[target_remote_reserve][controller.id]
+                if current_reservers >= 2:  # TODO: should this be a constant, or is 2 a good small number?
+                    continue  # max is 2
+                if controller.my or (controller.reservation
+                                     and controller.reservation.username != creep.owner.username):
+                    continue
+                # Dispatch logic is to send 2 reservers to controllers with ticksToEnd < 4000, and 1 reserver to all
+                # others.
+                if controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
                     # Ok, it's a controller we can reserve
                     controller_id = controller.id
                     range = creep_utils.distance_squared_room_pos(controller.pos, creep.pos)
