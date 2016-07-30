@@ -56,7 +56,6 @@ class TargetMind:
                 del self.targets[type][old_target_id]
 
         if not self.targets[type]:
-            print("[target_mind] Creating targets[{}] (register_new_targeter)".format(type))
             self.targets[type] = {
                 target_id: 1
             }
@@ -69,7 +68,7 @@ class TargetMind:
         existing_target = self._get_existing_target_id(type, targeter_id)
         if existing_target:
             self.targets[type][existing_target] -= 1
-            if len(self.targets[type][existing_target]) <= 0:
+            if self.targets[type][existing_target] <= 0:
                 del self.targets[type][existing_target]
             del self.targeters[targeter_id][type]
             if len(self.targeters[targeter_id]) == 0:
@@ -80,14 +79,13 @@ class TargetMind:
             for type in Object.keys(self.targeters[targeter_id]):
                 target = self.targeters[targeter_id][type]
                 self.targets[type][target] -= 1
-                if len(self.targets[type][target]) <= 0:
+                if self.targets[type][target] <= 0:
                     del self.targets[type][target]
         del self.targeters[targeter_id]
 
     def _find_new_target(self, type, creep, extra_var):
         if not self.targets[type]:
             self.targets[type] = {}
-            print("[target_mind] Creating targets[{}]".format(type))
         func = self.find_functions[type]
         if func:
             return func(creep, extra_var)
@@ -156,7 +154,7 @@ class TargetMind:
                 return source_id
             elif current_harvesters <= smallest_num_harvesters + 1:
                 range = source.pos.getRangeTo(creep.pos)
-                if range < closest_distance or current_harvesters < smallest_num_harvesters - 1:
+                if range < closest_distance or current_harvesters <= smallest_num_harvesters - 1:
                     best_id = source_id
                     closest_distance = range
                     smallest_num_harvesters = current_harvesters
