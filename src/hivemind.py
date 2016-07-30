@@ -9,7 +9,7 @@ from screeps_constants import *
 __pragma__('noalias', 'name')
 
 _MAX_BUILDERS = 3
-_MAX_DISTANCE = math.pow(2, 30)
+_SLIGHTLY_SMALLER_THAN_MAX_INT = math.pow(2, 30)
 
 
 class TargetMind:
@@ -146,7 +146,7 @@ class TargetMind:
     def _find_new_source(self, creep):
         smallest_num_harvesters = 8000
         best_id = None
-        closest_distance = _MAX_DISTANCE
+        closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         for source in creep.room.find(FIND_SOURCES):
             source_id = source.id
             current_harvesters = self.targets[target_source][source_id]
@@ -171,7 +171,7 @@ class TargetMind:
         return None
 
     def _find_new_harvester_deposit_site(self, creep):
-        closest_distance = _MAX_DISTANCE
+        closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
@@ -188,7 +188,7 @@ class TargetMind:
         return best_id
 
     def _find_new_construction_site(self, creep):
-        closest_distance = _MAX_DISTANCE
+        closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for site in creep.room.find(FIND_CONSTRUCTION_SITES):
             site_id = site.id
@@ -203,8 +203,8 @@ class TargetMind:
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits):
-        closest_distance = _MAX_DISTANCE
-        smallest_num_builders = 8000
+        closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
+        smallest_num_builders = _SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
@@ -224,7 +224,7 @@ class TargetMind:
         return best_id
 
     def _find_new_big_repair_site(self, creep, max_hits):
-        closest_distance = _MAX_DISTANCE
+        closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
@@ -254,7 +254,7 @@ class TargetMind:
 
     def _find_new_remote_miner_mine(self, creep):
         best_id = None
-        closest_flag = _MAX_DISTANCE
+        closest_flag = _SLIGHTLY_SMALLER_THAN_MAX_INT
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
@@ -272,7 +272,7 @@ class TargetMind:
 
     def _find_new_remote_hauler_mine(self, creep):
         best_id = None
-        closest_flag = _MAX_DISTANCE
+        closest_flag = _SLIGHTLY_SMALLER_THAN_MAX_INT
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if not flag.memory.remote_miner_targeting:
                 continue  # only target mines with active miners
@@ -289,7 +289,7 @@ class TargetMind:
 
     def _find_new_reservable_controller(self, creep):
         best_id = None
-        closest_room = _MAX_DISTANCE
+        closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if self.targets[target_remote_reserve] > 2:
                 continue  # already have a reserver creep targeting (undefined > 1 == false)
@@ -355,7 +355,7 @@ class HiveMind:
         if not current_pos:
             print("[room: {}] Couldn't parse room name!".format(current_room_name))
             return None
-        closest_squared_distance = _MAX_DISTANCE
+        closest_squared_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         closest_room = None
         for room in self.my_rooms:
             if not room.my:
