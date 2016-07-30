@@ -13,7 +13,7 @@ class DedicatedMiner(RoleBase):
         source = self.target_mind.get_new_target(self.creep, target_big_source)
 
         if not source:
-            print("[{}] No big sources found.".format(self.name))
+            print("[{}] Dedicated miner could not find any new big sources.".format(self.name))
             return
 
         if not self.creep.pos.isNearTo(source.pos):
