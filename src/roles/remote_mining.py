@@ -24,7 +24,7 @@ class RemoteMiner(RoleBase):
             return False
 
         if not self.creep.pos.isNearTo(source_flag.pos):
-            self.move_to(source_flag, False, _MOVE_OPTIONS)
+            self.move_to(source_flag)#, False, _MOVE_OPTIONS)
             self.report("RM. Moving.")
             return False
 
@@ -76,7 +76,7 @@ class RemoteHauler(RoleBase):
                 return True
 
             if not self.creep.pos.isNearTo(miner.pos):
-                self.move_to(miner, False, _MOVE_OPTIONS)
+                self.move_to(miner)#, False, _MOVE_OPTIONS)
                 self.report("RH. Move.")
                 return False
 
