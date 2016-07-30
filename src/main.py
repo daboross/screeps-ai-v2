@@ -79,7 +79,9 @@ def main():
             if rerun:
                 rerun = creep_instance.run()
             if rerun:
-                print("[{}] Tried to rerun twice!".format(creep.name))
+                rerun = creep_instance.run()
+            if rerun:
+                print("[{}: {}] Tried to rerun three times!".format(creep.name, role))
 
     for name in Object.keys(Game.spawns):
         spawn = Game.spawns[name]

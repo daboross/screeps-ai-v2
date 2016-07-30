@@ -48,11 +48,13 @@ class RemoteMiner(RoleBase):
 
 class RemoteHauler(RoleBase):
     def run(self):
-        if self.memory.harvesting:
-            if self.creep.carry.energy >= self.creep.carryCapacity:
-                self.memory.harvesting = False
-                return True
+        if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
+            self.memory.harvesting = False
 
+        if not self.memory.harvesting and self.creep.carry.energy <= 0:
+            self.memory.harvesting = True
+
+        if self.memory.harvesting:
             source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_hauler)
 
             if not source_flag:
@@ -96,9 +98,6 @@ class RemoteHauler(RoleBase):
 
             return False
         else:
-            if self.creep.carry.energy <= 0:
-                self.memory.harvesting = True
-                return True
             storage = self.home.room.storage
             if not storage:
                 print("[{}] Remote hauler can't find storage in home room: {}!".format(self.name, self.memory.home))
