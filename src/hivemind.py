@@ -623,7 +623,11 @@ class RoomMind:
                         mining_op_count -= 1
                         rooms_mining_in.add(flag.pos.roomName)
                         if not controller.reservation or controller.reservation.ticksToEnd < 4000:
-                            rooms_under_4000.add(flag.pos.roomName)
+                            if self.room.energyCapacityAvailable < 1300:
+                                # if energy capacity is at least 1300, the reserve creeps we're making are going to have
+                                # 2 reserve already!
+                                # TODO: this class and spawning logic really need to be merged a bit.
+                                rooms_under_4000.add(flag.pos.roomName)
             # Send 2 per room for rooms < 4000, 1 per room otherwise.
             self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
         return self._target_remote_reserve_count
