@@ -147,6 +147,8 @@ class RemoteReserve(RoleBase):
             return False
 
         self.memory.stationary = True
+        if not self.memory.action_start_time:
+            self.memory.action_start_time = Game.time
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
             print("[{}] Remote reserve creep target owned by another player! {} has taken our reservation!".format(

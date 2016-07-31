@@ -22,6 +22,9 @@ class DedicatedMiner(RoleBase):
             self.report(speach.dedi_miner_moving)
             return False
 
+        if not self.memory.action_start_time:
+            self.memory.action_start_time = Game.time
+
         result = self.creep.harvest(source)
         if result == OK:
             if Memory.big_harvesters_placed:

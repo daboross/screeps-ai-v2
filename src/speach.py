@@ -1,90 +1,90 @@
-_we_are_miners = [
-    "We", "are", "miners,", "hard", "rock", "miners", " - ",
-    "To", "the", "shaft", "house", "we", "must", "go", " - ",
-    "Pour", "your", "bottles", "on", "our", "shoulders", " - ",
-    "We", "are", "marching", "to", "the", "slow", " - ",
-    " - ", " - ",
-    "On", "the", "line", "boys,", "on", "the", "line", "boys", " - ",
-    "Drill", "your", "holes", "and", "stand", "in", "line", " - ",
-    "'til", "the", "shift", "boss", "comes", "to", "tell", "you", " - ",
-    "You", "must", "drill", "her", "out", "on", "top", " - ",
-    " - ", " - ",
-    "Can't", "you", "feel", "the", "rock", "dust", "in", "your", "lungs?", " - ",
-    "It'll", "cut", "down", "a", "miner", "when", "he", "is", "still", "young", " - ",
-    "Two", "years", "and", "the", "silicosis", "takes", "hold", " - ",
-    "and", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " - ",
-    " - ", " - ",
-    "Yes,", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " . ",
-]
+_we_are_miners = (
+    [
+        "We", "are", "miners,", "hard", "rock", "miners", " - ",
+        "To", "the", "shaft", "house", "we", "must", "go", " - ",
+        "Pour", "your", "bottles", "on", "our", "shoulders", " - ",
+        "We", "are", "marching", "to", "the", "slow", " - ",
+        "On", "the", "line", "boys,", "on", "the", "line", "boys", " - ",
+        "Drill", "your", "holes", "and", "stand", "in", "line", " - ",
+        "'til", "the", "shift", "boss", "comes", "to", "tell", "you", " - ",
+        "You", "must", "drill", "her", "out", "on", "top", " - ",
+        "Can't", "you", "feel", "the", "rock", "dust", "in", "your", "lungs?", " - ",
+        "It'll", "cut", "down", "a", "miner", "when", "he", "is", "still", "young", " - ",
+        "Two", "years", "and", "the", "silicosis", "takes", "hold", " - ",
+        "and", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " - ",
+        "Yes,", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " . ",
+    ],
+    True
+)
 
-base_no_role = ["No role", "!!!"]
+base_no_role = (["No role", "!!!"], False)
 
-default_gather_moving_to_storage = ["get", "some", "energy"]
-default_gather_moving_between_rooms = ["going", "where", "exactly?"]
-default_gather_storage_withdraw_ok = ["k"]
-default_gather_no_sources = ["no sources", "!!!"]
-default_gather_moving_to_energy = ["get", "some", "energy"]
-default_gather_unknown_result_pickup = ["AAAAhhhh", "!!!???", "(pickup)"]
-default_gather_energy_pickup_ok = ["k"]
-default_gather_moving_to_container = ["get", "some", "energy"]
-default_gather_container_withdraw_ok = ["k"]
-default_gather_unknown_result_withdraw = ["AAAAhhhh", "!!!???", "(withdraw)"]
-default_gather_moving_to_source = ["gotta", "get", "some", "coal"]
+default_gather_moving_to_storage = (["get", "some", "energy"], False)
+default_gather_moving_between_rooms = (["going", "where", "exactly?"], False)
+default_gather_storage_withdraw_ok = (["k"], False)
+default_gather_no_sources = (["no sources", "!!!"], False)
+default_gather_moving_to_energy = (["get", "some", "energy"], False)
+default_gather_unknown_result_pickup = (["AAAAhhhh", "!!!???", "(pickup)"], False)
+default_gather_energy_pickup_ok = (["k"], False)
+default_gather_moving_to_container = (["get", "some", "energy"], False)
+default_gather_container_withdraw_ok = (["k"], False)
+default_gather_unknown_result_withdraw = (["AAAAhhhh", "!!!???", "(withdraw)"], False)
+default_gather_moving_to_source = (["gotta", "get", "some", "coal"], False)
 default_gather_source_harvest_ok = _we_are_miners
-default_gather_source_harvest_ner = ["just", "chillin", "."]
-default_gather_unknown_result_harvest = ["AAAAhhhh", "!!!???", "(harvest)"]
+default_gather_source_harvest_ner = (["just", "chillin", "."], False)
+default_gather_unknown_result_harvest = (["AAAAhhhh", "!!!???", "(harvest)"], False)
 
-upgrading_controller_not_owned = ["not", "ours", "to", "upgrade!"]
-upgrading_ok = ["U"]
-upgrading_moving_to_controller = ["U"]
-upgrading_unknown_result = ["AAAAhhhh", "!!!???", "(upgrade)"]
+upgrading_controller_not_owned = (["not", "ours", "to", "upgrade!"], False)
+upgrading_ok = (["U"], False)
+upgrading_moving_to_controller = (["U"], False)
+upgrading_unknown_result = (["AAAAhhhh", "!!!???", "(upgrade)"], False)
 
-tower_fill_moving_to_tower = ["tower", "fill", "regiment", "reporting", "for", "duty"]
-tower_fill_ok = ["T. F."]
-tower_fill_unknown_result = ["AAAAhhhh", "!!!???", "(transfer)", "(tower)"]
+tower_fill_moving_to_tower = (["tower", "fill", "regiment", "reporting", "for", "duty"], False)
+tower_fill_ok = (["T. F."], False)
+tower_fill_unknown_result = (["AAAAhhhh", "!!!???", "(transfer)", "(tower)"], False)
 
-spawn_fill_moving_to_target = ["X"]
-spawn_fill_ok = ["I", "do", "care"]
-spawn_fill_unknown_result = ["AAAAhhhh", "!!!???", "(transfer)", "spawn_fill"]
+spawn_fill_moving_to_target = (["X"], False)
+spawn_fill_ok = (["I", "do", "care"], False)
+spawn_fill_unknown_result = (["AAAAhhhh", "!!!???", "(transfer)", "spawn_fill"], False)
 
-building_repair_target = ["gonna", "fix", "ah", "{}"]
-building_build_target = ["gonna", "build", "ah", "{}"]
+building_repair_target = (["gonna", "fix", "ah", "{}"], False)
+building_build_target = (["gonna", "build", "ah", "{}"], False)
 
-dedi_miner_moving = ["let's", "!GO!", "."]
+dedi_miner_moving = (["let's", "!GO!", "."], False)
 dedi_miner_ok = _we_are_miners
-dedi_miner_ner = ["just", "chillin", "with", "our", "friends", "."]
-dedi_miner_unknown_result = ["AAAAhhhh", "!!!???", "(harvest)", "dedi_miner"]
+dedi_miner_ner = (["just", "chillin", "with", "our", "friends", "."], False)
+dedi_miner_unknown_result = (["AAAAhhhh", "!!!???", "(harvest)", "dedi_miner"], False)
 
-local_hauler_no_source = ["aint", "got", "no", "use", "for", "me", "now", "."]
-local_hauler_no_miner = ["where", "my", "guy", "at??"]
-local_hauler_moving_to_miner = ["coming", "to", "get", "some", "."]
-local_hauler_waiting = ["just", "chillin", ".", "man", "."]
-local_hauler_pickup_ok = ["got it"]
-local_hauler_pickup_unknown_result = ["AAAAhhhh", "!!!???", "(pickup)", "(hauler)"]
-local_hauler_no_storage = ["don't", "got", "anywhere", "to", "put", "this!", "."]
-local_hauler_moving_to_storage = ["bringing", "the", "goods"]
-local_hauler_transfer_ok = ["k"]
-local_hauler_storage_full = ["don't", "got", "anywhere", "to", "put", "this!", "."]
-local_hauler_transfer_unknown_result = ["AAAAhhhh", "!!!???", "(transfer)", "(hauler)"]
+local_hauler_no_source = (["aint", "got", "no", "use", "for", "me", "now", "."], False)
+local_hauler_no_miner = (["where", "my", "guy", "at??"], False)
+local_hauler_moving_to_miner = (["coming", "to", "get", "some", "."], False)
+local_hauler_waiting = (["just", "chillin", ".", "man", "."], False)
+local_hauler_pickup_ok = (["got it"], False)
+local_hauler_pickup_unknown_result = (["AAAAhhhh", "!!!???", "(pickup)", "(hauler)"], False)
+local_hauler_no_storage = (["don't", "got", "anywhere", "to", "put", "this!", "."], False)
+local_hauler_moving_to_storage = (["bringing", "the", "goods"], False)
+local_hauler_transfer_ok = (["k"], False)
+local_hauler_storage_full = (["don't", "got", "anywhere", "to", "put", "this!", "."], False)
+local_hauler_transfer_unknown_result = (["AAAAhhhh", "!!!???", "(transfer)", "(hauler)"], False)
 
-remote_miner_no_flag = ["I have", "nowhere", "to go!"]
-remote_miner_moving = ["heading", "to", "the", "mines"]
-remote_miner_flag_no_source = ["hey", "man", "this", "isn't", "right!"]
+remote_miner_no_flag = (["I have", "nowhere", "to go!"], False)
+remote_miner_moving = (["heading", "to", "the", "mines"], False)
+remote_miner_flag_no_source = (["hey", "man", "this", "isn't", "right!"], False)
 remote_miner_ok = _we_are_miners
-remote_miner_ner = ["chill", "man", ".", ".", ".", "."]
-remote_miner_unknown_result = ["AAAAhhhh", "!!!???", "(harvest)", "remote"]
+remote_miner_ner = (["chill", "man", ".", ".", ".", "."], False)
+remote_miner_unknown_result = (["AAAAhhhh", "!!!???", "(harvest)", "remote"], False)
 
-remote_hauler_no_source = ["just", "give me", "somewhere", "to go", "already!", "."]
-remote_hauler_source_no_miner = ["where", "is the", "miner", "at?"]
-remote_hauler_moving_to_miner = ["heading", "to", "the", "mines"]
-remote_hauler_ner = [".", ".", "alright", "alright", "i'm", "chillin"]
-remote_hauler_pickup_ok = ["k"]
-remote_hauler_pickup_unknown_result = ["AAAAhhhh", "!!!???", "(pickup)", "(remote)"]
-remote_hauler_no_home_storage = ["don't", "got", "anywhere", "to", "put", "this!", "."]
-remote_hauler_moving_to_storage = ["bringing", "the", "goods"]
-remote_hauler_transfer_ok = ["k"]
-remote_hauler_storage_full = ["don't", "got", "anywhere", "to", "put", "this!", "."]
-remote_hauler_transfer_unknown_result = ["AAAAhhhh", "!!!???", "(transfer)", "(remote)"]
+remote_hauler_no_source = (["just", "give me", "somewhere", "to go", "already!", "."], False)
+remote_hauler_source_no_miner = (["where", "is the", "miner", "at?"], False)
+remote_hauler_moving_to_miner = (["heading", "to", "the", "mines"], False)
+remote_hauler_ner = ([".", ".", "alright", "alright", "i'm", "chillin"], False)
+remote_hauler_pickup_ok = (["k"], False)
+remote_hauler_pickup_unknown_result = (["AAAAhhhh", "!!!???", "(pickup)", "(remote)"], False)
+remote_hauler_no_home_storage = (["don't", "got", "anywhere", "to", "put", "this!", "."], False)
+remote_hauler_moving_to_storage = (["bringing", "the", "goods"], False)
+remote_hauler_transfer_ok = (["k"], False)
+remote_hauler_storage_full = (["don't", "got", "anywhere", "to", "put", "this!", "."], False)
+remote_hauler_transfer_unknown_result = (["AAAAhhhh", "!!!???", "(transfer)", "(remote)"], False)
 
-remote_reserve_moving = ["gonna", "stake", "a", "claim", "."]
-remote_reserve_reserving = ["gonna", "stake", "a", "claim", "."]
+remote_reserve_moving = (["gonna", "stake", "a", "claim", "."], False)
+remote_reserve_reserving = (["gonna", "stake", "a", "claim", "."], False)

@@ -348,11 +348,15 @@ class RoleBase:
             return True
 
     def report(self, task_array, arg=None):
-        if not Memory.meta.quiet:
-            if arg:
-                self.creep.say(task_array[Game.time % len(task_array)].format(arg), True)
+        if not Memory.meta.quiet or task_array[1]:
+            if self.memory.action_start_time:
+                time = Game.time - self.memory.action_start_time
             else:
-                self.creep.say(task_array[Game.time % len(task_array)], True)
+                time = Game.time
+            if arg:
+                self.creep.say(task_array[0][time % len(task_array[0])].format(arg), True)
+            else:
+                self.creep.say(task_array[0][time % len(task_array[0])], True)
 
 
 profiling.profile_class(RoleBase, profiling.ROLE_BASE_IGNORE)
