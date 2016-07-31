@@ -39,6 +39,8 @@ def main():
     context.set_targets(target_mind)
     context.set_hive(hive_mind)
 
+    hive_mind.poll_all_creeps()
+
     if not Memory.creeps:
         Memory.creeps = {}
         for name in Object.keys(Game.creeps):

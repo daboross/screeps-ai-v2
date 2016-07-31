@@ -343,17 +343,27 @@ class HiveMind:
     def __init__(self, target_mind):
         self.target_mind = target_mind
         self._my_rooms = None
+        self._all_rooms = None
         self._room_to_mind = {}
 
     def find_my_rooms(self):
         if not self._my_rooms:
-            rooms = []
+            my_rooms = []
+            all_rooms = []
             for name in Object.keys(Game.rooms):
                 room_mind = RoomMind(self, Game.rooms[name])
-                rooms.append(room_mind)
+                all_rooms.append(room_mind)
+                if room_mind.my:
+                    my_rooms.append(room_mind)
                 self._room_to_mind[name] = room_mind
-            self._my_rooms = rooms
+            self._my_rooms = my_rooms
+            self._all_rooms = all_rooms
         return self._my_rooms
+
+    def find_visible_rooms(self):
+        if not self._all_rooms:
+            self.find_my_rooms()
+        return self._all_rooms
 
     def get_room(self, room_name):
         return self._room_to_mind[room_name]
@@ -388,7 +398,34 @@ class HiveMind:
                 closest_room = room
         return closest_room
 
+    def poll_all_creeps(self):
+        new_creep_lists = {}
+        for name in Game.creeps:
+            creep = Game.creeps[name]
+            home = creep.memory.home
+            if not creep.memory.home:
+                home = self.get_closest_owned_room(creep.pos.roomName)
+                creep.memory.home = home
+            if home in new_creep_lists:
+                new_creep_lists[home].append(creep)
+            else:
+                new_creep_lists[home] = [creep]
+        for name in new_creep_lists:
+            room = self.get_room(name)
+            if not room:
+                print("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(name, name))
+                if not Memory.meta.unowned_room_alerted:
+                    Game.alert("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(
+                        name, name))
+            elif not room.my:
+                print("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+                if not Memory.meta.unowned_room_alerted:
+                    Game.alert("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+            else:
+                room._creeps = new_creep_lists[name]
+
     my_rooms = property(find_my_rooms)
+    visible_rooms = property(find_visible_rooms)
     remote_mining_flags = property(get_remote_mining_flags)
 
 
@@ -471,18 +508,23 @@ class RoomMind:
 
     def get_creeps(self):
         if self._creeps is None:
-            self._creeps = self.room.find(FIND_MY_CREEPS)
+            creeps = []
+            for name in Object.keys(Game.creeps):
+                creep = Game.creeps[name]
+                if creep.memory.home == self.room_name:
+                    creeps.append(creep)
+            self._creeps = creeps
         return self._creeps
 
     def get_work_mass(self):
         if self._work_mass is None:
             mass = 0
             for creep in self.get_creeps():
-                if creep.memory.base == creep_base_worker:
-                    for part in creep.body:
-                        if part.type == WORK:
-                            mass += 1
-            self._work_mass = mass
+                for part in creep.body:
+                    # TODO: better measure for local haulers!
+                    if part.type == WORK or part.type == CARRY:
+                        mass += 1
+            self._work_mass = math.floor(mass / 2)
         return self._work_mass
 
     def get_if_all_big_miners_are_placed(self):
