@@ -51,7 +51,7 @@ def main():
     if not Memory.meta or Memory.meta.clear_now or \
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
         if not Memory.meta:
-            Memory.meta = {"pause": False, "quiet": False}
+            Memory.meta = {"pause": False, "quiet": False, "friends": []}
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
         creep_utils.count_roles()

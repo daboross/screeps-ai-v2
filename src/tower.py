@@ -20,6 +20,8 @@ def run():
 
         Memory.tower.towers = towers
 
+    new_alert_rooms = set()
+    no_longer_alert_rooms = set()
     for id in Memory.tower.towers:
         tower = Game.getObjectById(id)
         if not Memory.tower.towers_memory[id]:
@@ -28,9 +30,15 @@ def run():
         tower.memory = Memory.tower.towers_memory[id]
 
         if tower.memory.alert:
-            target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+            if Memory.meta.friends and len(Memory.meta.friends):
+                target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
+                    "filter": lambda c: c.owner.username not in Memory.meta.friends
+                })
+            else:
+                target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
             if not target:
                 tower.memory.alert = False
+                no_longer_alert_rooms.add(tower.room)
                 continue
             tower.attack(target)
         else:
@@ -38,12 +46,19 @@ def run():
             if len(targets):
                 tower.memory.alert = True
                 tower.attack(targets[0])
+                new_alert_rooms.add(tower.room)
                 continue
 
             targets = tower.room.find(FIND_MY_CREEPS, {
-                "filter": lambda creep: (
-                    creep.hits < creep.hitsMax
-                )
+                "filter": lambda creep: creep.hits < creep.hitsMax
             })
             if len(targets):
                 tower.heal(targets[0])
+
+    for room in no_longer_alert_rooms:
+        for rampart in room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_RAMPART}}):
+            rampart.setPublic(True)
+
+    for room in new_alert_rooms:
+        for rampart in room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_RAMPART}}):
+            rampart.setPublic(False)
