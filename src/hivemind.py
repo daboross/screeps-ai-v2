@@ -460,22 +460,22 @@ class RoomMind:
         return self.room.name
 
     def get_position(self):
-        if not self._position:
+        if self._position is None:
             self._position = creep_utils.parse_room_to_xy(self.room.name)
         return self._position
 
     def get_sources(self):
-        if not self._sources:
+        if self._sources is None:
             self._sources = self.room.find(FIND_SOURCES)
         return self._sources
 
     def get_creeps(self):
-        if not self._creeps:
+        if self._creeps is None:
             self._creeps = self.room.find(FIND_MY_CREEPS)
         return self._creeps
 
     def get_work_mass(self):
-        if not self._work_mass:
+        if self._work_mass is None:
             mass = 0
             for creep in self.get_creeps():
                 if creep.memory.base == creep_base_worker:
@@ -486,7 +486,7 @@ class RoomMind:
         return self._work_mass
 
     def get_if_all_big_miners_are_placed(self):
-        if not self._all_big_miners_placed:
+        if self._all_big_miners_placed is None:
             all_placed = True
             for source in self.sources:
                 if not Memory.big_harvesters_placed[source.id]:
@@ -496,21 +496,21 @@ class RoomMind:
         return self._all_big_miners_placed
 
     def get_trying_to_get_full_storage_use(self):
-        if not self._trying_to_get_full_storage_use:
+        if self._trying_to_get_full_storage_use is None:
             self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_for_full_storage_use \
                                                    and self.are_all_big_miners_placed \
                                                    and self.room.storage
         return self._trying_to_get_full_storage_use
 
     def get_full_storage_use(self):
-        if not self._full_storage_use:
+        if self._full_storage_use is None:
             self._full_storage_use = self.trying_to_get_full_storage_use and \
                                      self.room.storage.store[RESOURCE_ENERGY] \
                                      >= _min_stored_energy_before_enabling_full_storage_use
         return self._full_storage_use
 
     def get_target_big_harvester_count(self):
-        if not self._ideal_big_miner_count:
+        if self._ideal_big_miner_count is None:
             if self.work_mass > _min_work_mass_big_miner:
                 self._ideal_big_miner_count = min(
                     len(self.sources),
@@ -522,7 +522,7 @@ class RoomMind:
         return self._ideal_big_miner_count
 
     def get_target_remote_mining_operation_count(self):
-        if not self._target_remote_mining_operation_count:
+        if self._target_remote_mining_operation_count is None:
             if self.work_mass > _min_work_mass_remote_mining_operation:
                 self._target_remote_mining_operation_count = min(
                     1 + math.floor(
@@ -536,7 +536,7 @@ class RoomMind:
         return self._target_remote_mining_operation_count
 
     def get_target_remote_hauler_count(self):
-        if not self._target_remote_hauler_count:
+        if self._target_remote_hauler_count is None:
             # TODO: this assumes that walking distance ~= exact range, and that remote miners go to storage, not the closest link.
             # After we get some code to calculate walking distances based off of a path (is it just number of entries?), we should
             # fix this, AND CACHE IT IN MEMORY! (as it will use paths)
@@ -551,7 +551,7 @@ class RoomMind:
         return self._target_remote_hauler_count
 
     def get_target_remote_reserve_count(self):
-        if not self._target_remote_reserve_count:
+        if self._target_remote_reserve_count is None:
             mining_op_count = self.target_remote_miner_count
             rooms_mining_in = set()
             rooms_under_4000 = set()
@@ -575,7 +575,7 @@ class RoomMind:
         return self._target_remote_reserve_count
 
     def get_target_local_hauler_count(self):
-        if not self._target_local_hauler_count:
+        if self._target_local_hauler_count is None:
             if self.trying_to_get_full_storage_use:
                 # TODO: 2 here should ideally be replaced with a calculation taking in path distance from each source to
                 # the storage and hauler capacity.
@@ -585,7 +585,7 @@ class RoomMind:
         return self._target_local_hauler_count
 
     def get_max_sane_wall_hits(self):
-        if not self._max_sane_wall_hits:
+        if self._max_sane_wall_hits is None:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
         return self._max_sane_wall_hits
 
