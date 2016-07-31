@@ -288,7 +288,7 @@ class TargetMind:
 
     def _find_new_remote_hauler_mine(self, creep):
         best_id = None
-        closest_flag = _SLIGHTLY_SMALLER_THAN_MAX_INT
+        smallest_percentage = 1 # don't go to any rooms with 100% haulers in use.
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if not flag.memory.remote_miner_targeting:
                 continue  # only target mines with active miners
@@ -298,11 +298,10 @@ class TargetMind:
             max_haulers = math.ceil(math.sqrt(creep_utils.distance_squared_room_pos(
                 Game.rooms[creep.memory.home].storage.pos, flag.pos)
             ) / 13)
-            if not haulers or haulers < max_haulers:
-                range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
-                if range < closest_flag:
-                    closest_flag = range
-                    best_id = flag_id
+            hauler_percentage = haulers / max_haulers
+            if not haulers or hauler_percentage < smallest_percentage:
+                smallest_percentage = hauler_percentage
+                best_id = flag_id
 
         return best_id
 
