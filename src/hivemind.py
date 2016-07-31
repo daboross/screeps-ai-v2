@@ -318,12 +318,14 @@ class TargetMind:
     def _find_new_reservable_controller(self, creep):
         best_id = None
         closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
+        # TODO: this really needs to be some kind of thing merged into RoomMind!
+        max_reservable = 1 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 2
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
                 # must have a remote miner targeting, and be a room we have a view into.
                 controller = Game.rooms[flag.pos.roomName].controller
                 current_reservers = self.targets[target_remote_reserve][controller.id]
-                if current_reservers >= 2:  # TODO: should this be a constant, or is 2 a good small number?
+                if current_reservers >= max_reservable:  # TODO: should this be a constant, or is 2 a good small number?
                     continue  # max is 2
                 if controller.my or (controller.reservation
                                      and controller.reservation.username != creep.owner.username):
