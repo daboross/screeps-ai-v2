@@ -24,6 +24,7 @@ __all__ = [
     "FIND_CONSTRUCTION_SITES",
     "FIND_HOSTILE_CREEPS",
     "FIND_MY_CREEPS",
+    "FIND_CREEPS",
     "FIND_FLAGS",
     "LOOK_CREEPS",
     "LOOK_TERRAIN",
@@ -35,6 +36,8 @@ __all__ = [
     "STRUCTURE_SPAWN",
     "STRUCTURE_EXTENSION",
     "STRUCTURE_TOWER",
+    "STRUCTURE_ROAD",
+    "STRUCTURE_RAMPART",
     "RESOURCE_ENERGY",
     "TERRAIN_MASK_WALL",
     "TERRAIN_MASK_LAVA",
@@ -69,6 +72,7 @@ __all__ = [
     "this",
     "RegExp",
     "_",
-    "__pragma__"
+    "__pragma__",
+    "__new__",
 ]
 __pragma__('noskip')

@@ -66,6 +66,7 @@ class Builder(upgrading.Upgrader):
             self.move_to(target)
             return False
 
+        self.memory.stationary = True
         result = self.creep.repair(target)
         if result == OK:
             if self.is_next_block_clear(target):
@@ -84,6 +85,8 @@ class Builder(upgrading.Upgrader):
         if not self.creep.pos.inRangeTo(target.pos, 3):
             self.move_to(target)
             return False
+
+        self.memory.stationary = True
         result = self.creep.build(target)
         if result == OK:
             if self.is_next_block_clear(target):

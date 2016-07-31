@@ -29,6 +29,7 @@ class RemoteMiner(RoleBase):
             self.report(speach.remote_miner_moving)
             return False
 
+        self.memory.stationary = True
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             print("[{}] Remote mining source flag {} has no sources under it!".format(self.name, source_flag.name))

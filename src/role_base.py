@@ -67,16 +67,12 @@ class RoleBase:
         """
         pass
 
-    def _get_new_path_to(self, target_id, pos, options):
-        # TODO: Use this once we get a custom CostMatrix with/ creeps figured out.
-        # path = PathFinder.search(self.creep.pos, pos, {"maxRooms": 1})
-        # if not path:
-        #     return None
-        # else:
-        #     path = path.path  # it's an object
+    def _get_new_path_to(self, target_id, target_pos, options):
         if not options:
             options = _DEFAULT_PATH_OPTIONS
-        path = self.creep.pos.findPathTo(pos, options)
+        # custom pathfinder module disabled, due to PathFinder.search() not working at all.
+        # path = pathfinding.find_path(self.creep.pos, target_pos, options)
+        path = self.creep.pos.findPathTo(target_pos, options)
         self.memory.path[target_id] = Room.serializePath(path)
         self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
         self.memory.same_place_ticks = 0
@@ -160,6 +156,9 @@ class RoleBase:
         return self._get_new_path_to(target_id, pos, options)
 
     def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
+        if not same_position_ok:
+            # do this automatically, and the roles will set it to true once they've reached their destination.
+            self.memory.stationary = False
         if target.pos:
             pos = target.pos
         else:

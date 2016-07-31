@@ -15,17 +15,21 @@ class Upgrader(RoleBase):
             self.memory.harvesting = True
 
         if self.memory.harvesting:
+            self.memory.stationary = False
             return self.harvest_energy()
         elif not self.creep.room.controller.my:
+            self.memory.stationary = False
             self.go_to_depot()
             self.report(speach.upgrading_controller_not_owned)
         else:
             target = self.creep.room.controller
             if not self.creep.pos.inRangeTo(target.pos, 3):
                 self.move_to(target)
+                self.memory.stationary = False
                 self.report(speach.upgrading_moving_to_controller)
                 return False
 
+            self.memory.stationary = True
             result = self.creep.upgradeController(self.creep.room.controller)
             if result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
