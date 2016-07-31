@@ -8,6 +8,7 @@ EXIT_EAST = "exit_east"
 EXIT_SOUTH = "exit_south"
 EXIT_WEST = "exit_west"
 REMOTE_MINE = "harvest"
+CLAIM_LATER = "claim_later"
 
 DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
@@ -23,6 +24,7 @@ flag_definitions = {
     EXIT_SOUTH: (COLOR_WHITE, COLOR_BLUE),
     EXIT_WEST: (COLOR_WHITE, COLOR_CYAN),
     REMOTE_MINE: (COLOR_GREEN, COLOR_CYAN),
+    CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
 }
 
 
@@ -84,7 +86,13 @@ def get_global_flags(type, reload=False):
 def create_flag(position, type):
     flag_def = flag_definitions[type]
     name = "{}_{}".format(type, random_digits())
-    position.createFlag(name, flag_def[0], flag_def[1])
+    # TODO: Make some sort of utility for finding a visible position, so we can do this
+    # even if all our spawns are dead!
+    known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
+    flag_name = known_position.createFlag(name, flag_def[0], flag_def[1])
+    flag = Game.flags[flag_name]
+    flag.setPosition(position)
+    return flag
 
 
 def random_digits():
