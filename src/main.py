@@ -10,7 +10,7 @@ import tower
 from constants import *
 from hivemind import TargetMind, HiveMind
 from role_base import RoleBase
-from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading
+from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading, utility
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -20,6 +20,7 @@ require("perf")()
 role_classes = {
     role_upgrader: upgrading.Upgrader,
     role_spawn_fill: spawn_fill.SpawnFill,
+    role_link_manager: utility.LinkManager,
     role_dedi_miner: dedi_miner.DedicatedMiner,
     role_local_hauler: dedi_miner.LocalHauler,
     role_builder: building.Builder,

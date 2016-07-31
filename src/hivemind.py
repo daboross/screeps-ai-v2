@@ -38,6 +38,7 @@ class TargetMind:
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
             target_remote_reserve: self._find_new_reservable_controller,
             target_source_local_hauler: self._find_new_local_hauler_mine,
+            target_closest_deposit_site: self._find_closest_deposit_site,
         }
 
     def _register_new_targeter(self, type, targeter_id, target_id):
@@ -305,6 +306,16 @@ class TargetMind:
 
         return best_id
 
+    def _find_closest_deposit_site(self, creep):
+        # Called once per creep in the entire lifetime
+        target = creep.pos.findClosestByPath(FIND_STRUCTURES, {
+            "filter": lambda s: s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
+        })
+        if target:
+            return target.id
+        else:
+            return None
+
     def _find_new_reservable_controller(self, creep):
         best_id = None
         closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
@@ -490,6 +501,7 @@ class RoomMind:
         self._target_remote_hauler_count = None
         self._target_remote_reserve_count = None
         self._target_local_hauler_count = None
+        self._target_link_managers = None
         self._max_sane_wall_hits = None
         self._spawn = None
 
@@ -626,6 +638,15 @@ class RoomMind:
                 self._target_local_hauler_count = 0
         return self._target_local_hauler_count
 
+    def get_target_link_manager_count(self):
+        if self._target_link_managers is None:
+            if len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_LINK}})) >= 2 \
+                    and self.room.storage:
+                self._target_link_managers = 1
+            else:
+                self._target_link_managers = 0
+        return self._target_link_managers
+
     def get_max_sane_wall_hits(self):
         if self._max_sane_wall_hits is None:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
@@ -644,6 +665,7 @@ class RoomMind:
     target_remote_hauler_count = property(get_target_remote_hauler_count)
     target_remote_reserve_count = property(get_target_remote_reserve_count)
     target_local_hauler_count = property(get_target_local_hauler_count)
+    target_link_manager_count = property(get_target_link_manager_count)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
 
 

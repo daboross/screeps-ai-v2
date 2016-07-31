@@ -10,6 +10,7 @@ __pragma__('noalias', 'name')
 
 role_requirements = [
     [role_spawn_fill, 2, creep_base_worker],
+    [role_link_manager, -15, creep_base_small_hauler],
     [role_dedi_miner, -10, creep_base_big_harvester],
     [role_spawn_fill, 4, creep_base_worker],
     [role_local_hauler, -14, creep_base_hauler],
@@ -49,6 +50,8 @@ def get_role_name(existing_base=None):
             ideal = context.room().target_remote_reserve_count
         elif ideal == -14:
             ideal = context.room().target_local_hauler_count
+        elif ideal == -15:
+            ideal = context.room().target_link_manager_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))

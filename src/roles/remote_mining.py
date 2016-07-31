@@ -1,5 +1,6 @@
 import speach
-from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve
+from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
+    target_closest_deposit_site
 from role_base import RoleBase
 from screeps_constants import *
 
@@ -107,24 +108,31 @@ class RemoteHauler(RoleBase):
                 self.report(speach.remote_hauler_no_home_storage)
                 return False
 
-            if not self.creep.pos.isNearTo(storage.pos):
+            if self.creep.pos.roomName != storage.pos.roomName:
                 self.move_to(storage)
                 self.report(speach.remote_hauler_moving_to_storage)
                 return False
 
-            result = self.creep.transfer(storage, RESOURCE_ENERGY)
+            target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
+
+            if not self.creep.pos.isNearTo(target.pos):
+                self.move_to(target)
+                self.report(speach.remote_hauler_moving_to_storage)
+                return False
+
+            result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:
                 self.report(speach.remote_hauler_transfer_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                print("[{}] Storage in room {} full!".format(self.name, storage.room))
+                print("[{}] {} in room {} full!".format(self.name, target, target.pos.roomName))
                 self.go_to_depot()
                 self.report(speach.remote_hauler_storage_full)
             else:
                 print("[{}] Unknown result from hauler-creep.transfer({}): {}".format(
-                    self.name, storage, result
+                    self.name, target, result
                 ))
                 self.report(speach.remote_hauler_transfer_unknown_result)
 

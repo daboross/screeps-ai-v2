@@ -92,6 +92,18 @@ def spawn_with_energy(spawn, energy):
                     for part in section:
                         parts.append(part)
             spawn_with_array(spawn, role, base, parts)
+        elif base is creep_base_small_hauler:
+            if energy >= 200:
+                parts = [CARRY, CARRY, MOVE, MOVE]
+            else:
+                parts = []
+                section = [CARRY, MOVE]
+                num_sections = floor(energy / 100)
+                for i in range(0, num_sections):
+                    for part in section:
+                        parts.append(part)
+            spawn_with_array(spawn, role, base, parts)
+
         elif base is creep_base_reserving:
             if energy >= 650:
                 spawn_with_array(spawn, role, base, [MOVE, CLAIM])
