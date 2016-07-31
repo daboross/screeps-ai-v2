@@ -356,9 +356,11 @@ class RoleBase:
             else:
                 time = Game.time
             if arg:
-                self.creep.say(task_array[0][time % len(task_array[0])].format(arg), True)
+                stuff = task_array[0][time % len(task_array[0])].format(arg)
             else:
-                self.creep.say(task_array[0][time % len(task_array[0])], True)
+                stuff = task_array[0][time % len(task_array[0])]
+            if stuff != None:
+                self.creep.say(stuff, True)
 
 
 profiling.profile_class(RoleBase, profiling.ROLE_BASE_IGNORE)
