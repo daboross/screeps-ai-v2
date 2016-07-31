@@ -1,3 +1,5 @@
+from math import ceil
+
 import context
 from constants import *
 from screeps_constants import *
@@ -10,16 +12,17 @@ __pragma__('noalias', 'name')
 
 role_requirements = [
     [role_spawn_fill, 2, creep_base_worker],
-    [role_link_manager, -15, creep_base_small_hauler],
-    [role_dedi_miner, -10, creep_base_big_harvester],
+    [role_link_manager, -10, creep_base_small_hauler],
+    [role_dedi_miner, -11, creep_base_big_harvester],
     [role_spawn_fill, 4, creep_base_worker],
-    [role_local_hauler, -14, creep_base_hauler],
+    [role_local_hauler, -12, creep_base_hauler],
     [role_upgrader, 1, creep_base_worker],
     [role_tower_fill, 2, creep_base_worker],
-    [role_remote_miner, -11, creep_base_full_miner],
+    [role_remote_miner, -13, creep_base_full_miner],
     # TODO: dynamic creep base based on mining operation!
-    [role_remote_hauler, -12, creep_base_hauler],
-    [role_remote_mining_reserve, -13, creep_base_reserving],
+    [role_remote_hauler, -14, creep_base_hauler],
+    [role_remote_mining_reserve, -15, creep_base_reserving],
+    [role_remote_hauler, -16, creep_base_hauler],
     [role_upgrader, 2, creep_base_worker],
     [role_spawn_fill, 5, creep_base_worker],
     [role_builder, 6, creep_base_worker],
@@ -41,17 +44,19 @@ def get_role_name(existing_base=None):
         if existing_base and existing_base != base:
             continue
         if ideal == -10:
-            ideal = context.room().target_big_harvester_count
-        elif ideal == -11:
-            ideal = context.room().target_remote_miner_count
-        elif ideal == -12:
-            ideal = context.room().target_remote_hauler_count
-        elif ideal == -13:
-            ideal = context.room().target_remote_reserve_count
-        elif ideal == -14:
-            ideal = context.room().target_local_hauler_count
-        elif ideal == -15:
             ideal = context.room().target_link_manager_count
+        elif ideal == -11:
+            ideal = context.room().target_big_harvester_count
+        elif ideal == -12:
+            ideal = context.room().target_local_hauler_count
+        elif ideal == -13:
+            ideal = context.room().target_remote_miner_count
+        elif ideal == -14:
+            ideal = ceil(context.room().target_remote_hauler_count / 2)
+        elif ideal == -15:
+            ideal = context.room().target_remote_reserve_count
+        elif ideal == -16:
+            ideal = context.room().target_remote_hauler_count
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))
@@ -168,14 +173,14 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
-    if role_count("harvester") < 4 and role_count("big_harvester") < room.target_big_harvester_count:
+    if role_count(role_spawn_fill) < 4 and role_count(role_dedi_miner) < room.target_big_harvester_count:
         num = 0
         for creep in room.creeps:
             memory = creep.memory
-            if memory.role != "big_harvester":
-                memory.role = "harvester"
+            if memory.base == creep_base_worker:
+                memory.role = role_spawn_fill
             num += 1
-            if num > 4:
+            if num > 5:
                 break
         count_room_roles(room)
 

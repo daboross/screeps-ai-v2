@@ -10,8 +10,9 @@ __pragma__('noalias', 'name')
 
 def run(spawn):
     if not Memory.meta.no_more_spawning and not spawn.spawning:
-        # TODO: extra roles which might need >1000 energy!
-        max = min(spawn.room.energyCapacityAvailable, 1250)
+        # TODO: pre-pick roles to spawn so we can actually spawn things when we have the energy needed *for them*,
+        # not enegergy needed for the biggest role
+        max = min(spawn.room.energyCapacityAvailable, 1300)
         spawn_with_energy(spawn, max)
 
 
@@ -32,24 +33,11 @@ def spawn_with_energy(spawn, energy):
             return
 
         if base is creep_base_big_harvester:
-            if energy < 550:
-                if energy % 100 == 0:
-                    parts = [MOVE, MOVE]
-                    energyUsed = 100
-                    while energyUsed <= energy - 100:
-                        parts.append(WORK)
-                        energyUsed += 100
-                    spawn_with_array(spawn, role, base, parts)
-                else:
-                    parts = [MOVE]
-                    energyUsed = 50
-                    while energyUsed <= energy - 100:
-                        parts.append(WORK)
-                        energyUsed += 100
-                    spawn_with_array(spawn, role, base, parts)
-            else:
-                parts = [WORK, WORK, WORK, WORK, WORK, MOVE, MOVE]
-                spawn_with_array(spawn, role, base, parts)
+            parts = [MOVE, MOVE]
+            num_sections = min(int(floor((energy - 100) / 100)), 5)
+            for i in range(0, num_sections):
+                parts.append(WORK)
+            spawn_with_array(spawn, role, base, parts)
         elif base is creep_base_worker:
             if energy >= 500:
                 parts = []
@@ -74,7 +62,7 @@ def spawn_with_energy(spawn, energy):
                 ])
             elif energy >= 550:
                 parts = []
-                num_move = floor((energy - 500) / 50)
+                num_move = int(floor((energy - 500) / 50))
                 num_work = 5
                 for i in range(0, num_move): parts.append(MOVE)
                 for i in range(0, num_work): parts.append(WORK)
@@ -84,7 +72,7 @@ def spawn_with_energy(spawn, energy):
         elif base is creep_base_hauler:
             parts = []
             section = [CARRY, MOVE]
-            num_sections = min(floor(energy / 100), 5)
+            num_sections = min(int(floor(energy / 100)), 5)
             for i in range(0, num_sections):
                 for part in section:
                     parts.append(part)
@@ -92,7 +80,7 @@ def spawn_with_energy(spawn, energy):
         elif base is creep_base_small_hauler:
             parts = []
             section = [CARRY, MOVE]
-            num_sections = min(floor(energy / 100), 3)
+            num_sections = min(int(floor(energy / 100)), 3)
             for i in range(0, num_sections):
                 for part in section:
                     parts.append(part)
