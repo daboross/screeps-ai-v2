@@ -1,3 +1,22 @@
+_we_are_miners = [
+    "We", "are", "miners,", "hard", "rock", "miners", " - ",
+    "To", "the", "shaft", "house", "we", "must", "go", " - ",
+    "Pour", "your", "bottles", "on", "our", "shoulders", " - ",
+    "We", "are", "marching", "to", "the", "slow", " - ",
+    " - ", " - ",
+    "On", "the", "line", "boys,", "on", "the", "line", "boys", " - ",
+    "Drill", "your", "holes", "and", "stand", "in", "line", " - ",
+    "'til", "the", "shift", "boss", "comes", "to", "tell", "you", " - ",
+    "You", "must", "drill", "her", "out", "on", "top", " - ",
+    " - ", " - ",
+    "Can't", "you", "feel", "the", "rock", "dust", "in", "your", "lungs?", " - ",
+    "It'll", "cut", "down", "a", "miner", "when", "he", "is", "still", "young", " - ",
+    "Two", "years", "and", "the", "silicosis", "takes", "hold", " - ",
+    "and", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " - ",
+    " - ", " - ",
+    "Yes,", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", " . ",
+]
+
 base_no_role = ["No role", "!!!"]
 
 default_gather_moving_to_storage = ["get", "some", "energy"]
@@ -11,7 +30,7 @@ default_gather_moving_to_container = ["get", "some", "energy"]
 default_gather_container_withdraw_ok = ["k"]
 default_gather_unknown_result_withdraw = ["AAAAhhhh", "!!!???", "(withdraw)"]
 default_gather_moving_to_source = ["gotta", "get", "some", "coal"]
-default_gather_source_harvest_ok = ["we", "are", "miners", ".", "hard", "rock", "miners", "."]
+default_gather_source_harvest_ok = _we_are_miners
 default_gather_source_harvest_ner = ["just", "chillin", "."]
 default_gather_unknown_result_harvest = ["AAAAhhhh", "!!!???", "(harvest)"]
 
@@ -32,7 +51,7 @@ building_repair_target = ["gonna", "fix", "ah", "{}"]
 building_build_target = ["gonna", "build", "ah", "{}"]
 
 dedi_miner_moving = ["let's", "!GO!", "."]
-dedi_miner_ok = ["we", "are", "miners", ".", "hard", "rock", "miners", "."]
+dedi_miner_ok = _we_are_miners
 dedi_miner_ner = ["just", "chillin", "with", "our", "friends", "."]
 dedi_miner_unknown_result = ["AAAAhhhh", "!!!???", "(harvest)", "dedi_miner"]
 
@@ -51,7 +70,7 @@ local_hauler_transfer_unknown_result = ["AAAAhhhh", "!!!???", "(transfer)", "(ha
 remote_miner_no_flag = ["I have", "nowhere", "to go!"]
 remote_miner_moving = ["heading", "to", "the", "mines"]
 remote_miner_flag_no_source = ["hey", "man", "this", "isn't", "right!"]
-remote_miner_ok = ["we", "are", "miners", ".", "hard", "rock", "miners", "."]
+remote_miner_ok = _we_are_miners
 remote_miner_ner = ["chill", "man", ".", ".", ".", "."]
 remote_miner_unknown_result = ["AAAAhhhh", "!!!???", "(harvest)", "remote"]
 

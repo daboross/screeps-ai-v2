@@ -20,7 +20,7 @@ role_requirements = [
     [role_remote_hauler, -12, creep_base_hauler],
     [role_remote_mining_reserve, -13, creep_base_reserving],
     [role_upgrader, 2, creep_base_worker],
-    [role_spawn_fill, 6, creep_base_worker],
+    [role_spawn_fill, 5, creep_base_worker],
     [role_builder, 6, creep_base_worker],
 ]
 

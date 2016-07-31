@@ -146,16 +146,12 @@ class RemoteReserve(RoleBase):
             self.report(speach.remote_reserve_moving)
             return False
 
-        if not self.memory.currently_upgrading and (not controller.reservation
-                                                    or controller.reservation.ticksToEnd < 4000):
-            self.memory.currently_upgrading = True
-        elif self.memory.currently_upgrading and controller.reservation and controller.reservation.ticksToEnd > 5000:
-            self.memory.currently_upgrading = False
+        self.memory.stationary = True
 
-        if self.memory.currently_upgrading:
-            if controller.reservation and controller.reservation.username != self.creep.owner.username:
-                print("[{}] Remote reserve creep target owned by another player! {} has taken our reservation!".format(
-                    self.name, controller.reservation.username
-                ))
+        if controller.reservation and controller.reservation.username != self.creep.owner.username:
+            print("[{}] Remote reserve creep target owned by another player! {} has taken our reservation!".format(
+                self.name, controller.reservation.username
+            ))
+        if not controller.reservation or controller.reservation.ticksToEnd < 5000:
             self.creep.reserveController(controller)
             self.report(speach.remote_reserve_reserving)
