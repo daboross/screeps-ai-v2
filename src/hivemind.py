@@ -293,8 +293,11 @@ class TargetMind:
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
             haulers = self.targets[target_remote_mine_hauler][flag_id]
-            # TODO: hardcoded 3 here - should by dynamic based on distance to storage (cached in flag memory)
-            if not haulers or haulers < 3:
+            # TODO: cache this result here.
+            max_haulers = math.ceil(
+                math.sqrt(creep_utils.distance_squared_room_pos(creep.room.storage.pos, flag.pos)) / 13
+            )
+            if not haulers or haulers < max_haulers:
                 range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
                 if range < closest_flag:
                     closest_flag = range
@@ -435,7 +438,9 @@ class RoomMind:
     def __init__(self, hive_mind, room):
         self.hive_mind = hive_mind
         self.room = room
-        self.my = room.controller and room.controller.my
+        spawns = room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_SPAWN}})
+        self.my = room.controller and room.controller.my and len(spawns)
+        self.spawn = spawns[0]
         self._sources = None
         self._creeps = None
         self._work_mass = None
@@ -449,6 +454,7 @@ class RoomMind:
         self._target_remote_reserve_count = None
         self._target_local_hauler_count = None
         self._max_sane_wall_hits = None
+        self._spawn = None
 
     def get_name(self):
         return self.room.name
@@ -531,9 +537,17 @@ class RoomMind:
 
     def get_target_remote_hauler_count(self):
         if not self._target_remote_hauler_count:
-            # TODO: hardcoded 3 here - should by dynamic based on distance to storage (cached in flag memory)
-            self._target_remote_hauler_count = min(self.target_remote_miner_count,
-                                                   creep_utils.role_count(role_remote_miner)) * 3
+            # TODO: this assumes that walking distance ~= exact range, and that remote miners go to storage, not the closest link.
+            # After we get some code to calculate walking distances based off of a path (is it just number of entries?), we should
+            # fix this, AND CACHE IT IN MEMORY! (as it will use paths)
+            total_count = 0
+            for flag in flags.get_global_flags(flags.REMOTE_MINE):
+                if flag.memory.remote_miner_targeting:
+                    amount = math.ceil(
+                        math.sqrt(creep_utils.distance_squared_room_pos(self.room.storage.pos, flag.pos)) / 13
+                    )
+                    total_count += amount
+            self._target_remote_hauler_count = total_count
         return self._target_remote_hauler_count
 
     def get_target_remote_reserve_count(self):
