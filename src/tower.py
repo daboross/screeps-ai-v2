@@ -42,7 +42,12 @@ def run():
                 continue
             tower.attack(target)
         else:
-            targets = tower.room.find(FIND_HOSTILE_CREEPS)
+            if Memory.meta.friends and len(Memory.meta.friends):
+                targets = tower.room.find(FIND_HOSTILE_CREEPS, {
+                    "filter": lambda c: c.owner.username not in Memory.meta.friends
+                })
+            else:
+                targets = tower.room.find(FIND_HOSTILE_CREEPS)
             if len(targets):
                 tower.memory.alert = True
                 tower.attack(targets[0])
