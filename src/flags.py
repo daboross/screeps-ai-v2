@@ -13,7 +13,7 @@ DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
     LEFT: EXIT_WEST,
     BOTTOM: EXIT_SOUTH,
-    RIGHT: EXIT_WEST,
+    RIGHT: EXIT_EAST,
 }
 
 flag_definitions = {

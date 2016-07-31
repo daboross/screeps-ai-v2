@@ -71,6 +71,8 @@ __all__ = [
     "JSON",
     "this",
     "RegExp",
+    "Error",
+    "console",
     "_",
     "__pragma__",
     "__new__",

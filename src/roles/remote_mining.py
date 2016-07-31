@@ -5,9 +5,6 @@ from screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-_MOVE_OPTIONS = {"maxRooms": 1, "ignoreCreeps": True}
-
-
 class RemoteMiner(RoleBase):
     def run(self):
         source_flag = self.target_mind.get_existing_target(self.creep, target_remote_mine_miner)
@@ -62,7 +59,8 @@ class RemoteHauler(RoleBase):
             source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_hauler)
 
             if not source_flag:
-                print("[{}] Remote hauler can't find any sources!".format(self.name))
+                # TODO: Re-enable after we get auto-respawning things *before* they die
+                # print("[{}] Remote hauler can't find any sources!".format(self.name))
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
@@ -78,7 +76,7 @@ class RemoteHauler(RoleBase):
                 return True
 
             if not self.creep.pos.isNearTo(miner.pos):
-                self.move_to(miner)  #, False, _MOVE_OPTIONS)
+                self.move_to(miner)
                 self.report(speach.remote_hauler_moving_to_miner)
                 return False
 
@@ -110,7 +108,7 @@ class RemoteHauler(RoleBase):
                 return False
 
             if not self.creep.pos.isNearTo(storage.pos):
-                self.move_to(storage, False, _MOVE_OPTIONS)
+                self.move_to(storage)
                 self.report(speach.remote_hauler_moving_to_storage)
                 return False
 

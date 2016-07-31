@@ -123,8 +123,11 @@ class RoleBase:
                         direction = LEFT
                 flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
-                print("[{}] Couldn't find exit flag in room {} to direction {}!".format(
-                    self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction]))
+                print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
+                    .format(
+                    self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction],
+                    pos.roomName, here.roomName
+                ))
                 return None
 
             # pathfind to the flag instead

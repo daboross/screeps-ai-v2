@@ -63,33 +63,40 @@ def main():
     for room in hive_mind.my_rooms:
         context.set_room(room)
         for creep in room.creeps:
-            if creep.spawning:
-                continue
-            if not creep.memory.base:
-                creep.memory.base = creep_utils.find_base(creep)
-            role = creep.memory.role
-            if role in role_classes:
-                creep_instance = role_classes[role](target_mind, creep)
-            else:
-                role = creep_utils.get_role_name(creep.memory.base)[1]
-                if not role:
-                    base = RoleBase(target_mind, creep)
-                    base.go_to_depot()
-                    base.report(speach.base_no_role)
+            try:
+                if creep.spawning:
                     continue
-                creep.memory.role = role
-                if Memory.role_counts[role]:
-                    Memory.role_counts[role] += 1
+                if not creep.memory.base:
+                    creep.memory.base = creep_utils.find_base(creep)
+                role = creep.memory.role
+                if role in role_classes:
+                    creep_instance = role_classes[role](target_mind, creep)
                 else:
-                    Memory.role_counts[role] = 1
-                creep_instance = role_classes[role](target_mind, creep)
-            rerun = creep_instance.run()
-            if rerun:
+                    role = creep_utils.get_role_name(creep.memory.base)[1]
+                    if not role:
+                        base = RoleBase(target_mind, creep)
+                        base.go_to_depot()
+                        base.report(speach.base_no_role)
+                        continue
+                    creep.memory.role = role
+                    if Memory.role_counts[role]:
+                        Memory.role_counts[role] += 1
+                    else:
+                        Memory.role_counts[role] = 1
+                    creep_instance = role_classes[role](target_mind, creep)
                 rerun = creep_instance.run()
-            if rerun:
-                rerun = creep_instance.run()
-            if rerun:
-                print("[{}: {}] Tried to rerun three times!".format(creep.name, role))
+                if rerun:
+                    rerun = creep_instance.run()
+                if rerun:
+                    rerun = creep_instance.run()
+                if rerun:
+                    print("[{}: {}] Tried to rerun three times!".format(creep.name, role))
+            except Error as e:
+                Game.notify("""Error running role {}! Creep {} not run this tick.\n{}""".format(
+                    role if role else "<no role>", creep.name, e.stack
+                ), 10)
+                print("[{}] Error running role {}!".format(creep.name, role if role else "<no role>"))
+                print(e.stack)
 
     for name in Object.keys(Game.spawns):
         spawn = Game.spawns[name]

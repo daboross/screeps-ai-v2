@@ -91,7 +91,7 @@ class TargetMind:
         if func:
             return func(creep, extra_var)
         else:
-            raise ValueError("Couldn't find find_function for '{}'!".format(type))
+            raise Error("Couldn't find find_function for '{}'!".format(type))
 
     def _get_existing_target_id(self, type, targeter_id):
         if self.targeters[targeter_id]:
@@ -294,9 +294,9 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             haulers = self.targets[target_remote_mine_hauler][flag_id]
             # TODO: cache this result here.
-            max_haulers = math.ceil(
-                math.sqrt(creep_utils.distance_squared_room_pos(creep.room.storage.pos, flag.pos)) / 13
-            )
+            max_haulers = math.ceil(math.sqrt(creep_utils.distance_squared_room_pos(
+                Game.rooms[creep.memory.home].storage.pos, flag.pos)
+            ) / 13)
             if not haulers or haulers < max_haulers:
                 range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
                 if range < closest_flag:
