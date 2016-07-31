@@ -79,7 +79,7 @@ class LocalHauler(RoleBase):
                 return False
 
             if not self.creep.pos.isNearTo(miner.pos):
-                self.move_to(miner, False, _MOVE_OPTIONS)
+                self.move_to(miner)
                 self.report(speach.local_hauler_moving_to_miner)
                 return False
 

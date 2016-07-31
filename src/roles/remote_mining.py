@@ -77,6 +77,9 @@ class RemoteHauler(RoleBase):
                 return True
 
             if not self.creep.pos.isNearTo(miner.pos):
+                if miner.pos.roomName == self.creep.pos.roomName and not miner.memory.stationary:
+                    self.go_to_depot()
+                    return False
                 self.move_to(miner)
                 self.report(speach.remote_hauler_moving_to_miner)
                 return False
