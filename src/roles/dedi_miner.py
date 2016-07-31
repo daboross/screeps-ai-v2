@@ -49,6 +49,7 @@ class DedicatedMiner(RoleBase):
 profiling.profile_class(DedicatedMiner, profiling.ROLE_BASE_IGNORE)
 
 
+# TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class LocalHauler(RoleBase):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
@@ -80,6 +81,9 @@ class LocalHauler(RoleBase):
 
             if not self.creep.pos.isNearTo(miner.pos):
                 self.move_to(miner)
+                maybe_energy = self.creep.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
+                if len(maybe_energy):
+                    self.creep.pickup(maybe_energy[0])
                 self.report(speach.local_hauler_moving_to_miner)
                 return False
 
@@ -111,6 +115,8 @@ class LocalHauler(RoleBase):
                 return False
 
             target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
+            if target.energy >= target.energyCapacity:
+                target = storage
 
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)

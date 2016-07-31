@@ -215,7 +215,7 @@ def clear_memory(target_mind):
     """
     :type target_mind: hivemind.TargetMind
     """
-    smallest_ticks_to_live = 2000
+    smallest_ticks_to_live = 500
     for name in Object.keys(Memory.creeps):
         creep = Game.creeps[name]
         if not creep:
