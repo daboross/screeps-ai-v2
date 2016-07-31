@@ -84,7 +84,7 @@ def spawn_with_energy(spawn, energy):
         elif base is creep_base_hauler:
             parts = []
             section = [CARRY, MOVE]
-            num_sections = max(floor(energy / 100), 5)
+            num_sections = min(floor(energy / 100), 5)
             for i in range(0, num_sections):
                 for part in section:
                     parts.append(part)
@@ -92,7 +92,7 @@ def spawn_with_energy(spawn, energy):
         elif base is creep_base_small_hauler:
             parts = []
             section = [CARRY, MOVE]
-            num_sections = max(floor(energy / 100), 3)
+            num_sections = min(floor(energy / 100), 3)
             for i in range(0, num_sections):
                 for part in section:
                     parts.append(part)
