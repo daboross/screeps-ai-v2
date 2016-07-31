@@ -288,7 +288,7 @@ class TargetMind:
 
     def _find_new_remote_hauler_mine(self, creep):
         best_id = None
-        smallest_percentage = 1 # don't go to any rooms with 100% haulers in use.
+        smallest_percentage = 1  # don't go to any rooms with 100% haulers in use.
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
             if not flag.memory.remote_miner_targeting:
                 continue  # only target mines with active miners
@@ -350,6 +350,7 @@ class HiveMind:
     """
     :type target_mind: TargetMind
     :type my_rooms: list[RoomMind]
+    :type visible_rooms: list[RoomMind]
     """
 
     def __init__(self, target_mind):
@@ -409,6 +410,10 @@ class HiveMind:
                 closest_squared_distance = distance
                 closest_room = room
         return closest_room
+
+    def poll_hostiles(self):
+        for room in self.visible_rooms:
+            room.poll_hostiles()
 
     def poll_all_creeps(self):
         new_creep_lists = {}
@@ -505,6 +510,19 @@ class RoomMind:
         self._target_link_managers = None
         self._max_sane_wall_hits = None
         self._spawn = None
+
+    def poll_hostiles(self):
+        if not Memory.hostiles:
+            Memory.hostiles = []
+        if Memory.meta.friends and len(Memory.meta.friends):
+            targets = self.room.find(FIND_HOSTILE_CREEPS, {
+                "filter": lambda c: c.owner.username not in Memory.meta.friends
+            })
+        else:
+            targets = self.room.find(FIND_HOSTILE_CREEPS)
+        for hostile in targets:
+            if hostile.id not in Memory.hostiles:
+                Memory.hostiles.push(hostile.id)
 
     def get_name(self):
         return self.room.name

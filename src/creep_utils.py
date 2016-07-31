@@ -18,6 +18,7 @@ role_requirements = [
     [role_local_hauler, -12, creep_base_hauler],
     [role_upgrader, 1, creep_base_worker],
     [role_tower_fill, 2, creep_base_worker],
+    [role_defender, -17, creep_base_defender],
     [role_remote_miner, -13, creep_base_full_miner],
     # TODO: dynamic creep base based on mining operation!
     [role_remote_hauler, -14, creep_base_hauler],
@@ -57,6 +58,11 @@ def get_role_name(existing_base=None):
             ideal = context.room().target_remote_reserve_count
         elif ideal == -16:
             ideal = context.room().target_remote_hauler_count
+        elif ideal == -17:
+            if Memory.hostiles and len(Memory.hostiles):
+                ideal = 2
+            else:
+                ideal = 0
         current = role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))

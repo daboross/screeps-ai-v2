@@ -11,6 +11,7 @@ from constants import *
 from hivemind import TargetMind, HiveMind
 from role_base import RoleBase
 from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading, utility
+from roles import military
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -28,6 +29,7 @@ role_classes = {
     role_remote_miner: remote_mining.RemoteMiner,
     role_remote_hauler: remote_mining.RemoteHauler,
     role_remote_mining_reserve: remote_mining.RemoteReserve,
+    role_defender: military.RoleDefender,
 }
 
 
@@ -41,6 +43,7 @@ def main():
     context.set_hive(hive_mind)
 
     hive_mind.poll_all_creeps()
+    hive_mind.poll_hostiles()
 
     if not Memory.creeps:
         Memory.creeps = {}

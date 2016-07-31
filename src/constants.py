@@ -9,6 +9,7 @@ creep_base_full_miner = "fast_big_miner"
 creep_base_small_hauler = "small_hauler"
 creep_base_hauler = "med_hauler"
 creep_base_reserving = "remote_reserve"
+creep_base_defender = "simple_defender"
 
 # Hive Mind TargetMind possible targets
 target_source = "source"
@@ -34,3 +35,5 @@ role_remote_hauler = "remote_hauler"
 role_remote_mining_reserve = "remote_reserve_controller"
 role_local_hauler = "local_hauler"
 role_link_manager = "link_manager"
+
+role_defender = "simple_defender"

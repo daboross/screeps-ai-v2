@@ -85,7 +85,6 @@ def spawn_with_energy(spawn, energy):
                 for part in section:
                     parts.append(part)
             spawn_with_array(spawn, role, base, parts)
-
         elif base is creep_base_reserving:
             if energy >= 1300:
                 spawn_with_array(spawn, role, base, [MOVE, CLAIM, CLAIM, MOVE])
@@ -94,6 +93,18 @@ def spawn_with_energy(spawn, energy):
             else:
                 print("[spawning] Not enough energy to create remote reserve creep!"
                       " This WILL block spawning until it is fixed!")
+        elif base is creep_base_defender:
+            parts = []
+            # MOVE, MOVE, ATTACK, TOUCH = one section = 190
+            num_sections = min(int(floor(energy / 190)), 5)
+            for i in range(0, num_sections):
+                parts.append(TOUGH)
+            for i in range(0, num_sections - 1):
+                parts.append(MOVE)
+            for i in range(0, num_sections):
+                parts.append(ATTACK)
+            parts.append(MOVE)
+            spawn_with_array(spawn, role, base, parts)
         else:
             print("[spawning] Unknown creep base {}!".format(base))
 

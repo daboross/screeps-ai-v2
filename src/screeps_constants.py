@@ -55,6 +55,8 @@ __all__ = [
     "CARRY",
     "CLAIM",
     "WORK",
+    "TOUGH",
+    "ATTACK",
     "COLOR_RED",
     "COLOR_PURPLE",
     "COLOR_BLUE",
