@@ -43,81 +43,96 @@ def run(room, spawn):
     else:
         energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
 
-    if spawn.room.energyAvailable >= energy:
-        if base is creep_base_big_harvester:
-            parts = [MOVE, MOVE]
-            num_sections = min(int(floor((energy - 100) / 100)), 5)
+    if filled < energy:
+        print("Room doesn't have enough energy! {} < {}!".format(filled, energy))
+        return
+
+    descriptive_level = None
+
+    if base is creep_base_big_harvester:
+        if energy < 150:
+            print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
+        parts = [MOVE, MOVE]
+        num_sections = min(int(floor((energy - 100) / 100)), 5)
+        for i in range(0, num_sections):
+            parts.append(WORK)
+        if num_sections < 5:
+            descriptive_level = num_sections
+    elif base is creep_base_worker:
+        if energy >= 500:
+            parts = []
+            part_idea = [MOVE, MOVE, CARRY, WORK]
+            num_sections = min(int(floor(energy / 250)), 4)
             for i in range(0, num_sections):
-                parts.append(WORK)
-        elif base is creep_base_worker:
-            if energy >= 500:
-                parts = []
-                part_idea = [MOVE, MOVE, CARRY, WORK]
-                num_sections = int(floor(energy / 250))
-                for i in range(0, num_sections):
-                    for part in part_idea:
-                        parts.append(part)
-            elif energy >= 400:
-                parts = [MOVE, MOVE, MOVE, CARRY, WORK, WORK]
-            elif energy >= 250:
-                parts = [MOVE, MOVE, CARRY, WORK]
-            elif energy >= 200:
-                parts = [MOVE, CARRY, WORK]
-            else:
-                return
-        elif base is creep_base_full_miner:
-            if energy < 550:
-                print("[spawning] Not enough energy to create a remote miner!"
-                      " This WILL block spawning until it is fixed!")
-                return
-            parts = []
-            num_move = min(int(floor((energy - 500) / 50)), 5)
-            num_work = 5
-            for i in range(0, num_move - 1):    parts.append(MOVE)
-            for i in range(0, num_work):        parts.append(WORK)
-            parts.append(MOVE)
-        elif base is creep_base_hauler:
-            parts = []
-            num_sections = min(int(floor(energy / 100)), 5)
-            for i in range(0, num_sections - 1):    parts.append(MOVE)
-            for i in range(0, num_sections):        parts.append(CARRY)
-            parts.append(MOVE)
-        elif base is creep_base_small_hauler:
-            parts = []
-            num_sections = min(int(floor(energy / 100)), 3)
-            for i in range(0, num_sections - 1):    parts.append(MOVE)
-            for i in range(0, num_sections):        parts.append(CARRY)
-            parts.append(MOVE)
-        elif base is creep_base_reserving:
-            if energy >= 1300:
-                parts = [MOVE, CLAIM, CLAIM, MOVE]
-            elif energy >= 650:
-                parts = [MOVE, CLAIM]
-            else:
-                print("[spawning] Not enough energy to create remote reserve creep!"
-                      " This WILL block spawning until it is fixed!")
-                return
-        elif base is creep_base_defender:
-            parts = []
-            # MOVE, MOVE, ATTACK, TOUCH = one section = 190
-            num_sections = min(int(floor(energy / 190)), 5)
-            for i in range(0, num_sections):        parts.append(TOUGH)
-            for i in range(0, num_sections - 1):    parts.append(MOVE)
-            for i in range(0, num_sections):        parts.append(ATTACK)
-            parts.append(MOVE)
+                for part in part_idea:
+                    parts.append(part)
+        elif energy >= 400:
+            parts = [MOVE, MOVE, MOVE, CARRY, WORK, WORK]
+            descriptive_level = "basic-2"
+        elif energy >= 250:
+            parts = [MOVE, MOVE, CARRY, WORK]
+            descriptive_level = "basic-1"
         else:
-            print("[spawning] Unknown creep base {}!".format(base))
+            print("[{}][spawning] Too few extensions to build a worker!".format(room.room_name))
             return
-        spawn_with_array(room, spawn, role, base, parts)
+    elif base is creep_base_full_miner:
+        if energy < 550:
+            print("[{}][spawning] Too few extensions to build a remote miner!".format(room.room_name))
+            return
+        parts = []
+        num_move = min(int(floor((energy - 500) / 50)), 5)
+        num_work = 5
+        for i in range(0, num_move - 1):    parts.append(MOVE)
+        for i in range(0, num_work):        parts.append(WORK)
+        parts.append(MOVE)
+        if num_move < 5:
+            descriptive_level = num_move
+    elif base is creep_base_hauler:
+        parts = []
+        num_sections = min(int(floor(energy / 100)), 5)
+        for i in range(0, num_sections - 1):    parts.append(MOVE)
+        for i in range(0, num_sections):        parts.append(CARRY)
+        parts.append(MOVE)
+        descriptive_level = num_sections
+    elif base is creep_base_small_hauler:
+        parts = []
+        num_sections = min(int(floor(energy / 100)), 3)
+        for i in range(0, num_sections - 1):    parts.append(MOVE)
+        for i in range(0, num_sections):        parts.append(CARRY)
+        parts.append(MOVE)
+        descriptive_level = num_sections
+    elif base is creep_base_reserving:
+        if energy >= 1300:
+            parts = [MOVE, CLAIM, CLAIM, MOVE]
+            descriptive_level = 2
+        elif energy >= 650:
+            parts = [MOVE, CLAIM]
+            descriptive_level = 1
+        else:
+            print("[{}][spawning] Too few extensions to build a remote creep!".format(room.room_name))
+            return
+    elif base is creep_base_defender:
+        parts = []
+        # MOVE, MOVE, ATTACK, TOUCH = one section = 190
+        num_sections = min(int(floor(energy / 190)), 6)
+        for i in range(0, num_sections):        parts.append(TOUGH)
+        for i in range(0, num_sections - 1):    parts.append(MOVE)
+        for i in range(0, num_sections):        parts.append(ATTACK)
+        parts.append(MOVE)
+        descriptive_level = num_sections
+    else:
+        print("[{}][spawning] Unknown creep base {}!".format(room.room_name, base))
+        return
 
-
-def spawn_with_array(room, spawn, role, base, parts):
     name = random_four_digits()
     home = room.room_name
-    print("[spawning] Choosing role {} with parts {}".format(role, parts))
+    if descriptive_level:
+        print("[{}][spawning] Choose role {} level {}.".format(room.room_name, role, descriptive_level))
+    else:
+        print("[{}][spawning] Chose role {}.".format(room.room_name, role))
     result = spawn.createCreep(parts, name, {"role": role, "base": base, "home": home})
     if result != OK and not Game.creeps[result]:
-        print("[spawning] Invalid response from createCreep: {}".format(result))
+        print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
     else:
         room.add_to_role(role)
         room.reset_planned_role()

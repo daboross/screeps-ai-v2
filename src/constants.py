@@ -44,6 +44,7 @@ role_bases = {
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_worker,
     role_remote_miner: creep_base_full_miner,
+    role_remote_hauler: creep_base_hauler,
     role_remote_mining_reserve: creep_base_reserving,
     role_local_hauler: creep_base_hauler,
     role_link_manager: creep_base_small_hauler,
