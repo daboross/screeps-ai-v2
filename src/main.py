@@ -34,8 +34,12 @@ role_classes = {
 
 
 def main():
-    if Memory.meta and Memory.meta.pause:
+    if not Memory.meta:
+        Memory.meta = {"pause": False, "quiet": False, "friends": []}
+    if Memory.meta.pause:
         return
+
+    PathFinder.use(True)
 
     target_mind = TargetMind()
     hive_mind = HiveMind(target_mind)
@@ -53,8 +57,6 @@ def main():
     time = Game.time
     if not Memory.meta or Memory.meta.clear_now or \
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
-        if not Memory.meta:
-            Memory.meta = {"pause": False, "quiet": False, "friends": []}
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
         creep_utils.count_roles()

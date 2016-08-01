@@ -1,14 +1,13 @@
 import context
 import creep_utils
 import flags
+import pathfinding
 import profiling
 import speach
 from constants import target_source
 from screeps_constants import *
 
 __pragma__('noalias', 'name')
-
-PathFinder.use(True)
 
 _DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
 
@@ -68,11 +67,12 @@ class RoleBase:
         pass
 
     def _get_new_path_to(self, target_id, target_pos, options):
-        if not options:
-            options = _DEFAULT_PATH_OPTIONS
-        # custom pathfinder module disabled, due to PathFinder.search() not working at all.
-        # path = pathfinding.find_path(self.creep.pos, target_pos, options)
-        path = self.creep.pos.findPathTo(target_pos, options)
+        # if not options:
+        #     options = _DEFAULT_PATH_OPTIONS
+        # path = self.creep.pos.findPathTo(target_pos, options)
+        path = pathfinding.find_path(self.creep.room, self.creep.pos, target_pos, options)
+        if path is None:
+            return None
         self.memory.path[target_id] = Room.serializePath(path)
         self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
         self.memory.same_place_ticks = 0

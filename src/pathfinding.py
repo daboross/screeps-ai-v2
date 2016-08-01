@@ -27,16 +27,19 @@ _refresh_by = {
 }
 
 # how often to refresh caches
-_refresh_every_ticks = 10
+_refresh_every_ticks = 1
 
 
-def _get_matrix(room, use_roads, ignore_all_creeps, room_name):
+def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, room_name):
     time = Game.time
     # don't look up Game.rooms[] if we have a cache
     if _cost_cache[use_roads][ignore_all_creeps][room_name] and \
                     time < _refresh_by[use_roads][ignore_all_creeps][room_name]:
         return _cost_cache[room_name]
-    matrix = __new__(PathFinder.CostMatrix)
+    if game_defined_matrix:
+        matrix = game_defined_matrix
+    else:
+        matrix = __new__(PathFinder.CostMatrix)
 
     for struct in room.find(FIND_STRUCTURES):
         if struct.stuctureType is STRUCTURE_ROAD:
@@ -51,13 +54,13 @@ def _get_matrix(room, use_roads, ignore_all_creeps, room_name):
             if not creep.my or creep.memory.stationary:
                 matrix.set(creep.pos.x, creep.pos.y, 0xff)
             else:
-                matrix.set(creep.pos.x, creep.pos.y, 5)  # just slightly avoid - not too much?
+                matrix.set(creep.pos.x, creep.pos.y, 4)  # just slightly avoid - not too much?
 
-    for x in range(0, 50):
-        for y in range(0, 50):
-            for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
-                if terrain.type | TERRAIN_MASK_WALL == TERRAIN_MASK_WALL:
-                    matrix.set(x, y, 0xff)
+    # for x in range(0, 50):
+    #     for y in range(0, 50):
+    #         for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
+    #             if terrain.type | TERRAIN_MASK_WALL == TERRAIN_MASK_WALL:
+    #                 matrix.set(x, y, 0xff)
 
     _cost_cache[use_roads][ignore_all_creeps][room_name] = matrix
     _refresh_by[use_roads][ignore_all_creeps][room_name] = Game.time + _refresh_every_ticks
@@ -66,10 +69,10 @@ def _get_matrix(room, use_roads, ignore_all_creeps, room_name):
 
 
 def _new_callback(use_roads, ignore_all_creeps):
-    def _callback(room_name):
+    def _callback(room_name, game_defined_matrix):
         room = Game.rooms[room_name]
         if room:
-            return _get_matrix(room, use_roads, ignore_all_creeps, room_name)
+            return _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, room_name)
         else:
             print("[pathfinding] No matrix found for {}".format(room_name))
             return None
@@ -77,22 +80,37 @@ def _new_callback(use_roads, ignore_all_creeps):
     return _callback
 
 
-def find_path(from_pos, to_pos, options):
-    use_roads = not not options and not not options["use_roads"]
-    ignore_all_creeps = not not options and not not options["ignore_all_creeps"]
-    range = options["range"] if options and options["range"] else 1
-    opts = {
-        "maxRooms": 16,
-        "range": range,
-        "roomCallback": _new_callback(use_roads, ignore_all_creeps),
-        "maxOps": 5000,
-    }
-    if use_roads:
-        opts["plainCost"] = 2
-        opts["spawmCost"] = 10
-    path = PathFinder.search(from_pos, to_pos, opts)
-    print("Finding path from {} to {}: {}".format(from_pos, to_pos, JSON.stringify(path, None, 4)))
-    if not path:
-        return None
+_USE_PURE_PATHFINDER = False
+
+
+def find_path(room, from_pos, to_pos, options):
+    use_roads = not not (options and options["use_roads"])
+    ignore_all_creeps = not not (options and options["ignore_all_creeps"])
+    if _USE_PURE_PATHFINDER:
+        range = options["range"] if options and options["range"] else 1
+        opts = {
+            "maxRooms": 1,
+            "range": range,
+            "roomCallback": _new_callback(use_roads, ignore_all_creeps),
+            "maxOps": 5000,
+        }
+        if use_roads:
+            opts["plainCost"] = 2
+            opts["spawmpCost"] = 10
+        path = PathFinder.search(from_pos, to_pos, opts)
+        if not path:
+            return None
+        else:
+            return path.path  # it's an object
     else:
-        return path.path  # it's an object
+        opts = {
+            "ignoreCreeps": True,  # in any case, we'll do our own creep matrix additions
+            "ignoreRoads": not use_roads,
+            "maxRooms": 1,
+            "costCallback": _new_callback(use_roads, ignore_all_creeps)
+        }
+        path = room.findPath(from_pos, to_pos, opts)
+        if not path:
+            return None
+        else:
+            return path
