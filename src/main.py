@@ -1,9 +1,7 @@
 import constants
 import context
-import creep_utils
 import flags
 import hivemind
-import profiling
 import spawning
 import speach
 import tower
@@ -12,7 +10,10 @@ from hivemind import TargetMind, HiveMind
 from role_base import RoleBase
 from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading, utility
 from roles import military
-from screeps_constants import *
+from tools import profiling
+from utils import consistency
+from utils import movement
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
@@ -58,10 +59,10 @@ def main():
     if not Memory.meta or Memory.meta.clear_now or \
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
         print("Clearing memory")
-        creep_utils.clear_memory(target_mind)
+        consistency.clear_memory(target_mind)
         for room in hive_mind.my_rooms:
             room.recalculate_roles_alive()
-            creep_utils.reassign_room_roles(room)
+            consistency.reassign_room_roles(room)
             # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
             # recalculated in the last 500 ticks.
             # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
@@ -114,7 +115,8 @@ module.exports.loop = profiling.wrap_main(main)
 
 __pragma__('js', 'global').py = {
     "context": context,
-    "creep_utils": creep_utils,
+    "consistency": consistency,
+    "movement": movement,
     "hivemind": hivemind,
     "flags": flags,
     "constants": constants,

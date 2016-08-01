@@ -1,4 +1,4 @@
-from screeps_constants import *
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

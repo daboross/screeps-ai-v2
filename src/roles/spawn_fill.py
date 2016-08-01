@@ -1,8 +1,7 @@
-import profiling
 import speach
 from constants import target_harvester_deposit
 from roles import building
-from screeps_constants import *
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

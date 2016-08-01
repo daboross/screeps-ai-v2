@@ -2,7 +2,7 @@ import speach
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site
 from role_base import RoleBase
-from screeps_constants import *
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

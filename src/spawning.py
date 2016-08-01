@@ -2,7 +2,7 @@ from math import floor
 
 import context
 from constants import *
-from screeps_constants import *
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
@@ -36,7 +36,7 @@ def run(room, spawn):
     filled = spawn.room.energyAvailable
     # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
     # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
-    # too bad. We *can* assume that all work_mass at this point is in harvesters, since creep_utils.reassign_roles()
+    # too bad. We *can* assume that all work_mass at this point is in harvesters, since consistency.reassign_roles()
     # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
     if room.role_count(role_spawn_fill) < 3 and filled >= max(150 * room.work_mass, 250):
         energy = filled

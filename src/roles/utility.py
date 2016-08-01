@@ -1,6 +1,6 @@
 import speach
 from role_base import RoleBase
-from screeps_constants import *
+from utils.screeps_constants import *
 
 
 class LinkManager(RoleBase):

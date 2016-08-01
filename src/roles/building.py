@@ -1,9 +1,8 @@
 import context
-import profiling
 import speach
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
-from screeps_constants import *
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

@@ -1,6 +1,6 @@
 # Currently disabled / unused, since PathFinder.search is as-it-seems broken.
 
-from screeps_constants import *
+from utils.screeps_constants import *
 
 # Keys _cost_cache[use_roads][ignore_all_creeps] = matrix
 _cost_cache = {

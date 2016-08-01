@@ -1,11 +1,10 @@
 import context
-import creep_utils
 import flags
-import pathfinding
-import profiling
 import speach
 from constants import target_source
-from screeps_constants import *
+from tools import profiling
+from utils import movement, pathfinding
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
@@ -92,7 +91,7 @@ class RoleBase:
             return None
 
         if here.roomName != pos.roomName:
-            difference = creep_utils.inter_room_difference(here.roomName, pos.roomName)
+            difference = movement.inter_room_difference(here.roomName, pos.roomName)
             if not difference:
                 print("[{}] Couldn't find direction from {} to {}!!".format(
                     self.name, here.roomName, pos.roomName))

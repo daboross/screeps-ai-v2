@@ -1,10 +1,10 @@
 import math
 
-import creep_utils
 import flags
-import profiling
 from constants import *
-from screeps_constants import *
+from tools import profiling
+from utils import movement
+from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
@@ -155,7 +155,7 @@ class TargetMind:
             if not current_harvesters:
                 return source_id
             elif current_harvesters <= smallest_num_harvesters + 1:
-                range = creep_utils.distance_squared_room_pos(source.pos, creep.pos)
+                range = movement.distance_squared_room_pos(source.pos, creep.pos)
                 if range < closest_distance or current_harvesters <= smallest_num_harvesters - 1:
                     best_id = source_id
                     closest_distance = range
@@ -196,7 +196,7 @@ class TargetMind:
                 current_num = self.targets[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 if not current_num or current_num < 1:
-                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
+                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         closest_distance = range
                         best_id = source_id
@@ -212,7 +212,7 @@ class TargetMind:
             # TODO: this 200 should be a decided factor based off of spawn extensions
             if not current_num or current_num < \
                     min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200)):
-                range = creep_utils.distance_squared_room_pos(site.pos, creep.pos)
+                range = movement.distance_squared_room_pos(site.pos, creep.pos)
                 if range < closest_distance:
                     closest_distance = range
                     best_id = site_id
@@ -231,7 +231,7 @@ class TargetMind:
                 if not current_num or current_num < \
                         min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 200)) \
                         or current_num <= smallest_num_builders + 1:
-                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
+                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         smallest_num_builders = current_num
                         closest_distance = range
@@ -248,7 +248,7 @@ class TargetMind:
                 struct_id = structure.id
                 current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
-                    range = creep_utils.distance_squared_room_pos(structure.pos, creep.pos)
+                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         closest_distance = range
                         best_id = struct_id
@@ -275,7 +275,7 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
-                range = creep_utils.distance_squared_room_pos(flag.pos, creep.pos)
+                range = movement.distance_squared_room_pos(flag.pos, creep.pos)
                 if range < closest_flag:
                     closest_flag = range
                     best_id = flag_id
@@ -295,7 +295,7 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             haulers = self.targets[target_remote_mine_hauler][flag_id]
             # TODO: cache this result here.
-            max_haulers = math.ceil(math.sqrt(creep_utils.distance_squared_room_pos(
+            max_haulers = math.ceil(math.sqrt(movement.distance_squared_room_pos(
                 Game.rooms[creep.memory.home].storage.pos, flag.pos)
             ) / 13)
             hauler_percentage = haulers / max_haulers
@@ -335,7 +335,7 @@ class TargetMind:
                 if not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
                     # Ok, it's a controller we can reserve
                     controller_id = controller.id
-                    range = creep_utils.distance_squared_room_pos(controller.pos, creep.pos)
+                    range = movement.distance_squared_room_pos(controller.pos, creep.pos)
                     if range < closest_room:
                         closest_room = range
                         best_id = controller_id
@@ -396,7 +396,7 @@ class HiveMind:
         return self._remote_mining_flags
 
     def get_closest_owned_room(self, current_room_name):
-        current_pos = creep_utils.parse_room_to_xy(current_room_name)
+        current_pos = movement.parse_room_to_xy(current_room_name)
         if not current_pos:
             print("[room: {}] Couldn't parse room name!".format(current_room_name))
             return None
@@ -405,7 +405,7 @@ class HiveMind:
         for room in self.my_rooms:
             if not room.my:
                 continue
-            distance = creep_utils.squared_distance(current_pos, room.position)
+            distance = movement.squared_distance(current_pos, room.position)
             if distance < closest_squared_distance:
                 closest_squared_distance = distance
                 closest_room = room
@@ -574,7 +574,7 @@ class RoomMind:
 
     def get_position(self):
         if self._position is None:
-            self._position = creep_utils.parse_room_to_xy(self.room.name)
+            self._position = movement.parse_room_to_xy(self.room.name)
         return self._position
 
     def get_sources(self):
@@ -664,7 +664,7 @@ class RoomMind:
             for flag in flags.get_global_flags(flags.REMOTE_MINE):
                 if flag.memory.remote_miner_targeting:
                     amount = math.ceil(
-                        math.sqrt(creep_utils.distance_squared_room_pos(self.room.storage.pos, flag.pos)) / 13
+                        math.sqrt(movement.distance_squared_room_pos(self.room.storage.pos, flag.pos)) / 13
                     )
                     total_count += amount
             self._target_remote_hauler_count = total_count
