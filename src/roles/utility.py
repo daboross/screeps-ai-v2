@@ -56,6 +56,8 @@ class LinkManager(RoleBase):
                     return True
                 return False
 
+            self.memory.stationary = True
+
             result = self.creep.withdraw(link, RESOURCE_ENERGY)
 
             if result == OK:
@@ -72,6 +74,8 @@ class LinkManager(RoleBase):
                 self.move_to(storage)
                 self.report(speach.link_manager_moving)
                 return False
+
+            self.memory.stationary = True
 
             result = self.creep.transfer(storage, RESOURCE_ENERGY)
             if result == OK:
