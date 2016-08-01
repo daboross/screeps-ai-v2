@@ -11,18 +11,18 @@ __pragma__('noalias', 'name')
 def run(spawn):
     if not Memory.meta.no_more_spawning and not spawn.spawning:
         # TODO: pre-pick roles to spawn so we can actually spawn things when we have the energy needed *for them*,
-        # not enegergy needed for the biggest role
-        max = min(spawn.room.energyCapacityAvailable, 1300)
-        spawn_with_energy(spawn, max)
+        # not energy needed for the biggest role
+        max_energy = min(spawn.room.energyCapacityAvailable, 1300)
+        spawn_with_energy(spawn, max_energy)
 
 
 def spawn_with_energy(spawn, energy):
-    # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big harvester.
-    # 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be too bad.
-    # We *can* assume that all work_mass at this point is in harvesters, since creep_utils.reassign_roles() will reassign
-    # everyone to harvester if there are fewer than 2 harvesters existing.
-    if creep_utils.role_count(role_spawn_fill) < 2 \
-            and spawn.room.energyAvailable >= 150 * context.room().work_mass:
+    # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
+    # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
+    # too bad. We *can* assume that all work_mass at this point is in harvesters, since creep_utils.reassign_roles()
+    # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
+    if context.room().role_count(role_spawn_fill) < 2 \
+            and spawn.room.energyAvailable >= 150 * context.room().work_mass and spawn.room.energyAvailable >= 250:
         energy = spawn.room.energyAvailable
 
     if spawn.room.energyAvailable >= energy:
@@ -117,7 +117,7 @@ def spawn_with_array(spawn, role, base, parts):
     if result != OK and not Game.creeps[result]:
         print("[spawning] Invalid response from createCreep: {}".format(result))
     else:
-        Memory.role_counts[role] += 1
+        context.room().add_to_role(role)
 
 
 def random_four_digits():

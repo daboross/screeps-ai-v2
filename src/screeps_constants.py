@@ -77,6 +77,7 @@ __all__ = [
     "RegExp",
     "Error",
     "console",
+    "undefined",
     "_",
     "__pragma__",
     "__new__",

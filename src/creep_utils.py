@@ -30,15 +30,6 @@ role_requirements = [
 ]
 
 
-def role_count(role):
-    if not Memory.role_counts:
-        count_roles()
-    count = Memory.role_counts[role]
-    if not count and count != 0:
-        count = 0
-        Memory.role_counts[role] = 0
-    return count
-
 
 def get_role_name(existing_base=None):
     for role, ideal, base in role_requirements:
@@ -63,7 +54,7 @@ def get_role_name(existing_base=None):
                 ideal = 2
             else:
                 ideal = 0
-        current = role_count(role)
+        current = context.room().role_count(role)
         if current < ideal or (not current and ideal > 0):
             print("[roles] Need more {}! {} < {}".format(role, current, ideal))
             return base, role
@@ -179,7 +170,7 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
-    if role_count(role_spawn_fill) < 4 and role_count(role_dedi_miner) < room.target_big_harvester_count:
+    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.target_big_harvester_count:
         num = 0
         for creep in room.creeps:
             memory = creep.memory
@@ -188,33 +179,12 @@ def reassign_room_roles(room):
             num += 1
             if num > 5:
                 break
-        count_room_roles(room)
+        room.recalculate_roles_alive()
 
 
 def count_roles():
     for room in context.hive().my_rooms:
-        count_room_roles(room)
-
-
-def count_room_roles(room):
-    old_roles = Memory.role_counts
-    role_counts = {}
-
-    for name in Object.keys(Memory.creeps):
-        role = Memory.creeps[name].role
-        if not role:
-            continue
-        if not role_counts[role]:
-            role_counts[role] = 1
-        else:
-            role_counts[role] += 1
-
-    if old_roles:
-        for name in role_counts:
-            if role_counts[name] != old_roles[name]:
-                print("Role {} didn't match. {} != {}".format(name, old_roles[name], role_counts[name]))
-
-    Memory.role_counts = role_counts
+        room.recalculate_roles_alive()
 
 
 def clear_memory(target_mind):

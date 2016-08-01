@@ -511,6 +511,50 @@ class RoomMind:
         self._max_sane_wall_hits = None
         self._spawn = None
 
+    def _get_mem(self):
+        return self.room.memory
+
+    mem = property(_get_mem)
+
+    def _get_role_counts(self):
+        if not self.mem.roles_alive:
+            self.recalculate_roles_alive()
+        return self.mem.roles_alive
+
+    role_counts = property(_get_role_counts)
+
+    def role_count(self, role):
+        count = self.role_counts[role]
+        if count:
+            return count
+        else:
+            return 0
+
+    def add_to_role(self, role):
+        if self.role_counts[role]:
+            self.role_counts[role] += 1
+        else:
+            self.role_counts[role] = 1
+
+    def recalculate_roles_alive(self):
+        """
+        Forcibly recalculates the current roles in the room. If everything's working correctly, this method should have
+        no effect. However, it is useful to run this method frequently, for if memory becomes corrupted or a bug is
+        introduced, this can ensure that everything is entirely correct.
+        """
+        roles_alive = {}
+
+        for creep in self.creeps:
+            role = creep.memory.role
+            if not role:
+                continue
+            if not roles_alive[role]:
+                roles_alive[role] = 1
+            else:
+                roles_alive[role] += 1
+
+        self.mem.roles_alive = roles_alive
+
     def poll_hostiles(self):
         if not Memory.hostiles:
             Memory.hostiles = []

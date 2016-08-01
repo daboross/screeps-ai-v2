@@ -86,11 +86,7 @@ def main():
                         base.go_to_depot()
                         base.report(speach.base_no_role)
                         continue
-                    creep.memory.role = role
-                    if Memory.role_counts[role]:
-                        Memory.role_counts[role] += 1
-                    else:
-                        Memory.role_counts[role] = 1
+                    room.add_to_role(role)
                     creep_instance = role_classes[role](target_mind, creep)
                 rerun = creep_instance.run()
                 if rerun:
