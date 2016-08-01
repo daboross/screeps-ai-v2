@@ -48,6 +48,3 @@ class SpawnFill(building.Builder):
                 self.memory.running_as_builder = True
                 return building.Builder.run(self)
         return False
-
-
-profiling.profile_class(SpawnFill, profiling.ROLE_BASE_IGNORE)

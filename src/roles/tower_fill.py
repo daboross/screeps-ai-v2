@@ -42,6 +42,3 @@ class TowerFill(spawn_fill.SpawnFill):
                 return spawn_fill.SpawnFill.run(self)
 
         return False
-
-
-profiling.profile_class(TowerFill, profiling.ROLE_BASE_IGNORE)

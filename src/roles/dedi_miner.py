@@ -1,4 +1,3 @@
-import profiling
 import speach
 from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site
 from role_base import RoleBase
@@ -42,9 +41,6 @@ class DedicatedMiner(RoleBase):
             self.report(speach.dedi_miner_unknown_result)
 
         return False
-
-
-profiling.profile_class(DedicatedMiner, profiling.ROLE_BASE_IGNORE)
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class

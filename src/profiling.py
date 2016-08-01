@@ -29,7 +29,6 @@ def profile_method(cls, func_name):
 
 
 _DEFAULT_IGNORED = []
-ROLE_BASE_IGNORE = ["harvesting", "name"]
 
 
 def profile_class(cls, ignored=None):

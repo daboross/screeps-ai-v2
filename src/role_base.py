@@ -363,4 +363,4 @@ class RoleBase:
                 self.creep.say(stuff, True)
 
 
-profiling.profile_class(RoleBase, profiling.ROLE_BASE_IGNORE)
+profiling.profile_class(RoleBase, ["harvesting", "name", "home"])

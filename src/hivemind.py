@@ -446,7 +446,7 @@ class HiveMind:
     remote_mining_flags = property(get_remote_mining_flags)
 
 
-profiling.profile_class(HiveMind, ["my_rooms"])
+profiling.profile_class(HiveMind, ["my_rooms", "visible_rooms", "remote_mining_flags"])
 
 _min_work_mass_big_miner = 15
 _extra_work_mass_per_big_miner = 10
@@ -694,13 +694,17 @@ class RoomMind:
 
 profiling.profile_class(RoomMind, [
     "room_name",
+    "position",
     "sources",
     "creeps",
     "work_mass",
-    "ideal_big_miner_count",
+    "are_all_big_miners_placed",
+    "trying_to_get_full_storage_use",
+    "full_storage_use",
     "target_big_harvester_count",
     "target_remote_miner_count",
     "target_remote_hauler_count",
     "target_remote_reserve_count",
-    "are_all_big_miners_placed",
+    "target_link_manager_count",
+    "max_sane_wall_hits",
 ])

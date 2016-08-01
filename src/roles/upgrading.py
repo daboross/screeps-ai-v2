@@ -48,8 +48,4 @@ class Upgrader(RoleBase):
                     self.go_to_depot()
                     self.report(speach.upgrading_unknown_result)
 
-        # raise Error("AHHHHHHHHHH")
         return False
-
-
-profiling.profile_class(Upgrader, profiling.ROLE_BASE_IGNORE)
