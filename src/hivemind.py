@@ -719,11 +719,70 @@ class RoomMind:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
         return self._max_sane_wall_hits
 
+    def _next_needed_local_role(self):
+        requirements = [
+            [role_spawn_fill, lambda: 2],
+            [role_link_manager, self.get_target_link_manager_count],
+            [role_dedi_miner, self.get_target_big_harvester_count],
+            [role_spawn_fill, lambda: 4],
+            [role_local_hauler, self.get_target_local_hauler_count],
+            [role_upgrader, lambda: 1],
+            [role_tower_fill, lambda: len(self.room.find(FIND_STRUCTURES,
+                                                         {"filter": {"structureType": STRUCTURE_TOWER}}))]
+        ]
+        for role, get_ideal in requirements:
+            if self.role_count(role) < get_ideal():
+                return role
+
+    def _next_probably_local_role(self):
+        roles = [
+            [role_upgrader, 2],
+            [role_builder, 6],
+        ]
+        for role, ideal in roles:
+            if self.role_counts(role) < ideal:
+                return role
+
+    def _next_remote_mining_role(self):
+        remote_operation_reqs = [
+            [role_defender, lambda: 2 if len(Memory.hostiles) else 0],
+            [role_remote_miner, self.get_target_remote_mining_operation_count],
+            [role_remote_hauler, lambda: math.ceil(self.get_target_remote_hauler_count() / 2)],
+            [role_remote_mining_reserve, self.get_target_remote_reserve_count],
+            [role_remote_hauler, self.get_target_remote_hauler_count],
+        ]
+        for role, get_ideal in remote_operation_reqs:
+            if self.role_count(role) < get_ideal():
+                return role
+
+    def reset_planned_role(self):
+        del self.mem.next_role
+
+    def plan_next_role(self):
+        next_role = self._next_needed_local_role()
+        if not next_role:
+            next_role = self._next_remote_mining_role()
+            if not next_role:
+                next_role = self._next_probably_local_role()
+        if next_role:
+            print("[room: {}] Next role to spawn: {}".format(self.room_name, next_role))
+            self.mem.next_role = next_role
+        else:
+            print("[room: {}] Everything's good!".format(self.room_name))
+            # set to false specifically to avoid "is None" check in get_next_role()
+            self.mem.next_role = None
+
+    def get_next_role(self):
+        if self.mem.next_role is undefined:
+            self.plan_next_role()
+        return self.mem.next_role
+
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
     creeps = property(get_creeps)
     work_mass = property(get_work_mass)
+    next_role = property(get_next_role)
     are_all_big_miners_placed = property(get_if_all_big_miners_are_placed)
     trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
     full_storage_use = property(get_full_storage_use)
@@ -742,6 +801,7 @@ profiling.profile_class(RoomMind, [
     "sources",
     "creeps",
     "work_mass",
+    "next_role",
     "are_all_big_miners_placed",
     "trying_to_get_full_storage_use",
     "full_storage_use",

@@ -59,14 +59,14 @@ def main():
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
         print("Clearing memory")
         creep_utils.clear_memory(target_mind)
-        creep_utils.count_roles()
-        creep_utils.reassign_roles()
+        for room in hive_mind.my_rooms:
+            room.recalculate_roles_alive()
+            creep_utils.reassign_room_roles(room)
+            # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
+            # recalculated in the last 500 ticks.
+            # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
+            room.reset_planned_role()
         Memory.meta.clear_now = False
-        # just deassign this even if we didn't find any dead creeps - if there weren't any dead creep it means
-        # this has reached the maximum wait time of 2000 ticks, in which case if we had any alive creeps, at least one
-        # of them *should* have died - so we probably are completely dead due to some bug. If that happens, it'd
-        # probably be best to start spawning more!
-        Memory.meta.no_more_spawning = False
 
     for room in hive_mind.my_rooms:
         context.set_room(room)
@@ -75,12 +75,12 @@ def main():
                 if creep.spawning:
                     continue
                 if not creep.memory.base:
-                    creep.memory.base = creep_utils.find_base(creep)
+                    creep.memory.base = spawning.find_base_type(creep)
                 role = creep.memory.role
                 if role in role_classes:
                     creep_instance = role_classes[role](target_mind, creep)
                 else:
-                    role = creep_utils.get_role_name(creep.memory.base)[1]
+                    role = default_roles[creep.memory.base]
                     if not role:
                         base = RoleBase(target_mind, creep)
                         base.go_to_depot()
@@ -96,7 +96,7 @@ def main():
                 if rerun:
                     print("[{}: {}] Tried to rerun three times!".format(creep.name, role))
             except Error as e:
-                Game.notify("""Error running role {}! Creep {} not run this tick.\n{}""".format(
+                Game.notify("Error running role {}! Creep {} not run this tick.\n{}".format(
                     role if role else "<no role>", creep.name, e.stack
                 ), 10)
                 print("[{}] Error running role {}!".format(creep.name, role if role else "<no role>"))
@@ -104,8 +104,8 @@ def main():
 
     for name in Object.keys(Game.spawns):
         spawn = Game.spawns[name]
-        context.set_room(hive_mind.get_room(spawn.pos.roomName))
-        spawning.run(spawn)
+        room = hive_mind.get_room(spawn.pos.roomName)
+        spawning.run(room, spawn)
 
     tower.run()
 
