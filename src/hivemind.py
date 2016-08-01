@@ -455,6 +455,7 @@ _extra_work_mass_per_extra_remote_mining_operation = 15
 _min_work_mass_for_full_storage_use = 35
 
 _min_stored_energy_before_enabling_full_storage_use = 8000
+_min_stored_energy_to_draw_from_before_refilling = 100000
 
 # 0 is rcl 1
 _rcl_to_sane_wall_hits = [100, 5000, 10000, 100000, 500000, 1000000, 5000000, 10000000]
@@ -621,9 +622,11 @@ class RoomMind:
 
     def get_full_storage_use(self):
         if self._full_storage_use is None:
-            self._full_storage_use = self.trying_to_get_full_storage_use and \
-                                     self.room.storage.store[RESOURCE_ENERGY] \
-                                     >= _min_stored_energy_before_enabling_full_storage_use
+            self._full_storage_use = (self.trying_to_get_full_storage_use and
+                                      self.room.storage.store[RESOURCE_ENERGY]
+                                      >= _min_stored_energy_before_enabling_full_storage_use) \
+                                     or (self.room.storage and self.room.storage.store[
+                RESOURCE_ENERGY] >= _min_stored_energy_to_draw_from_before_refilling)
         return self._full_storage_use
 
     def get_target_big_harvester_count(self):
@@ -740,7 +743,7 @@ class RoomMind:
             [role_builder, 6],
         ]
         for role, ideal in roles:
-            if self.role_counts(role) < ideal:
+            if self.role_count(role) < ideal:
                 return role
 
     def _next_remote_mining_role(self):

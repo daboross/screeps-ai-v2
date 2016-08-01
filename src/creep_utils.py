@@ -139,4 +139,4 @@ def clear_memory(target_mind):
             del Memory.creeps[name]
         elif creep.ticksToLive < smallest_ticks_to_live:
             smallest_ticks_to_live = creep.ticksToLive
-    Memory.meta.clear_next = Game.time + smallest_ticks_to_live + 3  # some leeway
+    Memory.meta.clear_next = Game.time + smallest_ticks_to_live + 1 # some leeway
