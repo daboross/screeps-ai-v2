@@ -1,5 +1,5 @@
 # Currently disabled / unused, since PathFinder.search is as-it-seems broken.
-
+import flags
 from utils.screeps_constants import *
 
 # Keys _cost_cache[use_roads][ignore_all_creeps] = matrix
@@ -25,15 +25,36 @@ _cost_cache = {
         },
     }
 }
-
-last_tick = 0
+_last_refreshed = {
+    True: {
+        True: {
+            True: {},
+            False: {},
+        },
+        False: {
+            True: {},
+            False: {},
+        },
+    },
+    False: {
+        True: {
+            True: {},
+            False: {},
+        },
+        False: {
+            True: {},
+            False: {},
+        },
+    }
+}
 
 
 def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_all_creeps, room_name):
     time = Game.time
     global last_tick
     # don't look up Game.rooms[] if we have a cache
-    if _cost_cache[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] and time <= last_tick:
+    if _cost_cache[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] and \
+                    time <= _last_refreshed[use_roads][ignore_all_creeps][avoid_all_creeps][room_name]:
         return _cost_cache[room_name]
     if game_defined_matrix:
         matrix = game_defined_matrix
@@ -46,6 +67,9 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
         elif struct.structureType is not STRUCTURE_CONTAINER \
                 and struct.structureType is not STRUCTURE_RAMPART:
             matrix.set(struct.pos.x, struct.pos.y, 0xff)
+
+    for flag in flags.get_flags(room, flags.PATH_FINDING_AVOID):
+        matrix.set(flag.pos.x, flag.pos.y, 0xff)
 
     if not ignore_all_creeps:
         for creep in room.find(FIND_CREEPS):
@@ -61,7 +85,7 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
     #                 matrix.set(x, y, 0xff)
 
     _cost_cache[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] = matrix
-    last_tick = time
+    _last_refreshed[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] = time
 
     return matrix
 

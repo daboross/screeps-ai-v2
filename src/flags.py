@@ -9,6 +9,7 @@ EXIT_SOUTH = "exit_south"
 EXIT_WEST = "exit_west"
 REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
+PATH_FINDING_AVOID = "avoid_moving_through"
 MAIN_DESTRUCT = "destruct"
 MAIN_BUILD = "build"
 SUB_WALL = "wall"
@@ -24,6 +25,7 @@ DIR_TO_EXIT_FLAG = {
 
 flag_definitions = {
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
+    PATH_FINDING_AVOID: (COLOR_BLUE, COLOR_RED),
     EXIT_NORTH: (COLOR_WHITE, COLOR_RED),
     EXIT_EAST: (COLOR_WHITE, COLOR_PURPLE),
     EXIT_SOUTH: (COLOR_WHITE, COLOR_BLUE),
