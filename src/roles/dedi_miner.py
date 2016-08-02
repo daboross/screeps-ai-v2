@@ -64,7 +64,13 @@ class LocalHauler(RoleBase):
                 return False
 
             miner = Game.creeps[Memory.big_harvesters_placed[source.id]]
-            if not miner:
+            if miner:
+                target_pos = miner.pos
+                self.memory.stored_miner_position = miner.pos
+            elif self.memory.stored_miner_position:
+                temp_pos = self.memory.stored_miner_position
+                target_pos = __new__(RoomPosition(temp_pos.x, temp_pos.y, temp_pos.roomName))
+            else:
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
@@ -73,16 +79,20 @@ class LocalHauler(RoleBase):
                 self.report(speach.local_hauler_no_miner)
                 return False
 
-            if not self.creep.pos.isNearTo(miner.pos):
-                self.move_to(miner)
+            if not self.creep.pos.isNearTo(target_pos):
+                self.move_to(target_pos)
                 maybe_energy = self.creep.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
                 if len(maybe_energy):
                     self.creep.pickup(maybe_energy[0])
                 self.report(speach.local_hauler_moving_to_miner)
                 return False
 
-            piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
+            self.memory.stationary = True
+
+            piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
+                if not miner:
+                    del self.memory.stored_miner_position
                 self.report(speach.local_hauler_waiting)
                 return False
 
@@ -116,6 +126,8 @@ class LocalHauler(RoleBase):
                 self.move_to(target)
                 self.report(speach.local_hauler_moving_to_storage)
                 return False
+
+            self.memory.stationary = True
 
             result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:

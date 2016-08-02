@@ -90,6 +90,8 @@ class RemoteHauler(RoleBase):
                 self.report(speach.remote_hauler_moving_to_miner)
                 return False
 
+            self.memory.stationary = True
+
             piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
                 self.report(speach.remote_hauler_ner)
@@ -130,6 +132,8 @@ class RemoteHauler(RoleBase):
                 self.move_to(target)
                 self.report(speach.remote_hauler_moving_to_storage)
                 return False
+
+            self.memory.stationary = True
 
             result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:

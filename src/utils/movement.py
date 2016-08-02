@@ -1,3 +1,7 @@
+import math
+
+import flags
+from utils import pathfinding
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -72,3 +76,103 @@ def distance_squared_room_pos(room_position_1, room_position_2):
         room_2_pos[1] * 50 + room_position_2.y
     )
     return squared_distance(full_pos_1, full_pos_2)
+
+
+def get_exit_flag_and_direction(room_name, to_room, difference):
+    if abs(difference[0]) > abs(difference[1]):
+        if difference[0] > 0:
+            direction = RIGHT
+        else:
+            direction = LEFT
+    else:
+        if difference[1] > 0:
+            direction = BOTTOM
+        else:
+            direction = TOP
+
+    flag_list = flags.get_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
+    if not len(flag_list):
+        # If we have another direction (if path is diagonal), try another way?
+        if abs(difference[0]) > abs(difference[1]):
+            if difference[1] > 0:
+                direction = BOTTOM
+            elif difference[1] < 0:
+                direction = TOP
+        else:
+            if difference[0] > 0:
+                direction = RIGHT
+            elif difference[0] < 0:
+                direction = LEFT
+        flag_list = flags.get_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
+    if not len(flag_list):
+        print("Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
+              .format(room_name, flags.DIR_TO_EXIT_FLAG[direction], to_room, room_name))
+        return None, direction
+
+    return flag_list[0].pos, direction
+
+
+def path_distance(here, target):
+    if here == target:
+        return 0
+    current = __new__(RoomPosition(here.x, here.y, here.roomName))
+
+    path_len = 0
+    x = 1
+
+    while current.roomName != target.roomName and x < 6:
+        x += 1
+        print("Now calculating {} to {}".format(current.roomName, target.roomName))
+        room = Game.rooms[current.roomName]
+        difference = inter_room_difference(current.roomName, target.roomName)
+        if not difference:
+            print("[path_distance] Couldn't find room pos difference between {} and {}!".format(current.roomName,
+                                                                                                target.roomName))
+            return -1
+        new_pos, exit_direction = get_exit_flag_and_direction(current.roomName, target.roomName, difference)
+        if not new_pos:
+            print("[path_distance] Couldn't find exit flag from {} to {} (exit {})!".format(current.roomName,
+                                                                                            target.roomName,
+                                                                                            exit_direction))
+            return -1
+
+        if room:
+            path = pathfinding.find_path(room, current, new_pos, None)
+            if not path:
+                print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(exit_direction,
+                                                                                                     current.roomName))
+                return -1
+            path_len += len(path) + 1  # one to accommodate moving to the other room.
+        else:
+            print("[path_distance] Couldn't find view to room {}! Using linear distance.")
+            path_len += math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
+
+        print("[path_distance] Adding {} to {}. New len: {}".format(current, new_pos, path_len))
+
+        if exit_direction == TOP:
+            new_pos.y = 49
+        elif exit_direction == BOTTOM:
+            new_pos.y = 0
+        elif exit_direction == LEFT:
+            new_pos.x = 49
+        elif exit_direction == RIGHT:
+            new_pos.x = 0
+        else:
+            print("[path_distance] get_exit_flag_and_direction returned unknown direction! {}".format(exit_direction))
+            return -1
+        current = new_pos
+
+    room = Game.rooms[current.roomName]
+    if room:
+        path = pathfinding.find_path(room, current, target, None)
+        if not path:
+            print("[path_distance] pathfinding couldn't find path from {} to {} in room {}!".format(current,
+                                                                                                    target,
+                                                                                                    current.roomName))
+        path_len += len(path)
+    else:
+        print("[path_distance] Couldn't find view to room {}! Using linear distance.")
+        path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
+        print("[path_distance] Adding {} to {}. New len: {}".format(current, target, path_len))
+
+    return path_len

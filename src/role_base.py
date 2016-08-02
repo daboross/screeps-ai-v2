@@ -73,7 +73,7 @@ class RoleBase:
         if path is None:
             return None
         self.memory.path[target_id] = Room.serializePath(path)
-        self.memory.reset_path[target_id] = Game.time + 100  # Reset every 100 ticks
+        self.memory.reset_path[target_id] = Game.time + 20  # Reset every 20 ticks
         self.memory.same_place_ticks = 0
         return path
 
@@ -140,16 +140,32 @@ class RoleBase:
                             self.memory.last_pos.y == here.y):
                     if not self.memory.same_place_ticks:
                         self.memory.same_place_ticks = 1
-                    elif self.memory.same_place_ticks < 3:
+                    elif self.memory.same_place_ticks < 2:
                         self.memory.same_place_ticks += 1
                     else:
-                        print("[{}] Regenerating path from {} to {}".format(
-                            self.name, here, pos
-                        ))
-
-                        return self._get_new_path_to(target_id, pos, options)
+                        if not self.memory.retried_level:
+                            print("[{}] Regenerating path from {} to {}".format(
+                                self.name, here, pos
+                            ))
+                            self.memory.retried_level = 1
+                            return self._get_new_path_to(target_id, pos, options)
+                        elif self.memory.retried_level <= 1:
+                            print("[{}] Trying avoid-all-creeps path from {} to {}".format(
+                                self.name, here, pos
+                            ))
+                            self.memory.retried_level = 2
+                            if options:
+                                options["avoid_all_creeps"] = True
+                            return self._get_new_path_to(target_id, pos, options)
+                        else:
+                            print("[{}] Trying manual move path from {} to {}! retried_level: {}".format(
+                                self.name, here, pos, self.memory.retried_level
+                            ))
+                            self.memory.retried_level += 1
+                            return None
                 else:
                     del self.memory.same_place_ticks
+                    del self.memory.retried_level
                     self.memory.last_pos = here
             try:
                 return Room.deserializePath(self.memory.path[target_id])
@@ -167,7 +183,11 @@ class RoleBase:
             pos = target
         if self.creep.fatigue <= 0:
             path = self._get_path_to(pos, same_position_ok, options)
-            result = self.creep.moveByPath(path)
+            if path is None:  # trigger for manual movement
+                print("[{}] Manually moving.".format(self.name))
+                result = self.creep.moveTo(target, {"reusePath": 0})
+            else:
+                result = self.creep.moveByPath(path)
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
@@ -180,7 +200,7 @@ class RoleBase:
                         self.name, result
                     ))
 
-                target_id = target.pos.x + "_" + target.pos.y + "_" + target.pos.roomName
+                target_id = pos.x + "_" + pos.y + "_" + pos.roomName
                 del self.memory.path[target_id]
                 if not times_tried:
                     times_tried = 0
@@ -188,8 +208,8 @@ class RoleBase:
                     self.move_to(target, same_position_ok, options, times_tried + 1)
                 else:
                     print("[{}] Continually failed to move from {} to {} (path: {})!".format(
-                        self.name, self.creep.pos, target.pos, path))
-                    self.creep.moveTo(target)
+                        self.name, self.creep.pos, pos, path))
+                    self.creep.moveTo(pos, {"reusePath": 0})
 
     def harvest_energy(self):
         if context.room().full_storage_use:
