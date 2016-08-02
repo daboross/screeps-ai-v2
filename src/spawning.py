@@ -7,12 +7,12 @@ from utils.screeps_constants import *
 __pragma__('noalias', 'name')
 
 bases_max_energy = {
-    creep_base_worker: 250,
-    creep_base_big_harvester: 600,
+    creep_base_worker: 250 * 6,
+    creep_base_big_harvester: 100 + 100 * 5,
     creep_base_full_miner: 750,
     creep_base_small_hauler: 300,
     creep_base_hauler: 500,
-    creep_base_reserving: 1300,
+    creep_base_reserving: 650 * 2,
     creep_base_defender: 190 * 5,
 }
 
@@ -44,7 +44,7 @@ def run(room, spawn):
         energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
 
     if filled < energy:
-        print("Room doesn't have enough energy! {} < {}!".format(filled, energy))
+        # print("Room doesn't have enough energy! {} < {}!".format(filled, energy))
         return
 
     descriptive_level = None
@@ -62,10 +62,11 @@ def run(room, spawn):
         if energy >= 500:
             parts = []
             part_idea = [MOVE, MOVE, CARRY, WORK]
-            num_sections = min(int(floor(energy / 250)), 4)
+            num_sections = min(int(floor(energy / 250)), 6)
             for i in range(0, num_sections):
                 for part in part_idea:
                     parts.append(part)
+            descriptive_level = "full-{}".format(num_sections)
         elif energy >= 400:
             parts = [MOVE, MOVE, MOVE, CARRY, WORK, WORK]
             descriptive_level = "basic-2"

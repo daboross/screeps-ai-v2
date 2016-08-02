@@ -80,7 +80,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
-        self.report(speach.building_build_target.format(target.structureType))
+        self.report(speach.building_build_target, target.structureType)
         if not self.creep.pos.inRangeTo(target.pos, 3):
             self.move_to(target)
             return False
