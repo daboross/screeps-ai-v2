@@ -15,10 +15,8 @@ cd "src"
 cp __javascript__/main.* ../target/
 cd ../
 
-# Use perl here rather than sed in order to do multi-line regex matching
-# This is a workaround for some sort of error caused by the Screeps environment - I think it's loading the code multiple times without clearing the main namespace or something, and thus defineProperty() fails with "already exists".
-# This if statement will fix that, but this is a hacky way of adding it - maybe I can get a patch format in the future?
-perl -0777 -pi -e 's/(Object.defineProperty [(]String.prototype, (:?.+|\n){48})/if (!String.prototype.format) {$1}/g' target/main.js
+patch target/main.js js_patches/fix_string_format.patch
+patch target/main.js js_patches/allow_in_on_objects.patch
 
 cp target/main.js js_files/
 

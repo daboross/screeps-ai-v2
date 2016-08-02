@@ -1,0 +1,13 @@
+diff --git a/js_files/main.js b/js_new/main.js
+index 8b4d92a..44557ae 100644
+--- a/js_files/main.js
++++ b/js_new/main.js
+@@ -521,7 +521,7 @@ function main () {
+ 			return container.keys () .indexOf (element) > -1;
+ 		}
+ 		else {
+-			return container.indexOf (element) > -1;
++			return container.indexOf ? container.indexOf (element) > -1 : element in container
+ 		}
+ 	}
+ 	__all__.__in__ = __in__;
