@@ -120,11 +120,14 @@ def path_distance(here, target):
     path_len = 0
     x = 1
 
+    target_room_xy = parse_room_to_xy(target.roomName)
+
     while current.roomName != target.roomName and x < 6:
         x += 1
         print("Now calculating {} to {}".format(current.roomName, target.roomName))
         room = Game.rooms[current.roomName]
-        difference = inter_room_difference(current.roomName, target.roomName)
+        current_room_xy = parse_room_to_xy(current.roomName)
+        difference = (target_room_xy[0] - current_room_xy[0], target_room_xy[1] - current_room_xy[1])
         if not difference:
             print("[path_distance] Couldn't find room pos difference between {} and {}!".format(current.roomName,
                                                                                                 target.roomName))
@@ -144,22 +147,33 @@ def path_distance(here, target):
                 return -1
             path_len += len(path) + 1  # one to accommodate moving to the other room.
         else:
-            print("[path_distance] Couldn't find view to room {}! Using linear distance.")
+            print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
             path_len += math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
 
         print("[path_distance] Adding {} to {}. New len: {}".format(current, new_pos, path_len))
 
+        room_x, room_y = current_room_xy
         if exit_direction == TOP:
             new_pos.y = 49
+            room_y -= 1
         elif exit_direction == BOTTOM:
             new_pos.y = 0
+            room_y += 1
         elif exit_direction == LEFT:
             new_pos.x = 49
+            room_x -= 1
         elif exit_direction == RIGHT:
             new_pos.x = 0
+            room_x += 1
         else:
             print("[path_distance] get_exit_flag_and_direction returned unknown direction! {}".format(exit_direction))
             return -1
+        new_pos.roomName = "{}{}{}{}".format(
+            "E" if room_x > 0 else "W",
+            abs(room_x),
+            "S" if room_y > 0 else "N",
+            abs(room_y),
+        )
         current = new_pos
 
     room = Game.rooms[current.roomName]
@@ -171,8 +185,9 @@ def path_distance(here, target):
                                                                                                     current.roomName))
         path_len += len(path)
     else:
-        print("[path_distance] Couldn't find view to room {}! Using linear distance.")
+        print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
         path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
-        print("[path_distance] Adding {} to {}. New len: {}".format(current, target, path_len))
+
+    print("[path_distance] Adding {} to {}. New len: {}".format(current, target, path_len))
 
     return path_len
