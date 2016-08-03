@@ -13,21 +13,21 @@ def run():
     if not Memory.tower.last_recheck or current_time > Memory.tower.last_recheck + 500:
         Memory.tower.last_recheck = current_time
         towers = []
-        for id in Object.keys(Game.structures):
-            struct = Game.structures[id]
+        for tower_id in Object.keys(Game.structures):
+            struct = Game.structures[tower_id]
             if struct.structureType == STRUCTURE_TOWER and struct.my:
-                towers.append(id)
+                towers.append(tower_id)
 
         Memory.tower.towers = towers
 
     new_alert_rooms = set()
     no_longer_alert_rooms = set()
-    for id in Memory.tower.towers:
-        tower = Game.getObjectById(id)
-        if not Memory.tower.towers_memory[id]:
-            Memory.tower.towers_memory[id] = {}
+    for tower_id in Memory.tower.towers:
+        tower = Game.getObjectById(tower_id)
+        if not Memory.tower.towers_memory[tower_id]:
+            Memory.tower.towers_memory[tower_id] = {}
 
-        tower.memory = Memory.tower.towers_memory[id]
+        tower.memory = Memory.tower.towers_memory[tower_id]
 
         if tower.memory.alert:
             if Memory.meta.friends and len(Memory.meta.friends):

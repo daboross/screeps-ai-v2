@@ -30,7 +30,8 @@ def run(room, spawn):
         return
     role = room.get_next_role()
     if not role:
-        if not room.mem.spawning_already_reported_no_next_role:  # TODO: at this point, figure out how long until the next replacement is needed!
+        # TODO: at this point, figure out how long until the next replacement is needed!
+        if not room.mem.spawning_already_reported_no_next_role:
             print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
             room.mem.spawning_already_reported_no_next_role = True
         return
@@ -93,23 +94,29 @@ def run(room, spawn):
         parts = []
         num_move = min(int(floor((energy - 500) / 50)), 5)
         num_work = 5
-        for i in range(0, num_move - 1):    parts.append(MOVE)
-        for i in range(0, num_work):        parts.append(WORK)
+        for i in range(0, num_move - 1):
+            parts.append(MOVE)
+        for i in range(0, num_work):
+            parts.append(WORK)
         parts.append(MOVE)
         if num_move < 5:
             descriptive_level = num_move
     elif base is creep_base_hauler:
         parts = []
         num_sections = min(int(floor(energy / 100)), 5)
-        for i in range(0, num_sections - 1):    parts.append(MOVE)
-        for i in range(0, num_sections):        parts.append(CARRY)
+        for i in range(0, num_sections - 1):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(CARRY)
         parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_small_hauler:
         parts = []
         num_sections = min(int(floor(energy / 100)), 3)
-        for i in range(0, num_sections - 1):    parts.append(MOVE)
-        for i in range(0, num_sections):        parts.append(CARRY)
+        for i in range(0, num_sections - 1):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(CARRY)
         parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_reserving:
@@ -126,9 +133,12 @@ def run(room, spawn):
         parts = []
         # MOVE, MOVE, ATTACK, TOUCH = one section = 190
         num_sections = min(int(floor(energy / 190)), 6)
-        for i in range(0, num_sections):        parts.append(TOUGH)
-        for i in range(0, num_sections - 1):    parts.append(MOVE)
-        for i in range(0, num_sections):        parts.append(ATTACK)
+        for i in range(0, num_sections):
+            parts.append(TOUGH)
+        for i in range(0, num_sections - 1):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(ATTACK)
         parts.append(MOVE)
         descriptive_level = num_sections
     else:

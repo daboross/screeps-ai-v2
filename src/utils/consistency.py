@@ -11,7 +11,7 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
-    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.target_big_harvester_count:
+    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.get_target_big_harvester_count():
         num = 0
         for creep in room.creeps:
             memory = creep.memory

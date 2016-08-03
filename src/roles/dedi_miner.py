@@ -1,4 +1,4 @@
-import speach
+import speech
 from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site
 from role_base import RoleBase
 from utils import movement
@@ -20,7 +20,7 @@ class DedicatedMiner(RoleBase):
 
         if not self.creep.pos.isNearTo(source.pos):
             self.move_to(source, False, _MOVE_ARGS)
-            self.report(speach.dedi_miner_moving)
+            self.report(speech.dedi_miner_moving)
             return False
 
         self.memory.stationary = True
@@ -34,15 +34,15 @@ class DedicatedMiner(RoleBase):
                 Memory.big_harvesters_placed = {
                     source.id: self.name
                 }
-            self.report(speach.dedi_miner_ok)
+            self.report(speech.dedi_miner_ok)
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-            self.report(speach.dedi_miner_ner)
+            self.report(speech.dedi_miner_ner)
         else:
             print("[{}] Unknown result from mining-creep.harvest({}): {}".format(
                 self.name, source, result
             ))
-            self.report(speach.dedi_miner_unknown_result)
+            self.report(speech.dedi_miner_unknown_result)
 
         return False
 
@@ -76,7 +76,7 @@ class LocalHauler(RoleBase):
                     self.memory.harvesting = False
                     return True
                 self.go_to_depot()
-                self.report(speach.local_hauler_no_source)
+                self.report(speech.local_hauler_no_source)
                 return False
             miner_name = Memory.big_harvesters_placed[source.id]
             miner = Game.creeps[miner_name]
@@ -93,9 +93,9 @@ class LocalHauler(RoleBase):
                 if miner_name and not miner:
                     del Memory.big_harvesters_placed[source.id]
                     Memory.meta.clear_now = True
-                    self.report(speach.local_hauler_no_miner, miner_name)
+                    self.report(speech.local_hauler_no_miner, miner_name)
                 else:
-                    self.report(speach.local_hauler_no_miner_name, source.id[-4:])
+                    self.report(speech.local_hauler_no_miner_name, source.id[-4:])
                 self.go_to_depot()
                 self.target_mind.untarget(self.creep, target_source_local_hauler)
                 return False
@@ -103,7 +103,7 @@ class LocalHauler(RoleBase):
             if not self.creep.pos.isNearTo(target_pos):
                 self.move_to(target_pos)
                 self.pick_up_available_energy()
-                self.report(speach.local_hauler_moving_to_miner)
+                self.report(speech.local_hauler_moving_to_miner)
                 return False
 
             self.memory.stationary = True
@@ -112,13 +112,13 @@ class LocalHauler(RoleBase):
             if not len(piles):
                 if not miner:
                     del self.memory.stored_miner_position
-                self.report(speach.local_hauler_waiting)
+                self.report(speech.local_hauler_waiting)
                 return False
 
             result = self.creep.pickup(piles[0])
 
             if result == OK:
-                self.report(speach.local_hauler_pickup_ok)
+                self.report(speech.local_hauler_pickup_ok)
             elif result == ERR_FULL:
                 self.memory.harvesting = False
                 return True
@@ -126,7 +126,7 @@ class LocalHauler(RoleBase):
                 print("[{}] Unknown result from hauler-creep.pickup({}): {}".format(
                     self.name, source, result
                 ))
-                self.report(speach.local_hauler_pickup_unknown_result)
+                self.report(speech.local_hauler_pickup_unknown_result)
 
             return False
         else:
@@ -134,7 +134,7 @@ class LocalHauler(RoleBase):
             if not storage:
                 print("[{}] Local hauler can't find storage in {}!".format(self.name, self.creep.room.name))
                 self.go_to_depot()
-                self.report(speach.local_hauler_no_storage)
+                self.report(speech.local_hauler_no_storage)
                 return False
 
             target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
@@ -143,25 +143,25 @@ class LocalHauler(RoleBase):
 
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)
-                self.report(speach.local_hauler_moving_to_storage)
+                self.report(speech.local_hauler_moving_to_storage)
                 return False
 
             self.memory.stationary = True
 
             result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:
-                self.report(speach.local_hauler_transfer_ok)
+                self.report(speech.local_hauler_transfer_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
                 print("[{}] {} in room {} full!".format(self.name, target, target.pos.roomName))
                 self.go_to_depot()
-                self.report(speach.local_hauler_storage_full)
+                self.report(speech.local_hauler_storage_full)
             else:
                 print("[{}] Unknown result from hauler-creep.transfer({}): {}".format(
                     self.name, target, result
                 ))
-                self.report(speach.local_hauler_transfer_unknown_result)
+                self.report(speech.local_hauler_transfer_unknown_result)
 
             return False

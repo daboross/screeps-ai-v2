@@ -1,5 +1,5 @@
 import context
-import speach
+import speech
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
 from utils.screeps_constants import *
@@ -49,16 +49,16 @@ class Builder(upgrading.Upgrader):
 
             return upgrading.Upgrader.run(self)
 
-    def get_new_repair_target(self, max_hits, type):
-        return self.target_mind.get_new_target(self.creep, type, max_hits)
+    def get_new_repair_target(self, max_hits, ttype):
+        return self.target_mind.get_new_target(self.creep, ttype, max_hits)
 
     def get_new_construction_target(self):
         return self.target_mind.get_new_target(self.creep, target_construction)
 
-    def execute_repair_target(self, target, type):
-        self.report(speach.building_repair_target, target.structureType)
+    def execute_repair_target(self, target, ttype):
+        self.report(speech.building_repair_target, target.structureType)
         if target.hits >= target.hitsMax:
-            self.target_mind.untarget(self.creep, type)
+            self.target_mind.untarget(self.creep, ttype)
             del self.memory.last_big_repair_max_hits
             return True
         if not self.creep.pos.inRangeTo(target.pos, 3):
@@ -72,7 +72,7 @@ class Builder(upgrading.Upgrader):
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
         elif result == ERR_INVALID_TARGET:
-            self.target_mind.untarget(self.creep, type)
+            self.target_mind.untarget(self.creep, ttype)
             del self.memory.last_big_repair_max_hits
             return True
         else:
@@ -81,7 +81,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
-        self.report(speach.building_build_target, target.structureType)
+        self.report(speech.building_build_target, target.structureType)
         if not self.creep.pos.inRangeTo(target.pos, 3):
             self.pick_up_available_energy()
             self.move_to(target)

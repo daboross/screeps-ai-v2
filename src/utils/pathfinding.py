@@ -53,7 +53,6 @@ _last_refreshed = {
 
 def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_all_creeps, room_name):
     time = Game.time
-    global last_tick
     # don't look up Game.rooms[] if we have a cache
     if _cost_cache[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] and \
                     time <= _last_refreshed[use_roads][ignore_all_creeps][avoid_all_creeps][room_name]:
@@ -123,7 +122,7 @@ def find_path(room, from_pos, to_pos, options):
                 options[key] = value
 
     if _USE_PURE_PATHFINDER:
-        range = options["range"]
+        target_range = options["range"]
         opts = {
             "maxRooms": 1,
             "roomCallback": _new_callback(options["use_roads"], options["ignore_all_creeps"],
@@ -132,8 +131,8 @@ def find_path(room, from_pos, to_pos, options):
         }
         if options["use_roads"]:
             opts["plainCost"] = 2
-            opts["spawmpCost"] = 10
-        path = PathFinder.search(from_pos, {"pos": to_pos, "range": range}, opts)
+            opts["swampCost"] = 10
+        path = PathFinder.search(from_pos, {"pos": to_pos, "range": target_range}, opts)
         if not path:
             return None
         else:

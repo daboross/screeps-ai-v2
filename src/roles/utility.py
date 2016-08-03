@@ -1,4 +1,4 @@
-import speach
+import speech
 from constants import role_cleanup
 from role_base import RoleBase
 from utils import movement
@@ -21,7 +21,7 @@ class LinkManager(RoleBase):
         if not storage:
             print("[{}] Link manager can't find storage in {}!".format(self.name, self.creep.room.name))
             self.go_to_depot()
-            self.report(speach.link_manager_something_not_found)
+            self.report(speech.link_manager_something_not_found)
             return False
 
         if self.memory.gathering_from_link and self.creep.carry.energy >= self.creep.carryCapacity:
@@ -36,7 +36,7 @@ class LinkManager(RoleBase):
             if not self.creep.pos.isNearTo(link.pos):
                 self.pick_up_available_energy()
                 self.move_to(link)
-                self.report(speach.link_manager_moving)
+                self.report(speech.link_manager_moving)
                 return False
 
             if link.energy <= 0:
@@ -50,37 +50,37 @@ class LinkManager(RoleBase):
             result = self.creep.withdraw(link, RESOURCE_ENERGY)
 
             if result == OK:
-                self.report(speach.link_manager_ok)
+                self.report(speech.link_manager_ok)
             elif result == ERR_FULL:
                 self.memory.gathering_from_link = False
             else:
                 print("[{}] Unknown result from link-manager-creep.withdraw({}): {}".format(
                     self.name, link, result
                 ))
-                self.report(speach.link_manager_unknown_result)
+                self.report(speech.link_manager_unknown_result)
         else:
             if not self.creep.pos.isNearTo(storage.pos):
                 self.pick_up_available_energy()
                 self.move_to(storage)
-                self.report(speach.link_manager_moving)
+                self.report(speech.link_manager_moving)
                 return False
 
             self.memory.stationary = True
 
             result = self.creep.transfer(storage, RESOURCE_ENERGY)
             if result == OK:
-                self.report(speach.link_manager_ok)
+                self.report(speech.link_manager_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.gathering_from_link = True
                 return True
             elif result == ERR_FULL:
                 print("[{}] Storage in room {} full!".format(self.name, storage.room))
-                self.report(speach.link_manager_storage_full)
+                self.report(speech.link_manager_storage_full)
             else:
                 print("[{}] Unknown result from link-manager-creep.transfer({}): {}".format(
                     self.name, storage, result
                 ))
-                self.report(speach.link_manager_unknown_result)
+                self.report(speech.link_manager_unknown_result)
 
         return False
 
@@ -99,7 +99,7 @@ class LinkManager(RoleBase):
                     return True
                 print("[{}] Link-storage manager can't find link in {}!".format(self.name, self.creep.room.name))
                 self.go_to_depot()
-                self.report(speach.link_manager_something_not_found)
+                self.report(speech.link_manager_something_not_found)
                 return False
             self.memory.target_link = link.id
         return link
@@ -111,7 +111,7 @@ class LinkManager(RoleBase):
         for link in self.creep.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_LINK}}):
             # TODO: is a minimum like this ever helpful?
             if link.id != self.memory.gathering_from_link and link.cooldown <= 0 \
-                    and (link.energy > link.energyCapacity / 4 or (link.energy > 0 and my_link.energy <= 0)):
+                    and (link.energy > link.energyCapacity / 4 or (link.energy > 0 >= my_link.energy)):
                 link.transferEnergy(my_link)
 
     def _calculate_time_to_replace(self):
@@ -127,14 +127,14 @@ class LinkManager(RoleBase):
         return movement.path_distance(spawn_pos, link_pos) + RoleBase._calculate_time_to_replace(self)
 
 
-# TODO: Change the speach on this to something unique.
+# TODO: Change the speech on this to something unique.
 class Cleanup(RoleBase):
     def run(self):
         storage = self.creep.room.storage
         if not storage:
             print("[{}] Cleanup can't find storage in {}!".format(self.name, self.creep.room.name))
             self.go_to_depot()
-            self.report(speach.link_manager_something_not_found)
+            self.report(speech.link_manager_something_not_found)
             return False
 
         if self.memory.gathering_from_link and self.creep.carry.energy >= self.creep.carryCapacity:
@@ -162,39 +162,39 @@ class Cleanup(RoleBase):
 
             if not self.creep.pos.isNearTo(pile.pos):
                 self.move_to(pile)
-                self.report(speach.cleanup_found_energy, pile.pos.x, pile.pos.y)
+                self.report(speech.cleanup_found_energy, pile.pos.x, pile.pos.y)
                 return False
 
             result = self.creep.pickup(pile)
 
             if result == OK:
-                self.report(speach.link_manager_ok)
+                self.report(speech.link_manager_ok)
             elif result == ERR_FULL:
                 self.memory.gathering_from_link = False
             else:
                 print("[{}] Unknown result from link-manager-creep.pickup({}): {}".format(
                     self.name, pile, result
                 ))
-                self.report(speach.link_manager_unknown_result)
+                self.report(speech.link_manager_unknown_result)
         else:
             if not self.creep.pos.isNearTo(storage.pos):
                 self.move_to(storage)
-                self.report(speach.link_manager_moving)
+                self.report(speech.link_manager_moving)
                 return False
 
             self.memory.stationary = True
 
             result = self.creep.transfer(storage, RESOURCE_ENERGY)
             if result == OK:
-                self.report(speach.link_manager_ok)
+                self.report(speech.link_manager_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.gathering_from_link = True
                 return True
             elif result == ERR_FULL:
                 print("[{}] Storage in room {} full!".format(self.name, storage.room))
-                self.report(speach.link_manager_storage_full)
+                self.report(speech.link_manager_storage_full)
             else:
                 print("[{}] Unknown result from link-manager-creep.transfer({}): {}".format(
                     self.name, storage, result
                 ))
-                self.report(speach.link_manager_unknown_result)
+                self.report(speech.link_manager_unknown_result)

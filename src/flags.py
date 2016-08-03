@@ -59,8 +59,8 @@ def move_flags():
         del Memory.flags_to_move
 
 
-def is_def(flag, type):
-    flag_def = flag_definitions[type]
+def is_def(flag, flag_type):
+    flag_def = flag_definitions[flag_type]
     return flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]
 
 
@@ -75,23 +75,23 @@ def __get_room_and_name(room):
         return Game.rooms[room], room
 
 
-def __get_cache(room_name, type):
+def __get_cache(room_name, flag_type):
     global _room_flag_refresh_time, _room_flag_cache
     if Game.time > _room_flag_refresh_time:
         _room_flag_refresh_time = Game.time + 100
         _room_flag_cache = {}
-    if room_name in _room_flag_cache and type in _room_flag_cache[room_name]:
-        return _room_flag_cache[room_name][type]
+    if room_name in _room_flag_cache and flag_type in _room_flag_cache[room_name]:
+        return _room_flag_cache[room_name][flag_type]
     else:
         return None
 
 
-def get_flags(room, type):
+def get_flags(room, flag_type):
     room, room_name = __get_room_and_name(room)
-    cached = __get_cache(room_name, type)
+    cached = __get_cache(room_name, flag_type)
     if cached:
         return cached
-    flag_def = flag_definitions[type]
+    flag_def = flag_definitions[flag_type]
     if room:
         flag_list = room.find(FIND_FLAGS, {
             "filter": {"color": flag_def[0], "secondaryColor": flag_def[1]}
@@ -104,9 +104,9 @@ def get_flags(room, type):
                     and flag.secondaryColor == flag_def[1]:
                 flag_list.append(flag)
     if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][type] = flag_list
+        _room_flag_cache[room_name][flag_type] = flag_list
     else:
-        _room_flag_cache[room_name] = {type: flag_list}
+        _room_flag_cache[room_name] = {flag_type: flag_list}
     return flag_list
 
 
@@ -141,16 +141,16 @@ def find_by_main_with_sub(room, main_type):
 _global_flag_cache = {}
 
 
-def get_global_flags(type, reload=False):
-    if _global_flag_cache[type] and not reload:
-        return _global_flag_cache[type]
-    flag_def = flag_definitions[type]
+def get_global_flags(flag_type, reload=False):
+    if _global_flag_cache[flag_type] and not reload:
+        return _global_flag_cache[flag_type]
+    flag_def = flag_definitions[flag_type]
     flag_list = []
     for name in Object.keys(Game.flags):
         flag = Game.flags[name]
         if flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]:
             flag_list.append(flag)
-    _global_flag_cache[type] = flag_list
+    _global_flag_cache[flag_type] = flag_list
     return flag_list
 
 

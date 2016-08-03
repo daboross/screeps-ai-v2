@@ -1,4 +1,4 @@
-import speach
+import speech
 from role_base import RoleBase
 from utils.screeps_constants import *
 
@@ -19,14 +19,14 @@ class Upgrader(RoleBase):
         elif not self.creep.room.controller.my:
             self.memory.stationary = False
             self.go_to_depot()
-            self.report(speach.upgrading_controller_not_owned)
+            self.report(speech.upgrading_controller_not_owned)
         else:
             target = self.creep.room.controller
             if not self.creep.pos.inRangeTo(target.pos, 3):
                 self.pick_up_available_energy()
                 self.move_to(target)
                 self.memory.stationary = False
-                self.report(speach.upgrading_moving_to_controller)
+                self.report(speech.upgrading_moving_to_controller)
                 return False
 
             self.memory.stationary = True
@@ -37,7 +37,7 @@ class Upgrader(RoleBase):
             elif result == OK:
                 self.pick_up_available_energy()
                 self.move_to(self.creep.room.controller, True)
-                self.report(speach.upgrading_ok)
+                self.report(speech.upgrading_ok)
             else:
                 print("[{}] Unknown result from upgradeController({}): {}".format(
                     self.name, self.creep.room.controller, result
@@ -47,6 +47,6 @@ class Upgrader(RoleBase):
                     self.memory.harvesting = True
                 else:
                     self.go_to_depot()
-                    self.report(speach.upgrading_unknown_result)
+                    self.report(speech.upgrading_unknown_result)
 
         return False

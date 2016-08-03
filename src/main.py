@@ -3,7 +3,7 @@ import context
 import flags
 import hivemind
 import spawning
-import speach
+import speech
 import tower
 from constants import *
 from creep_wrappers import wrap_creep
@@ -74,7 +74,7 @@ def main():
                     if not role:
                         base = RoleBase(target_mind, creep)
                         base.go_to_depot()
-                        base.report(speach.base_no_role)
+                        base.report(speech.base_no_role)
                         continue
                     creep.memory.role = role
                     instance = wrap_creep(creep)

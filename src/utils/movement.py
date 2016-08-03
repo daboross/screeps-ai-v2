@@ -25,7 +25,7 @@ def inter_room_difference(from_room, to_room):
         return None
     x1, y1 = pos1
     x2, y2 = pos2
-    return (x2 - x1, y2 - y1)
+    return x2 - x1, y2 - y1
 
 
 def squared_distance(xy1, xy2):

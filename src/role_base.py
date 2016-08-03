@@ -1,6 +1,6 @@
 import context
 import flags
-import speach
+import speech
 from constants import target_source, role_dedi_miner
 from tools import profiling
 from utils import movement, pathfinding
@@ -230,17 +230,17 @@ class RoleBase:
             if not self.creep.pos.isNearTo(storage.pos):
                 self.pick_up_available_energy()
                 self.move_to(storage)
-                self.report(speach.default_gather_moving_to_storage)
+                self.report(speech.default_gather_moving_to_storage)
                 return False
 
             result = self.creep.withdraw(storage, RESOURCE_ENERGY)
 
             if result == OK:
-                self.report(speach.default_gather_storage_withdraw_ok)
+                self.report(speech.default_gather_storage_withdraw_ok)
             else:
                 print("[{}] Unknown result from creep.withdraw({}): {}".format(
                     self.name, storage, result))
-                self.report(speach.default_gather_unknown_result_withdraw)
+                self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
         source = self.target_mind.get_new_target(self.creep, target_source)
@@ -248,12 +248,12 @@ class RoleBase:
             print("[{}] Wasn't able to find a source!".format(self.name))
             self.finished_energy_harvest()
             self.go_to_depot()
-            self.report(speach.default_gather_no_sources)
+            self.report(speech.default_gather_no_sources)
             return True
 
         if source.pos.roomName != self.creep.pos.roomName:
             self.move_to(source)
-            self.report(speach.default_gather_moving_between_rooms)
+            self.report(speech.default_gather_moving_between_rooms)
             return False
 
         piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
@@ -261,13 +261,13 @@ class RoleBase:
             result = self.creep.pickup(piles[0])
             if result == ERR_NOT_IN_RANGE:
                 self.move_to(piles[0])
-                self.report(speach.default_gather_moving_to_energy)
+                self.report(speech.default_gather_moving_to_energy)
             elif result != OK:
                 print("[{}] Unknown result from creep.pickup({}): {}".format(
                     self.name, piles[0], result))
-                self.report(speach.default_gather_unknown_result_pickup)
+                self.report(speech.default_gather_unknown_result_pickup)
             else:
-                self.report(speach.default_gather_energy_pickup_ok)
+                self.report(speech.default_gather_energy_pickup_ok)
             return False
 
         containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
@@ -277,47 +277,47 @@ class RoleBase:
         )})
         if containers.length > 0:
             if not self.creep.pos.isNearTo(containers[0]):
-                self.report(speach.default_gather_moving_to_container)
+                self.report(speech.default_gather_moving_to_container)
                 self.move_to(containers[0])
 
             result = self.creep.withdraw(containers[0], RESOURCE_ENERGY)
             if result == OK:
-                self.report(speach.default_gather_container_withdraw_ok)
+                self.report(speech.default_gather_container_withdraw_ok)
             else:
                 print("[{}] Unknown result from creep.withdraw({}): {}".format(
                     self.name, containers[0], result))
-                self.report(speach.default_gather_unknown_result_withdraw)
+                self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
         # at this point, there is no energy and no container filled.
         # we should ensure that if there's a big harvester, it hasn't died!
-        if (Memory.big_harvesters_placed
-            and Memory.big_harvesters_placed[source.id]
-            and not Game.creeps[Memory.big_harvesters_placed[source.id]]):
+        if Memory.big_harvesters_placed \
+                and Memory.big_harvesters_placed[source.id] \
+                and not Game.creeps[Memory.big_harvesters_placed[source.id]]:
             Memory.meta.clear_now = True
             del Memory.big_harvesters_placed[source.id]
             self.move_to(source)
-            self.report(speach.default_gather_moving_to_source)
+            self.report(speech.default_gather_moving_to_source)
         else:
             if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
                 self.go_to_depot()
                 return False
             if not self.creep.pos.isNearTo(source.pos):
                 self.move_to(source)
-                self.report(speach.default_gather_moving_to_source)
+                self.report(speech.default_gather_moving_to_source)
                 return False
 
             result = self.creep.harvest(source)
 
             if result == OK:
-                self.report(speach.default_gather_source_harvest_ok)
+                self.report(speech.default_gather_source_harvest_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-                self.report(speach.default_gather_source_harvest_ner)
+                self.report(speech.default_gather_source_harvest_ner)
             else:
                 print("[{}] Unknown result from creep.harvest({}): {}".format(
                     self.name, source, result))
-                self.report(speach.default_gather_unknown_result_harvest)
+                self.report(speech.default_gather_unknown_result_harvest)
         return False
 
     def finished_energy_harvest(self):
@@ -369,39 +369,39 @@ class RoleBase:
             elif next_pos.x < 0 or next_pos.y < 0 or next_pos.x > 50 or next_pos.y > 50:
                 return False
 
-            dir = next_pos.getDirectionTo(creep_pos)
+            direction = next_pos.getDirectionTo(creep_pos)
 
-            if dir == TOP:
+            if direction == TOP:
                 next_pos.y -= 1
-            elif dir == TOP_RIGHT:
+            elif direction == TOP_RIGHT:
                 next_pos.x += 1
                 next_pos.y -= 1
-            elif dir == RIGHT:
+            elif direction == RIGHT:
                 next_pos.x += 1
-            elif dir == BOTTOM_RIGHT:
+            elif direction == BOTTOM_RIGHT:
                 next_pos.x += 1
                 next_pos.y -= 1
-            elif dir == BOTTOM:
+            elif direction == BOTTOM:
                 next_pos.y += 1
-            elif dir == BOTTOM_LEFT:
+            elif direction == BOTTOM_LEFT:
                 next_pos.x -= 1
                 next_pos.y += 1
-            elif dir == LEFT:
+            elif direction == LEFT:
                 next_pos.x -= 1
-            elif dir == TOP_LEFT:
+            elif direction == TOP_LEFT:
                 next_pos.y -= 1
                 next_pos.x -= 1
             else:
                 print("[{}] Unknown result from pos.getDirectionTo(): {}".format(
-                    self.name, dir))
+                    self.name, direction))
                 return False
 
             creeps = next_pos.lookFor(LOOK_CREEPS)
             if len(creeps):
                 continue
             terrain = next_pos.lookFor(LOOK_TERRAIN)
-            if (terrain[0].type & TERRAIN_MASK_WALL == TERRAIN_MASK_WALL
-                or terrain[0].type & TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA):
+            if terrain[0].type & TERRAIN_MASK_WALL == TERRAIN_MASK_WALL \
+                    or terrain[0].type & TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA:
                 continue
 
             structures = next_pos.lookFor(LOOK_STRUCTURES)
@@ -420,7 +420,7 @@ class RoleBase:
                 stuff = task_array[0][time % len(task_array[0])].format(*args)
             else:
                 stuff = task_array[0][time % len(task_array[0])]
-            if stuff != None:
+            if stuff:
                 self.creep.say(stuff, True)
 
 

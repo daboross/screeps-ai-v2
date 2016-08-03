@@ -61,65 +61,65 @@ class TargetMind:
     targets = property(__get_targets, __set_targets)
     targeters = property(__get_targeters, __set_targeters)
 
-    def _register_new_targeter(self, type, targeter_id, target_id):
+    def _register_new_targeter(self, ttype, targeter_id, target_id):
         if targeter_id not in self.targeters:
             self.targeters[targeter_id] = {
-                type: target_id
+                ttype: target_id
             }
-        elif type not in self.targeters[targeter_id]:
-            self.targeters[targeter_id][type] = target_id
+        elif ttype not in self.targeters[targeter_id]:
+            self.targeters[targeter_id][ttype] = target_id
         else:
-            old_target_id = self.targeters[targeter_id][type]
-            self.targeters[targeter_id][type] = target_id
+            old_target_id = self.targeters[targeter_id][ttype]
+            self.targeters[targeter_id][ttype] = target_id
             if old_target_id == target_id:
                 return  # everything beyond here would be redundant
-            self.targets[type][old_target_id] -= 1
-            if len(self.targets[type][old_target_id]) <= 0:
-                del self.targets[type][old_target_id]
+            self.targets[ttype][old_target_id] -= 1
+            if len(self.targets[ttype][old_target_id]) <= 0:
+                del self.targets[ttype][old_target_id]
 
-        if type not in self.targets:
-            self.targets[type] = {
+        if ttype not in self.targets:
+            self.targets[ttype] = {
                 target_id: 1,
             }
-        elif not self.targets[type][target_id]:
-            self.targets[type][target_id] = 1
+        elif not self.targets[ttype][target_id]:
+            self.targets[ttype][target_id] = 1
         else:
-            self.targets[type][target_id] += 1
+            self.targets[ttype][target_id] += 1
 
     def _reregister_all(self):
         new_targets = {}
         for targeter_id in self.targeters:
-            for type in self.targeters[targeter_id]:
-                target_id = self.targeters[targeter_id][type]
-                if type in new_targets:
-                    if target_id in new_targets[type]:
-                        new_targets[type][target_id] += 1
+            for ttype in self.targeters[targeter_id]:
+                target_id = self.targeters[targeter_id][ttype]
+                if ttype in new_targets:
+                    if target_id in new_targets[ttype]:
+                        new_targets[ttype][target_id] += 1
                     else:
-                        new_targets[type][target_id] = 1
+                        new_targets[ttype][target_id] = 1
                 else:
-                    new_targets[type] = {target_id: 1}
+                    new_targets[ttype] = {target_id: 1}
         self.targets = new_targets
 
-    def _unregister_targeter(self, type, targeter_id):
-        existing_target = self._get_existing_target_id(type, targeter_id)
+    def _unregister_targeter(self, ttype, targeter_id):
+        existing_target = self._get_existing_target_id(ttype, targeter_id)
         if existing_target:
-            if self.targets[type] and self.targets[type][existing_target]:
-                self.targets[type][existing_target] -= 1
-                if self.targets[type][existing_target] <= 0:
-                    del self.targets[type][existing_target]
-            del self.targeters[targeter_id][type]
+            if self.targets[ttype] and self.targets[ttype][existing_target]:
+                self.targets[ttype][existing_target] -= 1
+                if self.targets[ttype][existing_target] <= 0:
+                    del self.targets[ttype][existing_target]
+            del self.targeters[targeter_id][ttype]
             if len(self.targeters[targeter_id]) == 0:
                 del self.targeters[targeter_id]
 
     def _unregister_all(self, targeter_id):
         if self.targeters[targeter_id]:
-            for type in Object.keys(self.targeters[targeter_id]):
-                if type in self.targets:
-                    target = self.targeters[targeter_id][type]
-                    if target in self.targets[type]:
-                        self.targets[type][target] -= 1
-                        if self.targets[type][target] <= 0:
-                            del self.targets[type][target]
+            for ttype in Object.keys(self.targeters[targeter_id]):
+                if ttype in self.targets:
+                    target = self.targeters[targeter_id][ttype]
+                    if target in self.targets[ttype]:
+                        self.targets[ttype][target] -= 1
+                        if self.targets[ttype][target] <= 0:
+                            del self.targets[ttype][target]
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
@@ -127,32 +127,32 @@ class TargetMind:
             self.targeters[new_targeter_id] = self.targeters[old_targeter_id]
             del self.targeters[old_targeter_id]
 
-    def _find_new_target(self, type, creep, extra_var):
-        if not self.targets[type]:
-            self.targets[type] = {}
-        func = self.find_functions[type]
+    def _find_new_target(self, ttype, creep, extra_var):
+        if not self.targets[ttype]:
+            self.targets[ttype] = {}
+        func = self.find_functions[ttype]
         if func:
             return func(creep, extra_var)
         else:
-            raise Error("Couldn't find find_function for '{}'!".format(type))
+            raise Error("Couldn't find find_function for '{}'!".format(ttype))
 
-    def _get_existing_target_id(self, type, targeter_id):
+    def _get_existing_target_id(self, ttype, targeter_id):
         if self.targeters[targeter_id]:
-            return self.targeters[targeter_id][type]
+            return self.targeters[targeter_id][ttype]
         return None
 
-    def _get_new_target_id(self, type, targeter_id, creep, extra_var):
-        existing_target = self._get_existing_target_id(type, targeter_id)
+    def _get_new_target_id(self, ttype, targeter_id, creep, extra_var):
+        existing_target = self._get_existing_target_id(ttype, targeter_id)
         if existing_target:
             return existing_target
-        new_target = self._find_new_target(type, creep, extra_var)
+        new_target = self._find_new_target(ttype, creep, extra_var)
         if not new_target:
             return None
-        self._register_new_targeter(type, targeter_id, new_target)
+        self._register_new_targeter(ttype, targeter_id, new_target)
         return new_target
 
-    def get_new_target(self, creep, type, extra_var=None, second_time=False):
-        target_id = self._get_new_target_id(type, creep.name, creep, extra_var)
+    def get_new_target(self, creep, ttype, extra_var=None, second_time=False):
+        target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:
             return None
         if target_id.startswith("flag-"):
@@ -160,14 +160,14 @@ class TargetMind:
         else:
             target = Game.getObjectById(target_id)
         if not target:
-            self._unregister_targeter(type, creep.name)
+            self._unregister_targeter(ttype, creep.name)
             if not second_time:
-                return self.get_new_target(creep, type, extra_var, True)
+                return self.get_new_target(creep, ttype, extra_var, True)
         return target
 
-    def _get_existing_target_from_name(self, name, type):
+    def _get_existing_target_from_name(self, name, ttype):
         """Exists to give an interface for when creeps die. TODO: make a full method."""
-        target_id = self._get_existing_target_id(type, name)
+        target_id = self._get_existing_target_id(ttype, name)
         if not target_id:
             return None
         if target_id.startswith("flag-"):
@@ -175,14 +175,14 @@ class TargetMind:
         else:
             target = Game.getObjectById(target_id)
         if not target:
-            self._unregister_targeter(type, name)
+            self._unregister_targeter(ttype, name)
         return target
 
-    def get_existing_target(self, creep, type):
-        return self._get_existing_target_from_name(creep.name, type)
+    def get_existing_target(self, creep, ttype):
+        return self._get_existing_target_from_name(creep.name, ttype)
 
-    def untarget(self, creep, type):
-        self._unregister_targeter(type, creep.name)
+    def untarget(self, creep, ttype):
+        self._unregister_targeter(ttype, creep.name)
 
     def untarget_all(self, creep):
         self._unregister_all(creep.name)
@@ -200,10 +200,10 @@ class TargetMind:
             if not current_harvesters:
                 return source_id
             elif current_harvesters <= smallest_num_harvesters + 1:
-                range = movement.distance_squared_room_pos(source.pos, creep.pos)
-                if range < closest_distance or current_harvesters <= smallest_num_harvesters - 1:
+                distance = movement.distance_squared_room_pos(source.pos, creep.pos)
+                if distance < closest_distance or current_harvesters <= smallest_num_harvesters - 1:
                     best_id = source_id
-                    closest_distance = range
+                    closest_distance = distance
                     smallest_num_harvesters = current_harvesters
 
         return best_id
@@ -241,9 +241,9 @@ class TargetMind:
                 current_num = self.targets[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 if not current_num or current_num < math.ceil(structure.energyCapacity / creep.carryCapacity):
-                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
-                    if range < closest_distance:
-                        closest_distance = range
+                    distance = movement.distance_squared_room_pos(structure.pos, creep.pos)
+                    if distance < closest_distance:
+                        closest_distance = distance
                         best_id = source_id
 
         return best_id
@@ -257,9 +257,9 @@ class TargetMind:
             # TODO: this 200 should be a decided factor based off of spawn extensions
             if not current_num or current_num < \
                     min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200)):
-                range = movement.distance_squared_room_pos(site.pos, creep.pos)
-                if range < closest_distance:
-                    closest_distance = range
+                distance = movement.distance_squared_room_pos(site.pos, creep.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
                     best_id = site_id
         return best_id
 
@@ -276,10 +276,10 @@ class TargetMind:
                 if not current_num or current_num < \
                         min(_MAX_BUILDERS, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 200)) \
                         or current_num <= smallest_num_builders + 1:
-                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
-                    if range < closest_distance:
+                    distance = movement.distance_squared_room_pos(structure.pos, creep.pos)
+                    if distance < closest_distance:
                         smallest_num_builders = current_num
-                        closest_distance = range
+                        closest_distance = distance
                         best_id = struct_id
 
         return best_id
@@ -293,9 +293,9 @@ class TargetMind:
                 struct_id = structure.id
                 current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
-                    range = movement.distance_squared_room_pos(structure.pos, creep.pos)
-                    if range < closest_distance:
-                        closest_distance = range
+                    distance = movement.distance_squared_room_pos(structure.pos, creep.pos)
+                    if distance < closest_distance:
+                        closest_distance = distance
                         best_id = struct_id
 
         return best_id
@@ -320,12 +320,12 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
-                range = movement.distance_squared_room_pos(flag.pos, creep.pos)
-                if range < closest_flag:
-                    closest_flag = range
+                distance = movement.distance_squared_room_pos(flag.pos, creep.pos)
+                if distance < closest_flag:
+                    closest_flag = distance
                     best_id = flag_id
                 else:
-                    print("[{}] Flag is further than {} away... (range: {})".format(creep.name, closest_flag, range))
+                    print("[{}] Flag is further than {} away... (range: {})".format(creep.name, closest_flag, distance))
             else:
                 print("[{}] flag has {} miners already...".format(creep.name, miners))
 
@@ -382,9 +382,9 @@ class TargetMind:
                 if not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
                     # Ok, it's a controller we can reserve
                     controller_id = controller.id
-                    range = movement.distance_squared_room_pos(controller.pos, creep.pos)
-                    if range < closest_room:
-                        closest_room = range
+                    distance = movement.distance_squared_room_pos(controller.pos, creep.pos)
+                    if distance < closest_room:
+                        closest_room = distance
                         best_id = controller_id
 
         return best_id
@@ -404,6 +404,7 @@ class HiveMind:
         self.target_mind = target_mind
         self._my_rooms = None
         self._all_rooms = None
+        self._remote_mining_flags = None
         self._room_to_mind = {}
 
     def find_my_rooms(self):
@@ -529,11 +530,6 @@ class RoomMind:
     :type are_all_big_miners_placed: bool
     :type trying_to_get_full_storage_use: bool
     :type full_storage_use: bool
-    :type target_big_harvester_count: int
-    :type target_remote_miner_count: int
-    :type target_remote_hauler_count: int
-    :type target_remote_reserve_count: int
-    :type target_local_hauler_count: int
     :type max_sane_wall_hits: int
     """
 
@@ -768,6 +764,9 @@ class RoomMind:
         return self._work_mass
 
     def get_if_all_big_miners_are_placed(self):
+        """
+        :rtype: bool
+        """
         if self._all_big_miners_placed is None:
             all_placed = True
             for source in self.sources:
@@ -778,6 +777,9 @@ class RoomMind:
         return self._all_big_miners_placed
 
     def get_trying_to_get_full_storage_use(self):
+        """
+        :rtype: bool
+        """
         if self._trying_to_get_full_storage_use is None:
             self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_for_full_storage_use \
                                                    and self.are_all_big_miners_placed \
@@ -785,15 +787,21 @@ class RoomMind:
         return self._trying_to_get_full_storage_use
 
     def get_full_storage_use(self):
+        """
+        :rtype: bool
+        """
         if self._full_storage_use is None:
             self._full_storage_use = (self.trying_to_get_full_storage_use and
                                       self.room.storage.store[RESOURCE_ENERGY]
                                       >= _min_stored_energy_before_enabling_full_storage_use) \
-                                     or (self.room.storage and self.room.storage.store[
-                RESOURCE_ENERGY] >= _min_stored_energy_to_draw_from_before_refilling)
+                                     or (self.room.storage and self.room.storage.store[RESOURCE_ENERGY]
+                                         >= _min_stored_energy_to_draw_from_before_refilling)
         return self._full_storage_use
 
     def get_target_big_harvester_count(self):
+        """
+        :rtype: int
+        """
         if self._ideal_big_miner_count is None:
             if self.work_mass > _min_work_mass_big_miner:
                 self._ideal_big_miner_count = min(
@@ -806,6 +814,9 @@ class RoomMind:
         return self._ideal_big_miner_count
 
     def get_target_remote_mining_operation_count(self):
+        """
+        :rtype: int
+        """
         if self._target_remote_mining_operation_count is None:
             if self.work_mass > _min_work_mass_remote_mining_operation:
                 self._target_remote_mining_operation_count = min(
@@ -820,6 +831,9 @@ class RoomMind:
         return self._target_remote_mining_operation_count
 
     def get_target_remote_hauler_count(self):
+        """
+        :rtype: int
+        """
         if self._target_remote_hauler_count is None:
             total_count = 0
             for flag in flags.get_global_flags(flags.REMOTE_MINE):
@@ -835,8 +849,11 @@ class RoomMind:
         return self._target_remote_hauler_count
 
     def get_target_remote_reserve_count(self, first):
+        """
+        :rtype: int
+        """
         if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
-            mining_op_count = self.target_remote_miner_count
+            mining_op_count = self.get_target_remote_mining_operation_count()
             rooms_mining_in = set()
             rooms_under_1000 = set()
             rooms_under_4000 = set()
@@ -867,19 +884,25 @@ class RoomMind:
             else:
                 # Send 2 per room for rooms < 4000, 1 per room otherwise.
                 self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
-        return (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count)
+        return self._first_target_remote_reserve_count if first else self._target_remote_reserve_count
 
     def get_target_local_hauler_count(self):
+        """
+        :rtype: int
+        """
         if self._target_local_hauler_count is None:
             if self.trying_to_get_full_storage_use:
                 # TODO: 2 here should ideally be replaced with a calculation taking in path distance from each source to
                 # the storage and hauler capacity.
-                self._target_local_hauler_count = self.target_big_harvester_count * 2
+                self._target_local_hauler_count = self.get_target_big_harvester_count() * 2
             else:
                 self._target_local_hauler_count = 0
         return self._target_local_hauler_count
 
     def get_target_link_manager_count(self):
+        """
+        :rtype: int
+        """
         if self._target_link_managers is None:
             if len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_LINK}})) >= 2 \
                     and self.room.storage:
@@ -889,6 +912,9 @@ class RoomMind:
         return self._target_link_managers
 
     def get_target_cleanup_count(self, first=False):
+        """
+        :rtype: int
+        """
         if (self._first_target_cleanup_count if first else self._target_cleanup_count) is None:
             # TODO: merge filter and generic.Cleanup's filter (the same code) together somehow.
             piles = self.room.find(FIND_DROPPED_RESOURCES, {
@@ -904,12 +930,18 @@ class RoomMind:
                 # TODO: replacing Math.round with round() once transcrypt fixes that.
                 self._target_cleanup_count = int(min(round(total_energy / 500.0), 1))
 
-        return (self._first_target_cleanup_count if first else self._target_cleanup_count)
+        return self._first_target_cleanup_count if first else self._target_cleanup_count
 
     def get_first_target_cleanup_count(self):
+        """
+        :rtype: int
+        """
         return self.get_target_cleanup_count(True)
 
     def get_max_sane_wall_hits(self):
+        """
+        :rtype: int
+        """
         if self._max_sane_wall_hits is None:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
         return self._max_sane_wall_hits
@@ -987,14 +1019,6 @@ class RoomMind:
     are_all_big_miners_placed = property(get_if_all_big_miners_are_placed)
     trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
     full_storage_use = property(get_full_storage_use)
-    target_big_harvester_count = property(get_target_big_harvester_count)
-    target_remote_miner_count = property(get_target_remote_mining_operation_count)
-    target_remote_hauler_count = property(get_target_remote_hauler_count)
-    target_remote_reserve_count = property(get_target_remote_reserve_count)
-    target_local_hauler_count = property(get_target_local_hauler_count)
-    target_link_manager_count = property(get_target_link_manager_count)
-    target_cleanup_count = property(get_target_cleanup_count)
-    target_min_cleanup_count = property(get_first_target_cleanup_count)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
 
 
