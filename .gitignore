@@ -89,8 +89,6 @@ nb-configuration.xml
 *.iml
 *.ipr
 *.iws
-Gruntfile*.js
-package.json
 node_modules
 
 # Misc files #

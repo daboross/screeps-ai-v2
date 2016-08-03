@@ -18,7 +18,8 @@ cd ../
 patch target/main.js js_patches/fix_string_format.patch
 patch target/main.js js_patches/allow_in_on_objects.patch
 
+mkdir -p dist/
 cp target/main.js dist/
 cp js_files/*.js dist/
 
-grunt screeps
+grunt screeps "$@"
