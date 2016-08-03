@@ -21,14 +21,16 @@ class TargetMind:
             Memory.targets = {
                 "targets_used": {},
                 "targeters_using": {},
+                "last_clear": Game.time,
             }
         self.mem = Memory.targets
         if not self.mem.targets_used:
             self.mem.targets_used = {}
         if not self.mem.targeters_using:
             self.mem.targeters_using = {}
-        self.targets = self.mem.targets_used
-        self.targeters = self.mem.targeters_using
+        if (self.mem.last_clear or 0) + 500 < Game.time:
+            self._reregister_all()
+            self.mem.last_clear = Game.time
         self.find_functions = {
             target_source: self._find_new_source,
             target_big_source: self._find_new_big_h_source,
@@ -44,12 +46,27 @@ class TargetMind:
             target_closest_deposit_site: self._find_closest_deposit_site,
         }
 
+    def __get_targets(self):
+        return self.mem.targets_used
+
+    def __set_targets(self, value):
+        self.mem.targets_used = value
+
+    def __get_targeters(self):
+        return self.mem.targeters_using
+
+    def __set_targeters(self, value):
+        self.mem.targeters_using = value
+
+    targets = property(__get_targets, __set_targets)
+    targeters = property(__get_targeters, __set_targeters)
+
     def _register_new_targeter(self, type, targeter_id, target_id):
-        if not self.targeters[targeter_id]:
+        if targeter_id not in self.targeters:
             self.targeters[targeter_id] = {
                 type: target_id
             }
-        elif not self.targeters[targeter_id][type]:
+        elif type not in self.targeters[targeter_id]:
             self.targeters[targeter_id][type] = target_id
         else:
             old_target_id = self.targeters[targeter_id][type]
@@ -60,21 +77,36 @@ class TargetMind:
             if len(self.targets[type][old_target_id]) <= 0:
                 del self.targets[type][old_target_id]
 
-        if not self.targets[type]:
+        if type not in self.targets:
             self.targets[type] = {
-                target_id: 1
+                target_id: 1,
             }
         elif not self.targets[type][target_id]:
             self.targets[type][target_id] = 1
         else:
             self.targets[type][target_id] += 1
 
+    def _reregister_all(self):
+        new_targets = {}
+        for targeter_id in self.targeters:
+            for type in self.targeters[targeter_id]:
+                target_id = self.targeters[targeter_id][type]
+                if type in new_targets:
+                    if target_id in new_targets[type]:
+                        new_targets[type][target_id] += 1
+                    else:
+                        new_targets[type][target_id] = 1
+                else:
+                    new_targets[type] = {target_id: 1}
+        self.targets = new_targets
+
     def _unregister_targeter(self, type, targeter_id):
         existing_target = self._get_existing_target_id(type, targeter_id)
         if existing_target:
-            self.targets[type][existing_target] -= 1
-            if self.targets[type][existing_target] <= 0:
-                del self.targets[type][existing_target]
+            if self.targets[type] and self.targets[type][existing_target]:
+                self.targets[type][existing_target] -= 1
+                if self.targets[type][existing_target] <= 0:
+                    del self.targets[type][existing_target]
             del self.targeters[targeter_id][type]
             if len(self.targeters[targeter_id]) == 0:
                 del self.targeters[targeter_id]
@@ -82,10 +114,12 @@ class TargetMind:
     def _unregister_all(self, targeter_id):
         if self.targeters[targeter_id]:
             for type in Object.keys(self.targeters[targeter_id]):
-                target = self.targeters[targeter_id][type]
-                self.targets[type][target] -= 1
-                if self.targets[type][target] <= 0:
-                    del self.targets[type][target]
+                if type in self.targets:
+                    target = self.targeters[targeter_id][type]
+                    if target in self.targets[type]:
+                        self.targets[type][target] -= 1
+                        if self.targets[type][target] <= 0:
+                            del self.targets[type][target]
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
@@ -356,7 +390,7 @@ class TargetMind:
         return best_id
 
 
-profiling.profile_class(TargetMind)
+profiling.profile_class(TargetMind, ["targets", "targeters"])
 
 
 class HiveMind:
@@ -868,7 +902,7 @@ class RoomMind:
                 self._first_target_cleanup_count = int(math.ceil(total_energy / 1000.0))
             else:
                 # TODO: replacing Math.round with round() once transcrypt fixes that.
-                self._target_cleanup_count = int(min(Math.round(total_energy / 500.0), 1))
+                self._target_cleanup_count = int(min(round(total_energy / 500.0), 1))
 
         return (self._first_target_cleanup_count if first else self._target_cleanup_count)
 
@@ -889,7 +923,7 @@ class RoomMind:
             [role_dedi_miner, self.get_target_big_harvester_count],
             [role_cleanup, self.get_target_cleanup_count],
             [role_tower_fill, lambda: tower_fillers],
-            [role_spawn_fill, lambda: 6 - tower_fillers],
+            [role_spawn_fill, lambda: 5 - tower_fillers],
             [role_local_hauler, self.get_target_local_hauler_count],
             [role_upgrader, lambda: 1],
         ]

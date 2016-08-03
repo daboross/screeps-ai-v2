@@ -105,13 +105,11 @@ class RoleBase:
         self.memory.same_place_ticks = 0
         return path
 
-    def _get_path_to(self, pos, same_position_ok=False, options=None):
+    def _get_path_to(self, pos, same_position_ok=False, options=None, force_reset=False):
         if not self.memory.path:
             self.memory.path = {}
         if not self.memory.reset_path:
             self.memory.reset_path = {}
-
-        target_id = pos.x + "_" + pos.y + "_" + pos.roomName
 
         here = self.creep.pos
 
@@ -157,8 +155,10 @@ class RoleBase:
             # pathfind to the flag instead
             pos = flag_list[0].pos
 
+        target_id = pos.x + "_" + pos.y + "_" + pos.roomName
+
         if self.memory.path[target_id] and self.memory.reset_path \
-                and self.memory.reset_path[target_id] > Game.time:
+                and self.memory.reset_path[target_id] > Game.time and not force_reset:
             if not same_position_ok:
                 if (self.memory.last_pos and
                             self.memory.last_pos.x == here.x and
@@ -196,7 +196,7 @@ class RoleBase:
         else:
             pos = target
         if self.creep.fatigue <= 0:
-            path = self._get_path_to(pos, same_position_ok, options)
+            path = self._get_path_to(pos, same_position_ok, options, not not times_tried)
             if path is None:  # trigger for manual movement
                 # print("[{}] Manually moving.".format(self.name))
                 result = self.creep.moveTo(target, {"reusePath": 0})
@@ -214,8 +214,6 @@ class RoleBase:
                         self.name, result
                     ))
 
-                target_id = pos.x + "_" + pos.y + "_" + pos.roomName
-                del self.memory.path[target_id]
                 if not times_tried:
                     times_tried = 0
                 if times_tried < 2:

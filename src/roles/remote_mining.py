@@ -69,11 +69,15 @@ class RemoteMiner(RoleBase):
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class RemoteHauler(RoleBase):
     def run(self):
+        del self.memory.stored_miner_position
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
+            if self.memory.replaced:
+                del self.memory.replaced
+                self.target_mind.untarget_all(self.creep)
 
         if self.memory.harvesting:
             source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_hauler)
@@ -93,18 +97,19 @@ class RemoteHauler(RoleBase):
             if miner:
                 target_pos = miner.pos
                 self.memory.stored_miner_position = miner.pos
-            elif self.memory.stored_miner_position:
-                temp_pos = self.memory.stored_miner_position
-                target_pos = __new__(RoomPosition(temp_pos.x, temp_pos.y, temp_pos.roomName))
             elif self.creep.pos.roomName == source_flag.pos.roomName:
                 piles = source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1)
                 if len(piles):
                     _.sortBy(piles, 'amount')
-                    target_pos = piles[-1].pos
+                    target_pos = piles[0].pos
             else:
                 target_pos = source_flag.pos
             if not target_pos:
-                print("[{}] Remote hauler can't find remote miner!".format(self.name))
+                print("[{}] Remote hauler can't find remote miner at {}! Miner name: {}!".format(
+                    self.name, source_flag, source_flag.memory.remote_miner_targeting
+                ))
+                if source_flag.memory.remote_miner_targeting and not Game.creeps[source_flag.memory.remote_miner_targeting]:
+                    del source_flag.memory.remote_miner_targeting
                 Memory.meta.clear_now = True
                 self.report(speach.remote_hauler_source_no_miner)
                 self.target_mind.untarget(self.creep, target_remote_mine_hauler)

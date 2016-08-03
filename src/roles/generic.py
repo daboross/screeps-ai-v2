@@ -31,7 +31,7 @@ class ReplacingExpendedCreep(RoleBase):
             self.home.register_to_role(self)
             return
 
-        if old_creep.ticksToLive >= 1:
+        if old_creep.ticksToLive > 1:
             if self.creep.spawning:
                 return
             if not self.creep.pos.isNearTo(old_creep):
@@ -52,6 +52,10 @@ class ReplacingExpendedCreep(RoleBase):
         del Memory.creeps[old_name]
         del self.memory.calculated_replacement_time
         del self.memory.stationary
+        del self.memory.path
+        del self.memory.reset_path
+        del self.memory.last_pos
+        self.memory.replaced = True
 
         self.target_mind.assume_identity(old_name, self.creep.name)
         # TODO: Merge this code stolen from consistency back into it somehow?

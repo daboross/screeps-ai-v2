@@ -6,6 +6,8 @@ from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
+_MOVE_ARGS = {"use_roads": True}
+
 
 class DedicatedMiner(RoleBase):
     def run(self):
@@ -17,7 +19,7 @@ class DedicatedMiner(RoleBase):
             return
 
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source)
+            self.move_to(source, False, _MOVE_ARGS)
             self.report(speach.dedi_miner_moving)
             return False
 

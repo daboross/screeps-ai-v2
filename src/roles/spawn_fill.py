@@ -46,8 +46,21 @@ class SpawnFill(building.Builder):
                         self.report(speach.spawn_fill_unknown_result)
                         return True
             else:
-                if len(self.creep.getActiveBodyparts(WORK)):
+                if self.creep.getActiveBodyparts(WORK):
                     return building.Builder.run(self)
+                target = self.creep.pos.findClosestByRange(FIND_MY_CREEPS, {
+                    "filter": lambda c: c.getActiveBodyparts(WORK) and c.getActiveBodyparts(CARRY) and c.carry.energy < c.carryCapacity
+                })
+                if target:
+                    if not self.creep.pos.isNearTo(target.pos):
+                        self.move_to(target)
+                        return False
+                    self.creep.transfer(target, RESOURCE_ENERGY)
                 else:
-                    return upgrading.Upgrader.run(self)
+                    if self.creep.carry.energy < self.creep.carryCapacity:
+                        self.memory.harvesting = True
+                        return True
+                    else:
+                        self.report((["No one","to give","this to."], False))
+                        self.go_to_depot()
         return False

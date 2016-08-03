@@ -126,7 +126,6 @@ def find_path(room, from_pos, to_pos, options):
         range = options["range"]
         opts = {
             "maxRooms": 1,
-            "range": range,
             "roomCallback": _new_callback(options["use_roads"], options["ignore_all_creeps"],
                                           options["avoid_all_creeps"]),
             "maxOps": 5000,
@@ -134,7 +133,7 @@ def find_path(room, from_pos, to_pos, options):
         if options["use_roads"]:
             opts["plainCost"] = 2
             opts["spawmpCost"] = 10
-        path = PathFinder.search(from_pos, to_pos, opts)
+        path = PathFinder.search(from_pos, {"pos": to_pos, "range": range}, opts)
         if not path:
             return None
         else:

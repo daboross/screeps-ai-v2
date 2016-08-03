@@ -41,7 +41,7 @@ role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
 
 role_bases = {
-    role_upgrader: creep_base_hauler,
+    role_upgrader: creep_base_worker,
     role_spawn_fill_backup: creep_base_worker,
     role_spawn_fill: creep_base_hauler,
     role_dedi_miner: creep_base_big_harvester,
@@ -57,7 +57,7 @@ role_bases = {
 }
 
 default_roles = {
-    creep_base_worker: role_spawn_fill_backup,
+    creep_base_worker: role_upgrader,
     creep_base_big_harvester: role_dedi_miner,
     creep_base_full_miner: role_remote_miner,
     creep_base_small_hauler: role_local_hauler,
