@@ -18,6 +18,7 @@ cd ../
 patch target/main.js js_patches/fix_string_format.patch
 patch target/main.js js_patches/allow_in_on_objects.patch
 
-cp target/main.js js_files/
+cp target/main.js dist/
+cp js_files/*.js dist/
 
-rsync -ahP js_files/ ~/.config/Screeps/scripts/screeps.com/v2/
+grunt screeps

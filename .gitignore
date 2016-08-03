@@ -9,7 +9,6 @@ __pycache__/
 *.py[cod]
 __javascript__/
 target/
-js_files/main.js
 
 # Git #
 #######
@@ -44,6 +43,7 @@ Thumbs.db
 ###############
 MANIFEST.MF
 dependency-reduced-pom.xml
+
 
 # Distribution / packaging #
 ############################
@@ -89,6 +89,9 @@ nb-configuration.xml
 *.iml
 *.ipr
 *.iws
+Gruntfile*.js
+package.json
+node_modules
 
 # Misc files #
 ##############
