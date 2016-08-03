@@ -1,6 +1,7 @@
 import speach
 from constants import target_harvester_deposit
 from roles import building
+from roles import upgrading
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -45,6 +46,8 @@ class SpawnFill(building.Builder):
                         self.report(speach.spawn_fill_unknown_result)
                         return True
             else:
-                self.memory.running_as_builder = True
-                return building.Builder.run(self)
+                if len(self.creep.getActiveBodyparts(WORK)):
+                    return building.Builder.run(self)
+                else:
+                    return upgrading.Upgrader.run(self)
         return False

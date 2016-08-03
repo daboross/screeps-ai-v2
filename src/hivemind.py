@@ -793,7 +793,7 @@ class RoomMind:
                     # TODO: merge this with the _find_new_remote_hauler_mine method of TargetMind
                     # TODO: why is 3 neccessary here?
                     sitting = flag.memory.sitting if flag.memory.sitting else 0
-                    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.0)
+                    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 1.5)
                     produce_per_tick = 9.0 + (sitting / 500.0)
                     max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1.0
                     total_count += max_haulers
@@ -883,13 +883,13 @@ class RoomMind:
     def _next_needed_local_role(self):
         tower_fillers = len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}}))
         requirements = [
-            [role_spawn_fill, lambda: 2],
+            [role_spawn_fill_backup, lambda: 2],
             [role_link_manager, self.get_target_link_manager_count],
             [role_cleanup, self.get_first_target_cleanup_count],
             [role_dedi_miner, self.get_target_big_harvester_count],
             [role_cleanup, self.get_target_cleanup_count],
             [role_tower_fill, lambda: tower_fillers],
-            [role_spawn_fill, lambda: 4 - tower_fillers],
+            [role_spawn_fill, lambda: 6 - tower_fillers],
             [role_local_hauler, self.get_target_local_hauler_count],
             [role_upgrader, lambda: 1],
         ]

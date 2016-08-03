@@ -26,7 +26,8 @@ target_remote_reserve = "remote_reserve"
 target_closest_deposit_site = "generic_deposit"
 
 role_upgrader = "upgrader"
-role_spawn_fill = "harvester"
+role_spawn_fill_backup = "harvester"
+role_spawn_fill = "spawn_fill"
 role_dedi_miner = "big_harvester"
 role_builder = "builder"
 role_tower_fill = "tower_fill"
@@ -40,8 +41,9 @@ role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
 
 role_bases = {
-    role_upgrader: creep_base_worker,
-    role_spawn_fill: creep_base_worker,
+    role_upgrader: creep_base_hauler,
+    role_spawn_fill_backup: creep_base_worker,
+    role_spawn_fill: creep_base_hauler,
     role_dedi_miner: creep_base_big_harvester,
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_worker,
@@ -55,7 +57,7 @@ role_bases = {
 }
 
 default_roles = {
-    creep_base_worker: role_upgrader,
+    creep_base_worker: role_spawn_fill_backup,
     creep_base_big_harvester: role_dedi_miner,
     creep_base_full_miner: role_remote_miner,
     creep_base_small_hauler: role_local_hauler,

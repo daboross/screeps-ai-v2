@@ -16,6 +16,7 @@ __pragma__('noalias', 'name')
 role_classes = {
     role_upgrader: upgrading.Upgrader,
     role_spawn_fill: spawn_fill.SpawnFill,
+    role_spawn_fill_backup: spawn_fill.SpawnFill,
     role_link_manager: utility.LinkManager,
     role_dedi_miner: dedi_miner.DedicatedMiner,
     role_local_hauler: dedi_miner.LocalHauler,
