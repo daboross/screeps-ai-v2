@@ -50,6 +50,15 @@ flag_secondary_to_sub = {
 }
 
 
+def move_flags():
+    if Memory.flags_to_move:
+        for name, pos in Memory.flags_to_move:
+            pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
+            result = Game.flags[name].setPosition(pos)
+            print("Moving flag {} to {}. Result: {}".format(name, pos, result))
+        del Memory.flags_to_move
+
+
 def is_def(flag, type):
     flag_def = flag_definitions[type]
     return flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]
@@ -84,21 +93,21 @@ def get_flags(room, type):
         return cached
     flag_def = flag_definitions[type]
     if room:
-        list = room.find(FIND_FLAGS, {
+        flag_list = room.find(FIND_FLAGS, {
             "filter": {"color": flag_def[0], "secondaryColor": flag_def[1]}
         })
     else:
-        list = []
+        flag_list = []
         for flag_name in Object.keys(Game.flags):
             flag = Game.flags[flag_name]
             if flag.pos.roomName == room_name and flag.color == flag_def[0] \
                     and flag.secondaryColor == flag_def[1]:
-                list.append(flag)
+                flag_list.append(flag)
     if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][type] = list
+        _room_flag_cache[room_name][type] = flag_list
     else:
-        _room_flag_cache[room_name] = {type: list}
-    return list
+        _room_flag_cache[room_name] = {type: flag_list}
+    return flag_list
 
 
 def find_by_main_with_sub(room, main_type):
@@ -111,22 +120,22 @@ def find_by_main_with_sub(room, main_type):
     flag_primary = main_to_flag_primary[main_type]
 
     if room:
-        list = []
+        flag_list = []
         for flag in room.find(FIND_FLAGS, {"filter": {"color": flag_primary}}):
-            list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
+            flag_list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
     else:
-        list = []
+        flag_list = []
         for name in Object.keys(Game.flags):
             flag = Game.flags[name]
             if flag.pos.roomName == room_name and flag.color == flag_primary:
-                list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
+                flag_list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
 
     if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][main_type] = list
+        _room_flag_cache[room_name][main_type] = flag_list
     else:
-        _room_flag_cache[room_name] = {main_type: list}
+        _room_flag_cache[room_name] = {main_type: flag_list}
 
-    return list
+    return flag_list
 
 
 _global_flag_cache = {}
@@ -145,24 +154,26 @@ def get_global_flags(type, reload=False):
     return flag_list
 
 
-def __create_flag(position, primary, secondary):
-    name = "{}_{}".format(type, random_digits())
+def __create_flag(position, flag_type, primary, secondary):
+    name = "{}_{}".format(flag_type, random_digits())
     # TODO: Make some sort of utility for finding a visible position, so we can do this
     # even if all our spawns are dead!
     known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
     flag_name = known_position.createFlag(name, primary, secondary)
-    flag = Game.flags[flag_name]
-    flag.setPosition(position)
-    return flag
+    if Memory.flags_to_move:
+        Memory.flags_to_move.push((flag_name, position))
+    else:
+        Memory.flags_to_move = [(flag_name, position)]
+    return flag_name
 
 
-def create_flag(position, type):
-    flag_def = flag_definitions[type]
-    __create_flag(position, flag_def[0], flag_def[1])
+def create_flag(position, flag_type):
+    flag_def = flag_definitions[flag_type]
+    __create_flag(position, flag_type, flag_def[0], flag_def[1])
 
 
 def create_ms_flag(position, main, sub):
-    __create_flag(position, main_to_flag_primary[main], sub_to_flag_secondary[sub])
+    __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub])
 
 
 def random_digits():

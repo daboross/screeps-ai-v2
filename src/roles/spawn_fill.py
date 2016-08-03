@@ -24,6 +24,7 @@ class SpawnFill(building.Builder):
                     self.target_mind.untarget(self.creep, target_harvester_deposit)
                     return True
                 else:
+                    self.pick_up_available_energy()
                     if not self.creep.pos.isNearTo(target.pos):
                         self.move_to(target)
                         self.report(speach.spawn_fill_moving_to_target)

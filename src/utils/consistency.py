@@ -43,7 +43,7 @@ def clear_memory(target_mind):
                     print("[{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(name))
             elif role == role_remote_miner:
                 flag = target_mind._get_existing_target_from_name(name, target_remote_mine_miner)
-                if flag.memory.remote_miner_targeting == name:
+                if flag and flag.memory and flag.memory.remote_miner_targeting == name:
                     del flag.memory.remote_miner_targeting
                     del flag.memory.remote_miner_death_tick
             elif role == role_remote_mining_reserve:

@@ -1,3 +1,7 @@
+from utils.screeps_constants import *
+
+__pragma__('noalias', 'name')
+
 _we_are_miners = (
     [
         "We", "are", "miners,", "hard", "rock", "miners", None,
@@ -17,7 +21,7 @@ _we_are_miners = (
     True
 )
 
-base_no_role = (["No role", "!!!"], False)
+base_no_role = (["No role", "!!!"], True)
 
 default_gather_moving_to_storage = (["get", "some", "energy"], False)
 default_gather_moving_between_rooms = (["going", "where", "exactly?"], False)
@@ -55,8 +59,9 @@ dedi_miner_ok = _we_are_miners
 dedi_miner_ner = (["just", "chillin", "with", "our", "friends", None], False)
 dedi_miner_unknown_result = (["AAAAhhhh", "!!!???", "(harvest)", "dedi_miner"], False)
 
-local_hauler_no_source = (["aint", "got", "no", "use", "for", "me", "now", None], False)
-local_hauler_no_miner = (["where", "my", "guy", "at??"], False)
+local_hauler_no_source = (["I have", "no source", None], True)
+local_hauler_no_miner = (["I can't", "find {}."], True)
+local_hauler_no_miner_name = (["No miner", "at {}"], True)
 local_hauler_moving_to_miner = (["coming", "to", "get", "some", None], False)
 local_hauler_waiting = (["just", "chillin", None, "man", None], False)
 local_hauler_pickup_ok = (["got it"], False)
@@ -94,3 +99,5 @@ link_manager_moving = (["i'll", "find", "it", "eventually"], False)
 link_manager_ok = (["and", "I", "threw", "it", "on", "the", "ground!"], False)
 link_manager_storage_full = (["it's", "full,", None, "Jim", None], False)
 link_manager_unknown_result = (["AAAAhhhh", "!!!???", "link_store"], False)
+
+cleanup_found_energy = (["{}, {}"], True)

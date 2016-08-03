@@ -23,6 +23,7 @@ class Upgrader(RoleBase):
         else:
             target = self.creep.room.controller
             if not self.creep.pos.inRangeTo(target.pos, 3):
+                self.pick_up_available_energy()
                 self.move_to(target)
                 self.memory.stationary = False
                 self.report(speach.upgrading_moving_to_controller)
@@ -34,6 +35,7 @@ class Upgrader(RoleBase):
                 self.memory.harvesting = True
                 return True
             elif result == OK:
+                self.pick_up_available_energy()
                 self.move_to(self.creep.room.controller, True)
                 self.report(speach.upgrading_ok)
             else:

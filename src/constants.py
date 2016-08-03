@@ -36,6 +36,8 @@ role_remote_mining_reserve = "remote_reserve_controller"
 role_local_hauler = "local_hauler"
 role_link_manager = "link_manager"
 role_defender = "simple_defender"
+role_cleanup = "simple_cleanup"
+role_temporary_replacing = "currently_replacing"
 
 role_bases = {
     role_upgrader: creep_base_worker,
@@ -49,6 +51,7 @@ role_bases = {
     role_local_hauler: creep_base_hauler,
     role_link_manager: creep_base_small_hauler,
     role_defender: creep_base_defender,
+    role_cleanup: creep_base_hauler,
 }
 
 default_roles = {
@@ -56,7 +59,7 @@ default_roles = {
     creep_base_big_harvester: role_dedi_miner,
     creep_base_full_miner: role_remote_miner,
     creep_base_small_hauler: role_local_hauler,
-    creep_base_hauler: role_local_hauler,
+    creep_base_hauler: role_cleanup,
     creep_base_reserving: role_remote_mining_reserve,
     creep_base_defender: role_defender,
 }

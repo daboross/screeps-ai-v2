@@ -1,7 +1,10 @@
 import math
 
+import context
+import creep_wrappers
 import flags
 from constants import *
+from role_base import RoleBase
 from tools import profiling
 from utils import movement
 from utils.screeps_constants import *
@@ -85,6 +88,11 @@ class TargetMind:
                     del self.targets[type][target]
         del self.targeters[targeter_id]
 
+    def _move_targets(self, old_targeter_id, new_targeter_id):
+        if self.targeters[old_targeter_id]:
+            self.targeters[new_targeter_id] = self.targeters[old_targeter_id]
+            del self.targeters[old_targeter_id]
+
     def _find_new_target(self, type, creep, extra_var):
         if not self.targets[type]:
             self.targets[type] = {}
@@ -145,6 +153,9 @@ class TargetMind:
     def untarget_all(self, creep):
         self._unregister_all(creep.name)
 
+    def assume_identity(self, old_name, new_name):
+        self._move_targets(old_name, new_name)
+
     def _find_new_source(self, creep):
         smallest_num_harvesters = 8000
         best_id = None
@@ -195,7 +206,7 @@ class TargetMind:
                 source_id = structure.id
                 current_num = self.targets[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
-                if not current_num or current_num < 1:
+                if not current_num or current_num < math.ceil(structure.energyCapacity / creep.carryCapacity):
                     range = movement.distance_squared_room_pos(structure.pos, creep.pos)
                     if range < closest_distance:
                         closest_distance = range
@@ -286,7 +297,7 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_remote_hauler_mine(self, creep):
+    def _find_new_remote_hauler_mine(self):
         best_id = None
         smallest_percentage = 1  # don't go to any rooms with 100% haulers in use.
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
@@ -294,10 +305,10 @@ class TargetMind:
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
             haulers = self.targets[target_remote_mine_hauler][flag_id]
-            # TODO: cache this result here.
-            max_haulers = math.ceil(math.sqrt(movement.distance_squared_room_pos(
-                Game.rooms[creep.memory.home].storage.pos, flag.pos)
-            ) / 13)
+            # TODO: cache this result here, and merge with get_target_remote_hauler_count in RoomMind
+            carry_per_tick = (50 * 5) * context.room().distance_storage_to_mine(flag) / 3
+            produce_per_tick = 9.0
+            max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1
             hauler_percentage = haulers / max_haulers
             if not haulers or hauler_percentage < smallest_percentage:
                 smallest_percentage = hauler_percentage
@@ -319,8 +330,9 @@ class TargetMind:
         best_id = None
         closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
         # TODO: this really needs to be some kind of thing merged into RoomMind!
-        max_reservable = 1 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 2
+        max_reservable = 2 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 1
         for flag in flags.get_global_flags(flags.REMOTE_MINE):
+            # TODO: Figure out why this isn't working.
             if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
                 # must have a remote miner targeting, and be a room we have a view into.
                 controller = Game.rooms[flag.pos.roomName].controller
@@ -388,7 +400,7 @@ class HiveMind:
             for flag in self._remote_mining_flags:
                 if Game.rooms[flag.roomName] and Game.rooms[flag.roomName].controller \
                         and Game.rooms[flag.roomName].controller.my:
-                    print("[room: {}] Removing remote mining flag, now that room is owned.".format(flag.roomName))
+                    print("[{}] Removing remote mining flag, now that room is owned.".format(flag.roomName))
                     flag.remove()
                     altered = True
             if altered:
@@ -398,7 +410,7 @@ class HiveMind:
     def get_closest_owned_room(self, current_room_name):
         current_pos = movement.parse_room_to_xy(current_room_name)
         if not current_pos:
-            print("[room: {}] Couldn't parse room name!".format(current_room_name))
+            print("[{}] Couldn't parse room name!".format(current_room_name))
             return None
         closest_squared_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         closest_room = None
@@ -455,7 +467,7 @@ _extra_work_mass_per_extra_remote_mining_operation = 15
 _min_work_mass_for_full_storage_use = 35
 
 _min_stored_energy_before_enabling_full_storage_use = 8000
-_min_stored_energy_to_draw_from_before_refilling = 100000
+_min_stored_energy_to_draw_from_before_refilling = 20000
 
 # 0 is rcl 1
 _rcl_to_sane_wall_hits = [100, 5000, 10000, 100000, 500000, 1000000, 5000000, 10000000]
@@ -509,13 +521,29 @@ class RoomMind:
         self._target_remote_reserve_count = None
         self._target_local_hauler_count = None
         self._target_link_managers = None
+        self._target_cleanup_count = None
+        self._first_target_cleanup_count = None
         self._max_sane_wall_hits = None
-        self._spawn = None
+        self._spawns = None
+        del self.mem.ttr_map
 
     def _get_mem(self):
         return self.room.memory
 
     mem = property(_get_mem)
+
+    def get_cached_property(self, name):
+        if not self.mem.cache:
+            self.mem.cache = {}
+        if name in self.mem.cache and self.mem.cache[name].dead_at > Game.time:
+            return self.mem.cache[name].value
+        else:
+            return None
+
+    def store_cached_property(self, name, value, ttl):
+        if not self.mem.cache:
+            self.mem.cache = {}
+        self.mem.cache[name] = {"value": value, "dead_at": Game.time + ttl}
 
     def _get_role_counts(self):
         if not self.mem.roles_alive:
@@ -524,6 +552,11 @@ class RoomMind:
 
     role_counts = property(_get_role_counts)
 
+    def _get_rt_map(self):
+        if not self.mem.rt_map:
+            self.recalculate_roles_alive()
+        return self.mem.rt_map
+
     def role_count(self, role):
         count = self.role_counts[role]
         if count:
@@ -531,11 +564,36 @@ class RoomMind:
         else:
             return 0
 
-    def add_to_role(self, role):
+    def register_to_role(self, creep):
+        """
+        Registers the creep's role and time till replacement in permanent memory. Should only be called once per creep.
+        """
+        if not isinstance(creep, RoleBase):
+            creep = creep_wrappers.wrap_creep(creep)
+        role = creep.memory.role
         if self.role_counts[role]:
             self.role_counts[role] += 1
         else:
             self.role_counts[role] = 1
+        rt_map = self._get_rt_map()
+        rt_pair = (creep.name, creep.get_replacement_time(), None)
+        if not rt_map[role]:
+            rt_map[role] = [rt_pair]
+        else:
+            #_.sortedIndex(array, value, [iteratee=_.identity])
+            # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
+            rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
+
+    def distance_storage_to_mine(self, flag):
+        if not self.room.storage:
+            return Infinity
+        cache_name = "storage_distance_to_{}".format(flag.name)
+        cached = self.get_cached_property(cache_name)
+        if cached:
+            return cached
+        distance = movement.path_distance(self.room.storage.pos, flag.pos)
+        self.store_cached_property(cache_name, distance, 150)
+        return distance
 
     def recalculate_roles_alive(self):
         """
@@ -543,7 +601,9 @@ class RoomMind:
         no effect. However, it is useful to run this method frequently, for if memory becomes corrupted or a bug is
         introduced, this can ensure that everything is entirely correct.
         """
+        old_rt_map = self.mem.rt_map
         roles_alive = {}
+        rt_map = {}
 
         for creep in self.creeps:
             role = creep.memory.role
@@ -553,8 +613,71 @@ class RoomMind:
                 roles_alive[role] = 1
             else:
                 roles_alive[role] += 1
-
+            if creep.spawning or creep.memory.role == role_temporary_replacing:
+                continue  # don't add rt_pairs for spawning creeps
+            creep = creep_wrappers.wrap_creep(creep)
+            rt_pair = (creep.name, creep.get_replacement_time(), None)
+            if not rt_map[role]:
+                rt_map[role] = [rt_pair]
+            else:
+                #_.sortedIndex(array, value, [iteratee=_.identity])
+                # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
+                rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
         self.mem.roles_alive = roles_alive
+        for role in rt_map:  # ensure we keep existing replacing creeps.
+            if role in old_rt_map:
+                for rt_pair in rt_map[role]:
+                    for second_pair in self.mem.rt_map[role]:
+                        if second_pair[0] == rt_pair[0]:
+                            rt_pair[2] = second_pair[2]
+        self.mem.rt_map = rt_map
+
+    def get_next_replacement_name(self, role):
+        # return None  # TODO: fix the system and remove this
+        rt_map = self.rt_map
+        if role in rt_map and len(rt_map[role]):
+            index = 0
+            while index < len(rt_map[role]) and rt_map[role][index][1] <= Game.time:
+                # the third object is the name of the creep currently vying to replace
+                if not Game.creeps[rt_map[role][index][2]]:
+                    return rt_map[role][index][0]
+                index += 1
+
+        return None
+
+    def next_to_die_of_role(self, role):
+        rt_map = self.rt_map
+        if role in rt_map and len(rt_map[role]):
+            return rt_map[role][0][0]
+
+    def register_new_replacing_creep(self, role, replaced_name, replacing_name):
+        print("[{}] Registering as replacement for {} (a {}).".format(replacing_name, replaced_name, role))
+        rt_map = self._get_rt_map()
+        found = False
+        if role in rt_map and len(rt_map[role]):
+            # TODO: this is somewhat duplicated in get_next_replacement_name
+            index = 0
+            while index < len(rt_map[role]) and rt_map[role][index][1] <= Game.time:
+                # the third object is the name of the creep currently vying to replace
+                if rt_map[role][index][0] == replaced_name:
+                    rt_map[role][index][2] = replacing_name
+                    found = True
+                index += 1
+        if not found:
+            print("[{}] Couldn't find creep-needing-replacement {} to register {} as the replacer to!".format(
+                self.room_name, replaced_name, replacing_name
+            ))
+
+    def replacements_currently_needed_for(self, role):
+        # return 0  # TODO: fix the system and remove this
+        rt_map = self._get_rt_map()
+        count = 0
+        if role in rt_map and len(rt_map[role]):
+            for creep, replacement_time, existing_replacer in rt_map[role]:
+                if not existing_replacer and replacement_time <= Game.time:
+                    count += 1
+                    print("[{}] No one currently replacing {}, a {}!".format(self.room_name, creep, role))
+        return count
 
     def poll_hostiles(self):
         if not Memory.hostiles:
@@ -581,6 +704,11 @@ class RoomMind:
         if self._sources is None:
             self._sources = self.room.find(FIND_SOURCES)
         return self._sources
+
+    def get_spawns(self):
+        if self._spawns is None:
+            self._spawns = self.room.find(FIND_MY_SPAWNS)
+        return self._spawns
 
     def get_creeps(self):
         if self._creeps is None:
@@ -657,15 +785,14 @@ class RoomMind:
 
     def get_target_remote_hauler_count(self):
         if self._target_remote_hauler_count is None:
-            # TODO: this assumes that walking distance ~= exact range, and that remote miners go to storage, not the closest link.
-            # After we get some code to calculate walking distances based off of a path (is it just number of entries?), we should
-            # fix this, AND CACHE IT IN MEMORY! (as it will use paths)
             total_count = 0
             for flag in flags.get_global_flags(flags.REMOTE_MINE):
                 if flag.memory.remote_miner_targeting:
-                    amount = math.ceil(
-                        math.sqrt(movement.distance_squared_room_pos(self.room.storage.pos, flag.pos)) / 13
-                    )
+                    # TODO: merge this with the _find_new_remote_hauler_mine method of TargetMind
+                    # TODO: why is 3 neccessary here?
+                    carry_per_tick = (50 * 5) * self.distance_storage_to_mine(flag) / 3
+                    produce_per_tick = 9.0
+                    amount = math.ceil(produce_per_tick / carry_per_tick) + 1
                     total_count += amount
             self._target_remote_hauler_count = total_count
         return self._target_remote_hauler_count
@@ -717,24 +844,47 @@ class RoomMind:
                 self._target_link_managers = 0
         return self._target_link_managers
 
+    def get_target_cleanup_count(self, first=False):
+        if (self._first_target_cleanup_count if first else self._target_cleanup_count) is None:
+            # TODO: merge filter and generic.Cleanup's filter (the same code) together somehow.
+            piles = self.room.find(FIND_DROPPED_RESOURCES, {
+                "filter": lambda s: len(
+                    _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory.stationary is True)) == 0
+            })
+            total_energy = 0
+            for pile in piles:
+                total_energy += pile.amount
+            if first:
+                self._first_target_cleanup_count = int(math.ceil(total_energy / 1000.0))
+            else:
+                # TODO: replacing Math.round with round() once transcrypt fixes that.
+                self._target_cleanup_count = int(min(Math.round(total_energy / 500.0), 1))
+
+        return (self._first_target_cleanup_count if first else self._target_cleanup_count)
+
+    def get_first_target_cleanup_count(self):
+        return self.get_target_cleanup_count(True)
+
     def get_max_sane_wall_hits(self):
         if self._max_sane_wall_hits is None:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
         return self._max_sane_wall_hits
 
     def _next_needed_local_role(self):
+        tower_fillers = len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}}))
         requirements = [
             [role_spawn_fill, lambda: 2],
             [role_link_manager, self.get_target_link_manager_count],
+            [role_cleanup, self.get_first_target_cleanup_count],
             [role_dedi_miner, self.get_target_big_harvester_count],
-            [role_spawn_fill, lambda: 4],
+            [role_cleanup, self.get_target_cleanup_count],
+            [role_tower_fill, lambda: tower_fillers],
+            [role_spawn_fill, lambda: 4 - tower_fillers],
             [role_local_hauler, self.get_target_local_hauler_count],
             [role_upgrader, lambda: 1],
-            [role_tower_fill, lambda: len(self.room.find(FIND_STRUCTURES,
-                                                         {"filter": {"structureType": STRUCTURE_TOWER}}))]
         ]
         for role, get_ideal in requirements:
-            if self.role_count(role) < get_ideal():
+            if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
                 return role
 
     def _next_probably_local_role(self):
@@ -743,19 +893,21 @@ class RoomMind:
             [role_builder, 6],
         ]
         for role, ideal in roles:
-            if self.role_count(role) < ideal:
+            if self.role_count(role) - self.replacements_currently_needed_for(role) < ideal:
                 return role
 
     def _next_remote_mining_role(self):
         remote_operation_reqs = [
             [role_defender, lambda: 2 if len(Memory.hostiles) else 0],
-            [role_remote_miner, self.get_target_remote_mining_operation_count],
-            [role_remote_hauler, lambda: math.ceil(self.get_target_remote_hauler_count() / 2)],
+            # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
+            # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
+            [role_remote_hauler, lambda: math.ceil(self.get_target_remote_hauler_count() / 2)],
+            [role_remote_miner, self.get_target_remote_mining_operation_count],
             [role_remote_hauler, self.get_target_remote_hauler_count],
         ]
         for role, get_ideal in remote_operation_reqs:
-            if self.role_count(role) < get_ideal():
+            if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
                 return role
 
     def reset_planned_role(self):
@@ -768,10 +920,10 @@ class RoomMind:
             if not next_role:
                 next_role = self._next_probably_local_role()
         if next_role:
-            print("[room: {}] Next role to spawn: {}".format(self.room_name, next_role))
+            print("[{}] Next role to spawn: {}".format(self.room_name, next_role))
             self.mem.next_role = next_role
         else:
-            print("[room: {}] Everything's good!".format(self.room_name))
+            print("[{}] Everything's good!".format(self.room_name))
             # set to false specifically to avoid "is None" check in get_next_role()
             self.mem.next_role = None
 
@@ -783,9 +935,11 @@ class RoomMind:
     room_name = property(get_name)
     position = property(get_position)
     sources = property(get_sources)
+    spawns = property(get_spawns)
     creeps = property(get_creeps)
     work_mass = property(get_work_mass)
     next_role = property(get_next_role)
+    rt_map = property(_get_rt_map)
     are_all_big_miners_placed = property(get_if_all_big_miners_are_placed)
     trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
     full_storage_use = property(get_full_storage_use)
@@ -795,6 +949,8 @@ class RoomMind:
     target_remote_reserve_count = property(get_target_remote_reserve_count)
     target_local_hauler_count = property(get_target_local_hauler_count)
     target_link_manager_count = property(get_target_link_manager_count)
+    target_cleanup_count = property(get_target_cleanup_count)
+    target_min_cleanup_count = property(get_first_target_cleanup_count)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
 
 
@@ -802,8 +958,10 @@ profiling.profile_class(RoomMind, [
     "room_name",
     "position",
     "sources",
+    "spawns",
     "creeps",
     "work_mass",
+    "role_counts",
     "next_role",
     "are_all_big_miners_placed",
     "trying_to_get_full_storage_use",

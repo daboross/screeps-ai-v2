@@ -1,7 +1,7 @@
 import context
 import flags
 import speach
-from constants import target_source
+from constants import target_source, role_dedi_miner
 from tools import profiling
 from utils import movement, pathfinding
 from utils.screeps_constants import *
@@ -56,6 +56,34 @@ class RoleBase:
         return room
 
     home = property(get_home)
+
+    def get_replacement_time(self):
+        if "calculated_replacement_time" in self.memory:
+            return self.memory.calculated_replacement_time
+        else:
+            store = True
+            ticks_to_live = self.creep.ticksToLive
+            if not ticks_to_live:
+                if self.creep.spawning:
+                    ticks_to_live = 1500
+                    store = False
+                else:
+                    print("[{}] ticksToLive is not defined, while spawning is false!".format(self.name))
+            ttr = self._calculate_time_to_replace()
+            if ttr == -1:
+                ttr = RoleBase._calculate_time_to_replace(self)
+                store = False
+            replacement_time = Game.time + ticks_to_live - ttr
+            if store:
+                self.memory.calculated_replacement_time = replacement_time
+            # print("[{}] Calculated replacement time: {\n\tcurrent_time: {}\n\tttr: {}"
+            #       "\n\tdeath_time: {}\n\treplacement_time: {}\n}".format(
+            #     self.name, Game.time, ttr, Game.time + ticks_to_live, replacement_time
+            # ))
+            return self.memory.calculated_replacement_time
+
+    def _calculate_time_to_replace(self):
+        return _.size(self.creep.body) * 3
 
     def run(self):
         """
@@ -123,10 +151,7 @@ class RoleBase:
                 flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
                 print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
-                    .format(
-                    self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction],
-                    pos.roomName, here.roomName
-                ))
+                      .format(self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName))
                 return None
 
             # pathfind to the flag instead
@@ -140,27 +165,16 @@ class RoleBase:
                             self.memory.last_pos.y == here.y):
                     if not self.memory.same_place_ticks:
                         self.memory.same_place_ticks = 1
-                    elif self.memory.same_place_ticks < 2:
-                        self.memory.same_place_ticks += 1
                     else:
+                        self.memory.same_place_ticks += 1
                         if not self.memory.retried_level:
-                            print("[{}] Regenerating path from {} to {}".format(
-                                self.name, here, pos
-                            ))
+                            # print("[{}] Regenerating path from {} to {}".format(self.name, here, pos))
                             self.memory.retried_level = 1
                             return self._get_new_path_to(target_id, pos, options)
-                        elif self.memory.retried_level <= 1:
-                            print("[{}] Trying avoid-all-creeps path from {} to {}".format(
-                                self.name, here, pos
-                            ))
-                            self.memory.retried_level = 2
-                            if options:
-                                options["avoid_all_creeps"] = True
-                            return self._get_new_path_to(target_id, pos, options)
                         else:
-                            print("[{}] Trying manual move path from {} to {}! retried_level: {}".format(
-                                self.name, here, pos, self.memory.retried_level
-                            ))
+                            # print("[{}] Manual move path from {} to {}! retried_level: {}".format(
+                            #     self.name, here, pos, self.memory.retried_level
+                            # ))
                             self.memory.retried_level += 1
                             return None
                 else:
@@ -184,7 +198,7 @@ class RoleBase:
         if self.creep.fatigue <= 0:
             path = self._get_path_to(pos, same_position_ok, options)
             if path is None:  # trigger for manual movement
-                print("[{}] Manually moving.".format(self.name))
+                # print("[{}] Manually moving.".format(self.name))
                 result = self.creep.moveTo(target, {"reusePath": 0})
             else:
                 result = self.creep.moveByPath(path)
@@ -216,6 +230,7 @@ class RoleBase:
             # Full storage use enabled! Just do that.
             storage = self.creep.room.storage
             if not self.creep.pos.isNearTo(storage.pos):
+                self.pick_up_available_energy()
                 self.move_to(storage)
                 self.report(speach.default_gather_moving_to_storage)
                 return False
@@ -286,6 +301,9 @@ class RoleBase:
             self.move_to(source)
             self.report(speach.default_gather_moving_to_source)
         else:
+            if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
+                self.go_to_depot()
+                return False
             if not self.creep.pos.isNearTo(source.pos):
                 self.move_to(source)
                 self.report(speach.default_gather_moving_to_source)
@@ -307,12 +325,38 @@ class RoleBase:
     def finished_energy_harvest(self):
         self.target_mind.untarget(self.creep, target_source)
 
+    def pick_up_available_energy(self):
+        if self.creep.getActiveBodyparts(CARRY) <= 0:
+            return
+        resources = self.creep.pos.lookFor(LOOK_RESOURCES)
+        for resource in resources:
+            if resource.resourceType == RESOURCE_ENERGY:
+                self.creep.pickup(resource)
+                break
+
     def go_to_depot(self):
         depots = flags.get_global_flags(flags.DEPOT)
+        self.pick_up_available_energy()
         if len(depots):
             self.move_to(depots[0], True)
         else:
             self.move_to(Game.spawns[0], True)
+
+    def recycle_me(self):
+        spawn = self.home.spawns[0]
+        if not self.creep.pos.isNearTo(spawn.pos):
+            self.pick_up_available_energy()
+            self.move_to(self.home.spawns[0])
+        else:
+            result = spawn.recycleCreep(self.creep)
+            if result == OK:
+                print("[{}] {} committed suicide.".format(self.name, self.memory.role))
+                Memory.meta.clear_now = True
+            else:
+                print("[{}] Unknown result from {}.recycleCreep({})! {}".format(
+                    self.name, spawn, self.creep, result
+                ))
+                self.go_to_depot()
 
     def is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
@@ -368,14 +412,14 @@ class RoleBase:
 
             return True
 
-    def report(self, task_array, arg=None):
+    def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:
             if self.memory.action_start_time:
                 time = Game.time - self.memory.action_start_time
             else:
                 time = Game.time
-            if arg:
-                stuff = task_array[0][time % len(task_array[0])].format(arg)
+            if len(args):
+                stuff = task_array[0][time % len(task_array[0])].format(*args)
             else:
                 stuff = task_array[0][time % len(task_array[0])]
             if stuff != None:

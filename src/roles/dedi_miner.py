@@ -1,6 +1,7 @@
 import speach
 from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site
 from role_base import RoleBase
+from utils import movement
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -12,6 +13,7 @@ class DedicatedMiner(RoleBase):
 
         if not source:
             print("[{}] Dedicated miner could not find any new big sources.".format(self.name))
+            self.recycle_me()
             return
 
         if not self.creep.pos.isNearTo(source.pos):
@@ -42,6 +44,18 @@ class DedicatedMiner(RoleBase):
 
         return False
 
+    def _calculate_time_to_replace(self):
+        source = self.target_mind.get_new_target(self.creep, target_big_source)
+        if not source:
+            return -1
+        source_pos = source.pos
+        spawn_pos = movement.average_pos_same_room(self.home.spawns)
+        time = movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
+        # print("[{}] Calculated dedi-miner replacement time (using {} to {}): {}".format(
+        #     self.name, spawn_pos, source_pos, time
+        # ))
+        return time
+
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class LocalHauler(RoleBase):
@@ -62,8 +76,8 @@ class LocalHauler(RoleBase):
                 self.go_to_depot()
                 self.report(speach.local_hauler_no_source)
                 return False
-
-            miner = Game.creeps[Memory.big_harvesters_placed[source.id]]
+            miner_name = Memory.big_harvesters_placed[source.id]
+            miner = Game.creeps[miner_name]
             if miner:
                 target_pos = miner.pos
                 self.memory.stored_miner_position = miner.pos
@@ -74,16 +88,19 @@ class LocalHauler(RoleBase):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
+                if miner_name and not miner:
+                    del Memory.big_harvesters_placed[source.id]
+                    Memory.meta.clear_now = True
+                    self.report(speach.local_hauler_no_miner, miner_name)
+                else:
+                    self.report(speach.local_hauler_no_miner_name, source.id[-4:])
                 self.go_to_depot()
                 self.target_mind.untarget(self.creep, target_source_local_hauler)
-                self.report(speach.local_hauler_no_miner)
                 return False
 
             if not self.creep.pos.isNearTo(target_pos):
                 self.move_to(target_pos)
-                maybe_energy = self.creep.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
-                if len(maybe_energy):
-                    self.creep.pickup(maybe_energy[0])
+                self.pick_up_available_energy()
                 self.report(speach.local_hauler_moving_to_miner)
                 return False
 

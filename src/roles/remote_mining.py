@@ -2,6 +2,7 @@ import speach
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site
 from role_base import RoleBase
+from utils import movement
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -16,10 +17,12 @@ class RemoteMiner(RoleBase):
             if source_flag:
                 source_flag.memory.remote_miner_targeting = self.name
                 source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
-
+        elif not source_flag.memory.remote_miner_targeting:
+            source_flag.memory.remote_miner_targeting = self.name
+            source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
         if not source_flag:
             print("[{}] Remote miner can't find any sources!".format(self.name))
-            self.go_to_depot()
+            self.recycle_me()
             self.report(speach.remote_miner_no_flag)
             return False
 
@@ -28,6 +31,7 @@ class RemoteMiner(RoleBase):
             self.report(speach.remote_miner_moving)
             return False
 
+        source_flag.memory.remote_miner_targeting = self.name
         self.memory.stationary = True
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
@@ -47,6 +51,17 @@ class RemoteMiner(RoleBase):
             self.report(speach.remote_miner_unknown_result)
 
         return False
+
+    def _calculate_time_to_replace(self):
+        source = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
+        if not source:
+            return -1
+        source_pos = source.pos
+        spawn_pos = movement.average_pos_same_room(self.home.spawns)
+        # print("[{}] Calculating replacement time using distance from {} to {}".format(
+        #     self.name, spawn_pos, source_pos
+        # ))
+        return movement.path_distance(spawn_pos, source_pos) + RoleBase._calculate_time_to_replace(self)
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
@@ -72,27 +87,39 @@ class RemoteHauler(RoleBase):
                 return False
 
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]
-            if not miner:
+            target_pos = None
+            if miner:
+                target_pos = miner.pos
+                self.memory.stored_miner_position = miner.pos
+            elif self.memory.stored_miner_position:
+                temp_pos = self.memory.stored_miner_position
+                target_pos = __new__(RoomPosition(temp_pos.x, temp_pos.y, temp_pos.roomName))
+            elif self.creep.pos.roomName == source_flag.pos.roomName:
+                piles = source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1)
+                if len(piles):
+                    _.sortBy(piles, 'amount')
+                    target_pos = piles[-1].pos
+            else:
+                target_pos = source_flag.pos
+            if not target_pos:
                 print("[{}] Remote hauler can't find remote miner!".format(self.name))
                 Memory.meta.clear_now = True
                 self.report(speach.remote_hauler_source_no_miner)
                 self.target_mind.untarget(self.creep, target_remote_mine_hauler)
                 return True
 
-            if not self.creep.pos.isNearTo(miner.pos):
-                if miner.pos.roomName == self.creep.pos.roomName and not miner.memory.stationary:
+            if not self.creep.pos.isNearTo(target_pos):
+                if target_pos.roomName == self.creep.pos.roomName and miner and not miner.memory.stationary:
                     self.go_to_depot()
                     return False
-                self.move_to(miner)
-                maybe_energy = self.creep.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
-                if len(maybe_energy):
-                    self.creep.pickup(maybe_energy[0])
+                self.move_to(target_pos)
+                self.pick_up_available_energy()
                 self.report(speach.remote_hauler_moving_to_miner)
                 return False
 
             self.memory.stationary = True
 
-            piles = miner.pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
+            piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
                 self.report(speach.remote_hauler_ner)
                 return False
@@ -115,7 +142,7 @@ class RemoteHauler(RoleBase):
             storage = self.home.room.storage
             if not storage:
                 print("[{}] Remote hauler can't find storage in home room: {}!".format(self.name, self.memory.home))
-                self.go_to_depot()
+                self.recycle_me()
                 self.report(speach.remote_hauler_no_home_storage)
                 return False
 
@@ -160,7 +187,7 @@ class RemoteReserve(RoleBase):
 
         if not controller:
             print("[{}] Remote reserve couldn't find controller open!".format(self.name))
-            self.go_to_depot()
+            self.recycle_me()
             return
 
         if not self.creep.pos.isNearTo(controller.pos):
@@ -179,3 +206,14 @@ class RemoteReserve(RoleBase):
         if not controller.reservation or controller.reservation.ticksToEnd < 5000:
             self.creep.reserveController(controller)
             self.report(speach.remote_reserve_reserving)
+
+    def _calculate_time_to_replace(self):
+        controller = self.target_mind.get_new_target(self.creep, target_remote_reserve)
+        if not controller:
+            return -1
+        target_pos = controller.pos
+        spawn_pos = movement.average_pos_same_room(self.home.spawns)
+        # print("[{}] Calculating replacement time using distance from {} to {}".format(
+        #     self.name, spawn_pos, target_pos
+        # ))
+        return movement.path_distance(spawn_pos, target_pos) + RoleBase._calculate_time_to_replace(self)

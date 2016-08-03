@@ -2,6 +2,8 @@
 import flags
 from utils.screeps_constants import *
 
+__pragma__('noalias', 'name')
+
 # Keys _cost_cache[use_roads][ignore_all_creeps] = matrix
 _cost_cache = {
     True: {

@@ -62,6 +62,7 @@ class Builder(upgrading.Upgrader):
             del self.memory.last_big_repair_max_hits
             return True
         if not self.creep.pos.inRangeTo(target.pos, 3):
+            self.pick_up_available_energy()
             self.move_to(target)
             return False
 
@@ -82,6 +83,7 @@ class Builder(upgrading.Upgrader):
     def execute_construction_target(self, target):
         self.report(speach.building_build_target, target.structureType)
         if not self.creep.pos.inRangeTo(target.pos, 3):
+            self.pick_up_available_energy()
             self.move_to(target)
             return False
 

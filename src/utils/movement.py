@@ -112,7 +112,7 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
     return flag_list[0].pos, direction
 
 
-def path_distance(here, target):
+def path_distance(here, target, non_roads_two_movement=False):
     if here == target:
         return 0
     current = __new__(RoomPosition(here.x, here.y, here.roomName))
@@ -124,7 +124,6 @@ def path_distance(here, target):
 
     while current.roomName != target.roomName and x < 6:
         x += 1
-        print("Now calculating {} to {}".format(current.roomName, target.roomName))
         room = Game.rooms[current.roomName]
         current_room_xy = parse_room_to_xy(current.roomName)
         difference = (target_room_xy[0] - current_room_xy[0], target_room_xy[1] - current_room_xy[1])
@@ -145,12 +144,22 @@ def path_distance(here, target):
                 print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(exit_direction,
                                                                                                      current.roomName))
                 return -1
-            path_len += len(path) + 1  # one to accommodate moving to the other room.
+            if not non_roads_two_movement:
+                path_len += len(path) + 1  # one to accommodate moving to the other room.
+            else:
+                for pos in path:
+                    if _.find(pos.lookFor(LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
+                        path_len += 1
+                    else:
+                        path_len += 2
+                path_len += 1
+
         else:
             print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
-            path_len += math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
-
-        print("[path_distance] Adding {} to {}. New len: {}".format(current, new_pos, path_len))
+            if not non_roads_two_movement:
+                path_len += math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
+            else:
+                path_len += 2 * math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
 
         room_x, room_y = current_room_xy
         if exit_direction == TOP:
@@ -188,6 +197,20 @@ def path_distance(here, target):
         print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
         path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
 
-    print("[path_distance] Adding {} to {}. New len: {}".format(current, target, path_len))
-
     return path_len
+
+
+def average_pos_same_room(targets):
+    if not targets or not len(targets):
+        return None
+    sum_x, sum_y = 0, 0
+    room_name = None
+    for target in targets:
+        if "pos" in target:
+            target = target.pos  # get the position
+        room_name = target.roomName
+        sum_x += target.x
+        sum_y += target.y
+    x_avg = sum_x / len(targets)
+    y_avg = sum_y / len(targets)
+    return __new__(RoomPosition(x_avg, y_avg, room_name))

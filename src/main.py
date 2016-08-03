@@ -6,10 +6,9 @@ import spawning
 import speach
 import tower
 from constants import *
+from creep_wrappers import wrap_creep
 from hivemind import TargetMind, HiveMind
 from role_base import RoleBase
-from roles import building, remote_mining, dedi_miner, spawn_fill, tower_fill, upgrading, utility
-from roles import military
 from tools import profiling
 from utils import consistency
 from utils import movement
@@ -19,26 +18,14 @@ __pragma__('noalias', 'name')
 
 require("perf")()
 
-role_classes = {
-    role_upgrader: upgrading.Upgrader,
-    role_spawn_fill: spawn_fill.SpawnFill,
-    role_link_manager: utility.LinkManager,
-    role_dedi_miner: dedi_miner.DedicatedMiner,
-    role_local_hauler: dedi_miner.LocalHauler,
-    role_builder: building.Builder,
-    role_tower_fill: tower_fill.TowerFill,
-    role_remote_miner: remote_mining.RemoteMiner,
-    role_remote_hauler: remote_mining.RemoteHauler,
-    role_remote_mining_reserve: remote_mining.RemoteReserve,
-    role_defender: military.RoleDefender,
-}
-
 
 def main():
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
     if Memory.meta.pause:
         return
+
+    flags.move_flags()
 
     PathFinder.use(True)
 
@@ -58,7 +45,7 @@ def main():
     time = Game.time
     if not Memory.meta or Memory.meta.clear_now or \
             not Memory.meta.clear_next or time > Memory.meta.clear_next:
-        print("Clearing memory")
+        print("[main] Clearing memory")
         consistency.clear_memory(target_mind)
         for room in hive_mind.my_rooms:
             room.recalculate_roles_alive()
@@ -73,32 +60,35 @@ def main():
         context.set_room(room)
         for creep in room.creeps:
             try:
-                if creep.spawning:
+                if creep.spawning and creep.memory.role != role_temporary_replacing:
                     continue
                 if not creep.memory.base:
                     creep.memory.base = spawning.find_base_type(creep)
-                role = creep.memory.role
-                if role in role_classes:
-                    creep_instance = role_classes[role](target_mind, creep)
-                else:
+                instance = wrap_creep(creep)
+                if not instance:
+                    if creep.memory.role:
+                        print("[{}] Couldn't find role-type wrapper for role {}!".format(creep.name, creep.memory.role))
+                    else:
+                        print("[{}] Couldn't find this creep's role.".format(creep.name))
                     role = default_roles[creep.memory.base]
                     if not role:
                         base = RoleBase(target_mind, creep)
                         base.go_to_depot()
                         base.report(speach.base_no_role)
                         continue
-                    room.add_to_role(role)
-                    creep_instance = role_classes[role](target_mind, creep)
-                rerun = creep_instance.run()
+                    creep.memory.role = role
+                    instance = wrap_creep(creep)
+                    room.register_to_role(instance)
+                rerun = instance.run()
                 if rerun:
-                    rerun = creep_instance.run()
+                    rerun = instance.run()
                 if rerun:
-                    rerun = creep_instance.run()
+                    rerun = instance.run()
                 if rerun:
-                    print("[{}: {}] Tried to rerun three times!".format(creep.name, role))
+                    print("[{}: {}] Tried to rerun three times!".format(creep.name, creep.memory.role))
             except Error as e:
                 Game.notify("Error running role {}! Creep {} not run this tick.\n{}".format(
-                    role if role else "<no role>", creep.name, e.stack
+                    creep.memory.role if creep.memory.role else "<no role>", creep.name, e.stack
                 ), 10)
                 print("[{}] Error running role {}!".format(creep.name, role if role else "<no role>"))
                 print(e.stack)

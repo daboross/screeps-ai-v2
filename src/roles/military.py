@@ -19,4 +19,4 @@ class RoleDefender(RoleBase):
         if target:
             self.move_to(target)
         else:
-            self.go_to_depot()
+            self.recycle_me()

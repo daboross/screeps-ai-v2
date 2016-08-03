@@ -21,6 +21,7 @@ class TowerFill(spawn_fill.SpawnFill):
         else:
             target = self.target_mind.get_new_target(self.creep, target_tower_fill)
             if target:
+                self.pick_up_available_energy()
                 if not self.creep.pos.isNearTo(target.pos):
                     self.move_to(target)
                     self.report(speach.tower_fill_moving_to_tower)
