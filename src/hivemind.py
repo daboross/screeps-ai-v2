@@ -306,9 +306,10 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             haulers = self.targets[target_remote_mine_hauler][flag_id]
             # TODO: cache this result here, and merge with get_target_remote_hauler_count in RoomMind
-            carry_per_tick = (50 * 5) * context.room().distance_storage_to_mine(flag) / 3
-            produce_per_tick = 9.0
-            max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1
+            sitting = flag.memory.sitting if flag.memory.sitting else 0
+            carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.0)
+            produce_per_tick = 9.0 + (sitting / 500.0)
+            max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1.0
             hauler_percentage = haulers / max_haulers
             if not haulers or hauler_percentage < smallest_percentage:
                 smallest_percentage = hauler_percentage
@@ -518,6 +519,7 @@ class RoomMind:
         self._full_storage_use = None
         self._target_remote_mining_operation_count = None
         self._target_remote_hauler_count = None
+        self._first_target_remote_reserve_count = None
         self._target_remote_reserve_count = None
         self._target_local_hauler_count = None
         self._target_link_managers = None
@@ -790,17 +792,19 @@ class RoomMind:
                 if flag.memory.remote_miner_targeting:
                     # TODO: merge this with the _find_new_remote_hauler_mine method of TargetMind
                     # TODO: why is 3 neccessary here?
-                    carry_per_tick = (50 * 5) * self.distance_storage_to_mine(flag) / 3
-                    produce_per_tick = 9.0
-                    amount = math.ceil(produce_per_tick / carry_per_tick) + 1
-                    total_count += amount
+                    sitting = flag.memory.sitting if flag.memory.sitting else 0
+                    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.0)
+                    produce_per_tick = 9.0 + (sitting / 500.0)
+                    max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1.0
+                    total_count += max_haulers
             self._target_remote_hauler_count = total_count
         return self._target_remote_hauler_count
 
-    def get_target_remote_reserve_count(self):
-        if self._target_remote_reserve_count is None:
+    def get_target_remote_reserve_count(self, first):
+        if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
             mining_op_count = self.target_remote_miner_count
             rooms_mining_in = set()
+            rooms_under_1000 = set()
             rooms_under_4000 = set()
             for flag in flags.get_global_flags(flags.REMOTE_MINE):
                 # TODO: Should we really be using *existing* miners to determine *target* reservers?
@@ -815,15 +819,21 @@ class RoomMind:
                             break  # let's only process the right number of mining operations
                         mining_op_count -= 1
                         rooms_mining_in.add(flag.pos.roomName)
+                        if not controller.reservation or controller.reservation.ticksToEnd < 1000:
+                            rooms_under_1000.add(flag.pos.roomName)
                         if not controller.reservation or controller.reservation.ticksToEnd < 4000:
                             if self.room.energyCapacityAvailable < 1300:
                                 # if energy capacity is at least 1300, the reserve creeps we're making are going to have
                                 # 2 reserve already!
                                 # TODO: this class and spawning logic really need to be merged a bit.
                                 rooms_under_4000.add(flag.pos.roomName)
-            # Send 2 per room for rooms < 4000, 1 per room otherwise.
-            self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
-        return self._target_remote_reserve_count
+
+            if first:
+                self._first_target_remote_reserve_count = len(rooms_under_1000) + len(rooms_under_4000)
+            else:
+                # Send 2 per room for rooms < 4000, 1 per room otherwise.
+                self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
+        return (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count)
 
     def get_target_local_hauler_count(self):
         if self._target_local_hauler_count is None:
@@ -898,13 +908,13 @@ class RoomMind:
 
     def _next_remote_mining_role(self):
         remote_operation_reqs = [
-            [role_defender, lambda: 2 if len(Memory.hostiles) else 0],
+            [role_defender, lambda: len(Memory.hostiles)],
             # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
             # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
-            [role_remote_mining_reserve, self.get_target_remote_reserve_count],
-            [role_remote_hauler, lambda: math.ceil(self.get_target_remote_hauler_count() / 2)],
-            [role_remote_miner, self.get_target_remote_mining_operation_count],
+            [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
             [role_remote_hauler, self.get_target_remote_hauler_count],
+            [role_remote_mining_reserve, self.get_target_remote_reserve_count],
+            [role_remote_miner, self.get_target_remote_mining_operation_count],
         ]
         for role, get_ideal in remote_operation_reqs:
             if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():

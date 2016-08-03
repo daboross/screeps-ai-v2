@@ -39,6 +39,8 @@ class RemoteMiner(RoleBase):
             self.report(speach.remote_miner_flag_no_source)
             return False
 
+        sitting = _.sum(_.filter(self.creep.pos.lookFor(LOOK_RESOURCES), {"resourceType": RESOURCE_ENERGY}))
+        source_flag.memory.energy_sitting = sitting
         result = self.creep.harvest(sources_list[0])
         if result == OK:
             self.report(speach.remote_miner_ok)
