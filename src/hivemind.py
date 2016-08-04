@@ -341,8 +341,8 @@ class TargetMind:
             haulers = self.targets[target_remote_mine_hauler][flag_id]
             # TODO: cache this result here, and merge with get_target_remote_hauler_count in RoomMind
             sitting = flag.memory.sitting if flag.memory.sitting else 0
-            carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.0)
-            produce_per_tick = 9.0 + (sitting / 500.0)
+            carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) - 40)
+            produce_per_tick = 9.0 + round(sitting / 500.0)
             max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1.0
             hauler_percentage = haulers / max_haulers
             if not haulers or hauler_percentage < smallest_percentage:
@@ -853,8 +853,8 @@ class RoomMind:
                     # TODO: merge this with the _find_new_remote_hauler_mine method of TargetMind
                     # TODO: why is 3 neccessary here?
                     sitting = flag.memory.sitting if flag.memory.sitting else 0
-                    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 1.5)
-                    produce_per_tick = 9.0 + (sitting / 500.0)
+                    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) - 40)
+                    produce_per_tick = 9.0 + round(sitting / 500.0)
                     max_haulers = math.ceil(produce_per_tick / carry_per_tick) + 1.0
                     total_count += max_haulers
             self._target_remote_hauler_count = total_count

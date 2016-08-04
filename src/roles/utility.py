@@ -137,26 +137,27 @@ class Cleanup(RoleBase):
             self.report(speech.link_manager_something_not_found)
             return False
 
-        if self.memory.gathering_from_link and self.creep.carry.energy >= self.creep.carryCapacity:
-            self.memory.gathering_from_link = False
+        if self.memory.gathering and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+            self.memory.gathering = False
 
-        if not self.memory.gathering_from_link and self.creep.carry.energy <= 0:
-            self.memory.gathering_from_link = True
+        if not self.memory.gathering and _.sum(self.creep.carry) <= 0:
+            self.memory.gathering = True
 
-        if self.memory.gathering_from_link:
+        if self.memory.gathering:
             pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
                 "filter": lambda s: len(
                     _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory.stationary is True)) == 0
             })
 
             if not pile:
-                if self.home.target_cleanup_count + 1 < self.home.role_count(role_cleanup):
+                if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
                     # The creep with the lowest lifetime left should die.
                     next_to_die = self.home.next_to_die_of_role(role_cleanup)
                     if next_to_die == self.name:
                         self.recycle_me()
                         return
-
+                if _.sum(self.creep.carry) >= 0:
+                    self.memory.gathering = False
                 self.go_to_depot()  # wait
                 return
 
@@ -170,7 +171,8 @@ class Cleanup(RoleBase):
             if result == OK:
                 self.report(speech.link_manager_ok)
             elif result == ERR_FULL:
-                self.memory.gathering_from_link = False
+                self.memory.gathering = False
+                return True
             else:
                 print("[{}] Unknown result from link-manager-creep.pickup({}): {}".format(
                     self.name, pile, result
@@ -184,17 +186,18 @@ class Cleanup(RoleBase):
 
             self.memory.stationary = True
 
-            result = self.creep.transfer(storage, RESOURCE_ENERGY)
+            resource_type = Object.keys(self.creep.carry)[0]
+            result = self.creep.transfer(storage, resource_type)
             if result == OK:
                 self.report(speech.link_manager_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
-                self.memory.gathering_from_link = True
+                self.memory.gathering = True
                 return True
             elif result == ERR_FULL:
                 print("[{}] Storage in room {} full!".format(self.name, storage.room))
                 self.report(speech.link_manager_storage_full)
             else:
-                print("[{}] Unknown result from link-manager-creep.transfer({}): {}".format(
-                    self.name, storage, result
+                print("[{}] Unknown result from link-manager-creep.transfer({}, {}): {}".format(
+                    self.name, storage, resource_type, result
                 ))
                 self.report(speech.link_manager_unknown_result)
