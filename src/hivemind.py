@@ -88,8 +88,8 @@ class TargetMind:
 
     def _reregister_all(self):
         new_targets = {}
-        for targeter_id in self.targeters:
-            for ttype in self.targeters[targeter_id]:
+        for targeter_id in Object.keys(self.targeters):
+            for ttype in Object.keys(self.targeters[targeter_id]):
                 target_id = self.targeters[targeter_id][ttype]
                 if ttype in new_targets:
                     if target_id in new_targets[ttype]:
@@ -465,7 +465,7 @@ class HiveMind:
 
     def poll_all_creeps(self):
         new_creep_lists = {}
-        for name in Game.creeps:
+        for name in Object.keys(Game.creeps):
             creep = Game.creeps[name]
             home = creep.memory.home
             if not creep.memory.home:
@@ -536,9 +536,6 @@ class RoomMind:
     def __init__(self, hive_mind, room):
         self.hive_mind = hive_mind
         self.room = room
-        spawns = room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_SPAWN}})
-        self.my = room.controller and room.controller.my and len(spawns)
-        self.spawn = spawns[0]
         self._sources = None
         self._creeps = None
         self._work_mass = None
@@ -557,7 +554,8 @@ class RoomMind:
         self._first_target_cleanup_count = None
         self._max_sane_wall_hits = None
         self._spawns = None
-        del self.mem.ttr_map
+        self.my = room.controller and room.controller.my and len(self.spawns)
+        self.spawn = self.spawns[0] if self.spawns else None
 
     def _get_mem(self):
         return self.room.memory
@@ -656,12 +654,26 @@ class RoomMind:
                 # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
                 rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
         self.mem.roles_alive = roles_alive
-        for role in rt_map:  # ensure we keep existing replacing creeps.
+        for role in rt_map.keys():  # ensure we keep existing replacing creeps.
             if role in old_rt_map:
-                for rt_pair in rt_map[role]:
+                for rt_pair in rt_map[role].keys():
                     for second_pair in self.mem.rt_map[role]:
                         if second_pair[0] == rt_pair[0]:
                             rt_pair[2] = second_pair[2]
+                            print("[{}][recalculate_roles_alive] Found matching rt_pair: Setting {}[2] to {}[2]".format(
+                                self.room_name, JSON.stringify(rt_pair), JSON.stringify(second_pair)
+                            ))
+                            break
+                    else:
+                        if rt_pair[1] <= Game.time:
+                            print("[{}][recalculate_roles_alive] Didn't find matching rt_pair for {} in old rt_map"
+                                .format(
+                                self.room_name, JSON.stringify(rt_pair)
+                            ))
+            else:
+                print("[{}][recalculate_roles_alive] role {} in new rt_map, but not old rt_map".format(
+                    self.room_name, role
+                ))
         self.mem.rt_map = rt_map
 
     def get_next_replacement_name(self, role):
@@ -1007,6 +1019,11 @@ class RoomMind:
         if self.mem.next_role is undefined:
             self.plan_next_role()
         return self.mem.next_role
+
+    def toString(self):
+        return "RoomMind[room_name: {}, roles: {}, my: {}, using_storage: {}]".format(
+            self.room_name, self.mem.role_counts if self.mem.role_counts else "undefined", self.my,
+            self.full_storage_use)
 
     room_name = property(get_name)
     position = property(get_position)

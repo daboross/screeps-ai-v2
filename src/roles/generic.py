@@ -14,9 +14,9 @@ class ReplacingExpendedCreep(RoleBase):
             self.go_to_depot()
             return
 
-        if Game.creeps[old_name]:
-            old_creep = Game.creeps[old_name]
-        else:
+        old_creep = Game.creeps[old_name]
+
+        if not old_creep or not Memory.creeps[old_creep]:
             print("[{}] Now switching to role {}, to replace past-dead {}.".format(
                 self.name, self.memory.replacing_role, self.memory.replacing
             ))

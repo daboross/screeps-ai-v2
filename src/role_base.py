@@ -302,6 +302,9 @@ class RoleBase:
             if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
                 self.go_to_depot()
                 return False
+            if not self.creep.getActiveBodyparts(WORK):
+                self.go_to_depot()
+                return False
             if not self.creep.pos.isNearTo(source.pos):
                 self.move_to(source)
                 self.report(speech.default_gather_moving_to_source)
