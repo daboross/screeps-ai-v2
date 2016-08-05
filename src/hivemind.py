@@ -729,8 +729,7 @@ class RoomMind:
         rt_map = self._get_rt_map()
         found = False
         if role in rt_map and len(rt_map[role]):
-            # TODO: this is somewhat duplicated in get_next_replacement_name
-            for rt_pair in rt_map.values():
+            for rt_pair in _.values(rt_map):
                 if rt_pair[0] == replaced_name:
                     rt_pair[2] = replacing_name
                     print("[{}] Registered as replacement for {} (a {}).".format(replacing_name, replaced_name, role))
