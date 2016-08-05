@@ -148,7 +148,7 @@ def path_distance(here, target, non_roads_two_movement=False):
                 path_len += len(path) + 1  # one to accommodate moving to the other room.
             else:
                 for pos in path:
-                    if _.find(pos.lookFor(LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
+                    if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
                         path_len += 1
                     else:
                         path_len += 2

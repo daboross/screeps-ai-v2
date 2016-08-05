@@ -16,7 +16,7 @@ class ReplacingExpendedCreep(RoleBase):
 
         old_creep = Game.creeps[old_name]
 
-        if not old_creep or not Memory.creeps[old_creep]:
+        if not old_creep or not Memory.creeps[old_name]:
             print("[{}] Now switching to role {}, to replace past-dead {}.".format(
                 self.name, self.memory.replacing_role, self.memory.replacing
             ))
@@ -65,9 +65,9 @@ class ReplacingExpendedCreep(RoleBase):
                                                                                    old_time_to_live))
 
         if role == role_dedi_miner:
-            source_id = self.target_mind.get_existing_target(self.creep, target_big_source)
-            if source_id:
-                Memory.big_harvesters_placed[source_id] = self.creep.name
+            source = self.target_mind.get_existing_target(self.creep, target_big_source)
+            if source:
+                Memory.dedicated_miners_stationed[source.id] = self.creep.name
         elif role == role_remote_miner:
             flag = self.target_mind.get_existing_target(self.creep, target_remote_mine_miner)
             if flag and flag.memory and flag.memory.remote_miner_targeting == old_name:

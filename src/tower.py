@@ -1,3 +1,5 @@
+import random
+
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -36,9 +38,14 @@ def run():
                 })
             else:
                 target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS)
+                if random.random() < 0.5 - tower.memory.alert_for / 5.0 and tower.pos.getRangeTo(target) > 7:
+                    target = None
             if not target:
-                tower.memory.alert = False
-                no_longer_alert_rooms.add(tower.room)
+                if tower.memory.alert_for:
+                    tower.memory.alert_for += random.randint(0, 2)
+                if tower.memory.alert_for >= 20:
+                    tower.memory.alert = False
+                    no_longer_alert_rooms.add(tower.room)
                 continue
             tower.attack(target)
         else:
@@ -50,6 +57,7 @@ def run():
                 targets = tower.room.find(FIND_HOSTILE_CREEPS)
             if len(targets):
                 tower.memory.alert = True
+                tower.memory.alert_for = 0
                 tower.attack(targets[0])
                 new_alert_rooms.add(tower.room)
                 continue

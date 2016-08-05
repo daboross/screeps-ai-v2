@@ -11,7 +11,7 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
-    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.get_target_big_harvester_count():
+    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.get_target_dedi_miner_count():
         num = 0
         for creep in room.creeps:
             memory = creep.memory
@@ -38,7 +38,7 @@ def clear_memory(target_mind):
             if role == role_dedi_miner:
                 source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:
-                    del Memory.big_harvesters_placed[source_id]
+                    del Memory.dedicated_miners_stationed[source_id]
                 else:
                     print("[{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(name))
             elif role == role_remote_miner:

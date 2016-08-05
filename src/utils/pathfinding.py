@@ -64,8 +64,9 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
 
     for struct in room.find(FIND_STRUCTURES):
         if struct.stuctureType is STRUCTURE_ROAD:
-            matrix.set(struct.pos.x, struct.pos.y, 1)
-        elif struct.structureType is not STRUCTURE_CONTAINER \
+            pass  # matrix.set(struct.pos.x, struct.pos.y, 1)
+        elif struct.stuctureType is not STRUCTURE_ROAD \
+                and struct.structureType is not STRUCTURE_CONTAINER \
                 and struct.structureType is not STRUCTURE_RAMPART:
             matrix.set(struct.pos.x, struct.pos.y, 0xff)
 

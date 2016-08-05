@@ -39,7 +39,7 @@ class RemoteMiner(RoleBase):
             self.report(speech.remote_miner_flag_no_source)
             return False
 
-        sitting = _.sum(_.filter(self.creep.pos.lookFor(LOOK_RESOURCES), {"resourceType": RESOURCE_ENERGY}))
+        sitting = _.sum(source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount')
         source_flag.memory.energy_sitting = sitting
         result = self.creep.harvest(sources_list[0])
         if result == OK:
@@ -63,7 +63,7 @@ class RemoteMiner(RoleBase):
         # print("[{}] Calculating replacement time using distance from {} to {}".format(
         #     self.name, spawn_pos, source_pos
         # ))
-        return movement.path_distance(spawn_pos, source_pos) + RoleBase._calculate_time_to_replace(self)
+        return movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
@@ -75,9 +75,7 @@ class RemoteHauler(RoleBase):
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            if self.memory.replaced:
-                del self.memory.replaced
-                self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self.creep)
 
         if self.memory.harvesting:
             source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_hauler)
@@ -89,19 +87,18 @@ class RemoteHauler(RoleBase):
                     self.memory.harvesting = False
                     return True
                 self.report(speech.remote_hauler_no_source)
-                self.go_to_depot()
+                self.recycle_me()
                 return False
 
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]
             target_pos = None
-            if miner:
-                target_pos = miner.pos
-                self.memory.stored_miner_position = miner.pos
-            elif self.creep.pos.roomName == source_flag.pos.roomName:
+            if self.creep.pos.roomName == source_flag.pos.roomName:
                 piles = source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1)
                 if len(piles):
                     _.sortBy(piles, 'amount')
                     target_pos = piles[0].pos
+                elif miner:
+                    target_pos = miner.pos
             else:
                 target_pos = source_flag.pos
             if not target_pos:
@@ -116,12 +113,12 @@ class RemoteHauler(RoleBase):
                 self.target_mind.untarget(self.creep, target_remote_mine_hauler)
                 return True
 
+            self.pick_up_available_energy()
             if not self.creep.pos.isNearTo(target_pos):
                 if target_pos.roomName == self.creep.pos.roomName and miner and not miner.memory.stationary:
                     self.go_to_depot()
                     return False
                 self.move_to(target_pos)
-                self.pick_up_available_energy()
                 self.report(speech.remote_hauler_moving_to_miner)
                 return False
 

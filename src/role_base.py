@@ -3,7 +3,7 @@ import flags
 import speech
 from constants import target_source, role_dedi_miner
 from tools import profiling
-from utils import movement, pathfinding
+from utils import movement
 from utils.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -93,24 +93,7 @@ class RoleBase:
         """
         pass
 
-    def _get_new_path_to(self, target_id, target_pos, options):
-        # if not options:
-        #     options = _DEFAULT_PATH_OPTIONS
-        # path = self.creep.pos.findPathTo(target_pos, options)
-        path = pathfinding.find_path(self.creep.room, self.creep.pos, target_pos, options)
-        if path is None:
-            return None
-        self.memory.path[target_id] = Room.serializePath(path)
-        self.memory.reset_path[target_id] = Game.time + 20  # Reset every 20 ticks
-        self.memory.same_place_ticks = 0
-        return path
-
-    def _get_path_to(self, pos, same_position_ok=False, options=None, force_reset=False):
-        if not self.memory.path:
-            self.memory.path = {}
-        if not self.memory.reset_path:
-            self.memory.reset_path = {}
-
+    def _try_move_to(self, pos):
         here = self.creep.pos
 
         if here == pos:
@@ -155,37 +138,7 @@ class RoleBase:
             # pathfind to the flag instead
             pos = flag_list[0].pos
 
-        target_id = pos.x + "_" + pos.y + "_" + pos.roomName
-
-        if self.memory.path[target_id] and self.memory.reset_path \
-                and self.memory.reset_path[target_id] > Game.time and not force_reset:
-            if not same_position_ok:
-                if (self.memory.last_pos and
-                            self.memory.last_pos.x == here.x and
-                            self.memory.last_pos.y == here.y):
-                    if not self.memory.same_place_ticks:
-                        self.memory.same_place_ticks = 1
-                    else:
-                        self.memory.same_place_ticks += 1
-                        if not self.memory.retried_level:
-                            # print("[{}] Regenerating path from {} to {}".format(self.name, here, pos))
-                            self.memory.retried_level = 1
-                            return self._get_new_path_to(target_id, pos, options)
-                        else:
-                            # print("[{}] Manual move path from {} to {}! retried_level: {}".format(
-                            #     self.name, here, pos, self.memory.retried_level
-                            # ))
-                            self.memory.retried_level += 1
-                            return None
-                else:
-                    del self.memory.same_place_ticks
-                    del self.memory.retried_level
-                    self.memory.last_pos = here
-            try:
-                return Room.deserializePath(self.memory.path[target_id])
-            except:
-                del self.memory.path[target_id]
-        return self._get_new_path_to(target_id, pos, options)
+        return self.creep.moveTo(pos)
 
     def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
         if not same_position_ok:
@@ -196,37 +149,32 @@ class RoleBase:
         else:
             pos = target
         if self.creep.fatigue <= 0:
-            path = self._get_path_to(pos, same_position_ok, options, not not times_tried)
-            if path is None:  # trigger for manual movement
-                # print("[{}] Manually moving.".format(self.name))
-                result = self.creep.moveTo(target, {"reusePath": 0})
-            else:
-                result = self.creep.moveByPath(path)
+            result = self._try_move_to(pos)
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
                 print("[{}] Couldn't move, all move parts dead!".format(self.name))
-                self.creep.suicide()
-                Memory.meta.clear_now = False
+                if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter":{"structureType": STRUCTURE_TOWER}})):
+                    self.creep.suicide()
+                    Memory.meta.clear_now = False
             elif result != OK:
                 if result != ERR_NOT_FOUND:
                     print("[{}] Unknown result from creep.moveByPath: {}".format(
                         self.name, result
                     ))
 
-                if not times_tried:
-                    times_tried = 0
+
+                times_tried = times_tried or 0
                 if times_tried < 2:
                     self.move_to(target, same_position_ok, options, times_tried + 1)
                 else:
-                    print("[{}] Continually failed to move from {} to {} (path: {})!".format(
-                        self.name, self.creep.pos, pos, path))
+                    print("[{}] Continually failed to move from {} to {}!".format(self.name, self.creep.pos, pos))
                     self.creep.moveTo(pos, {"reusePath": 0})
 
     def harvest_energy(self):
         if context.room().full_storage_use:
             # Full storage use enabled! Just do that.
-            storage = self.creep.room.storage
+            storage = context.room().room.storage
             if not self.creep.pos.isNearTo(storage.pos):
                 self.pick_up_available_energy()
                 self.move_to(storage)
@@ -291,25 +239,34 @@ class RoleBase:
 
         # at this point, there is no energy and no container filled.
         # we should ensure that if there's a big harvester, it hasn't died!
-        if Memory.big_harvesters_placed \
-                and Memory.big_harvesters_placed[source.id] \
-                and not Game.creeps[Memory.big_harvesters_placed[source.id]]:
+        if Memory.dedicated_miners_stationed \
+                and Memory.dedicated_miners_stationed[source.id] \
+                and not Game.creeps[Memory.dedicated_miners_stationed[source.id]]:
             Memory.meta.clear_now = True
-            del Memory.big_harvesters_placed[source.id]
-            self.move_to(source)
-            self.report(speech.default_gather_moving_to_source)
+            del Memory.dedicated_miners_stationed[source.id]
+
+
+            if self.creep.getActiveBodyparts(WORK):
+                self.move_to(source)
+                self.report(speech.default_gather_moving_to_source)
+            else:
+                #TODO speach here
+                self.go_to_depot()
         else:
             if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
                 self.go_to_depot()
                 return False
             if not self.creep.getActiveBodyparts(WORK):
                 self.go_to_depot()
+                self.finished_energy_harvest()
                 return False
             if not self.creep.pos.isNearTo(source.pos):
                 self.move_to(source)
                 self.report(speech.default_gather_moving_to_source)
                 return False
 
+            if not self.memory.action_start_time:
+                self.memory.action_start_time = Game.time
             result = self.creep.harvest(source)
 
             if result == OK:
@@ -324,6 +281,7 @@ class RoleBase:
         return False
 
     def finished_energy_harvest(self):
+        del self.memory.action_start_time
         self.target_mind.untarget(self.creep, target_source)
 
     def pick_up_available_energy(self):
@@ -358,6 +316,13 @@ class RoleBase:
                     self.name, spawn, self.creep, result
                 ))
                 self.go_to_depot()
+
+    # def _calculate_renew_cost_per_tick(self):
+    #     creep_cost = _.sum()
+    #
+    # def renew_me(self):
+    #     spawn = self.home.spawns[0]
+    #     if self.home.room.energyAvailable < min(self.home.room.energyCapacityAvailable / 2.0, )
 
     def is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))

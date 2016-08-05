@@ -8,12 +8,12 @@ __pragma__('noalias', 'name')
 
 bases_max_energy = {
     creep_base_worker: 250 * 5,
-    creep_base_big_harvester: 100 + 100 * 5,
-    creep_base_full_miner: 750,
+    creep_base_local_miner: 100 + 100 * 5,
+    creep_base_full_miner: 150 * 5,
     creep_base_small_hauler: 300,
     creep_base_hauler: 500,
     creep_base_reserving: 650 * 2,
-    creep_base_defender: 190 * 5,
+    creep_base_defender: 180 * 6,
 }
 
 
@@ -55,7 +55,7 @@ def run(room, spawn):
 
     descriptive_level = None
 
-    if base is creep_base_big_harvester:
+    if base is creep_base_local_miner:
         if energy < 200:
             print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
         parts = [MOVE, MOVE]
@@ -131,10 +131,11 @@ def run(room, spawn):
             return
     elif base is creep_base_defender:
         parts = []
-        # MOVE, MOVE, ATTACK, TOUCH = one section = 190
-        num_sections = min(int(floor(energy / 190)), 6)
+        # # MOVE, MOVE, ATTACK, TOUCH = one section = 190
+        # MOVE, ATTACK, CARRY = one section = 180
+        num_sections = min(int(floor(energy / 180)), 6)
         for i in range(0, num_sections):
-            parts.append(TOUGH)
+            parts.append(CARRY)
         for i in range(0, num_sections - 1):
             parts.append(MOVE)
         for i in range(0, num_sections):
@@ -142,7 +143,7 @@ def run(room, spawn):
         parts.append(MOVE)
         descriptive_level = num_sections
     else:
-        print("[{}][spawning] Unknown creep base {}!".format(room.room_name, base))
+        print("[{}][spawning] Unknown creep base {} (for role {})!".format(room.room_name, base, role))
         return
 
     name = random_four_digits()
@@ -192,7 +193,7 @@ def find_base_type(creep):
     if part_counts[WORK] == part_counts[CARRY] and part_counts[WORK] == part_counts[MOVE] / 2:
         base = creep_base_worker
     elif not part_counts[CARRY] and part_counts[MOVE] < part_counts[WORK] <= 5:
-        base = creep_base_big_harvester
+        base = creep_base_local_miner
     elif not part_counts[WORK] and part_counts[CARRY] == part_counts[MOVE] <= 3:
         base = creep_base_small_hauler
     elif not part_counts[CARRY] and part_counts[WORK] == part_counts[MOVE] <= 5:

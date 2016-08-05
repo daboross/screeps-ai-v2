@@ -1,5 +1,5 @@
 import speech
-from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site
+from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site, role_dedi_miner
 from role_base import RoleBase
 from utils import movement
 from utils.screeps_constants import *
@@ -19,7 +19,7 @@ class DedicatedMiner(RoleBase):
             return
 
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source, False, _MOVE_ARGS)
+            self.move_to(source)  #, False, _MOVE_ARGS) # TODO: WHY DOES THIS MAKE THE CREEP AVOID ROADS? WHY?
             self.report(speech.dedi_miner_moving)
             return False
 
@@ -28,10 +28,10 @@ class DedicatedMiner(RoleBase):
             self.memory.action_start_time = Game.time
         result = self.creep.harvest(source)
         if result == OK:
-            if Memory.big_harvesters_placed:
-                Memory.big_harvesters_placed[source.id] = self.name
+            if Memory.dedicated_miners_stationed:
+                Memory.dedicated_miners_stationed[source.id] = self.name
             else:
-                Memory.big_harvesters_placed = {
+                Memory.dedicated_miners_stationed = {
                     source.id: self.name
                 }
             self.report(speech.dedi_miner_ok)
@@ -67,6 +67,7 @@ class LocalHauler(RoleBase):
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
+            self.target_mind.untarget_all(self.creep)
 
         if self.memory.harvesting:
             source = self.target_mind.get_new_target(self.creep, target_source_local_hauler)
@@ -78,7 +79,7 @@ class LocalHauler(RoleBase):
                 self.go_to_depot()
                 self.report(speech.local_hauler_no_source)
                 return False
-            miner_name = Memory.big_harvesters_placed[source.id]
+            miner_name = Memory.dedicated_miners_stationed[source.id]
             miner = Game.creeps[miner_name]
             if miner:
                 target_pos = miner.pos
@@ -91,7 +92,7 @@ class LocalHauler(RoleBase):
                     self.memory.harvesting = False
                     return True
                 if miner_name and not miner:
-                    del Memory.big_harvesters_placed[source.id]
+                    del Memory.dedicated_miners_stationed[source.id]
                     Memory.meta.clear_now = True
                     self.report(speech.local_hauler_no_miner, miner_name)
                 else:
@@ -110,6 +111,10 @@ class LocalHauler(RoleBase):
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
+                if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2,
+                                                  {"filter": {"memory": {"role": role_dedi_miner}}})):
+                    self.go_to_depot()
+                    return False
                 if not miner:
                     del self.memory.stored_miner_position
                 self.report(speech.local_hauler_waiting)

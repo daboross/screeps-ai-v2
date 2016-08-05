@@ -1,0 +1,130 @@
+
+    def _get_new_path_to(self, target_id, target_pos, options):
+        # if not options:
+        #     options = _DEFAULT_PATH_OPTIONS
+        # path = self.creep.pos.findPathTo(target_pos, options)
+        path = pathfinding.find_path(self.creep.room, self.creep.pos, target_pos, options)
+        if path is None:
+            return None
+        self.memory.path[target_id] = Room.serializePath(path)
+        self.memory.reset_path[target_id] = Game.time + 20  # Reset every 20 ticks
+        self.memory.same_place_ticks = 0
+        return path
+
+    def _get_path_to(self, pos, same_position_ok=False, options=None, force_reset=False):
+        if not self.memory.path:
+            self.memory.path = {}
+        if not self.memory.reset_path:
+            self.memory.reset_path = {}
+
+        here = self.creep.pos
+
+        if here == pos:
+            return None
+
+        if here.roomName != pos.roomName:
+            difference = movement.inter_room_difference(here.roomName, pos.roomName)
+            if not difference:
+                print("[{}] Couldn't find direction from {} to {}!!".format(
+                    self.name, here.roomName, pos.roomName))
+                return None
+            if abs(difference[0]) > abs(difference[1]):
+                if difference[0] > 0:
+                    direction = RIGHT
+                else:
+                    direction = LEFT
+            else:
+                if difference[1] > 0:
+                    direction = BOTTOM
+                else:
+                    direction = TOP
+
+            flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            if not len(flag_list):
+                # If we have another direction (if path is diagonal), try another way?
+                if abs(difference[0]) > abs(difference[1]):
+                    if difference[1] > 0:
+                        direction = BOTTOM
+                    elif difference[1] < 0:
+                        direction = TOP
+                else:
+                    if difference[0] > 0:
+                        direction = RIGHT
+                    elif difference[0] < 0:
+                        direction = LEFT
+                flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            if not len(flag_list):
+                print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
+                      .format(self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName))
+                return None
+
+            # pathfind to the flag instead
+            pos = flag_list[0].pos
+
+        target_id = pos.x + "_" + pos.y + "_" + pos.roomName
+
+        if self.memory.path[target_id] and self.memory.reset_path \
+                and self.memory.reset_path[target_id] > Game.time and not force_reset:
+            if not same_position_ok:
+                if (self.memory.last_pos and
+                            self.memory.last_pos.x == here.x and
+                            self.memory.last_pos.y == here.y):
+                    if not self.memory.same_place_ticks:
+                        self.memory.same_place_ticks = 1
+                    else:
+                        self.memory.same_place_ticks += 1
+                        if not self.memory.retried_level:
+                            # print("[{}] Regenerating path from {} to {}".format(self.name, here, pos))
+                            self.memory.retried_level = 1
+                            return self._get_new_path_to(target_id, pos, options)
+                        else:
+                            # print("[{}] Manual move path from {} to {}! retried_level: {}".format(
+                            #     self.name, here, pos, self.memory.retried_level
+                            # ))
+                            self.memory.retried_level += 1
+                            return None
+                else:
+                    del self.memory.same_place_ticks
+                    del self.memory.retried_level
+                    self.memory.last_pos = here
+            try:
+                return Room.deserializePath(self.memory.path[target_id])
+            except:
+                del self.memory.path[target_id]
+        return self._get_new_path_to(target_id, pos, options)
+
+    def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
+        if not same_position_ok:
+            # do this automatically, and the roles will set it to true once they've reached their destination.
+            self.memory.stationary = False
+        if target.pos:
+            pos = target.pos
+        else:
+            pos = target
+        if self.creep.fatigue <= 0:
+            path = self._get_path_to(pos, same_position_ok, options, not not times_tried)
+            if path is None:  # trigger for manual movement
+                # print("[{}] Manually moving.".format(self.name))
+                result = self.creep.moveTo(target, {"reusePath": 0})
+            else:
+                result = self.creep.moveByPath(path)
+
+            if result == ERR_NO_BODYPART:
+                # TODO: check for towers here, or use RoomMind to do that.
+                print("[{}] Couldn't move, all move parts dead!".format(self.name))
+                self.creep.suicide()
+                Memory.meta.clear_now = False
+            elif result != OK:
+                if result != ERR_NOT_FOUND:
+                    print("[{}] Unknown result from creep.moveByPath: {}".format(
+                        self.name, result
+                    ))
+
+                if not times_tried:
+                    times_tried = 0
+                if times_tried < 2:
+                    self.move_to(target, same_position_ok, options, times_tried + 1)
+                else:
+                    print("[{}] Continually failed to move from {} to {} (path: {})!".format(
+                        self.name, self.creep.pos, pos, path))
+                    self.creep.moveTo(pos, {"reusePath": 0})
