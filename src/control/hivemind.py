@@ -6,8 +6,8 @@ import flags
 from constants import *
 from role_base import RoleBase
 from tools import profiling
-from utils import movement
-from utils.screeps_constants import *
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

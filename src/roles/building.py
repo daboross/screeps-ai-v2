@@ -2,7 +2,7 @@ import context
 import speech
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
-from utils.screeps_constants import *
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

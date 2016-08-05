@@ -1,18 +1,18 @@
 import constants
 import context
 import flags
-import hivemind
 import spawning
 import speech
 import tower
 from constants import *
+from control import hivemind
+from control.hivemind import TargetMind, HiveMind
 from creep_wrappers import wrap_creep
-from hivemind import TargetMind, HiveMind
 from role_base import RoleBase
 from tools import profiling
-from utils import consistency
-from utils import movement
-from utils.screeps_constants import *
+from utilities import consistency
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

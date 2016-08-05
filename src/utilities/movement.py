@@ -1,8 +1,8 @@
 import math
 
 import flags
-from utils import pathfinding
-from utils.screeps_constants import *
+from utilities import pathfinding
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

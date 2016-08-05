@@ -2,7 +2,7 @@ from math import floor
 
 import context
 from constants import *
-from utils.screeps_constants import *
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

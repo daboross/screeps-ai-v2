@@ -2,8 +2,8 @@ import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site
 from role_base import RoleBase
-from utils import movement
-from utils.screeps_constants import *
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

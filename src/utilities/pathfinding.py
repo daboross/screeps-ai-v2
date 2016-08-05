@@ -1,6 +1,6 @@
 # Currently disabled / unused, since PathFinder.search is as-it-seems broken.
 import flags
-from utils.screeps_constants import *
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

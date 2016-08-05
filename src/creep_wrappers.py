@@ -9,7 +9,7 @@ from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
 from roles import utility
-from utils.screeps_constants import *
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

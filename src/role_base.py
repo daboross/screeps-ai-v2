@@ -3,8 +3,8 @@ import flags
 import speech
 from constants import target_source, role_dedi_miner
 from tools import profiling
-from utils import movement
-from utils.screeps_constants import *
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

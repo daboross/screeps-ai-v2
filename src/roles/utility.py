@@ -1,8 +1,8 @@
 import speech
 from constants import role_cleanup
 from role_base import RoleBase
-from utils import movement
-from utils.screeps_constants import *
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

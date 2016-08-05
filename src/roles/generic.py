@@ -1,7 +1,7 @@
 from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
     role_remote_mining_reserve, target_remote_reserve
 from role_base import RoleBase
-from utils.screeps_constants import *
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 

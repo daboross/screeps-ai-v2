@@ -1,8 +1,8 @@
 import speech
 from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site, role_dedi_miner
 from role_base import RoleBase
-from utils import movement
-from utils.screeps_constants import *
+from utilities import movement
+from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
