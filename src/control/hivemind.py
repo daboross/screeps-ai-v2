@@ -246,7 +246,6 @@ class TargetMind:
 
         return None
 
-
     def _find_new_harvester_deposit_site(self, creep):
         closest_distance = _SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
@@ -339,7 +338,7 @@ class TargetMind:
     def _find_new_remote_miner_mine(self, creep):
         best_id = None
         closest_flag = _SLIGHTLY_SMALLER_THAN_MAX_INT
-        for flag in flags.find_flags_global(flags.REMOTE_MINE):
+        for flag in context.room().remote_mining_operations:
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
@@ -357,7 +356,7 @@ class TargetMind:
     def _find_new_remote_hauler_mine(self):
         best_id = None
         smallest_percentage = 1  # don't go to any rooms with 100% haulers in use.
-        for flag in flags.find_flags_global(flags.REMOTE_MINE):
+        for flag in context.room().remote_mining_operations:
             if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
@@ -384,7 +383,7 @@ class TargetMind:
         closest_room = _SLIGHTLY_SMALLER_THAN_MAX_INT
         # TODO: this really needs to be some kind of thing merged into RoomMind!
         max_reservable = 2 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 1
-        for flag in flags.find_flags_global(flags.REMOTE_MINE):
+        for flag in context.room().remote_mining_operations:
             # TODO: Figure out why this isn't working.
             if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
                 # must have a remote miner targeting, and be a room we have a view into.
@@ -461,20 +460,6 @@ class HiveMind:
         """
         return self._room_to_mind[room_name]
 
-    # def get_remote_mining_flags(self):
-    #     if not self._remote_mining_flags:
-    #         self._remote_mining_flags = flags.find_flags_global(flags.REMOTE_MINE)
-    #         altered = False
-    #         for flag in self._remote_mining_flags:
-    #             if Game.rooms[flag.roomName] and Game.rooms[flag.roomName].controller \
-    #                     and Game.rooms[flag.roomName].controller.my:
-    #                 print("[{}] Removing remote mining flag, now that room is owned.".format(flag.roomName))
-    #                 flag.remove()
-    #                 altered = True
-    #         if altered:
-    #             self._remote_mining_flags = flags.find_flags_global(flags.REMOTE_MINE, True)
-    #     return self._remote_mining_flags
-
     def poll_remote_mining_flags(self):
         flag_list = flags.find_flags_global(flags.REMOTE_MINE)
         room_to_flags = {}
@@ -484,13 +469,21 @@ class HiveMind:
                 print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.room_name, flag.name))
                 flag.remove()
             else:
-                if room_to_flags[room.room_name]:
-                    room_to_flags[room.room_name].push(flag)
+                sponsor = self.get_room(flag.memory.sponsor)
+                if not sponsor:
+                    print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
+                        flag.name, flag.memory.sponsor
+                    ))
+                    continue
+                if room_to_flags[sponsor.room_name]:
+                    room_to_flags[sponsor.room_name].push(flag)
                 else:
-                    room_to_flags[room.room_name] = [flag]
-        for sponsor_name in room_to_flags.keys():
-            room = self.get_room(sponsor_name)
-            # TODO: this
+                    room_to_flags[sponsor.room_name] = [flag]
+        for room in self.visible_rooms:
+            if room.room_name in room_to_flags:
+                room._remote_mining_operations = room_to_flags[room.room_name]
+            else:
+                room._remote_mining_operations = []
 
     def get_closest_owned_room(self, current_room_name):
         current_pos = movement.parse_room_to_xy(current_room_name)
@@ -532,10 +525,12 @@ class HiveMind:
                 if not Memory.meta.unowned_room_alerted:
                     Game.alert("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(
                         name, name))
+                    Memory.meta.unowned_room_alerted = True
             elif not room.my:
                 print("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
                 if not Memory.meta.unowned_room_alerted:
                     Game.alert("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+                    Memory.meta.unowned_room_alerted = True
             else:
                 room._creeps = new_creep_lists[name]
 
@@ -544,20 +539,18 @@ class HiveMind:
 
     my_rooms = property(find_my_rooms)
     visible_rooms = property(find_visible_rooms)
-    # remote_mining_flags = property(get_remote_mining_flags)
 
 
 profiling.profile_class(HiveMind, [
     "my_rooms",
     "visible_rooms",
-    "remote_mining_flags"
 ])
 
 # TODO: A lot of these should be changed for if the room has 1 or 2 sources!
 _min_work_mass_big_miner = 8  # TODO: This really should be based off of spawn extensions & work mass percentage!
 _extra_work_mass_per_big_miner = 10
-_min_work_mass_remote_mining_operation = 50
-_extra_work_mass_per_extra_remote_mining_operation = 30
+_min_work_mass_remote_mining_operation = 25
+_extra_work_mass_per_extra_remote_mining_operation = 10
 _min_work_mass_for_full_storage_use = 35
 
 _min_stored_energy_before_enabling_full_storage_use = 8000
@@ -598,6 +591,7 @@ class RoomMind:
         self.room = room
         self.building = ConstructionMind(self)
         self.subsidiaries = []
+        self._remote_mining_operations = None
         self._sources = None
         self._creeps = None
         self._work_mass = None
@@ -651,6 +645,13 @@ class RoomMind:
         return self.mem.roles_alive
 
     role_counts = property(_get_role_counts)
+
+    def _get_remote_mining_operations(self):
+        if self._remote_mining_operations is None:
+            self.hive_mind.poll_remote_mining_flags()
+        return self._remote_mining_operations
+
+    remote_mining_operations = property(_get_remote_mining_operations)
 
     def _get_rt_map(self):
         if not self.mem.rt_map:
@@ -925,16 +926,13 @@ class RoomMind:
         """
         if self._target_remote_mining_operation_count is None:
             # TODO: don't count rooms mined by other owned rooms! This is a hack.
-            if self.room_name == "W46N28":
-                self._target_remote_mining_operation_count = 0
-                return 0
             if self.work_mass > _min_work_mass_remote_mining_operation:
                 self._target_remote_mining_operation_count = min(
                     1 + math.floor(
                         (self.work_mass - _min_work_mass_remote_mining_operation)
                         / _extra_work_mass_per_extra_remote_mining_operation
                     ),
-                    len(self.hive_mind.remote_mining_flags)
+                    len(self.remote_mining_operations)
                 )
             else:
                 self._target_remote_mining_operation_count = 0
@@ -946,9 +944,8 @@ class RoomMind:
         """
         if self._target_remote_hauler_count is None:
             total_count = 0
-            # TODO: keep track of what room the mining operations belong too
             if self.get_target_remote_mining_operation_count():
-                for flag in flags.find_flags_global(flags.REMOTE_MINE):
+                for flag in self.remote_mining_operations:
                     if flag.memory.remote_miner_targeting or flag.memory.sitting > 500:
                         total_count += _get_hauler_count_for_mine(flag)
             self._target_remote_hauler_count = total_count
@@ -961,11 +958,10 @@ class RoomMind:
         if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
             mining_op_count = self.get_target_remote_mining_operation_count()
             if mining_op_count:
-                # TODO: keep track of what room the mining operations belong too
                 rooms_mining_in = set()
                 rooms_under_1000 = set()
                 rooms_under_4000 = set()
-                for flag in flags.find_flags_global(flags.REMOTE_MINE):
+                for flag in self.remote_mining_operations:
                     # TODO: Should we really be using *existing* miners to determine *target* reservers?
                     # We might want to instead calculate the exact planned operations, but that would require range
                     # calculations.
@@ -1220,6 +1216,7 @@ profiling.profile_class(RoomMind, [
     "creeps",
     "work_mass",
     "next_role",
+    "remote_mining_operations",
     "rt_map",
     "are_all_big_miners_placed",
     "trying_to_get_full_storage_use",

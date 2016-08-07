@@ -145,6 +145,8 @@ class LocalHauler(SpawnFill):
                 return SpawnFill.run(self)
 
             target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
+            if not target:
+                target = self.creep.room.storage # This apparently has happened, I don't know why though?
             if target.energy >= target.energyCapacity:
                 target = storage
 
