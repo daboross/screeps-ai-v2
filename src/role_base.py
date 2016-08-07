@@ -99,14 +99,14 @@ class RoleBase:
         here = self.creep.pos
 
         if here == pos:
-            return None
+            return OK
 
         if here.roomName != pos.roomName:
             difference = movement.inter_room_difference(here.roomName, pos.roomName)
             if not difference:
-                print("[{}] Couldn't find direction from {} to {}!!".format(
-                    self.name, here.roomName, pos.roomName))
-                return None
+                print("[{}] Couldn't find direction from {} to {} (target pos: {}, {})!!".format(
+                    self.name, here.roomName, pos.roomName, pos, pos.pos))
+                return OK
             if abs(difference[0]) > abs(difference[1]):
                 if difference[0] > 0:
                     direction = RIGHT
@@ -135,7 +135,7 @@ class RoleBase:
             if not len(flag_list):
                 print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
                       .format(self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName))
-                return None
+                return OK
 
             # pathfind to the flag instead
             pos = flag_list[0].pos
@@ -159,6 +159,10 @@ class RoleBase:
                 if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}})):
                     self.creep.suicide()
                     Memory.meta.clear_now = False
+            elif result == ERR_NO_PATH:
+                # TODO: ERR_NO_PATH should probably get our attention - we should cache this status.
+                # for now it's fine though, as we aren't going over our CPU limit.
+                return
             elif result != OK:
                 if result != ERR_NOT_FOUND:
                     print("[{}] Unknown result from creep.moveByPath: {}".format(

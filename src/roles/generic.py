@@ -1,6 +1,10 @@
+import math
+
+import context
 from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
-    role_remote_mining_reserve, target_remote_reserve
+    role_remote_mining_reserve, target_remote_reserve, role_builder, role_upgrader
 from role_base import RoleBase
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -80,3 +84,34 @@ class ReplacingExpendedCreep(RoleBase):
                 controller.room.memory.controller_remote_reserve_set = self.creep.name
         # TODO: instead of doing this, just somehow get hivemind to re-gen the replacement-time to include this creep
         Memory.meta.clear_now = True
+
+
+class Colonist(RoleBase):
+    def run(self):
+        if not self.memory.colonizing:
+            closest_distance = math.pow(2, 30)
+            closest_room_name = None
+            for room in context.hive().my_rooms:
+                if not len(room.spawns) and _.sum(room.role_counts) < 3:
+                    distance = movement.distance_squared_room_pos(self.creep.pos,
+                                                                  __new__(RoomPosition(25, 25, room.room_name)))
+                    if distance < closest_distance:
+                        closest_room_name = room.room_name
+
+            # Colonize!
+            self.memory.colonizing = closest_room_name
+
+        colony = self.memory.colonizing
+
+        if self.creep.room.name == colony:
+            del self.memory.colonizing
+            self.memory.home = colony
+            room = context.hive().get_room(colony)
+            if room.role_count(role_builder) < 2:
+                self.memory.role = role_builder
+            elif room.role_count(role_upgrader) < 1:
+                self.memory.role = role_upgrader
+            else:
+                self.memory.role = role_builder
+        else:
+            self.move_to(__new__(RoomPosition(25, 25, colony)))

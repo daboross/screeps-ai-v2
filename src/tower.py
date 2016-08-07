@@ -32,6 +32,9 @@ def run():
         tower.memory = Memory.tower.towers_memory[tower_id]
 
         if tower.memory.alert:
+            if tower.memory.alert_for is undefined:
+                tower.memory.alert_for = 0
+            tower.memory.alert_for += random.randint(0, 2)
             if Memory.meta.friends and len(Memory.meta.friends):
                 target = tower.pos.findClosestByRange(FIND_HOSTILE_CREEPS, {
                     "filter": lambda c: c.owner.username not in Memory.meta.friends
@@ -41,13 +44,19 @@ def run():
                 if random.random() < 0.5 - tower.memory.alert_for / 5.0 and tower.pos.getRangeTo(target) > 7:
                     target = None
             if not target:
-                if tower.memory.alert_for:
-                    tower.memory.alert_for += random.randint(0, 2)
                 if tower.memory.alert_for >= 20:
                     tower.memory.alert = False
                     no_longer_alert_rooms.add(tower.room)
+
+            if tower.memory.alert_for >= 50 or not target:
+                targets = tower.room.find(FIND_MY_CREEPS, {
+                    "filter": lambda creep: creep.hits < creep.hitsMax
+                })
+                if len(targets):
+                    tower.heal(targets[0])
                 continue
-            tower.attack(target)
+            elif target:
+                tower.attack(target)
         else:
             if Memory.meta.friends and len(Memory.meta.friends):
                 targets = tower.room.find(FIND_HOSTILE_CREEPS, {

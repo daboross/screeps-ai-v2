@@ -212,6 +212,10 @@ class RemoteReserve(RoleBase):
                 self.name, controller.reservation.username
             ))
         if not controller.reservation or controller.reservation.ticksToEnd < 5000:
+            if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
+                # claim this!
+                self.creep.claimController(controller)
+                controller.room.memory.sponsor = self.home.room_name
             self.creep.reserveController(controller)
             self.report(speech.remote_reserve_reserving)
 

@@ -28,6 +28,7 @@ role_classes = {
     role_defender: military.RoleDefender,
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
+    role_colonist: generic.Colonist,
 }
 
 
