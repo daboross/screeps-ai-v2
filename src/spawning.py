@@ -22,7 +22,7 @@ def run(room, spawn):
     Activates the spawner, spawning what's needed, as determined by the RoomManager.
 
     Manages deciding what parts belong on what creep base as well.
-    :type room: hivemind.RoomMind
+    :type room: control.hivemind.RoomMind
     :type spawn: StructureSpawn
     :type
     """
@@ -58,15 +58,27 @@ def run(room, spawn):
     if base is creep_base_local_miner:
         if energy < 200:
             print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
-        parts = [MOVE, MOVE]
-        num_sections = min(int(floor((energy - 100) / 100)), 5)
+            return
+        if energy < 600 and energy % 100 != 0:
+            work_energy = 50
+            parts = [MOVE]
+        else:
+            work_energy = 100
+            parts = [MOVE, MOVE]
+
+        num_sections = min(int(floor((energy - work_energy) / 100)), 5)
         for i in range(0, num_sections):
             parts.append(WORK)
         if num_sections < 5:
-            descriptive_level = num_sections
+            if work_energy == 50:
+                descriptive_level = "slow-med-{}".format(num_sections)
+            else:
+                descriptive_level = "med-{}".format(num_sections)
         elif energy >= 650:  # we can fit an extra work
             parts.append(MOVE)
             descriptive_level = "full-8"
+        elif work_energy == 50:
+            descriptive_level = "slow-6"
         else:
             descriptive_level = "full-7"
     elif base is creep_base_worker:
@@ -144,6 +156,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     else:
         print("[{}][spawning] Unknown creep base {} (for role {})!".format(room.room_name, base, role))
+        room.reset_planned_role()
         return
 
     name = random_four_digits()

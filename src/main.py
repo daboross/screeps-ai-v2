@@ -112,4 +112,5 @@ __pragma__('js', 'global').py = {
     "constants": constants,
 }
 
-RoomPosition.prototype.createFlag2 = lambda pos: flags.create_flag(this, pos)
+RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
+RoomPosition.prototype.cfms = lambda main, sub: flags.create_ms_flag(this, main, sub)

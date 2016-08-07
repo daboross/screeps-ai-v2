@@ -90,7 +90,7 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
         else:
             direction = TOP
 
-    flag_list = flags.get_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
+    flag_list = flags.find_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
     if not len(flag_list):
         # If we have another direction (if path is diagonal), try another way?
         if abs(difference[0]) > abs(difference[1]):
@@ -103,7 +103,7 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
                 direction = RIGHT
             elif difference[0] < 0:
                 direction = LEFT
-        flag_list = flags.get_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
+        flag_list = flags.find_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
     if not len(flag_list):
         print("Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
               .format(room_name, flags.DIR_TO_EXIT_FLAG[direction], to_room, room_name))

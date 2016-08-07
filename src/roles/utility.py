@@ -144,9 +144,11 @@ class Cleanup(RoleBase):
             self.memory.gathering = True
 
         if self.memory.gathering:
+            # TODO: Make some cached memory map of all hostile creeps, and use it to avoid.
             pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
                 "filter": lambda s: len(
-                    _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory.stationary is True)) == 0
+                    _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)
+                ) == 0 and len(s.pos.findInRange(FIND_HOSTILE_CREEPS, 3)) == 0
             })
 
             if not pile:

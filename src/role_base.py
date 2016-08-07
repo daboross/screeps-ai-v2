@@ -1,3 +1,5 @@
+import math
+
 import context
 import flags
 import speech
@@ -75,7 +77,7 @@ class RoleBase:
                 store = False
             replacement_time = Game.time + ticks_to_live - ttr
             if store:
-                self.memory.calculated_replacement_time = replacement_time
+                self.memory.calculated_replacement_time = math.floor(replacement_time)
             # print("[{}] Calculated replacement time: {\n\tcurrent_time: {}\n\tttr: {}"
             #       "\n\tdeath_time: {}\n\treplacement_time: {}\n}".format(
             #     self.name, Game.time, ttr, Game.time + ticks_to_live, replacement_time
@@ -116,7 +118,7 @@ class RoleBase:
                 else:
                     direction = TOP
 
-            flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+            flag_list = flags.find_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
                 # If we have another direction (if path is diagonal), try another way?
                 if abs(difference[0]) > abs(difference[1]):
@@ -129,7 +131,7 @@ class RoleBase:
                         direction = RIGHT
                     elif difference[0] < 0:
                         direction = LEFT
-                flag_list = flags.get_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
+                flag_list = flags.find_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
                 print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
                       .format(self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName))
@@ -154,7 +156,7 @@ class RoleBase:
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
                 print("[{}] Couldn't move, all move parts dead!".format(self.name))
-                if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter":{"structureType": STRUCTURE_TOWER}})):
+                if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}})):
                     self.creep.suicide()
                     Memory.meta.clear_now = False
             elif result != OK:
@@ -162,7 +164,6 @@ class RoleBase:
                     print("[{}] Unknown result from creep.moveByPath: {}".format(
                         self.name, result
                     ))
-
 
                 times_tried = times_tried or 0
                 if times_tried < 2:
@@ -176,12 +177,25 @@ class RoleBase:
             # Full storage use enabled! Just do that.
             storage = context.room().room.storage
             if not self.creep.pos.isNearTo(storage.pos):
+                # TODO: 5 should ideally be instead 1/4 of the distance to this creep's next target.
+                if self.creep.carry.energy > 0 and self.creep.pos.getRangeTo(storage.pos) > 5:
+                    # a spawn fill has given use some extra energy, let's go use it.
+                    # TODO: some unified dual-interface for harvesting and jobs
+                    self.memory.harvesting = False
                 self.pick_up_available_energy()
                 self.move_to(storage)
                 self.report(speech.default_gather_moving_to_storage)
                 return False
 
-            result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+            if _.sum(self.creep.carry) > self.creep.carry.energy:
+                for type in Object.keys(self.creep.carry):
+                    if type != RESOURCE_ENERGY:
+                        result = self.creep.trasnfer(storage, type)
+                        break
+                else:
+                    result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+            else:
+                result = self.creep.withdraw(storage, RESOURCE_ENERGY)
 
             if result == OK:
                 self.report(speech.default_gather_storage_withdraw_ok)
@@ -245,7 +259,6 @@ class RoleBase:
             Memory.meta.clear_now = True
             del Memory.dedicated_miners_stationed[source.id]
 
-
             if self.creep.getActiveBodyparts(WORK):
                 self.move_to(source)
                 self.report(speech.default_gather_moving_to_source)
@@ -294,12 +307,16 @@ class RoleBase:
                 break
 
     def go_to_depot(self):
-        depots = flags.get_global_flags(flags.DEPOT)
+        depots = flags.find_flags(self.home, flags.DEPOT)
         self.pick_up_available_energy()
         if len(depots):
             self.move_to(depots[0], True)
         else:
-            self.move_to(Game.spawns[0], True)
+            depots = flags.find_flags_global(flags.DEPOT)
+            if len(depots):
+                self.move_to(depots[0], True)
+            else:
+                self.move_to(Game.spawns[0], True)
 
     def recycle_me(self):
         spawn = self.home.spawns[0]

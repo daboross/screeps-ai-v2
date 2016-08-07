@@ -1,7 +1,9 @@
+import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site
 from role_base import RoleBase
+from roles.spawn_fill import SpawnFill
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -67,11 +69,12 @@ class RemoteMiner(RoleBase):
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
-class RemoteHauler(RoleBase):
+class RemoteHauler(SpawnFill):
     def run(self):
         del self.memory.stored_miner_position
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
+            self.target_mind.untarget_all(self.creep)
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
@@ -146,10 +149,10 @@ class RemoteHauler(RoleBase):
         else:
             storage = self.home.room.storage
             if not storage:
-                print("[{}] Remote hauler can't find storage in home room: {}!".format(self.name, self.memory.home))
-                self.recycle_me()
-                self.report(speech.remote_hauler_no_home_storage)
-                return False
+                # self.recycle_me()
+                # self.report(speech.remote_hauler_no_home_storage)
+                # return False
+                return SpawnFill.run(self)
 
             if self.creep.pos.roomName != storage.pos.roomName:
                 self.move_to(storage)

@@ -1,6 +1,7 @@
 import speech
-from constants import target_big_source, target_source_local_hauler, target_closest_deposit_site, role_dedi_miner
+from constants import target_big_source, target_source, role_dedi_miner, target_closest_deposit_site
 from role_base import RoleBase
+from roles.spawn_fill import SpawnFill
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -60,7 +61,7 @@ class DedicatedMiner(RoleBase):
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
-class LocalHauler(RoleBase):
+class LocalHauler(SpawnFill):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
@@ -70,7 +71,7 @@ class LocalHauler(RoleBase):
             self.target_mind.untarget_all(self.creep)
 
         if self.memory.harvesting:
-            source = self.target_mind.get_new_target(self.creep, target_source_local_hauler)
+            source = self.target_mind.get_new_target(self.creep, target_source)
 
             if not source:
                 if self.creep.carry.energy > 0:
@@ -79,7 +80,7 @@ class LocalHauler(RoleBase):
                 self.go_to_depot()
                 self.report(speech.local_hauler_no_source)
                 return False
-            miner_name = Memory.dedicated_miners_stationed[source.id]
+            miner_name = Memory.dedicated_miners_stationed and Memory.dedicated_miners_stationed[source.id]
             miner = Game.creeps[miner_name]
             if miner:
                 target_pos = miner.pos
@@ -98,7 +99,7 @@ class LocalHauler(RoleBase):
                 else:
                     self.report(speech.local_hauler_no_miner_name, source.id[-4:])
                 self.go_to_depot()
-                self.target_mind.untarget(self.creep, target_source_local_hauler)
+                self.target_mind.untarget(self.creep, target_source)
                 return False
 
             if not self.creep.pos.isNearTo(target_pos):
@@ -137,10 +138,11 @@ class LocalHauler(RoleBase):
         else:
             storage = self.creep.room.storage
             if not storage:
-                print("[{}] Local hauler can't find storage in {}!".format(self.name, self.creep.room.name))
-                self.go_to_depot()
-                self.report(speech.local_hauler_no_storage)
-                return False
+                # print("[{}] Local hauler can't find storage in {}!".format(self.name, self.creep.room.name))
+                # self.go_to_depot()
+                # self.report(speech.local_hauler_no_storage)
+                # return False
+                return SpawnFill.run(self)
 
             target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
             if target.energy >= target.energyCapacity:

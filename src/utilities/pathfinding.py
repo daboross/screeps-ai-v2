@@ -70,7 +70,7 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
                 and struct.structureType is not STRUCTURE_RAMPART:
             matrix.set(struct.pos.x, struct.pos.y, 0xff)
 
-    for flag in flags.get_flags(room, flags.PATH_FINDING_AVOID):
+    for flag in flags.find_flags(room, flags.PATH_FINDING_AVOID):
         matrix.set(flag.pos.x, flag.pos.y, 0xff)
 
     if not ignore_all_creeps:

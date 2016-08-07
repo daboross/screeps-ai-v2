@@ -14,6 +14,7 @@ class RoleDefender(RoleBase):
                     break
                 else:
                     remove.append(target_id)
+                    del Memory.hostile_last_rooms[target_id]
             _.remove(Memory.hostiles, lambda x: x in remove)
 
         if target:

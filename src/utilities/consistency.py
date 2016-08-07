@@ -1,3 +1,5 @@
+import math
+
 import context
 from constants import *
 from utilities.screeps_constants import *
@@ -28,6 +30,7 @@ def clear_memory(target_mind):
     :type target_mind: hivemind.TargetMind
     """
     smallest_ticks_to_live = 500
+    closest_replacement_time = math.pow(2, 30)
     for name in Object.keys(Memory.creeps):
         creep = Game.creeps[name]
         if not creep:
@@ -53,6 +56,11 @@ def clear_memory(target_mind):
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]
-        elif creep.ticksToLive < smallest_ticks_to_live:
-            smallest_ticks_to_live = creep.ticksToLive
-    Memory.meta.clear_next = Game.time + smallest_ticks_to_live + 1  # some leeway
+        else:
+            if creep.ticksToLive < smallest_ticks_to_live:
+                smallest_ticks_to_live = creep.ticksToLive
+            if creep.memory.calculated_replacement_time and creep.memory.calculated_replacement_time > Game.time \
+                    and creep.memory.calculated_replacement_time < closest_replacement_time:
+                closest_replacement_time = creep.memory.calculated_replacement_time
+    dead_next = Game.time + smallest_ticks_to_live
+    Memory.meta.clear_next = min(dead_next, closest_replacement_time) + 1  # some leeway

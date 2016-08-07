@@ -10,11 +10,10 @@ class TowerFill(spawn_fill.SpawnFill):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
-            self.finished_energy_harvest()
+            self.target_mind.untarget_all(self.creep)
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.target_mind.untarget(self.creep, target_tower_fill)
-            self.target_mind.untarget(self.creep, target_harvester_deposit)
+            self.target_mind.untarget_all(self.creep)
 
         if self.memory.harvesting:
             return self.harvest_energy()

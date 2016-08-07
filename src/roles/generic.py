@@ -51,6 +51,7 @@ class ReplacingExpendedCreep(RoleBase):
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
         del self.memory.calculated_replacement_time
+        del self.memory.replacement
         del self.memory.stationary
         del self.memory.path
         del self.memory.reset_path

@@ -69,6 +69,8 @@ _room_flag_refresh_time = 0
 
 
 def __get_room_and_name(room):
+    if room.room:
+        room = room.room
     if room.name:
         return room, room.name
     else:
@@ -86,7 +88,7 @@ def __get_cache(room_name, flag_type):
         return None
 
 
-def get_flags(room, flag_type):
+def find_flags(room, flag_type):
     room, room_name = __get_room_and_name(room)
     cached = __get_cache(room_name, flag_type)
     if cached:
@@ -128,7 +130,7 @@ def find_by_main_with_sub(room, main_type):
         for name in Object.keys(Game.flags):
             flag = Game.flags[name]
             if flag.pos.roomName == room_name and flag.color == flag_primary:
-                flag_list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
+                flag_list.append([flag, flag_secondary_to_sub[flag.secondaryColor]])
 
     if room_name in _room_flag_cache:
         _room_flag_cache[room_name][main_type] = flag_list
@@ -138,10 +140,36 @@ def find_by_main_with_sub(room, main_type):
     return flag_list
 
 
+def find_ms_flag(room, main_type, sub_type):
+    type_name = "{}_{}".format(main_type, sub_type)
+    room, room_name = __get_room_and_name(room)
+    cached = __get_cache(room_name, "{}_{}".format(main_type, sub_type))
+    if cached:
+        return cached
+    primary = main_to_flag_primary[main_type]
+    secondary = sub_to_flag_secondary[sub_type]
+    if room:
+        flag_list = room.find(FIND_FLAGS, {
+            "filter": {"color": primary, "secondaryColor": secondary}
+        })
+    else:
+        flag_list = []
+        for flag_name in Object.keys(Game.flags):
+            flag = Game.flags[flag_name]
+            if flag.pos.roomName == room_name and flag.color == primary \
+                    and flag.secondaryColor == secondary:
+                flag_list.append(flag)
+    if room_name in _room_flag_cache:
+        _room_flag_cache[room_name][type_name] = flag_list
+    else:
+        _room_flag_cache[room_name] = {type_name: flag_list}
+    return flag_list
+
+
 _global_flag_cache = {}
 
 
-def get_global_flags(flag_type, reload=False):
+def find_flags_global(flag_type, reload=False):
     if _global_flag_cache[flag_type] and not reload:
         return _global_flag_cache[flag_type]
     flag_def = flag_definitions[flag_type]
