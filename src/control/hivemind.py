@@ -384,8 +384,8 @@ class TargetMind:
         # TODO: this really needs to be some kind of thing merged into RoomMind!
         max_reservable = 2 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 1
         for flag in context.room().remote_mining_operations:
-            # TODO: Figure out why this isn't working.
-            if flag.memory.remote_miner_targeting and Game.rooms[flag.pos.roomName]:
+            # TODO: should we only target already-mined rooms?
+            if Game.rooms[flag.pos.roomName]:
                 # must have a remote miner targeting, and be a room we have a view into.
                 controller = Game.rooms[flag.pos.roomName].controller
                 current_reservers = self.targets[target_remote_reserve][controller.id]
@@ -400,6 +400,8 @@ class TargetMind:
                     # Ok, it's a controller we can reserve
                     controller_id = controller.id
                     distance = movement.distance_squared_room_pos(controller.pos, creep.pos)
+                    if not flag.memory.remote_miner_targeting:
+                        distance += 10000  # Choose an already targeted mine if possible!
                     if distance < closest_room:
                         closest_room = distance
                         best_id = controller_id
