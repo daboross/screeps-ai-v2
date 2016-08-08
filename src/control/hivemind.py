@@ -782,10 +782,17 @@ class RoomMind:
 
         return None
 
-    def next_to_die_of_role(self, role):
+    def next_x_to_die_of_role(self, role, x=1):
+        if not x:
+            x = 1
+        result = []
         rt_map = self._get_rt_map()
         if role in rt_map and len(rt_map[role]):
-            return rt_map[role][0][0]
+            for rt_pair in rt_map[role]:
+                result.append(rt_pair[0])
+                if len(result) >= x:
+                    break
+        return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
         print("[{}] Registering as replacement for {} (a {}).".format(replacing_name, replaced_name, role))

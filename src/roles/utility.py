@@ -1,6 +1,7 @@
 import speech
 from constants import role_cleanup
 from role_base import RoleBase
+from roles.spawn_fill import SpawnFill
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -128,14 +129,17 @@ class LinkManager(RoleBase):
 
 
 # TODO: Change the speech on this to something unique.
-class Cleanup(RoleBase):
+class Cleanup(SpawnFill):
     def run(self):
+        if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
+            # The creep with the lowest lifetime left should die.
+            next_to_die = self.home.next_x_to_die_of_role(
+                role_cleanup,
+                self.home.role_count(role_cleanup) - 1 - self.home.get_target_cleanup_count())
+            if self.name in next_to_die:
+                self.recycle_me()
+                return
         storage = self.creep.room.storage
-        if not storage:
-            print("[{}] Cleanup can't find storage in {}!".format(self.name, self.creep.room.name))
-            self.go_to_depot()
-            self.report(speech.link_manager_something_not_found)
-            return False
 
         if self.memory.gathering and _.sum(self.creep.carry) >= self.creep.carryCapacity:
             self.memory.gathering = False
@@ -152,12 +156,6 @@ class Cleanup(RoleBase):
             })
 
             if not pile:
-                if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
-                    # The creep with the lowest lifetime left should die.
-                    next_to_die = self.home.next_to_die_of_role(role_cleanup)
-                    if next_to_die == self.name:
-                        self.recycle_me()
-                        return
                 if _.sum(self.creep.carry) >= 0:
                     self.memory.gathering = False
                 self.go_to_depot()  # wait
@@ -181,6 +179,12 @@ class Cleanup(RoleBase):
                 ))
                 self.report(speech.link_manager_unknown_result)
         else:
+            if not storage:
+                return SpawnFill.run(self)
+                # print("[{}] Cleanup can't find storage in {}!".format(self.name, self.creep.room.name))
+                # self.go_to_depot()
+                # self.report(speech.link_manager_something_not_found)
+                # return False
             if not self.creep.pos.isNearTo(storage.pos):
                 self.move_to(storage)
                 self.report(speech.link_manager_moving)
