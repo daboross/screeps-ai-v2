@@ -686,15 +686,16 @@ class RoomMind:
             rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
 
     def distance_storage_to_mine(self, flag):
-        if not self.room.storage:
-            return Infinity
         cache_name = "storage_distance_to_{}".format(flag.name)
         cached = self.get_cached_property(cache_name)
         if cached:
             return cached
-
-        distance = movement.path_distance(self.room.storage.pos, flag.pos)
-        self.store_cached_property(cache_name, distance, 150)
+        if self.room.storage:
+            distance = movement.path_distance(self.room.storage.pos, flag.pos)
+            self.store_cached_property(cache_name, distance, 150)
+        else:
+            distance = movement.path_distance(self.spawn.pos, flag.pos)
+            self.store_cached_property(cache_name, distance, 75)
         return distance
 
     def recalculate_roles_alive(self):
