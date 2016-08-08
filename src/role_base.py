@@ -215,7 +215,7 @@ class RoleBase:
             self.finished_energy_harvest()
             self.go_to_depot()
             self.report(speech.default_gather_no_sources)
-            return True
+            return False
 
         if source.pos.roomName != self.creep.pos.roomName:
             self.move_to(source)

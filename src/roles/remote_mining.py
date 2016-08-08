@@ -71,7 +71,6 @@ class RemoteMiner(RoleBase):
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class RemoteHauler(SpawnFill):
     def run(self):
-        del self.memory.stored_miner_position
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.target_mind.untarget_all(self.creep)
