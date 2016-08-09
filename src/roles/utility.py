@@ -125,14 +125,6 @@ class LinkManager(RoleBase):
 # TODO: Change the speech on this to something unique.
 class Cleanup(SpawnFill):
     def run(self):
-        if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
-            # The creep with the lowest lifetime left should die.
-            next_to_die = self.home.next_x_to_die_of_role(
-                role_cleanup,
-                self.home.role_count(role_cleanup) - 1 - self.home.get_target_cleanup_count())
-            if self.name in next_to_die:
-                self.recycle_me()
-                return
         storage = self.creep.room.storage
 
         if self.memory.gathering and _.sum(self.creep.carry) >= self.creep.carryCapacity:
@@ -150,6 +142,14 @@ class Cleanup(SpawnFill):
             })
 
             if not pile:
+                if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
+                    # The creep with the lowest lifetime left should die.
+                    next_to_die = self.home.next_x_to_die_of_role(
+                        role_cleanup,
+                        self.home.role_count(role_cleanup) - 1 - self.home.get_target_cleanup_count())
+                    if self.name in next_to_die:
+                        self.recycle_me()
+                        return
                 if _.sum(self.creep.carry) >= 0:
                     self.memory.gathering = False
                 self.go_to_depot()  # wait
