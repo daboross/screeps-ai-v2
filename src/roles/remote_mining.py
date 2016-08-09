@@ -112,9 +112,16 @@ class RemoteHauler(SpawnFill):
 
             self.pick_up_available_energy()
             if not self.creep.pos.isNearTo(target_pos):
-                if target_pos.roomName == self.creep.pos.roomName and miner and not miner.memory.stationary:
+                if miner and not miner.memory.stationary and target_pos.roomName == miner.pos.roomName:
+                    self.memory.go_to_depot_until = Game.time + 20
                     self.go_to_depot()
                     return False
+                elif self.memory.go_to_depot_until:
+                    if Game.time > self.memory.go_to_depot_until:
+                        del self.memory.go_to_depot_until
+                    else:
+                        self.go_to_depot()
+                        return False
                 self.move_to(target_pos)
                 self.report(speech.remote_hauler_moving_to_miner)
                 return False
