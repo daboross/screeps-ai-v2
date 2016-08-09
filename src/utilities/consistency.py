@@ -34,16 +34,18 @@ def clear_memory(target_mind):
     for name in Object.keys(Memory.creeps):
         creep = Game.creeps[name]
         if not creep:
+            home = Memory.creeps[name].home
             role = Memory.creeps[name].role
             if role:
-                print("[{}] {} died".format(name, role))
+                print("[{}][{}] {} died".format(home, name, role))
 
             if role == role_dedi_miner:
                 source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:
                     del Memory.dedicated_miners_stationed[source_id]
                 else:
-                    print("[{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(name))
+                    print("[{}][{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(
+                        home, name))
             elif role == role_remote_miner:
                 flag = target_mind._get_existing_target_from_name(name, target_remote_mine_miner)
                 if flag and flag.memory and flag.memory.remote_miner_targeting == name:

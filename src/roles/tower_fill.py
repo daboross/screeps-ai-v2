@@ -1,5 +1,5 @@
 import speech
-from constants import target_tower_fill, target_harvester_deposit
+from constants import target_tower_fill
 from roles import spawn_fill
 from utilities.screeps_constants import *
 
@@ -32,9 +32,7 @@ class TowerFill(spawn_fill.SpawnFill):
                     self.target_mind.untarget(self.creep, target_tower_fill)
                     return True
                 else:
-                    print("[{}] Unknown result from creep.transfer({}): {}".format(
-                        self.name, target, result
-                    ))
+                    self.log("Unknown result from creep.transfer({}): {}", target, result)
                     self.target_mind.untarget(self.creep, target_tower_fill)
                     self.report(speech.tower_fill_unknown_result)
             else:

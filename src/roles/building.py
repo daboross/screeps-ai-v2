@@ -76,7 +76,7 @@ class Builder(upgrading.Upgrader):
             del self.memory.last_big_repair_max_hits
             return True
         else:
-            print("[{}] Unknown result from creep.repair({}): {}".format(self.name, target, result))
+            self.log("Unknown result from creep.repair({}): {}", target, result)
 
         return False
 
@@ -102,7 +102,7 @@ class Builder(upgrading.Upgrader):
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self.creep, target_construction)
         else:
-            print("[{}] Unknown result from creep.build({}): {}".format(self.name, target, result))
+            self.log("Unknown result from creep.build({}): {}", target, result)
             return True
 
         return False

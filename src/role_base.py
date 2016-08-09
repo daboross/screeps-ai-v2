@@ -70,7 +70,7 @@ class RoleBase:
                     ticks_to_live = 1500
                     store = False
                 else:
-                    print("[{}] ticksToLive is not defined, while spawning is false!".format(self.name))
+                    self.log("ticksToLive is not defined, while spawning is false!")
             ttr = self._calculate_time_to_replace()
             if ttr == -1:
                 ttr = RoleBase._calculate_time_to_replace(self)
@@ -78,10 +78,9 @@ class RoleBase:
             replacement_time = Game.time + ticks_to_live - ttr
             if store:
                 self.memory.calculated_replacement_time = math.floor(replacement_time)
-            # print("[{}] Calculated replacement time: {\n\tcurrent_time: {}\n\tttr: {}"
-            #       "\n\tdeath_time: {}\n\treplacement_time: {}\n}".format(
-            #     self.name, Game.time, ttr, Game.time + ticks_to_live, replacement_time
-            # ))
+            # self.log("Calculated replacement time: {\n\tcurrent_time: {}\n\tttr: {}"
+            #          "\n\tdeath_time: {}\n\treplacement_time: {}\n}",
+            #          Game.time, ttr, Game.time + ticks_to_live, replacement_time)
             return self.memory.calculated_replacement_time
 
     def _calculate_time_to_replace(self):
@@ -104,8 +103,8 @@ class RoleBase:
         if here.roomName != pos.roomName:
             difference = movement.inter_room_difference(here.roomName, pos.roomName)
             if not difference:
-                print("[{}] Couldn't find direction from {} to {} (target pos: {}, {})!!".format(
-                    self.name, here.roomName, pos.roomName, pos, pos.pos))
+                self.log("Couldn't find direction from {} to {} (target pos: {}, {})!!",
+                         here.roomName, pos.roomName, pos, pos.pos)
                 return OK
             if abs(difference[0]) > abs(difference[1]):
                 if difference[0] > 0:
@@ -133,8 +132,8 @@ class RoleBase:
                         direction = LEFT
                 flag_list = flags.find_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
             if not len(flag_list):
-                print("[{}] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]"
-                      .format(self.name, here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName))
+                self.log("Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]",
+                         here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName)
                 return OK
 
             # pathfind to the flag instead
@@ -155,7 +154,7 @@ class RoleBase:
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
-                print("[{}] Couldn't move, all move parts dead!".format(self.name))
+                self.log("Couldn't move, all move parts dead!")
                 if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}})):
                     self.creep.suicide()
                     Memory.meta.clear_now = False
@@ -165,15 +164,13 @@ class RoleBase:
                 return
             elif result != OK:
                 if result != ERR_NOT_FOUND:
-                    print("[{}] Unknown result from creep.moveByPath: {}".format(
-                        self.name, result
-                    ))
+                    self.log("Unknown result from creep.moveByPath: {}", result)
 
                 times_tried = times_tried or 0
                 if times_tried < 2:
                     self.move_to(target, same_position_ok, options, times_tried + 1)
                 else:
-                    print("[{}] Continually failed to move from {} to {}!".format(self.name, self.creep.pos, pos))
+                    self.log("Continually failed to move from {} to {}!", self.creep.pos, pos)
                     self.creep.moveTo(pos, {"reusePath": 0})
 
     def harvest_energy(self):
@@ -204,14 +201,13 @@ class RoleBase:
             if result == OK:
                 self.report(speech.default_gather_storage_withdraw_ok)
             else:
-                print("[{}] Unknown result from creep.withdraw({}): {}".format(
-                    self.name, storage, result))
+                self.log("Unknown result from creep.withdraw({}): {}", storage, result)
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
         source = self.target_mind.get_new_target(self.creep, target_source)
         if not source:
-            print("[{}] Wasn't able to find a source!".format(self.name))
+            self.log("Wasn't able to find a source!")
             self.finished_energy_harvest()
             self.go_to_depot()
             self.report(speech.default_gather_no_sources)
@@ -229,8 +225,7 @@ class RoleBase:
                 self.move_to(piles[0])
                 self.report(speech.default_gather_moving_to_energy)
             elif result != OK:
-                print("[{}] Unknown result from creep.pickup({}): {}".format(
-                    self.name, piles[0], result))
+                self.log("Unknown result from creep.pickup({}): {}", piles[0], result)
                 self.report(speech.default_gather_unknown_result_pickup)
             else:
                 self.report(speech.default_gather_energy_pickup_ok)
@@ -250,8 +245,7 @@ class RoleBase:
             if result == OK:
                 self.report(speech.default_gather_container_withdraw_ok)
             else:
-                print("[{}] Unknown result from creep.withdraw({}): {}".format(
-                    self.name, containers[0], result))
+                self.log("Unknown result from creep.withdraw({}): {}", containers[0], result)
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
@@ -292,8 +286,7 @@ class RoleBase:
                 # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
                 self.report(speech.default_gather_source_harvest_ner)
             else:
-                print("[{}] Unknown result from creep.harvest({}): {}".format(
-                    self.name, source, result))
+                self.log("Unknown result from creep.harvest({}): {}", source, result)
                 self.report(speech.default_gather_unknown_result_harvest)
         return False
 
@@ -330,12 +323,10 @@ class RoleBase:
         else:
             result = spawn.recycleCreep(self.creep)
             if result == OK:
-                print("[{}] {} committed suicide.".format(self.name, self.memory.role))
+                self.log("{} committed suicide (life left: {}).", self.memory.role, self.creep.ticksToLive)
                 Memory.meta.clear_now = True
             else:
-                print("[{}] Unknown result from {}.recycleCreep({})! {}".format(
-                    self.name, spawn, self.creep, result
-                ))
+                self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)
                 self.go_to_depot()
 
     # def _calculate_renew_cost_per_tick(self):
@@ -381,8 +372,7 @@ class RoleBase:
                 next_pos.y -= 1
                 next_pos.x -= 1
             else:
-                print("[{}] Unknown result from pos.getDirectionTo(): {}".format(
-                    self.name, direction))
+                self.log("Unknown result from pos.getDirectionTo(): {}", direction)
                 return False
 
             creeps = next_pos.lookFor(LOOK_CREEPS)
@@ -411,6 +401,14 @@ class RoleBase:
                 stuff = task_array[0][time % len(task_array[0])]
             if stuff:
                 self.creep.say(stuff, True)
+
+    def log(self, format_string, *args):
+        """
+        Logs a given string
+        :type format_string: str
+        :type args: list[object]
+        """
+        print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
 
 
 profiling.profile_class(RoleBase, ["harvesting", "name", "home"])

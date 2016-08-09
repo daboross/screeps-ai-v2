@@ -67,7 +67,7 @@ def move_flags():
         for name, pos in Memory.flags_to_move:
             pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
             result = Game.flags[name].setPosition(pos)
-            print("Moving flag {} to {}. Result: {}".format(name, pos, result))
+            print("[flags] Moving flag {} to {}. Result: {}".format(name, pos, result))
         del Memory.flags_to_move
 
 

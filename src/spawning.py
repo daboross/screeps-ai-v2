@@ -50,7 +50,7 @@ def run(room, spawn):
         energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
 
     if filled < energy:
-        # print("Room doesn't have enough energy! {} < {}!".format(filled, energy))
+        # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
         return
 
     descriptive_level = None

@@ -15,7 +15,7 @@ class DedicatedMiner(RoleBase):
         source = self.target_mind.get_new_target(self.creep, target_big_source)
 
         if not source:
-            print("[{}] Dedicated miner could not find any new big sources.".format(self.name))
+            self.log("Dedicated miner could not find any new big sources.")
             self.recycle_me()
             return
 
@@ -40,9 +40,7 @@ class DedicatedMiner(RoleBase):
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
             self.report(speech.dedi_miner_ner)
         else:
-            print("[{}] Unknown result from mining-creep.harvest({}): {}".format(
-                self.name, source, result
-            ))
+            self.log("Unknown result from mining-creep.harvest({}): {}", source, result)
             self.report(speech.dedi_miner_unknown_result)
 
         return False
@@ -54,9 +52,7 @@ class DedicatedMiner(RoleBase):
         source_pos = source.pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         time = movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
-        # print("[{}] Calculated dedi-miner replacement time (using {} to {}): {}".format(
-        #     self.name, spawn_pos, source_pos, time
-        # ))
+        # self.log("Calculated dedi-miner replacement time (using {} to {}): {}", spawn_pos, source_pos, time)
         return time
 
 
@@ -129,16 +125,14 @@ class LocalHauler(SpawnFill):
                 self.memory.harvesting = False
                 return True
             else:
-                print("[{}] Unknown result from hauler-creep.pickup({}): {}".format(
-                    self.name, source, result
-                ))
+                self.log("Unknown result from hauler-creep.pickup({}): {}", source, result)
                 self.report(speech.local_hauler_pickup_unknown_result)
 
             return False
         else:
             storage = self.creep.room.storage
             if not storage:
-                # print("[{}] Local hauler can't find storage in {}!".format(self.name, self.creep.room.name))
+                # self.log("Local hauler can't find storage in {}!", self.creep.room.name)
                 # self.go_to_depot()
                 # self.report(speech.local_hauler_no_storage)
                 # return False
@@ -146,7 +140,7 @@ class LocalHauler(SpawnFill):
 
             target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
             if not target:
-                target = self.creep.room.storage # This apparently has happened, I don't know why though?
+                target = self.creep.room.storage  # This apparently has happened, I don't know why though?
             if target.energy >= target.energyCapacity:
                 target = storage
 
@@ -164,13 +158,11 @@ class LocalHauler(SpawnFill):
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                print("[{}] {} in room {} full!".format(self.name, target, target.pos.roomName))
+                self.log("{} in room {} full!", target, target.pos.roomName)
                 self.go_to_depot()
                 self.report(speech.local_hauler_storage_full)
             else:
-                print("[{}] Unknown result from hauler-creep.transfer({}): {}".format(
-                    self.name, target, result
-                ))
+                self.log("Unknown result from hauler-creep.transfer({}): {}", target, result)
                 self.report(speech.local_hauler_transfer_unknown_result)
 
             return False

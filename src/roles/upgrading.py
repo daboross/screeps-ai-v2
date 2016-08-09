@@ -39,9 +39,7 @@ class Upgrader(RoleBase):
                 self.move_to(self.creep.room.controller, True)
                 self.report(speech.upgrading_ok)
             else:
-                print("[{}] Unknown result from upgradeController({}): {}".format(
-                    self.name, self.creep.room.controller, result
-                ))
+                self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
 
                 if self.creep.carry.energy < self.creep.carryCapacity:
                     self.memory.harvesting = True

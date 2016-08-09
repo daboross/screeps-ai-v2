@@ -347,9 +347,11 @@ class TargetMind:
                     closest_flag = distance
                     best_id = flag_id
                 else:
-                    print("[{}] Flag is further than {} away... (range: {})".format(creep.name, closest_flag, distance))
+                    print("[{}][{}] Flag is further than {} away... (range: {})".format(
+                        creep.memory.home, creep.name, closest_flag, distance))
             else:
-                print("[{}] flag has {} miners already...".format(creep.name, miners))
+                print("[{}][{}] flag has {} miners already...".format(
+                    creep.memory.home, creep.name, miners))
 
         return best_id
 
@@ -797,7 +799,7 @@ class RoomMind:
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
-        print("[{}] Registering as replacement for {} (a {}).".format(replacing_name, replaced_name, role))
+        print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name, replaced_name, role))
         # rt_map = self._get_rt_map()
         # found = False
         # if role in rt_map and len(rt_map[role]):

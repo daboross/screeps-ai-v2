@@ -114,7 +114,7 @@ class ConstructionMind:
                     > currently_built + (current_targets[structure_type] or 0):
                 if len(_.filter(flag.pos.lookFor(LOOK_STRUCTURES), {"structureType": structure_type})) \
                         or len(_.filter(flag.pos.lookFor(LOOK_CONSTRUCTION_SITES), {"structureType": structure_type})):
-                    continue # already built.
+                    continue  # already built.
                 flag.pos.createConstructionSite(structure_type)
                 if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER):
                     high_priority.append("flag-{}".format(flag.name))

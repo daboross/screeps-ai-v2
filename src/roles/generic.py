@@ -21,8 +21,8 @@ class ReplacingExpendedCreep(RoleBase):
         old_creep = Game.creeps[old_name]
 
         if not old_creep or not Memory.creeps[old_name]:
-            print("[{}] Now switching to role {}, to replace past-dead {}.".format(
-                self.name, self.memory.replacing_role, self.memory.replacing
+            self.log("Now switching to role {}, to replace past-dead {}.".format(
+                self.memory.replacing_role, self.memory.replacing
             ))
             # He isn't alive anymore, we're too late.
             role = self.memory.replacing_role
@@ -43,8 +43,8 @@ class ReplacingExpendedCreep(RoleBase):
                 self.move_to(old_creep)
                 return
 
-        print("[{}] Commanding {} to suicide, and stealing their {} identity!".format(
-            self.name, old_name, self.memory.replacing_role,
+        self.log("Commanding {} to suicide, and stealing their {} identity!".format(
+            old_name, self.memory.replacing_role,
         ))
         old_time_to_live = old_creep.ticksToLive
         old_creep.suicide()
@@ -66,8 +66,8 @@ class ReplacingExpendedCreep(RoleBase):
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role
         if role:
-            print("[{}] {} died (identity stolen by {}) (time to live: {})".format(old_name, role, self.name,
-                                                                                   old_time_to_live))
+            print("[{}][{}] {} died (identity stolen by {}) (time to live: {})".format(
+                self.home.room_name, old_name, role, self.name, old_time_to_live))
 
         if role == role_dedi_miner:
             source = self.target_mind.get_existing_target(self.creep, target_big_source)

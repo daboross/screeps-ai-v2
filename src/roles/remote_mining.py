@@ -23,7 +23,7 @@ class RemoteMiner(RoleBase):
             source_flag.memory.remote_miner_targeting = self.name
             source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
         if not source_flag:
-            print("[{}] Remote miner can't find any sources!".format(self.name))
+            self.log("Remote miner can't find any sources!")
             self.recycle_me()
             self.report(speech.remote_miner_no_flag)
             return False
@@ -37,7 +37,7 @@ class RemoteMiner(RoleBase):
         self.memory.stationary = True
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
-            print("[{}] Remote mining source flag {} has no sources under it!".format(self.name, source_flag.name))
+            self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             self.report(speech.remote_miner_flag_no_source)
             return False
 
@@ -49,9 +49,7 @@ class RemoteMiner(RoleBase):
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             self.report(speech.remote_miner_ner)
         else:
-            print("[{}] Unknown result from remote-mining-creep.harvest({}): {}".format(
-                self.name, source_flag, result
-            ))
+            self.log("Unknown result from remote-mining-creep.harvest({}): {}", source_flag, result)
             self.report(speech.remote_miner_unknown_result)
 
         return False
@@ -62,9 +60,7 @@ class RemoteMiner(RoleBase):
             return -1
         source_pos = source.pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
-        # print("[{}] Calculating replacement time using distance from {} to {}".format(
-        #     self.name, spawn_pos, source_pos
-        # ))
+        # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         return movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
 
 
@@ -84,7 +80,7 @@ class RemoteHauler(SpawnFill):
 
             if not source_flag:
                 # TODO: Re-enable after we get auto-respawning things *before* they die
-                # print("[{}] Remote hauler can't find any sources!".format(self.name))
+                # self.log("Remote hauler can't find any sources!")
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
@@ -104,9 +100,8 @@ class RemoteHauler(SpawnFill):
             else:
                 target_pos = source_flag.pos
             if not target_pos:
-                print("[{}] Remote hauler can't find remote miner at {}! Miner name: {}!".format(
-                    self.name, source_flag, source_flag.memory.remote_miner_targeting
-                ))
+                self.log("Remote hauler can't find remote miner at {}! Miner name: {}!", source_flag,
+                         source_flag.memory.remote_miner_targeting)
                 if source_flag.memory.remote_miner_targeting and not \
                         Game.creeps[source_flag.memory.remote_miner_targeting]:
                     del source_flag.memory.remote_miner_targeting
@@ -139,9 +134,7 @@ class RemoteHauler(SpawnFill):
                 self.memory.harvesting = False
                 return True
             else:
-                print("[{}] Unknown result from hauler-creep.pickup({}): {}".format(
-                    self.name, source_flag, result
-                ))
+                self.log("Unknown result from hauler-creep.pickup({}): {}", source_flag, result)
                 self.report(speech.remote_hauler_pickup_unknown_result)
 
             return False
@@ -176,13 +169,11 @@ class RemoteHauler(SpawnFill):
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                print("[{}] {} in room {} full!".format(self.name, target, target.pos.roomName))
+                self.log("{} in room {} full!", target, target.pos.roomName)
                 self.go_to_depot()
                 self.report(speech.remote_hauler_storage_full)
             else:
-                print("[{}] Unknown result from hauler-creep.transfer({}): {}".format(
-                    self.name, target, result
-                ))
+                self.log("Unknown result from hauler-creep.transfer({}): {}", target, result)
                 self.report(speech.remote_hauler_transfer_unknown_result)
 
             return False
@@ -193,7 +184,7 @@ class RemoteReserve(RoleBase):
         controller = self.target_mind.get_new_target(self.creep, target_remote_reserve)
 
         if not controller:
-            print("[{}] Remote reserve couldn't find controller open!".format(self.name))
+            self.log("Remote reserve couldn't find controller open!")
             self.recycle_me()
             return
 
@@ -207,9 +198,8 @@ class RemoteReserve(RoleBase):
             self.memory.action_start_time = Game.time
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
-            print("[{}] Remote reserve creep target owned by another player! {} has taken our reservation!".format(
-                self.name, controller.reservation.username
-            ))
+            self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",
+                     controller.reservation.username)
         if not controller.reservation or controller.reservation.ticksToEnd < 5000:
             if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
                 # claim this!
@@ -224,7 +214,5 @@ class RemoteReserve(RoleBase):
             return -1
         target_pos = controller.pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
-        # print("[{}] Calculating replacement time using distance from {} to {}".format(
-        #     self.name, spawn_pos, target_pos
-        # ))
+        # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return movement.path_distance(spawn_pos, target_pos) + RoleBase._calculate_time_to_replace(self)

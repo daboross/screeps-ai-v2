@@ -67,9 +67,10 @@ def main():
                 instance = wrap_creep(creep)
                 if not instance:
                     if creep.memory.role:
-                        print("[{}] Couldn't find role-type wrapper for role {}!".format(creep.name, creep.memory.role))
+                        print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
+                            creep.memory.home, creep.name, creep.memory.role))
                     else:
-                        print("[{}] Couldn't find this creep's role.".format(creep.name))
+                        print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
                     role = default_roles[creep.memory.base]
                     if not role:
                         base = RoleBase(target_mind, creep)
@@ -85,12 +86,14 @@ def main():
                 if rerun:
                     rerun = instance.run()
                 if rerun:
-                    print("[{}: {}] Tried to rerun three times!".format(creep.name, creep.memory.role))
+                    print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
+                                                                            creep.memory.role))
             except Error as e:
-                Game.notify("Error running role {}! Creep {} not run this tick.\n{}".format(
-                    creep.memory.role if creep.memory.role else "<no role>", creep.name, e.stack
+                Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
+                    creep.memory.role if creep.memory.role else "<no role>", creep.name, creep.memory.home, e.stack
                 ), 10)
-                print("[{}] Error running role {}!".format(creep.name, role if role else "<no role>"))
+                print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
+                                                               role if role else "<no role>"))
                 print(e.stack)
 
     for name in Object.keys(Game.spawns):
