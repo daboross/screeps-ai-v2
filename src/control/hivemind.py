@@ -20,7 +20,12 @@ _SLIGHTLY_SMALLER_THAN_MAX_INT = math.pow(2, 30)
 def _get_hauler_count_for_mine(flag):
     sitting = flag.memory.sitting if flag.memory.sitting else 0
     carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.1)
-    produce_per_tick = 9.0 + round(sitting / 200.0)
+    room = Game.rooms[flag.pos.roomName]
+    if room and (not room.controller or room.controller.reservation):
+        mining_per_tick = 9.0
+    else:
+        mining_per_tick = 4.0
+    produce_per_tick = mining_per_tick + round(sitting / 200.0)
     max_haulers = math.ceil(produce_per_tick / carry_per_tick)
     return max_haulers
 
