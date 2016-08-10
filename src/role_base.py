@@ -339,7 +339,8 @@ class RoleBase:
     def is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
         creep_pos = self.creep.pos
-
+        if creep_pos.roomName != next_pos.roomName:
+            return True
         # Apparently, I thought it would be best if we start at the target position, and continue looking for open
         # spaces until we get to the origin position. Thus, if we encounter an obstacle, we use "continue", and if the
         # result is that we've reached the creep position, we return false.

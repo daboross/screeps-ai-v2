@@ -31,12 +31,12 @@ def run(room, spawn):
     role = room.get_next_role()
     if not role:
         # TODO: at this point, figure out how long until the next replacement is needed!
-        if not room.mem.spawning_already_reported_no_next_role:
-            print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
-            room.mem.spawning_already_reported_no_next_role = True
+        # if not room.mem.spawning_already_reported_no_next_role:
+        #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
+        #     room.mem.spawning_already_reported_no_next_role = True
         return
     elif room.mem.spawning_already_reported_no_next_role:
-        room.mem.spawning_already_reported_no_next_role = False
+        del room.mem.spawning_already_reported_no_next_role
     base = role_bases[role]
 
     filled = spawn.room.energyAvailable

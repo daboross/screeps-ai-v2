@@ -213,6 +213,7 @@ class TargetMind:
         sources = creep.room.find(FIND_SOURCES)
         for source in sources:
             energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount') or 0
+            # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
             if source.id in self.targets[target_source]:
                 current_harvesters = self.targets[target_source][source.id]
             else:
@@ -221,7 +222,7 @@ class TargetMind:
                 smallest_num_harvesters = current_harvesters
             if energy > biggest_energy_store:
                 biggest_energy_store = energy
-
+        # print("[{}] Biggest energy store: {}".format(creep.room.name, biggest_energy_store))
         for source in sources:
             dedicated_miner_placed = not not (Memory.dedicated_miners_stationed and
                                               Memory.dedicated_miners_stationed[source.id])
@@ -232,6 +233,8 @@ class TargetMind:
                 current_harvesters = 0
             if dedicated_miner_placed or has_work:
                 if (current_harvesters <= smallest_num_harvesters) and energy + 100 > biggest_energy_store:
+                    # print("[{}] Setting best_id_1: {}. {} + 100 > {}".format(
+                    #     creep.room.name, source.id[-4:], energy, biggest_energy_store))
                     best_id_1 = source.id
                 elif energy >= biggest_energy_store:
                     best_id_2 = source.id
@@ -738,48 +741,9 @@ class RoomMind:
                 # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
                 rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
         self.mem.roles_alive = roles_alive
-        # for role in rt_map.keys():  # ensure we keep existing replacing creeps.
-        #     if role in old_rt_map:
-        #         print("[{}] Looping over {}".format(self.room_name, JSON.stringify(rt_map[role])))
-        #         for rt_pair in rt_map[role]:
-        #             for second_pair in self.mem.rt_map[role]:
-        #                 if second_pair[0] == rt_pair[0]:
-        #                     rt_pair[2] = second_pair[2]
-        #                     print("[{}][recalculate_roles_alive] Found matching rt_pair: Setting {}[2] to {}[2]".format(
-        #                         self.room_name, JSON.stringify(rt_pair), JSON.stringify(second_pair)
-        #                     ))
-        #                     break
-        #             else:
-        #                 print("[{}][recalculate_roles_alive] Didn't find matching rt_pair for {} in old rt_map".format(
-        #                     self.room_name, JSON.stringify(rt_pair)
-        #                 ))
-        #     else:
-        #         print("[{}][recalculate_roles_alive] role {} in new rt_map, but not old rt_map".format(
-        #             self.room_name, role
-        #         ))
-        # for role in Object.keys(old_rt_map):
-        #     if role not in rt_map:
-        #         print("[{}][recalculate_roles_alive] role {} in old rt_map, but not new rt_map".format(
-        #             self.room_name, role
-        #         ))
-        #     else:
-        #         for rt_pair in old_rt_map[role]:
-        #             for second_pair in rt_map[role]:
-        #                 if second_pair[0] == rt_pair[0]:
-        #                     if rt_pair[2] != second_pair[2]:
-        #                         print("[{}][recalculate_roles_alive] OLD AND NEW PAIR DIDN'T MATCH REPLACING?"
-        #                               " (role: {}, name: {})".format(self.room_name, role, rt_pair[0]))
-        #                     break
-        #             else:
-        #                 print("[{}][recalculate_roles_alive] Didn't find matching rt_pair for {} in new rt_map"
-        #                         .format(
-        #                     self.room_name, JSON.stringify(rt_pair)
-        #                 ))
-
         self.mem.rt_map = rt_map
 
     def get_next_replacement_name(self, role):
-        # return None  # TODO: fix the system and remove this
         rt_map = self.rt_map
         if role in rt_map and len(rt_map[role]):
             for rt_pair in rt_map[role]:
@@ -804,16 +768,8 @@ class RoomMind:
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
-        print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name, replaced_name, role))
-        # rt_map = self._get_rt_map()
-        # found = False
-        # if role in rt_map and len(rt_map[role]):
-        #     for rt_pair in _.values(rt_map[role]):
-        #         if rt_pair[0] == replaced_name:
-        #             rt_pair[2] = replacing_name
-        #             print("[{}] Registered as replacement for {} (a {}).".format(replacing_name, replaced_name, role))
-        #             found = True
-        # if not found:
+        print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name, replaced_name,
+                                                                          role))
         if Memory.creeps[replaced_name]:
             Memory.creeps[replaced_name].replacement = replacing_name
         else:
@@ -1086,6 +1042,7 @@ class RoomMind:
                 room = self.hive_mind.get_room(name)
                 # TODO: store and find if there are any HEALers, and if there aren't only use towers.
                 # TODO: Much more sophisticated attack code needed!
+                # TODO: determine if the room is a mining op of ours or not!
                 if not room or (room.room_name == self.room_name or (not first and not room.my)):
                     hostile_count += hostiles_per_room[name]
             if first:

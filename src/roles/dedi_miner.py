@@ -20,7 +20,7 @@ class DedicatedMiner(RoleBase):
             return
 
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source)  #, False, _MOVE_ARGS) # TODO: WHY DOES THIS MAKE THE CREEP AVOID ROADS? WHY?
+            self.move_to(source)
             self.report(speech.dedi_miner_moving)
             return False
 

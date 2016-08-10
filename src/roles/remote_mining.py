@@ -12,16 +12,7 @@ __pragma__('noalias', 'name')
 
 class RemoteMiner(RoleBase):
     def run(self):
-        source_flag = self.target_mind.get_existing_target(self.creep, target_remote_mine_miner)
-        if not source_flag:
-            # use get_existing_target in order to set memory.remote_miner_target exactly once.
-            source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
-            if source_flag:
-                source_flag.memory.remote_miner_targeting = self.name
-                source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
-        elif not source_flag.memory.remote_miner_targeting:
-            source_flag.memory.remote_miner_targeting = self.name
-            source_flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
+        source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
         if not source_flag:
             self.log("Remote miner can't find any sources!")
             self.recycle_me()
