@@ -89,5 +89,6 @@ __all__ = [
     "_",
     "__pragma__",
     "__new__",
+    "__except__",
 ]
 __pragma__('noskip')

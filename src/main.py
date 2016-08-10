@@ -88,12 +88,14 @@ def main():
                 if rerun:
                     print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
                                                                             creep.memory.role))
-            except Error as e:
+            except:
+                e = __except__
+                role = creep.memory.role
                 Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
-                    creep.memory.role if creep.memory.role else "<no role>", creep.name, creep.memory.home, e.stack
+                    role if role else "[no role]", creep.name, creep.memory.home, e.stack
                 ), 10)
                 print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
-                                                               role if role else "<no role>"))
+                                                               role if role else "[no role]"))
                 print(e.stack)
 
     for name in Object.keys(Game.spawns):
@@ -113,6 +115,7 @@ __pragma__('js', 'global').py = {
     "hivemind": hivemind,
     "flags": flags,
     "constants": constants,
+    "get_room": lambda name: context.hive().get_room(name)
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
