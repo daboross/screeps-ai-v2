@@ -365,13 +365,14 @@ class TargetMind:
 
     def _find_new_remote_hauler_mine(self):
         best_id = None
-        smallest_percentage = 1  # don't go to any rooms with 100% haulers in use.
+        # don't go to any rooms with 100% haulers in use.
+        smallest_percentage = 1
         for flag in context.room().remote_mining_operations:
             if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
-            haulers = self.targets[target_remote_mine_hauler][flag_id]
-            hauler_percentage = haulers / _get_hauler_count_for_mine(flag)
+            haulers = self.targets[target_remote_mine_hauler][flag_id] or 0
+            hauler_percentage = float(haulers) / _get_hauler_count_for_mine(flag)
             if not haulers or hauler_percentage < smallest_percentage:
                 smallest_percentage = hauler_percentage
                 best_id = flag_id
@@ -563,9 +564,12 @@ _min_work_mass_big_miner = 8  # TODO: This really should be based off of spawn e
 _extra_work_mass_per_big_miner = 10
 _min_work_mass_remote_mining_operation = 25
 _extra_work_mass_per_extra_remote_mining_operation = 10
+_min_energy_pause_remote_mining = 950000
+_max_energy_resume_remote_mining = 700000
 _min_work_mass_for_full_storage_use = 35
 
-_min_stored_energy_before_enabling_full_storage_use = 8000
+_min_energy_enable_full_storage_use = 10000
+_max_energy_disable_full_storage_use = 5000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
 # 0 is rcl 1
@@ -665,6 +669,19 @@ class RoomMind:
 
     remote_mining_operations = property(_get_remote_mining_operations)
 
+    def distance_storage_to_mine(self, flag):
+        cache_name = "storage_distance_to_{}".format(flag.name)
+        cached = self.get_cached_property(cache_name)
+        if cached:
+            return cached
+        if self.room.storage:
+            distance = movement.path_distance(self.room.storage.pos, flag.pos)
+            self.store_cached_property(cache_name, distance, 150)
+        else:
+            distance = movement.path_distance(self.spawn.pos, flag.pos)
+            self.store_cached_property(cache_name, distance, 75)
+        return distance
+
     def _get_rt_map(self):
         if not self.mem.rt_map:
             self.recalculate_roles_alive()
@@ -696,19 +713,6 @@ class RoomMind:
             #_.sortedIndex(array, value, [iteratee=_.identity])
             # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
             rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
-
-    def distance_storage_to_mine(self, flag):
-        cache_name = "storage_distance_to_{}".format(flag.name)
-        cached = self.get_cached_property(cache_name)
-        if cached:
-            return cached
-        if self.room.storage:
-            distance = movement.path_distance(self.room.storage.pos, flag.pos)
-            self.store_cached_property(cache_name, distance, 150)
-        else:
-            distance = movement.path_distance(self.spawn.pos, flag.pos)
-            self.store_cached_property(cache_name, distance, 75)
-        return distance
 
     def recalculate_roles_alive(self):
         """
@@ -870,13 +874,33 @@ class RoomMind:
         :rtype: bool
         """
         if self._full_storage_use is None:
-            self._full_storage_use = not not (
-                (self.trying_to_get_full_storage_use and self.room.storage.store[RESOURCE_ENERGY]
-                 >= _min_stored_energy_before_enabling_full_storage_use)
-                or (self.room.storage and self.room.storage.store[RESOURCE_ENERGY]
-                    >= _min_stored_energy_to_draw_from_before_refilling)
-            )
+            if self.room.storage and self.room.storage.store[RESOURCE_ENERGY] \
+                    >= _min_stored_energy_to_draw_from_before_refilling:
+                self._full_storage_use = True
+                self.mem.full_storage_use = True
+            else:
+                if self.trying_to_get_full_storage_use:
+                    if self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
+                            <= _max_energy_disable_full_storage_use:
+                        print("[{}] Disabling full storage use.".format(self.room_name))
+                        self.mem.full_storage_use = False
+                    if not self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
+                            > _min_energy_enable_full_storage_use:
+                        print("[{}] Enabling full storage use.".format(self.room_name))
+                        self.mem.full_storage_use = True
+                    self._full_storage_use = self.mem.full_storage_use
+                else:
+                    self._full_storage_use = False
         return self._full_storage_use
+
+    def mining_ops_paused(self):
+        if not self.full_storage_use:
+            return False
+        if self.mem.focusing_home and self.room.storage.store.energy < _max_energy_resume_remote_mining:
+            self.mem.focusing_home = False
+        if not self.mem.focusing_home and self.room.storage.store.energy > _min_energy_pause_remote_mining:
+            self.mem.focusing_home = True
+        return not not self.mem.focusing_home
 
     def get_target_dedi_miner_count(self):
         """
@@ -899,7 +923,7 @@ class RoomMind:
         """
         if self._target_remote_mining_operation_count is None:
             # TODO: don't count rooms mined by other owned rooms! This is a hack.
-            if self.work_mass > _min_work_mass_remote_mining_operation:
+            if self.work_mass > _min_work_mass_remote_mining_operation and not self.mining_ops_paused():
                 self._target_remote_mining_operation_count = min(
                     1 + math.floor(
                         (self.work_mass - _min_work_mass_remote_mining_operation)

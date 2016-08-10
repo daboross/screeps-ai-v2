@@ -86,8 +86,13 @@ class RemoteHauler(SpawnFill):
                 if len(piles):
                     _.sortBy(piles, 'amount')
                     target_pos = piles[0].pos
-                elif miner:
-                    target_pos = miner.pos
+                    if not miner:
+                        # Update this here.
+                        source_flag.memory.energy_sitting = _.sum(piles, 'amount')
+                else:
+                    source_flag.memory.energy_sitting = 0
+                    if miner:
+                        target_pos = miner.pos
             else:
                 target_pos = source_flag.pos
             if not target_pos:
