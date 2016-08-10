@@ -54,6 +54,8 @@ class ReplacingExpendedCreep(RoleBase):
         # be turned into a property in the future.
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
+        # any role here, doesn't really matter. it's already committed suicide
+        Memory.creeps[old_name] = {"role": "replaced", "home": self.memory.home}
         del self.memory.calculated_replacement_time
         del self.memory.replacement
         del self.memory.stationary

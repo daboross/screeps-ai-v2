@@ -1105,7 +1105,15 @@ class RoomMind:
         if self._target_spawn_fill_count is None:
             spawn_fill_backup = self.role_count(role_spawn_fill_backup)
             tower_fill = self.role_count(role_tower_fill)
-            regular_count = max(0, 2 + len(self.sources) - tower_fill - spawn_fill_backup)
+            if self.room_name == "W46N28":
+                # TODO: Make it possible to scale things based off of "input energy" or hauler count of mined sources.
+                # more are needed because there are no links and storage is a long way from spawn.
+                total_needed = 3 + len(self.sources) + len(_.filter(
+                    self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
+                print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
+            else:
+                total_needed = 2 + len(self.sources)
+            regular_count = max(0, total_needed - tower_fill - spawn_fill_backup)
             if self.trying_to_get_full_storage_use:
                 self._target_spawn_fill_count = regular_count
             else:
