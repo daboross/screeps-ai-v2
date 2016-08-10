@@ -760,6 +760,10 @@ class RoomMind:
         return None
 
     def next_x_to_die_of_role(self, role, x=1):
+        key = "next_to_die_{}".format(role)
+        result = self.get_cached_property(key)
+        if result:
+            return result
         if not x:
             x = 1
         result = []
@@ -769,6 +773,7 @@ class RoomMind:
                 result.append(rt_pair[0])
                 if len(result) >= x:
                     break
+        self.store_cached_property(key, result, self.mem.meta.clear_next - Game.time + 1)
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):

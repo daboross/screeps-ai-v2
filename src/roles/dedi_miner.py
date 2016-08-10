@@ -66,6 +66,9 @@ class LocalHauler(SpawnFill):
             self.memory.harvesting = True
             self.target_mind.untarget_all(self.creep)
 
+        # NOTE HERE: Instead of checking if we are over-stationed on LocalHaulers in this class (as remote miner does),
+        # we check in consistency.reassign_room_roles().
+
         if self.memory.harvesting:
             source = self.target_mind.get_new_target(self.creep, target_source)
 

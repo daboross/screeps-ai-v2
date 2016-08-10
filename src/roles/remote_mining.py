@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_deposit_site
+    target_closest_deposit_site, role_remote_hauler, role_cleanup
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from utilities import movement
@@ -75,8 +75,17 @@ class RemoteHauler(SpawnFill):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
+                if self.home.role_count(role_remote_hauler) > self.home.get_target_remote_hauler_count():
+                    # The creep with the lowest lifetime left should abandon post.
+                    next_to_die = self.home.next_x_to_die_of_role(
+                        role_remote_hauler,
+                        self.home.role_count(role_remote_hauler) - self.home.get_target_remote_hauler_count())
+                    if self.name in next_to_die:
+                        self.memory.role = role_cleanup
+                        Memory.meta.clear_now = True
+                        return False
                 self.report(speech.remote_hauler_no_source)
-                self.recycle_me()
+                self.go_to_depot()
                 return False
 
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]

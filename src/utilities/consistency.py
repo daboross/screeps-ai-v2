@@ -13,15 +13,29 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
-    if room.role_count(role_spawn_fill) < 4 and room.role_count(role_dedi_miner) < room.get_target_dedi_miner_count():
+    if room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) < 4 \
+            and room.role_count(role_dedi_miner) < room.get_target_dedi_miner_count():
         num = 0
         for creep in room.creeps:
             memory = creep.memory
             if memory.base == creep_base_worker:
+                memory.role = role_spawn_fill_backup
+                num += 1
+            elif memory.base == creep_base_hauler:
                 memory.role = role_spawn_fill
-            num += 1
-            if num > 5:
+                num += 1
+            if num >= 5:
                 break
+        room.recalculate_roles_alive()
+
+    if room.role_count(role_local_hauler) > room.get_target_local_hauler_count():
+        # The creep with the lowest lifetime left should die.
+        next_to_die = room.next_x_to_die_of_role(
+            role_local_hauler,
+            room.role_count(role_local_hauler) - room.get_target_local_hauler_count())
+        for name in next_to_die:
+            if Memory.creeps[name]:
+                Memory.creeps[name].role = role_cleanup
         room.recalculate_roles_alive()
 
 

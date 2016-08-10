@@ -1,5 +1,5 @@
 import speech
-from constants import role_cleanup
+from constants import role_cleanup, role_local_hauler, role_remote_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from utilities import movement
@@ -148,6 +148,14 @@ class Cleanup(SpawnFill):
                         role_cleanup,
                         self.home.role_count(role_cleanup) - 1 - self.home.get_target_cleanup_count())
                     if self.name in next_to_die:
+                        if self.home.role_count(role_local_hauler) < self.home.get_target_local_hauler_count():
+                            self.memory.role = role_local_hauler
+                            self.home.mem.meta.clear_now = True
+                            return False
+                        if self.home.role_count(role_remote_hauler) < self.home.get_target_remote_hauler_count():
+                            self.memory.role = role_remote_hauler
+                            self.home.mem.meta.clear_now = True
+                            return False
                         self.recycle_me()
                         return
                 if _.sum(self.creep.carry) >= 0:
