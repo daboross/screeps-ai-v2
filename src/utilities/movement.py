@@ -2,7 +2,6 @@ import math
 
 import context
 import flags
-from utilities import pathfinding
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -120,7 +119,7 @@ def path_distance(here, target, non_roads_two_movement=False):
     current = __new__(RoomPosition(here.x, here.y, here.roomName))
 
     path_len = 0
-    x = 1
+    x = 0
     rooms_looked_at = []
 
     target_room_xy = parse_room_to_xy(target.roomName)
@@ -165,19 +164,33 @@ def path_distance(here, target, non_roads_two_movement=False):
         current = get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy)
 
     if x >= 6:
-        print("[path_distance] Looked at 4 rooms!?!?! {}".format(JSON.stringify(rooms_looked_at)))
-
+        rooms_looked_at.append(current.roomName)
+        print("[path_distance] Looked at 6 rooms when pathfinding from {} to {}: {}".format(
+            here, target, JSON.stringify(rooms_looked_at)))
     room = Game.rooms[current.roomName]
-    if room:
-        path = pathfinding.find_path(room, current, target, None)
-        if not path:
-            print("[path_distance] pathfinding couldn't find path from {} to {} in room {}!".format(current,
-                                                                                                    target,
-                                                                                                    current.roomName))
-        path_len += len(path)
+
+    path = context.hive().honey.find_path(current, target)
+    if path:
+        if not non_roads_two_movement:
+            path_len += len(path)
+        else:
+            for pos in path:
+                if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
+                    path_len += 1
+                else:
+                    path_len += 2
+            path_len += 1
     else:
-        print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
-        path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
+        if room:
+            if not path:
+                print("[path_distance] pathfinding couldn't find path to {} from {}!".format(target, current))
+                return -1
+        else:
+            print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
+            if not non_roads_two_movement:
+                path_len += math.sqrt(distance_squared_room_pos(current, target))
+            else:
+                path_len += 2 * math.sqrt(distance_squared_room_pos(current, target))
 
     return path_len
 
