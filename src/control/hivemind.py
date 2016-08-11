@@ -834,6 +834,8 @@ class RoomMind:
             Memory.hostiles = []
         if not Memory.hostile_last_rooms:
             Memory.hostile_last_rooms = {}
+        if not Memory.hostile_last_positions:
+            Memory.hostile_last_positions = {}
         if Memory.meta.friends and len(Memory.meta.friends):
             targets = self.room.find(FIND_HOSTILE_CREEPS, {
                 "filter": lambda c: c.owner.username not in Memory.meta.friends
@@ -843,7 +845,8 @@ class RoomMind:
         for hostile in targets:
             if hostile.id not in Memory.hostiles:
                 Memory.hostiles.push(hostile.id)
-                Memory.hostile_last_rooms[hostile.id] = self.room_name
+            Memory.hostile_last_rooms[hostile.id] = self.room_name
+            Memory.hostile_last_positions[hostile.id] = hostile.pos
 
     def get_name(self):
         return self.room.name
