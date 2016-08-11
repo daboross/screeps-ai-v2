@@ -1,3 +1,5 @@
+import math
+
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -10,6 +12,7 @@ EXIT_WEST = "exit_west"
 REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
 PATH_FINDING_AVOID = "avoid_moving_through"
+SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
 MAIN_BUILD = "build"
 SUB_WALL = "wall"
@@ -36,6 +39,7 @@ flag_definitions = {
     EXIT_WEST: (COLOR_WHITE, COLOR_CYAN),
     REMOTE_MINE: (COLOR_GREEN, COLOR_CYAN),
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
+    SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED)
 }
 
 main_to_flag_primary = {
@@ -142,7 +146,9 @@ def find_by_main_with_sub(room, main_type):
         for name in Object.keys(Game.flags):
             flag = Game.flags[name]
             if flag.pos.roomName == room_name and flag.color == flag_primary:
-                flag_list.append([flag, flag_secondary_to_sub[flag.secondaryColor]])
+                secondary = flag_secondary_to_sub[flag.secondaryColor]
+                if secondary:  # don't pick flags which don't match any of the secondary colors
+                    flag_list.append([flag, secondary])
 
     if room_name in _room_flag_cache:
         _room_flag_cache[room_name][main_type] = flag_list
@@ -179,9 +185,14 @@ def find_ms_flag(room, main_type, sub_type):
 
 
 _global_flag_cache = {}
+_global_flag_refresh_time = 0
 
 
 def find_flags_global(flag_type, reload=False):
+    global _global_flag_refresh_time, _global_flag_cache
+    if Game.time > _global_flag_refresh_time:
+        _global_flag_refresh_time = Game.time + 100
+        _global_flag_cache = {}
     if _global_flag_cache[flag_type] and not reload:
         return _global_flag_cache[flag_type]
     flag_def = flag_definitions[flag_type]
@@ -192,6 +203,41 @@ def find_flags_global(flag_type, reload=False):
             flag_list.append(flag)
     _global_flag_cache[flag_type] = flag_list
     return flag_list
+
+
+_closest_flag_cache = {}
+_closest_flag_refresh_time = 0
+
+
+def squared_distance(x1, y1, x2, y2):
+    """
+    TODO: this is duplicated in movement.py - currently necessary to avoid circular imports though.
+    Gets the squared distance between two x, y positions
+    :return: an integer, the squared linear distance
+    """
+    x_diff = (x1 - x2)
+    y_diff = (y1 - y2)
+    return x_diff * x_diff + y_diff * y_diff
+
+
+def find_closest_in_room(pos, flag_type):
+    global _closest_flag_refresh_time, _closest_flag_cache
+    if Game.time > _closest_flag_refresh_time:
+        _closest_flag_refresh_time = Game.time + 100
+        _closest_flag_cache = {}
+    key = "{}_{}_{}_{}".format(pos.roomName, pos.x, pos.y, flag_type)
+    if key in _closest_flag_cache:
+        return _closest_flag_cache[key]
+    closest_distance = math.pow(2, 30)
+    closest_flag = None
+    for flag in find_flags(pos.roomName, flag_type):
+        distance = squared_distance(pos.x, pos.y, flag.pos.x, flag.pos.y)
+        if distance < closest_distance:
+            closest_distance = distance
+            closest_flag = flag
+    _closest_flag_cache[key] = closest_flag
+
+    return closest_flag
 
 
 def __create_flag(position, flag_type, primary, secondary):

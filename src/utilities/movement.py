@@ -1,5 +1,6 @@
 import math
 
+import context
 import flags
 from utilities import pathfinding
 from utilities.screeps_constants import *
@@ -137,12 +138,8 @@ def path_distance(here, target, non_roads_two_movement=False):
                                                                                             exit_direction))
             return -1
 
-        if room:
-            path = pathfinding.find_path(room, current, exit_pos, None)
-            if not path:
-                print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(exit_direction,
-                                                                                                     current.roomName))
-                return -1
+        path = context.hive().honey.find_path(current, exit_pos)
+        if path:
             if not non_roads_two_movement:
                 path_len += len(path) + 1  # one to accommodate moving to the other room.
             else:
@@ -152,13 +149,18 @@ def path_distance(here, target, non_roads_two_movement=False):
                     else:
                         path_len += 2
                 path_len += 1
-
         else:
-            print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
-            if not non_roads_two_movement:
-                path_len += math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
+            if room:
+                if not path:
+                    print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(
+                        exit_direction, current.roomName))
+                    return -1
             else:
-                path_len += 2 * math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
+                print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
+                if not non_roads_two_movement:
+                    path_len += math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
+                else:
+                    path_len += 2 * math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
 
         current = get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy)
 
@@ -178,6 +180,20 @@ def path_distance(here, target, non_roads_two_movement=False):
         path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
 
     return path_len
+
+
+def is_block_clear(room, x, y):
+    if len(room.lookForAt(LOOK_CREEPS, x, y)) != 0:
+        return False
+    for struct in room.lookForAt(LOOK_STRUCTURES, x, y):
+        if struct.structureType != STRUCTURE_RAMPART and struct.structureType != STRUCTURE_EXTENSION \
+                and struct.structureType != STRUCTURE_CONTAINER:
+            return False
+    for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
+        if terrain.type | TERRAIN_MASK_WALL == TERRAIN_MASK_WALL \
+                or terrain.type | TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA:
+            return False
+    return True
 
 
 def get_entrance_for_exit_pos(exit_pos):

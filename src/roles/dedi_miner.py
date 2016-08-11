@@ -1,3 +1,4 @@
+import flags
 import speech
 from constants import target_big_source, target_source, role_dedi_miner, target_closest_deposit_site
 from role_base import RoleBase
@@ -102,7 +103,7 @@ class LocalHauler(SpawnFill):
                 return False
 
             if not self.creep.pos.isNearTo(target_pos):
-                self.move_to(target_pos)
+                self.move_to_with_queue(target_pos, flags.SOURCE_QUEUE_START)
                 self.pick_up_available_energy()
                 self.report(speech.local_hauler_moving_to_miner)
                 return False

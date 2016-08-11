@@ -116,7 +116,7 @@ class RemoteHauler(SpawnFill):
                 return True
 
             self.pick_up_available_energy()
-            if not self.creep.pos.isNearTo(target_pos):
+            if not self.creep.pos.isNearTo(source_flag) and not self.creep.pos.isNearTo(target_pos):
                 if miner and not miner.memory.stationary and target_pos.roomName == miner.pos.roomName:
                     self.memory.go_to_depot_until = Game.time + 20
                     self.go_to_depot()
@@ -127,10 +127,19 @@ class RemoteHauler(SpawnFill):
                     else:
                         self.go_to_depot()
                         return False
-                self.move_to(target_pos)
+                if _.sum(self.creep.carry, 'amount') / self.creep.carryCapacity >= 0.75:
+                    self.memory.harvesting = False
+                    self.last_checkpoint = source_flag # follow the reverse path back
+                    return True
+                # TODO: should we really be targetting the source flag, or should we target the miner if he's here?
+                self.move_to(source_flag, False, True)
                 self.report(speech.remote_hauler_moving_to_miner)
                 return False
-
+            self.last_checkpoint = source_flag
+            if not self.creep.pos.isNearTo(target_pos):
+                self.move_to(target_pos, False, True)
+                self.report(speech.remote_hauler_moving_to_miner)  # TODO: different message here
+                return False
             self.memory.stationary = True
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
@@ -159,7 +168,7 @@ class RemoteHauler(SpawnFill):
                 return SpawnFill.run(self)
 
             if self.creep.pos.roomName != storage.pos.roomName:
-                self.move_to(storage)
+                self.move_to(storage, False, True)
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
@@ -168,10 +177,11 @@ class RemoteHauler(SpawnFill):
                 target = storage
 
             if not self.creep.pos.isNearTo(target.pos):
-                self.move_to(target)
+                self.move_to(target, False, True)
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
+            self.last_checkpoint = storage.pos
             self.memory.stationary = True
 
             result = self.creep.transfer(target, RESOURCE_ENERGY)

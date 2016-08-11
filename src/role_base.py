@@ -94,7 +94,106 @@ class RoleBase:
         """
         pass
 
-    def _try_move_to(self, pos):
+    def _get_last_checkpoint(self):
+        if self.memory.last_checkpoint:
+            if not self._last_checkpoint_as_pos:
+                checkpoint = self.memory.last_checkpoint
+                if checkpoint.pos:
+                    checkpoint = checkpoint.pos
+                if checkpoint.x is undefined or checkpoint.y is undefined or checkpoint.roomName is undefined:
+                    self.last_checkpoint = None
+                    return None
+                self._last_checkpoint_as_pos = __new__(RoomPosition(checkpoint.x, checkpoint.y, checkpoint.roomName))
+            return self._last_checkpoint_as_pos
+        else:
+            return None
+
+    def _set_last_checkpoint(self, value):
+        if value is None:
+            del self.memory.last_checkpoint
+        else:
+            if value.pos:
+                # we allow setting last checkpoint to a RoomObject and not just a RoomPosition.
+                value = value.pos
+            self.memory.last_checkpoint = value
+        self._last_checkpoint_as_pos = value
+
+    last_checkpoint = property(_get_last_checkpoint, _set_last_checkpoint)
+
+    def _follow_path_to(self, target):
+        if target.pos:
+            target = target.pos
+        if not self.last_checkpoint:
+            if self.creep.pos.isEqualTo(target) or (self.creep.pos.isNearTo(target) and
+                                                        movement.is_block_clear(self.creep.room, target.x, target.y)):
+                self.last_checkpoint = target
+            return self.creep.moveTo(target)
+        elif target.isEqualTo(self.last_checkpoint):
+            self.log("Creep target not updated! Last checkpoint is still {}, at {} distance away.".format(
+                target, self.creep.pos.getRangeTo(target)
+            ))
+            self.last_checkpoint = None
+            return self.creep.moveTo(target)
+        if self.last_checkpoint.roomName != self.creep.pos.roomName:
+            entrance = movement.get_entrance_for_exit_pos(self.last_checkpoint)
+            # TODO: Remove debug logging
+            self.last_checkpoint = entrance
+            if entrance.roomName != self.creep.pos.roomName:
+                self.log("Adjusted last_checkpoint from exit pos to entrance pos before pathfinding. Old: {}, New: {}"
+                         .format(self.last_checkpoint, entrance))
+                self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
+                         "Removing checkpoint.".format(self.last_checkpoint, self.creep.pos))
+                self.last_checkpoint = None
+                return self.creep.moveTo(target)
+
+        # TODO: RoleBase should have a reference to the hive!
+        room = context.hive().get_room(self.creep.pos.roomName)
+        path = room.honey.find_path(self.last_checkpoint, target)
+        # TODO: manually check the next position, and if it's a creep check what direction it's going
+        # TODO: this code should be able to space out creeps eventually
+        result = self.creep.moveByPath(path)
+        if result == ERR_NOT_FOUND:
+            pos = self.creep.pos
+            if pos.x != 0 and pos.x != 49 and pos.y != 0 and pos.y != 49:
+                # This seems to only ever happen when the path accidentally includes an exit tile, in which case we'll
+                # probably find the path again shortly.
+                pass
+                # self.log("Uh-oh! We've lost the path from {} to {}.".format(self.last_checkpoint, target))
+
+            return self.creep.moveTo(target)
+        if result == OK:
+            if self.creep.pos.isNearTo(target) and movement.is_block_clear(self.creep.room, target.x, target.y):
+                self.last_checkpoint = target
+        return result
+
+    def move_to_with_queue(self, target, queue_flag_type, full_defined_path=False):
+        if target.pos:
+            target = target.pos
+        if self.creep.pos.roomName != target.roomName:
+            return self.move_to(target, False, full_defined_path)
+
+        queue_flag = flags.find_closest_in_room(target, queue_flag_type)
+
+        if not queue_flag or queue_flag.pos.getRangeTo(target) > 10:
+            self.log("WARNING! Couldn't find queue flag of type {} close to {}.".format(queue_flag_type, target))
+            return self.move_to(target, False, full_defined_path)
+        if self.creep.pos.isEqualTo(queue_flag.pos):
+            self.last_checkpoint = queue_flag.pos
+        if queue_flag.pos.isEqualTo(self.last_checkpoint):
+            return self._follow_path_to(target)  # this will precalculate a single path ignoring creeps, and move on it.
+
+        if full_defined_path:
+            result = self._follow_path_to(queue_flag)
+        else:
+            self.last_checkpoint = None
+            result = self.creep.moveTo(queue_flag)
+        if result == OK:
+            if self.creep.pos.isNearTo(queue_flag.pos) and \
+                    movement.is_block_clear(self.creep.room, queue_flag.pos.x, queue_flag.pos.y):
+                self.last_checkpoint = queue_flag.pos
+        return result
+
+    def _try_move_to(self, pos, same_position_ok=False, follow_defined_path=False):
         here = self.creep.pos
 
         if here == pos:
@@ -112,9 +211,13 @@ class RoleBase:
                 pos = exit_flag
             else:
                 return OK
-        return self.creep.moveTo(pos)
+        if follow_defined_path:
+            return self._follow_path_to(pos)
+        else:
+            self.last_checkpoint = None
+            return self.creep.moveTo(pos)
 
-    def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
+    def move_to(self, target, same_position_ok=False, follow_defined_path=False, times_tried=0):
         if not same_position_ok:
             # do this automatically, and the roles will set it to true once they've reached their destination.
             self.memory.stationary = False
@@ -123,7 +226,7 @@ class RoleBase:
         else:
             pos = target
         if self.creep.fatigue <= 0:
-            result = self._try_move_to(pos)
+            result = self._try_move_to(pos, same_position_ok, follow_defined_path)
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
@@ -141,9 +244,10 @@ class RoleBase:
 
                 times_tried = times_tried or 0
                 if times_tried < 2:
-                    self.move_to(target, same_position_ok, options, times_tried + 1)
+                    self.move_to(target, same_position_ok, follow_defined_path, times_tried + 1)
                 else:
                     self.log("Continually failed to move from {} to {}!", self.creep.pos, pos)
+                    self.last_checkpoint = None
                     self.creep.moveTo(pos, {"reusePath": 0})
 
     def harvest_energy(self):
@@ -193,15 +297,17 @@ class RoleBase:
 
         piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
         if len(piles) > 0:
-            result = self.creep.pickup(piles[0])
-            if result == ERR_NOT_IN_RANGE:
-                self.move_to(piles[0])
+            pile = piles[0]
+            if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
+                self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START)
                 self.report(speech.default_gather_moving_to_energy)
-            elif result != OK:
-                self.log("Unknown result from creep.pickup({}): {}", piles[0], result)
-                self.report(speech.default_gather_unknown_result_pickup)
-            else:
+                return False
+            result = self.creep.pickup(pile)
+            if result == OK:
                 self.report(speech.default_gather_energy_pickup_ok)
+            else:
+                self.log("Unknown result from creep.pickup({}): {}", pile, result)
+                self.report(speech.default_gather_unknown_result_pickup)
             return False
 
         containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
@@ -209,58 +315,56 @@ class RoleBase:
              or struct.structureType == STRUCTURE_STORAGE)
             and struct.store >= 0
         )})
-        if containers.length > 0:
-            if not self.creep.pos.isNearTo(containers[0]):
+        if len(containers) > 0:
+            container = containers[0]
+            if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
                 self.report(speech.default_gather_moving_to_container)
-                self.move_to(containers[0])
+                self.move_to_with_queue(container, flags.SOURCE_QUEUE_START)
 
-            result = self.creep.withdraw(containers[0], RESOURCE_ENERGY)
+            result = self.creep.withdraw(container, RESOURCE_ENERGY)
             if result == OK:
                 self.report(speech.default_gather_container_withdraw_ok)
             else:
-                self.log("Unknown result from creep.withdraw({}): {}", containers[0], result)
+                self.log("Unknown result from creep.withdraw({}): {}", container, result)
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
-        # at this point, there is no energy and no container filled.
-        # we should ensure that if there's a big harvester, it hasn't died!
-        if Memory.dedicated_miners_stationed \
-                and Memory.dedicated_miners_stationed[source.id] \
-                and not Game.creeps[Memory.dedicated_miners_stationed[source.id]]:
-            Memory.meta.clear_now = True
-            del Memory.dedicated_miners_stationed[source.id]
-
-            if self.creep.getActiveBodyparts(WORK):
-                self.move_to(source)
-                self.report(speech.default_gather_moving_to_source)
+        miner = None
+        if Memory.dedicated_miners_stationed and Memory.dedicated_miners_stationed[source.id]:
+            miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
+            if miner:
+                if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
+                    self.report(speech.default_gather_moving_to_source) # TODO: moving to miner speech
+                    self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START)
+                return False # waiting for the miner to gather energy.
             else:
-                #TODO speach here
-                self.go_to_depot()
+                Memory.meta.clear_now = True
+                del Memory.dedicated_miners_stationed[source.id]
+
+        if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
+            self.go_to_depot()
+            return False
+        if not self.creep.getActiveBodyparts(WORK):
+            self.go_to_depot()
+            self.finished_energy_harvest()
+            return False
+        if not self.creep.pos.isNearTo(source.pos):
+            self.move_to(source)
+            self.report(speech.default_gather_moving_to_source)
+            return False
+
+        if not self.memory.action_start_time:
+            self.memory.action_start_time = Game.time
+        result = self.creep.harvest(source)
+
+        if result == OK:
+            self.report(speech.default_gather_source_harvest_ok)
+        elif result == ERR_NOT_ENOUGH_RESOURCES:
+            # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
+            self.report(speech.default_gather_source_harvest_ner)
         else:
-            if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
-                self.go_to_depot()
-                return False
-            if not self.creep.getActiveBodyparts(WORK):
-                self.go_to_depot()
-                self.finished_energy_harvest()
-                return False
-            if not self.creep.pos.isNearTo(source.pos):
-                self.move_to(source)
-                self.report(speech.default_gather_moving_to_source)
-                return False
-
-            if not self.memory.action_start_time:
-                self.memory.action_start_time = Game.time
-            result = self.creep.harvest(source)
-
-            if result == OK:
-                self.report(speech.default_gather_source_harvest_ok)
-            elif result == ERR_NOT_ENOUGH_RESOURCES:
-                # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
-                self.report(speech.default_gather_source_harvest_ner)
-            else:
-                self.log("Unknown result from creep.harvest({}): {}", source, result)
-                self.report(speech.default_gather_unknown_result_harvest)
+            self.log("Unknown result from creep.harvest({}): {}", source, result)
+            self.report(speech.default_gather_unknown_result_harvest)
         return False
 
     def finished_energy_harvest(self):
