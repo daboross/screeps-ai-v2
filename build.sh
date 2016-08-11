@@ -4,8 +4,19 @@
 # Fail early
 set -e
 
+# the directory this script is in
+BASEDIR="$(readlink -f $(dirname $0))"
+cd "$BASEDIR"
+
+if [[ ! -e env ]]; then
+    virtualenv -p python3.5 --system-site-packages env
+    "./env/bin/pip" install -r "$BASEDIR/requirements.txt"
+    npm install # do this here because this means we're in a new install
+fi
+
 # Variables
-TRANSCRYPT="$HOME/Projects/Python/Environments/screeps/bin/transcrypt"
+TRANSCRYPT="$BASEDIR/env/bin/transcrypt"
+
 
 rm -rf target/
 mkdir -p target/

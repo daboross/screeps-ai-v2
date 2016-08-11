@@ -9,19 +9,35 @@ I've used a tool called [transcrypt](transcrypt.com).
 Transcrypt allows turning a python program pretty directly into a JavaScript program - the command I've used to do this
 is in the ``./build.sh` program in this repository.
 
-If you do choose to try this script/program, I would recommend first making a virtualenv for screeps
-(be sure to use Python 3.5), installing transcrypt with pip, and editing the `build.sh` script to
-match your directory structure, rather than mine.
+To get started with this project, you'll need to get the following programs available:
+- `python-3.5`
+- `pip` (often comes with python)
+- `virtualenv` (install manually later, see below)
+- `node.js`
+- `npm` (often comes with node)
+- `grunt` (install manually later, see below)
 
-Due to the competitive nature of the game, I've decided to not release any of my scripts after today's date, 2016-07-31.
-This repository is a snapshot from that date, and can serve as a based for your program if you want - however, I have
-designed a lot of it to my personal development preferences, and part of the fun of Screeps is designing your own script.
+In order to install Python 3.5, pip, node.js and npm, I would recommend looking up instructions specific to your
+operating system.
 
-I chose this date because it's one where my script does completely function, but has a few large architecture things
-which definitely should be changed going into the future, including the creep-spawning system. The code goes up to
-doing remote mining, but does not manage claiming any other rooms, or finding any remote mining or building targets
-itself. Some of the things are in place to manage multiple rooms, but also some code definitely assumes that we only
-own one room.
+If you are using Windows, I would also recommend installing `git bash`. You'll need some version of bash in order to run
+the deploy script.
 
-If you do take some ideas from this repository, that's awesome, but at some point I would definitely recommend rewriting
-the core framework of the repository, and only taking the usage of transcrypt, and maybe a design few ideas.
+To install virtualenv, after you have installed `pip`, use the following command:
+
+```sh
+pip install --user virtualenv
+```
+
+To install `grunt`, after you have installed `npm`, use the following commands:
+```sh
+npm install -g grunt-cli
+```
+
+After that, you should run the `build.sh` script of this project once to install the rest of the dependencies.
+
+The only remaining step will be to provide your screeps credentials. To do that, put your log in email into a file
+called `.screeps-email` in this project directory, and your password into a file called `.screeps-password`.
+
+Following that, you're all set up! All you need to do now is run the `./build.sh` script whenever you want to compile
+and deploy code, and it will deal with the rest of it.

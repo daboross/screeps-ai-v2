@@ -5,8 +5,9 @@ module.exports = function (grunt) {
     grunt.initConfig({
         screeps: {
             options: {
-                email: 'daboross@daboross.net',
-                password: grunt.file.read(process.env['HOME'] + '/Private/.passwords/screeps'),
+                // Trim right in order to remove any newlines at the end of the files.
+                email: grunt.file.read('./.screeps-email').trimRight(),
+                password: grunt.file.read('./.screeps-password').trimRight(),
                 branch: 'v2',
                 ptr: grunt.option('ptr') || false
             },

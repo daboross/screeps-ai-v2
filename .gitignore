@@ -90,6 +90,9 @@ nb-configuration.xml
 *.ipr
 *.iws
 node_modules
+env
+.screeps-password
+.screeps-email
 
 # Misc files #
 ##############
