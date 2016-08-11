@@ -179,6 +179,8 @@ class RemoteHauler(SpawnFill):
                 return False
 
             target = self.target_mind.get_new_target(self, target_closest_deposit_site)
+            if not target:
+                target = storage
             if target.energy >= target.energyCapacity:
                 target = storage
 

@@ -399,8 +399,11 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        # Called once per creep in the entire lifetime
-        target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+        # --Called once per creep in the entire lifetime-- < NOT TRUE, we are now resetting all targets multiple times
+        # in a creep's lifetime.
+        # target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+        # TODO: cache the closest deposit site to each mine site.
+        target = creep.creep.pos.findClosestByRange(FIND_STRUCTURES, {
             "filter": lambda s: s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
         })
         if target:
