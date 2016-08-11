@@ -33,10 +33,13 @@ def reassign_room_roles(room):
         next_to_die = room.next_x_to_die_of_role(
             role_local_hauler,
             room.role_count(role_local_hauler) - room.get_target_local_hauler_count())
+        changed = False
         for name in next_to_die:
             if Memory.creeps[name]:
                 Memory.creeps[name].role = role_cleanup
-        room.recalculate_roles_alive()
+                changed = True
+        if changed:
+            room.recalculate_roles_alive()
 
 
 def clear_memory(room):

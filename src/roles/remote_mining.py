@@ -13,6 +13,10 @@ __pragma__('noalias', 'name')
 class RemoteMiner(RoleBase):
     def run(self):
         source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
+        if source_flag.memory.sponsor != self.home.room_name:
+            self.log("Remote miner currently targetting foreign mine! Mine: {}, sponsor: {},"
+                     " home: {}, home.targeting: {}".format(source_flag, source_flag.memory.sponsor,
+                                                            self.home.room_name, self.home.remote_mining_operations))
         if not source_flag:
             self.log("Remote miner can't find any sources!")
             self.recycle_me()
@@ -129,7 +133,7 @@ class RemoteHauler(SpawnFill):
                         return False
                 if _.sum(self.creep.carry, 'amount') / self.creep.carryCapacity >= 0.75:
                     self.memory.harvesting = False
-                    self.last_checkpoint = source_flag # follow the reverse path back
+                    self.last_checkpoint = source_flag  # follow the reverse path back
                     return True
                 # TODO: should we really be targetting the source flag, or should we target the miner if he's here?
                 self.move_to(source_flag, False, True)

@@ -111,6 +111,7 @@ class RoleBase:
     def _set_last_checkpoint(self, value):
         if value is None:
             del self.memory.last_checkpoint
+            del self.memory.last_target
         else:
             if value.pos:
                 # we allow setting last checkpoint to a RoomObject and not just a RoomPosition.
@@ -120,11 +121,45 @@ class RoleBase:
 
     last_checkpoint = property(_get_last_checkpoint, _set_last_checkpoint)
 
+    def _get_last_target(self):
+        if self.memory.last_target:
+            if not self._last_target_as_pos:
+                target = self.memory.last_target
+                if target.pos:
+                    target = target.pos
+                if target.x is undefined or target.y is undefined or target.roomName is undefined:
+                    self.last_target = None
+                    return None
+                self._last_target_as_pos = __new__(RoomPosition(target.x, target.y, target.roomName))
+            return self._last_target_as_pos
+        else:
+            return None
+
+    def _set_last_target(self, value):
+        if value is None:
+            del self.memory.last_target
+            del self.memory.last_checkpoint
+        else:
+            if value.pos:
+                # we allow setting last target to a RoomObject and not just a RoomPosition.
+                value = value.pos
+            self.memory.last_target = value
+        self._last_target_as_pos = value
+
+    last_target = property(_get_last_target, _set_last_target)
+
     def _follow_path_to(self, target):
         if target.pos:
             target = target.pos
+        if self.last_target:
+            if not self.last_target.isEqualTo(target):
+                # self.log("Last target was {}. Setting that as the new target!".format(self.last_target))
+                self.last_checkpoint = self.last_target
+                self.last_target = target
+        else:
+            self.last_target = target
         if not self.last_checkpoint:
-            if self.creep.pos.isEqualTo(target) or (self.creep.pos.isNearTo(target) and
+            if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
                                                         movement.is_block_clear(self.creep.room, target.x, target.y)):
                 self.last_checkpoint = target
             return self.creep.moveTo(target)
@@ -136,11 +171,14 @@ class RoleBase:
             return self.creep.moveTo(target)
         if self.last_checkpoint.roomName != self.creep.pos.roomName:
             entrance = movement.get_entrance_for_exit_pos(self.last_checkpoint)
+            if entrance == -1:
+                self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}".format(
+                    self.last_checkpoint, self.creep.pos))
+                self.last_checkpoint = None
+                return self.creep.moveTo(target)
             # TODO: Remove debug logging
             self.last_checkpoint = entrance
             if entrance.roomName != self.creep.pos.roomName:
-                self.log("Adjusted last_checkpoint from exit pos to entrance pos before pathfinding. Old: {}, New: {}"
-                         .format(self.last_checkpoint, entrance))
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
                          "Removing checkpoint.".format(self.last_checkpoint, self.creep.pos))
                 self.last_checkpoint = None
@@ -162,7 +200,10 @@ class RoleBase:
 
             return self.creep.moveTo(target)
         if result == OK:
-            if self.creep.pos.isNearTo(target) and movement.is_block_clear(self.creep.room, target.x, target.y):
+            # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
+            # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
+            # but if they're just trying to get close to it, inRangeTo is what we want.
+            if self.creep.pos.inRangeTo(target, 2) and movement.is_block_clear(self.creep.room, target.x, target.y):
                 self.last_checkpoint = target
         return result
 
@@ -334,9 +375,9 @@ class RoleBase:
             miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
             if miner:
                 if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
-                    self.report(speech.default_gather_moving_to_source) # TODO: moving to miner speech
+                    self.report(speech.default_gather_moving_to_source)  # TODO: moving to miner speech
                     self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START)
-                return False # waiting for the miner to gather energy.
+                return False  # waiting for the miner to gather energy.
             else:
                 self.home.mem.meta.clear_now = True
                 del Memory.dedicated_miners_stationed[source.id]

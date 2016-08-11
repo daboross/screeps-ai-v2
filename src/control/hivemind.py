@@ -775,12 +775,12 @@ class RoomMind:
         return None
 
     def next_x_to_die_of_role(self, role, x=1):
-        key = "next_to_die_{}".format(role)
+        if not x:
+            x = 1
+        key = "next_{}_to_die_{}".format(x, role)
         result = self.get_cached_property(key)
         if result:
             return result
-        if not x:
-            x = 1
         result = []
         rt_map = self._get_rt_map()
         if role in rt_map and len(rt_map[role]):
@@ -788,7 +788,8 @@ class RoomMind:
                 result.append(rt_pair[0])
                 if len(result) >= x:
                     break
-        self.store_cached_property(key, result, self.mem.meta.clear_next - Game.time + 1)
+        self.store_cached_property(key, result, 0)
+        self.mem.cache[key].dead_at = self.mem.meta.clear_next + 1
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
@@ -828,6 +829,7 @@ class RoomMind:
             # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
             self.reset_planned_role()
             meta.clear_now = False
+            print("[{}] Next clear: {} (now: {})".format(self.room_name, str(meta.clear_next)[-4:], str(Game.time)[-4:]))
 
     def poll_hostiles(self):
         if not Memory.hostiles:
