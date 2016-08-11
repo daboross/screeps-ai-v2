@@ -191,6 +191,8 @@ _min_work_mass_for_full_storage_use = 35
 
 _min_energy_enable_full_storage_use = 10000
 _max_energy_disable_full_storage_use = 5000
+_energy_to_resume_upgrading = 10000
+_energy_to_pause_upgrading = 8000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
 # 0 is rcl 1
@@ -554,6 +556,15 @@ class RoomMind:
             self.mem.focusing_home = True
         return not not self.mem.focusing_home
 
+    def upgrading_paused(self):
+        if not self.full_storage_use:
+            return False
+        if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
+            self.mem.upgrading_paused = False
+        if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
+            self.mem.upgrading_paused = True
+        return not not self.mem.upgrading_paused
+
     def get_target_dedi_miner_count(self):
         """
         :rtype: int
@@ -772,7 +783,12 @@ class RoomMind:
         return self._target_spawn_fill_count
 
     def get_target_builder_count(self):
-        return 2 + 2 * len(self.sources)
+        if self.upgrading_paused() and not len(self.building.next_priority_construction_targets()):
+            return 0
+        elif self.mining_ops_paused():
+            return 4 + 2 * len(self.sources)
+        else:
+            return 2 + 2 * len(self.sources)
 
     def get_max_sane_wall_hits(self):
         """
