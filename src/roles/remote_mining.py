@@ -14,9 +14,11 @@ class RemoteMiner(RoleBase):
     def run(self):
         source_flag = self.target_mind.get_new_target(self, target_remote_mine_miner)
         if source_flag.memory.sponsor != self.home.room_name:
-            self.log("Remote miner currently targetting foreign mine! Mine: {}, sponsor: {},"
-                     " home: {}, home.targeting: {}".format(source_flag, source_flag.memory.sponsor,
-                                                            self.home.room_name, self.home.remote_mining_operations))
+            self.log("Remote miner currently targetting foreign mine! Mine: {}, sponsor: {}, home: {},"
+                     " home.targeting: {}. Adjusting home accordingly!".format(source_flag, source_flag.memory.sponsor,
+                                                                               self.home.room_name,
+                                                                               self.home.remote_mining_operations))
+            self.memory.home = source_flag.memory.sponsor
         if not source_flag:
             self.log("Remote miner can't find any sources!")
             self.recycle_me()
