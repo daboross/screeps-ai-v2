@@ -8,6 +8,7 @@ from control.building import ConstructionMind
 from control.pathdef import HoneyTrails, CachedTrails
 from role_base import RoleBase
 from tools import profiling
+from utilities import consistency
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -809,6 +810,24 @@ class RoomMind:
                     count += 1
                     print("[{}] No one currently replacing {}, a {}!".format(self.room_name, creep, role))
         return count
+
+    def precreep_tick_actions(self):
+        time = Game.time
+        meta = self.mem.meta
+        if not meta:
+            meta = {"clear_now": False, "clear_next": 0}
+            self.mem.meta = meta
+
+        if meta.clear_now or time > meta.clear_next:
+            print("[{}] Clearing memory".format(self.room_name))
+            consistency.clear_memory(self)
+            self.recalculate_roles_alive()
+            consistency.reassign_room_roles(self)
+            # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
+            # recalculated in the last 500 ticks.
+            # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
+            self.reset_planned_role()
+            meta.clear_now = False
 
     def poll_hostiles(self):
         if not Memory.hostiles:

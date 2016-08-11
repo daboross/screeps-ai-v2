@@ -85,7 +85,8 @@ class ReplacingExpendedCreep(RoleBase):
             if controller and controller.room.memory.controller_remote_reserve_set == old_name:
                 controller.room.memory.controller_remote_reserve_set = self.creep.name
         # TODO: instead of doing this, just somehow get hivemind to re-gen the replacement-time to include this creep
-        Memory.meta.clear_now = True
+
+        self.home.mem.meta.clear_now = True
 
 
 class Colonist(RoleBase):
@@ -115,5 +116,8 @@ class Colonist(RoleBase):
                 self.memory.role = role_upgrader
             else:
                 self.memory.role = role_builder
+            meta = context.hive().get_room(colony).mem.meta
+            if meta:
+                meta.clear_now = True
         else:
             self.move_to(__new__(RoomPosition(25, 25, colony)))

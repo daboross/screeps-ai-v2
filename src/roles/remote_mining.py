@@ -82,7 +82,7 @@ class RemoteHauler(SpawnFill):
                         self.home.role_count(role_remote_hauler) - self.home.get_target_remote_hauler_count())
                     if self.name in next_to_die:
                         self.memory.role = role_cleanup
-                        Memory.meta.clear_now = True
+                        self.home.mem.meta.clear_now = True
                         return False
                 self.report(speech.remote_hauler_no_source)
                 self.go_to_depot()
@@ -110,7 +110,7 @@ class RemoteHauler(SpawnFill):
                 if source_flag.memory.remote_miner_targeting and not \
                         Game.creeps[source_flag.memory.remote_miner_targeting]:
                     del source_flag.memory.remote_miner_targeting
-                Memory.meta.clear_now = True
+                self.home.mem.meta.clear_now = True
                 self.report(speech.remote_hauler_source_no_miner)
                 self.target_mind.untarget(self.creep, target_remote_mine_hauler)
                 return True

@@ -42,22 +42,9 @@ def main():
         for name in Object.keys(Game.creeps):
             Memory.creeps[name] = {}
 
-    time = Game.time
-    if not Memory.meta or Memory.meta.clear_now or \
-            not Memory.meta.clear_next or time > Memory.meta.clear_next:
-        print("[main] Clearing memory")
-        consistency.clear_memory(target_mind)
-        for room in hive_mind.my_rooms:
-            room.recalculate_roles_alive()
-            consistency.reassign_room_roles(room)
-            # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
-            # recalculated in the last 500 ticks.
-            # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
-            room.reset_planned_role()
-        Memory.meta.clear_now = False
-
     for room in hive_mind.my_rooms:
         context.set_room(room)
+        room.precreep_tick_actions()
         for creep in room.creeps:
             try:
                 if creep.spawning and creep.memory.role != role_temporary_replacing:

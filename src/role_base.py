@@ -233,7 +233,7 @@ class RoleBase:
                 self.log("Couldn't move, all move parts dead!")
                 if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}})):
                     self.creep.suicide()
-                    Memory.meta.clear_now = False
+                    self.home.mem.meta.clear_now = True
             elif result == ERR_NO_PATH:
                 # TODO: ERR_NO_PATH should probably get our attention - we should cache this status.
                 # for now it's fine though, as we aren't going over our CPU limit.
@@ -338,7 +338,7 @@ class RoleBase:
                     self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START)
                 return False # waiting for the miner to gather energy.
             else:
-                Memory.meta.clear_now = True
+                self.home.mem.meta.clear_now = True
                 del Memory.dedicated_miners_stationed[source.id]
 
         if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
@@ -401,7 +401,7 @@ class RoleBase:
             result = spawn.recycleCreep(self.creep)
             if result == OK:
                 self.log("{} committed suicide (life left: {}).", self.memory.role, self.creep.ticksToLive)
-                Memory.meta.clear_now = True
+                self.home.mem.meta.clear_now = True
             else:
                 self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)
                 self.go_to_depot()

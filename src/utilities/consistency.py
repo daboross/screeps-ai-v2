@@ -39,20 +39,24 @@ def reassign_room_roles(room):
         room.recalculate_roles_alive()
 
 
-def clear_memory(target_mind):
+def clear_memory(room):
     """
-    :type target_mind: hivemind.TargetMind
+    Clears memory for all creeps belonging to room.
+    :type room: control.hivemind.RoomMind
     """
     smallest_ticks_to_live = 500
     closest_replacement_time = math.pow(2, 30)
+    target_mind = room.hive_mind.target_mind
     for name in Object.keys(Memory.creeps):
+        memory = Memory.creeps[name]
+        home = memory.home
+        if home != room.room_name and home:
+            continue
         creep = Game.creeps[name]
         if not creep:
-            home = Memory.creeps[name].home
             role = Memory.creeps[name].role
             if role:
                 print("[{}][{}] {} died".format(home, name, role))
-
             if role == role_dedi_miner:
                 source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:
@@ -79,4 +83,4 @@ def clear_memory(target_mind):
                     and creep.memory.calculated_replacement_time < closest_replacement_time:
                 closest_replacement_time = creep.memory.calculated_replacement_time
     dead_next = Game.time + smallest_ticks_to_live
-    Memory.meta.clear_next = min(dead_next, closest_replacement_time) + 1  # some leeway
+    room.mem.meta.clear_next = min(dead_next, closest_replacement_time) + 1  # some leeway
