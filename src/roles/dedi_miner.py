@@ -13,7 +13,7 @@ _MOVE_ARGS = {"use_roads": True}
 
 class DedicatedMiner(RoleBase):
     def run(self):
-        source = self.target_mind.get_new_target(self.creep, target_big_source)
+        source = self.target_mind.get_new_target(self, target_big_source)
 
         if not source:
             self.log("Dedicated miner could not find any new big sources.")
@@ -47,7 +47,7 @@ class DedicatedMiner(RoleBase):
         return False
 
     def _calculate_time_to_replace(self):
-        source = self.target_mind.get_new_target(self.creep, target_big_source)
+        source = self.target_mind.get_new_target(self, target_big_source)
         if not source:
             return -1
         source_pos = source.pos
@@ -65,13 +65,13 @@ class LocalHauler(SpawnFill):
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self)
 
         # NOTE HERE: Instead of checking if we are over-stationed on LocalHaulers in this class (as remote miner does),
         # we check in consistency.reassign_room_roles().
 
         if self.memory.harvesting:
-            source = self.target_mind.get_new_target(self.creep, target_source)
+            source = self.target_mind.get_new_target(self, target_source)
 
             if not source:
                 if self.creep.carry.energy > 0:
@@ -99,7 +99,7 @@ class LocalHauler(SpawnFill):
                 else:
                     self.report(speech.local_hauler_no_miner_name, source.id[-4:])
                 self.go_to_depot()
-                self.target_mind.untarget(self.creep, target_source)
+                self.target_mind.untarget(self, target_source)
                 return False
 
             if not self.creep.pos.isNearTo(target_pos):
@@ -142,7 +142,7 @@ class LocalHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
-            target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
+            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
             if not target:
                 target = self.creep.room.storage  # This apparently has happened, I don't know why though?
             if target.energy >= target.energyCapacity:

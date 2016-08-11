@@ -12,7 +12,7 @@ __pragma__('noalias', 'name')
 
 class RemoteMiner(RoleBase):
     def run(self):
-        source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
+        source_flag = self.target_mind.get_new_target(self, target_remote_mine_miner)
         if source_flag.memory.sponsor != self.home.room_name:
             self.log("Remote miner currently targetting foreign mine! Mine: {}, sponsor: {},"
                      " home: {}, home.targeting: {}".format(source_flag, source_flag.memory.sponsor,
@@ -50,7 +50,7 @@ class RemoteMiner(RoleBase):
         return False
 
     def _calculate_time_to_replace(self):
-        source = self.target_mind.get_new_target(self.creep, target_remote_mine_miner)
+        source = self.target_mind.get_new_target(self, target_remote_mine_miner)
         if not source:
             return -1
         source_pos = source.pos
@@ -64,14 +64,14 @@ class RemoteHauler(SpawnFill):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
-            self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self)
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self)
 
         if self.memory.harvesting:
-            source_flag = self.target_mind.get_new_target(self.creep, target_remote_mine_hauler)
+            source_flag = self.target_mind.get_new_target(self, target_remote_mine_hauler)
 
             if not source_flag:
                 # TODO: Re-enable after we get auto-respawning things *before* they die
@@ -116,7 +116,7 @@ class RemoteHauler(SpawnFill):
                     del source_flag.memory.remote_miner_targeting
                 self.home.mem.meta.clear_now = True
                 self.report(speech.remote_hauler_source_no_miner)
-                self.target_mind.untarget(self.creep, target_remote_mine_hauler)
+                self.target_mind.untarget(self, target_remote_mine_hauler)
                 return True
 
             self.pick_up_available_energy()
@@ -176,7 +176,7 @@ class RemoteHauler(SpawnFill):
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
-            target = self.target_mind.get_new_target(self.creep, target_closest_deposit_site)
+            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
             if target.energy >= target.energyCapacity:
                 target = storage
 
@@ -207,7 +207,7 @@ class RemoteHauler(SpawnFill):
 
 class RemoteReserve(RoleBase):
     def run(self):
-        controller = self.target_mind.get_new_target(self.creep, target_remote_reserve)
+        controller = self.target_mind.get_new_target(self, target_remote_reserve)
 
         if not controller:
             self.log("Remote reserve couldn't find controller open!")
@@ -235,7 +235,7 @@ class RemoteReserve(RoleBase):
             self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
-        controller = self.target_mind.get_new_target(self.creep, target_remote_reserve)
+        controller = self.target_mind.get_new_target(self, target_remote_reserve)
         if not controller:
             return -1
         target_pos = controller.pos

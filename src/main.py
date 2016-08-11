@@ -6,7 +6,8 @@ import speech
 import tower
 from constants import *
 from control import hivemind
-from control.hivemind import TargetMind, HiveMind
+from control.hivemind import HiveMind
+from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling

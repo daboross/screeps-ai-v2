@@ -15,7 +15,7 @@ _DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
 
 class RoleBase:
     """
-    :type target_mind: hivemind.TargetMind
+    :type target_mind: control.targets.TargetMind
     :type creep: Creep
     :type name: str
     :type home: RoomMind
@@ -50,6 +50,9 @@ class RoleBase:
     name = property(get_name)
 
     def get_home(self):
+        """
+        :rtype: control.hivemind.RoomMind
+        """
         if self.memory.home:
             return context.hive().get_room(self.memory.home)
 
@@ -323,7 +326,7 @@ class RoleBase:
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
-        source = self.target_mind.get_new_target(self.creep, target_source)
+        source = self.target_mind.get_new_target(self, target_source)
         if not source:
             self.log("Wasn't able to find a source!")
             self.finished_energy_harvest()
@@ -410,7 +413,7 @@ class RoleBase:
 
     def finished_energy_harvest(self):
         del self.memory.action_start_time
-        self.target_mind.untarget(self.creep, target_source)
+        self.target_mind.untarget(self, target_source)
 
     def pick_up_available_energy(self):
         if self.creep.getActiveBodyparts(CARRY) <= 0:

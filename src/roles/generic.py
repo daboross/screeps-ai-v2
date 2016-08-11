@@ -72,11 +72,11 @@ class ReplacingExpendedCreep(RoleBase):
                 self.home.room_name, old_name, role, self.name, old_time_to_live))
 
         if role == role_dedi_miner:
-            source = self.target_mind.get_existing_target(self.creep, target_big_source)
+            source = self.target_mind.get_existing_target(self, target_big_source)
             if source:
                 Memory.dedicated_miners_stationed[source.id] = self.creep.name
         elif role == role_remote_miner:
-            flag = self.target_mind.get_existing_target(self.creep, target_remote_mine_miner)
+            flag = self.target_mind.get_existing_target(self, target_remote_mine_miner)
             if flag and flag.memory and flag.memory.remote_miner_targeting == old_name:
                 flag.memory.remote_miner_targeting = self.creep.name
                 flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive

@@ -17,7 +17,7 @@ def hive():
 
 def targets():
     """
-    :rtype: control.hivemind.TargetMind
+    :rtype: control.targets.TargetMind
     :return: The current TargetMind in use.
     """
     return _targets
@@ -33,7 +33,7 @@ def room():
 
 def set_hive(new_hive):
     """
-    :type new_hive: hivemind.HiveMind
+    :type new_hive: control.hivemind.HiveMind
     """
     global _hive
     _hive = new_hive
@@ -41,7 +41,7 @@ def set_hive(new_hive):
 
 def set_targets(new_targets):
     """
-    :type new_targets: hivemind.TargetMind
+    :type new_targets: control.targets.TargetMind
     """
     global _targets
     _targets = new_targets

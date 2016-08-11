@@ -10,15 +10,15 @@ class TowerFill(spawn_fill.SpawnFill):
     def run(self):
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
-            self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self)
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
-            self.target_mind.untarget_all(self.creep)
+            self.target_mind.untarget_all(self)
 
         if self.memory.harvesting:
             return self.harvest_energy()
         else:
-            target = self.target_mind.get_new_target(self.creep, target_tower_fill)
+            target = self.target_mind.get_new_target(self, target_tower_fill)
             if target:
                 self.pick_up_available_energy()
                 if not self.creep.pos.isNearTo(target.pos):
@@ -29,11 +29,11 @@ class TowerFill(spawn_fill.SpawnFill):
                 if result == OK:
                     self.report(speech.tower_fill_ok)
                 elif result == ERR_FULL:
-                    self.target_mind.untarget(self.creep, target_tower_fill)
+                    self.target_mind.untarget(self, target_tower_fill)
                     return True
                 else:
                     self.log("Unknown result from creep.transfer({}): {}", target, result)
-                    self.target_mind.untarget(self.creep, target_tower_fill)
+                    self.target_mind.untarget(self, target_tower_fill)
                     self.report(speech.tower_fill_unknown_result)
             else:
                 return spawn_fill.SpawnFill.run(self)
