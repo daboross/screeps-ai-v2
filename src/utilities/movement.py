@@ -120,27 +120,25 @@ def path_distance(here, target, non_roads_two_movement=False):
 
     path_len = 0
     x = 1
+    rooms_looked_at = []
 
     target_room_xy = parse_room_to_xy(target.roomName)
 
     while current.roomName != target.roomName and x < 6:
+        rooms_looked_at.append(current.roomName)
         x += 1
         room = Game.rooms[current.roomName]
         current_room_xy = parse_room_to_xy(current.roomName)
         difference = (target_room_xy[0] - current_room_xy[0], target_room_xy[1] - current_room_xy[1])
-        if not difference:
-            print("[path_distance] Couldn't find room pos difference between {} and {}!".format(current.roomName,
-                                                                                                target.roomName))
-            return -1
-        new_pos, exit_direction = get_exit_flag_and_direction(current.roomName, target.roomName, difference)
-        if not new_pos:
+        exit_pos, exit_direction = get_exit_flag_and_direction(current.roomName, target.roomName, difference)
+        if not exit_pos:
             print("[path_distance] Couldn't find exit flag from {} to {} (exit {})!".format(current.roomName,
                                                                                             target.roomName,
                                                                                             exit_direction))
             return -1
 
         if room:
-            path = pathfinding.find_path(room, current, new_pos, None)
+            path = pathfinding.find_path(room, current, exit_pos, None)
             if not path:
                 print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(exit_direction,
                                                                                                      current.roomName))
@@ -158,33 +156,14 @@ def path_distance(here, target, non_roads_two_movement=False):
         else:
             print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
             if not non_roads_two_movement:
-                path_len += math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
+                path_len += math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
             else:
-                path_len += 2 * math.sqrt(distance_squared_room_pos(current, new_pos)) + 1
+                path_len += 2 * math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1
 
-        room_x, room_y = current_room_xy
-        if exit_direction == TOP:
-            new_pos.y = 49
-            room_y -= 1
-        elif exit_direction == BOTTOM:
-            new_pos.y = 0
-            room_y += 1
-        elif exit_direction == LEFT:
-            new_pos.x = 49
-            room_x -= 1
-        elif exit_direction == RIGHT:
-            new_pos.x = 0
-            room_x += 1
-        else:
-            print("[path_distance] get_exit_flag_and_direction returned unknown direction! {}".format(exit_direction))
-            return -1
-        new_pos.roomName = "{}{}{}{}".format(
-            "E" if room_x > 0 else "W",
-            abs(room_x),
-            "S" if room_y > 0 else "N",
-            abs(room_y),
-        )
-        current = new_pos
+        current = get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy)
+
+    if x >= 6:
+        print("[path_distance] Looked at 4 rooms!?!?! {}".format(JSON.stringify(rooms_looked_at)))
 
     room = Game.rooms[current.roomName]
     if room:
@@ -199,6 +178,44 @@ def path_distance(here, target, non_roads_two_movement=False):
         path_len += math.sqrt(distance_squared_room_pos(current, target)) + 1
 
     return path_len
+
+
+def get_entrance_for_exit_pos(exit_pos):
+    if exit_pos.pos:
+        exit_pos = exit_pos.pos
+    room_xy = parse_room_to_xy(exit_pos.roomName)
+    return get_entrance_for_exit_pos_with_room(exit_pos, room_xy)
+
+
+def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
+    if exit_pos.pos:
+        exit_pos = exit_pos.pos
+    entrance_pos = __new__(RoomPosition(exit_pos.x, exit_pos.y, exit_pos.roomName))
+    room_x, room_y = current_room_xy
+    if exit_pos.y == 0:
+        entrance_pos.y = 49
+        room_y -= 1
+    elif exit_pos.y == 49:
+        entrance_pos.y = 0
+        room_y += 1
+    elif exit_pos.x == 0:
+        entrance_pos.x = 49
+        room_x -= 1
+    elif exit_pos.x == 49:
+        entrance_pos.x = 0
+        room_x += 1
+    else:
+        print("[movement][get_entrance_for_exit_pos] Exit position given ({}) is not an exit position.".format(
+            JSON.stringify(exit_pos)
+        ))
+        return -1
+    entrance_pos.roomName = "{}{}{}{}".format(
+        "E" if room_x > 0 else "W",
+        abs(room_x),
+        "S" if room_y > 0 else "N",
+        abs(room_y),
+    )
+    return entrance_pos
 
 
 def average_pos_same_room(targets):

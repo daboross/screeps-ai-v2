@@ -106,39 +106,12 @@ class RoleBase:
                 self.log("Couldn't find direction from {} to {} (target pos: {}, {})!!",
                          here.roomName, pos.roomName, pos, pos.pos)
                 return OK
-            if abs(difference[0]) > abs(difference[1]):
-                if difference[0] > 0:
-                    direction = RIGHT
-                else:
-                    direction = LEFT
+            exit_flag, exit_direction = movement.get_exit_flag_and_direction(here.roomName, pos.roomName, difference)
+            if exit_flag:
+                # pathfind to the flag instead
+                pos = exit_flag
             else:
-                if difference[1] > 0:
-                    direction = BOTTOM
-                else:
-                    direction = TOP
-
-            flag_list = flags.find_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
-            if not len(flag_list):
-                # If we have another direction (if path is diagonal), try another way?
-                if abs(difference[0]) > abs(difference[1]):
-                    if difference[1] > 0:
-                        direction = BOTTOM
-                    elif difference[1] < 0:
-                        direction = TOP
-                else:
-                    if difference[0] > 0:
-                        direction = RIGHT
-                    elif difference[0] < 0:
-                        direction = LEFT
-                flag_list = flags.find_flags(here.roomName, flags.DIR_TO_EXIT_FLAG[direction])
-            if not len(flag_list):
-                self.log("Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}]",
-                         here.roomName, flags.DIR_TO_EXIT_FLAG[direction], pos.roomName, here.roomName)
                 return OK
-
-            # pathfind to the flag instead
-            pos = flag_list[0].pos
-
         return self.creep.moveTo(pos)
 
     def move_to(self, target, same_position_ok=False, options=None, times_tried=0):
