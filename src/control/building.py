@@ -51,7 +51,7 @@ class ConstructionMind:
         med_priority = []
         high_priority = []
 
-        for site in self.room.room.find(FIND_CONSTRUCTION_SITES):
+        for site in self.room.find(FIND_CONSTRUCTION_SITES):
             if site.structureType in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER):
                 high_priority.append(site.id)
             elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_LINK):
@@ -96,9 +96,10 @@ class ConstructionMind:
             if currently_built_structures[structure_type]:
                 currently_built = currently_built_structures[structure_type]
             else:
-                currently_built = len(self.room.room.find(FIND_STRUCTURES, {
-                    "filter": lambda s: s.structureType == structure_type and s.my != False
-                }))
+                currently_built = 0
+                for s in self.room.find(FIND_STRUCTURES):
+                    if s.structureType == structure_type and s.my != False:
+                        currently_built += 1
                 currently_built_structures[structure_type] = currently_built
             if CONTROLLER_STRUCTURES[structure_type][controller_level] \
                     > currently_built + (current_targets[structure_type] or 0):

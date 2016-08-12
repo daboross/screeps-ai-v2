@@ -106,11 +106,12 @@ class LinkManager(RoleBase):
         my_link = self.get_storage_link()
         if not my_link or my_link.energy >= my_link.energyCapacity:
             return
-        for link in self.creep.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_LINK}}):
-            # TODO: is a minimum like this ever helpful?
-            if link.id != self.memory.gathering_from_link and link.cooldown <= 0 \
-                    and (link.energy > link.energyCapacity / 4 or (link.energy > 0 >= my_link.energy)):
-                link.transferEnergy(my_link)
+        for link in self.room.find(FIND_STRUCTURES):
+            if link.structureType == STRUCTURE_LINK:
+                # TODO: is a minimum like this ever helpful?
+                if link.id != self.memory.gathering_from_link and link.cooldown <= 0 \
+                        and (link.energy > link.energyCapacity / 4 or (link.energy > 0 >= my_link.energy)):
+                    link.transferEnergy(my_link)
 
     def _calculate_time_to_replace(self):
         # TODO: maybe merge this logic with DedicatedMiner?

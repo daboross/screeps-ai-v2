@@ -53,14 +53,26 @@ class RoleBase:
         """
         :rtype: control.hivemind.RoomMind
         """
-        if self.memory.home:
-            return context.hive().get_room(self.memory.home)
+        if not self._home:
+            if not self.memory.home:
+                self._home = context.hive().get_closest_owned_room(self.creep.pos.roomName)
+                self.memory.home = self._home.room_name
+            else:
+                self._home = context.hive().get_room(self.memory.home)
 
-        room = context.hive().get_closest_owned_room(self.creep.pos.roomName)
-        self.memory.home = room.name
-        return room
+        return self._home
 
     home = property(get_home)
+
+    def get_room(self):
+        """
+        :rtype: control.hivemind.RoomMind
+        """
+        if not self._room:
+            self._room = context.hive().get_room(self.creep.room.name)
+        return self._room
+
+    room = property(get_room)
 
     def get_replacement_time(self):
         if "calculated_replacement_time" in self.memory:
@@ -271,7 +283,12 @@ class RoleBase:
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
                 self.log("Couldn't move, all move parts dead!")
-                if not len(self.creep.room.find(FIND_MY_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}})):
+                tower_here = False
+                for struct in self.room.find(FIND_STRUCTURES):
+                    if struct.structureType == STRUCTURE_TOWER:
+                        tower_here = True
+                        break
+                if not tower_here:
                     self.creep.suicide()
                     self.home.mem.meta.clear_next = 0  # clear next tick
             elif result == ERR_NO_PATH:
@@ -289,7 +306,7 @@ class RoleBase:
                     self.last_checkpoint = None
                     self.creep.moveTo(pos, {"reusePath": 0})
 
-    def harvest_energy(self):
+    def harvest_energy(self, follow_defined_path=False):
         if context.room().full_storage_use:
             # Full storage use enabled! Just do that.
             storage = context.room().room.storage
@@ -300,7 +317,7 @@ class RoleBase:
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.harvesting = False
                 self.pick_up_available_energy()
-                self.move_to(storage)
+                self.move_to(storage, False, follow_defined_path)
                 self.report(speech.default_gather_moving_to_storage)
                 return False
 
@@ -325,12 +342,12 @@ class RoleBase:
         if not source:
             self.log("Wasn't able to find a source!")
             self.finished_energy_harvest()
-            self.go_to_depot()
+            self.go_to_depot(follow_defined_path)
             self.report(speech.default_gather_no_sources)
             return False
 
         if source.pos.roomName != self.creep.pos.roomName:
-            self.move_to(source)
+            self.move_to(source, False, follow_defined_path)
             self.report(speech.default_gather_moving_between_rooms)
             return False
 
@@ -338,7 +355,7 @@ class RoleBase:
         if len(piles) > 0:
             pile = piles[0]
             if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
-                self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START)
+                self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START, follow_defined_path)
                 self.report(speech.default_gather_moving_to_energy)
                 return False
             result = self.creep.pickup(pile)
@@ -358,7 +375,7 @@ class RoleBase:
             container = containers[0]
             if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
                 self.report(speech.default_gather_moving_to_container)
-                self.move_to_with_queue(container, flags.SOURCE_QUEUE_START)
+                self.move_to_with_queue(container, flags.SOURCE_QUEUE_START, follow_defined_path)
 
             result = self.creep.withdraw(container, RESOURCE_ENERGY)
             if result == OK:
@@ -368,27 +385,26 @@ class RoleBase:
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
-        miner = None
         if Memory.dedicated_miners_stationed and Memory.dedicated_miners_stationed[source.id]:
             miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
             if miner:
                 if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
                     self.report(speech.default_gather_moving_to_source)  # TODO: moving to miner speech
-                    self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START)
+                    self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
                 return False  # waiting for the miner to gather energy.
             else:
                 self.home.mem.meta.clear_next = 0  # clear next tick
                 del Memory.dedicated_miners_stationed[source.id]
 
         if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
-            self.go_to_depot()
+            self.go_to_depot(follow_defined_path)
             return False
         if not self.creep.getActiveBodyparts(WORK):
-            self.go_to_depot()
+            self.go_to_depot(follow_defined_path)
             self.finished_energy_harvest()
             return False
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source)
+            self.move_to(source, False, follow_defined_path)
             self.report(speech.default_gather_moving_to_source)
             return False
 
@@ -419,17 +435,17 @@ class RoleBase:
                 self.creep.pickup(resource)
                 break
 
-    def go_to_depot(self):
+    def go_to_depot(self, follow_defined_path=False):
         depots = flags.find_flags(self.home, flags.DEPOT)
         self.pick_up_available_energy()
         if len(depots):
-            self.move_to(depots[0], True)
+            self.move_to(depots[0], True, follow_defined_path)
         else:
             depots = flags.find_flags_global(flags.DEPOT)
             if len(depots):
-                self.move_to(depots[0], True)
+                self.move_to(depots[0], True, follow_defined_path)
             else:
-                self.move_to(Game.spawns[0], True)
+                self.move_to(Game.spawns[0], True, follow_defined_path)
 
     def recycle_me(self):
         spawn = self.home.spawns[0]

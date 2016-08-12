@@ -1,4 +1,5 @@
 # Currently disabled / unused, since PathFinder.search is as-it-seems broken.
+import context
 import flags
 from utilities.screeps_constants import *
 
@@ -94,7 +95,7 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
 
 def _new_callback(use_roads, ignore_all_creeps, avoid_all_creeps):
     def _callback(room_name, game_defined_matrix):
-        room = Game.rooms[room_name]
+        room = context.hive().get_room(room_name)
         if room:
             return _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_all_creeps, room_name)
         else:

@@ -82,13 +82,13 @@ class HoneyTrails:
                         cost_matrix.set(x, y, 50)
             cost_matrix.set(pos.x, pos.y, 255)
 
-        for struct in self.room.room.find(FIND_STRUCTURES):
+        for struct in self.room.find(FIND_STRUCTURES):
             set_matrix(struct.structureType, struct.pos)
-        for site in self.room.room.find(FIND_CONSTRUCTION_SITES):
+        for site in self.room.find(FIND_CONSTRUCTION_SITES):
             set_matrix(site.structureType, site.pos)
         for flag, type in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
             set_matrix(_flag_sub_to_structure_type[type], flag.pos)
-        for source in self.room.room.find(FIND_SOURCES):
+        for source in self.room.find(FIND_SOURCES):
             set_matrix("this_is_a_source", source.pos)
         for x in [0, 49]:
             for y in range(0, 50):

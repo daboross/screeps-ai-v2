@@ -201,7 +201,7 @@ class TargetMind:
         smallest_num_harvesters = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id_1 = None
         best_id_2 = None
-        sources = creep.creep.room.find(FIND_SOURCES)
+        sources = creep.room.find(FIND_SOURCES)
         for source in sources:
             energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount') or 0
             # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
@@ -240,7 +240,7 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        for source in creep.creep.room.find(FIND_SOURCES):
+        for source in creep.room.find(FIND_SOURCES):
             source_id = source.id
             current_harvesters = self.targets[target_big_source][source_id]
             if not current_harvesters or current_harvesters < 1:
@@ -254,7 +254,7 @@ class TargetMind:
         """
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
-        for structure in creep.creep.room.find(FIND_STRUCTURES):
+        for structure in creep.room.find(FIND_STRUCTURES):
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
                 source_id = structure.id
@@ -300,7 +300,7 @@ class TargetMind:
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         smallest_num_builders = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
-        for structure in creep.creep.room.find(FIND_STRUCTURES):
+        for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 struct_id = structure.id
@@ -324,7 +324,7 @@ class TargetMind:
         """
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
-        for structure in creep.creep.room.find(FIND_STRUCTURES):
+        for structure in creep.room.find(FIND_STRUCTURES):
             if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 struct_id = structure.id

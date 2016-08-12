@@ -61,10 +61,11 @@ def main():
         room.precreep_tick_actions()
         total_creeps += len(room.creeps)
         for creep in room.creeps:
-            if Game.cpu.getUsed() > Game.cpu.limit * 0.75 and Game.cpu.bucket < 3000:
+            if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
                 broken = True
                 break
             creeps_run += 1
+            cpu_start = Game.cpu.getUsed()
             try:
                 if creep.spawning and creep.memory.role != role_temporary_replacing:
                     continue
@@ -103,6 +104,10 @@ def main():
                 print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
                                                                role if role else "[no role]"))
                 print(e.stack)
+            cpu_end = Game.cpu.getUsed()
+            if cpu_end - cpu_start > 8:
+                print("[{}][{}] This creep, a {}, used {} cpu!".format(
+                    room.room_name, creep.name, creep.memory.role, cpu_end - cpu_start))
 
     if broken and creeps_run < total_creeps:
         print("[main] Skipped {}/{} creeps, to save CPU.".format(total_creeps - creeps_run, total_creeps))

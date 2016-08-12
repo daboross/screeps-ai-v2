@@ -10,6 +10,7 @@ from role_base import RoleBase
 from tools import profiling
 from utilities import consistency
 from utilities import movement
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -284,6 +285,15 @@ class RoomMind:
             self.mem.cache[name].ttl_after_use = use_ttl
             self.mem.cache[name].last_used = Game.time
 
+    def find(self, parameter):
+        cache = volatile_cache.mem(self.room_name)
+        if parameter in cache:
+            return cache[parameter]
+        else:
+            result = self.room.find(parameter)
+            cache[parameter] = result
+            return result
+
     def _get_role_counts(self):
         if not self.mem.roles_alive:
             self.recalculate_roles_alive()
@@ -447,8 +457,10 @@ class RoomMind:
         # reset_spawn_on is set to the tick after the next creep's TTR expires in consistency.clear_memory()
         if time > meta.reset_spawn_on:
             self.reset_planned_role()
+            meta.reset_spawn_on = meta.clear_next + 1
 
-        # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is cleared!
+        # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is
+        # cleared!
         if Game.time % 100 == 0:
             consistency.reassign_room_roles(self)
 
@@ -481,12 +493,12 @@ class RoomMind:
 
     def get_sources(self):
         if self._sources is None:
-            self._sources = self.room.find(FIND_SOURCES)
+            self._sources = self.find(FIND_SOURCES)
         return self._sources
 
     def get_spawns(self):
         if self._spawns is None:
-            self._spawns = self.room.find(FIND_MY_SPAWNS)
+            self._spawns = self.find(FIND_MY_SPAWNS)
         return self._spawns
 
     def get_creeps(self):
@@ -687,8 +699,11 @@ class RoomMind:
         :rtype: int
         """
         if self._target_link_managers is None:
-            if len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_LINK}})) >= 2 \
-                    and self.trying_to_get_full_storage_use:
+            links = 0
+            for s in self.find(FIND_STRUCTURES):
+                if s.structureType == STRUCTURE_LINK:
+                    links += 1
+            if links >= 2 and self.trying_to_get_full_storage_use:
                 self._target_link_managers = 1
             else:
                 self._target_link_managers = 0
@@ -809,7 +824,10 @@ class RoomMind:
         return self._max_sane_wall_hits
 
     def _next_needed_local_role(self):
-        tower_fillers = len(self.room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_TOWER}}))
+        tower_fillers = 0
+        for s in self.find(FIND_STRUCTURES):
+            if s.structureType == STRUCTURE_TOWER:
+                tower_fillers += 1
         requirements = [
             [role_spawn_fill_backup, self.get_target_spawn_fill_backup_count],
             [role_defender, lambda: self.get_target_defender_count(True)],
