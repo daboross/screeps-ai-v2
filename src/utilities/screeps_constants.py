@@ -97,6 +97,7 @@ __all__ = [
     "Infinity",
     "console",
     "undefined",
+    "Map",
     "_",
     "__pragma__",
     "__new__",

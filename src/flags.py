@@ -65,6 +65,29 @@ flag_secondary_to_sub = {
     COLOR_ORANGE: SUB_LINK,
 }
 
+_last_flag_len = 0
+_last_checked_flag_len = 0
+
+
+def __check_new_flags():
+    global _last_flag_len, _last_checked_flag_len
+    global _room_flag_cache, _room_flag_refresh_time
+    global _global_flag_refresh_time, _global_flag_cache
+    global _closest_flag_refresh_time, _closest_flag_cache
+    if _last_checked_flag_len < Game.time:
+        length = Object.keys(Game.flags).length
+        if _last_flag_len < length:
+            # TODO: make 50 here a constant, to agree with refresh times set below
+            refresh_time = Game.time + 50
+            _room_flag_cache = __new__(Map())
+            _room_flag_refresh_time = refresh_time
+            _global_flag_cache = __new__(Map())
+            _global_flag_refresh_time = refresh_time
+            _closest_flag_cache = __new__(Map())
+            _closest_flag_refresh_time = refresh_time
+            _last_flag_len = length
+        _last_checked_flag_len = Game.time
+
 
 def move_flags():
     if Memory.flags_to_move:
@@ -80,8 +103,8 @@ def is_def(flag, flag_type):
     return flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]
 
 
-_room_flag_cache = {}
-_room_flag_refresh_time = 0
+_room_flag_cache = __new__(Map())
+_room_flag_refresh_time = Game.time + 50
 
 
 def __get_room_and_name(room):
@@ -95,9 +118,10 @@ def __get_room_and_name(room):
 
 def __get_cache(room_name, flag_type):
     global _room_flag_refresh_time, _room_flag_cache
+    __check_new_flags()
     if Game.time > _room_flag_refresh_time:
-        _room_flag_refresh_time = Game.time + 100
-        _room_flag_cache = {}
+        _room_flag_refresh_time = Game.time + 50
+        _room_flag_cache = __new__(Map())
     if room_name in _room_flag_cache and flag_type in _room_flag_cache[room_name]:
         return _room_flag_cache[room_name][flag_type]
     else:
@@ -184,15 +208,16 @@ def find_ms_flag(room, main_type, sub_type):
     return flag_list
 
 
-_global_flag_cache = {}
-_global_flag_refresh_time = 0
+_global_flag_cache = __new__(Map())
+_global_flag_refresh_time = Game.time + 50
 
 
 def find_flags_global(flag_type, reload=False):
     global _global_flag_refresh_time, _global_flag_cache
+    __check_new_flags()
     if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + 100
-        _global_flag_cache = {}
+        _global_flag_refresh_time = Game.time + 50
+        _global_flag_cache = __new__(Map())
     if _global_flag_cache[flag_type] and not reload:
         return _global_flag_cache[flag_type]
     flag_def = flag_definitions[flag_type]
@@ -205,8 +230,8 @@ def find_flags_global(flag_type, reload=False):
     return flag_list
 
 
-_closest_flag_cache = {}
-_closest_flag_refresh_time = 0
+_closest_flag_cache = __new__(Map())
+_closest_flag_refresh_time = Game.time + 50
 
 
 def squared_distance(x1, y1, x2, y2):
@@ -222,9 +247,10 @@ def squared_distance(x1, y1, x2, y2):
 
 def find_closest_in_room(pos, flag_type):
     global _closest_flag_refresh_time, _closest_flag_cache
+    __check_new_flags()
     if Game.time > _closest_flag_refresh_time:
-        _closest_flag_refresh_time = Game.time + 100
-        _closest_flag_cache = {}
+        _closest_flag_refresh_time = Game.time + 50
+        _closest_flag_cache = __new__(Map())
     key = "{}_{}_{}_{}".format(pos.roomName, pos.x, pos.y, flag_type)
     if key in _closest_flag_cache:
         return _closest_flag_cache[key]
