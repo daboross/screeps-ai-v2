@@ -99,11 +99,11 @@ def main():
                 e = __except__
                 role = creep.memory.role
                 Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
-                    role if role else "[no role]", creep.name, creep.memory.home, e.stack
+                    role if role else "[no role]", creep.name, creep.memory.home, e.stack if e else "e == null??"
                 ), 10)
                 print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
                                                                role if role else "[no role]"))
-                print(e.stack)
+                print(e.stack if e else "e == null??")
             cpu_end = Game.cpu.getUsed()
             if cpu_end - cpu_start > 8:
                 print("[{}][{}] This creep, a {}, used {} cpu!".format(
