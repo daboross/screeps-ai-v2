@@ -113,6 +113,13 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
     return flag_list[0].pos, direction
 
 
+def get_exit_flag_to(from_room, to_room):
+    difference = inter_room_difference(from_room, to_room)
+    if not difference:
+        return None
+    return get_exit_flag_and_direction(from_room, to_room, difference)[0]
+
+
 def path_distance(here, target, non_roads_two_movement=False):
     if here == target:
         return 0

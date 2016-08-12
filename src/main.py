@@ -24,6 +24,12 @@ def main():
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
     if Memory.meta.pause:
+        if Game.cpu.bucket >= 10000:
+            print("[paused] Bucket full, resuming next tick.")
+            Memory.meta.pause = False
+        else:
+            print("[paused] Bucket accumulated: {} (used loading code: {})".format(Game.cpu.bucket,
+                                                                                   int(Game.cpu.getUsed())))
         return
 
     flags.move_flags()
@@ -47,10 +53,18 @@ def main():
         for name in Object.keys(Game.creeps):
             Memory.creeps[name] = {}
 
+    total_creeps = 0
+    creeps_run = 0
+    broken = False
     for room in hive_mind.my_rooms:
         context.set_room(room)
         room.precreep_tick_actions()
+        total_creeps += len(room.creeps)
         for creep in room.creeps:
+            if Game.cpu.getUsed() > Game.cpu.limit * 0.75 and Game.cpu.bucket < 3000:
+                broken = True
+                break
+            creeps_run += 1
             try:
                 if creep.spawning and creep.memory.role != role_temporary_replacing:
                     continue
@@ -89,6 +103,10 @@ def main():
                 print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
                                                                role if role else "[no role]"))
                 print(e.stack)
+
+    if broken and creeps_run < total_creeps:
+        print("[main] Skipped {}/{} creeps, to save CPU.".format(total_creeps - creeps_run, total_creeps))
+        print("[main] Total CPU used: {}. Bucket: {}.".format(int(Game.cpu.getUsed()), Game.cpu.bucket))
 
     for name in Object.keys(Game.spawns):
         spawn = Game.spawns[name]

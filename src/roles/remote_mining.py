@@ -98,6 +98,11 @@ class RemoteHauler(SpawnFill):
                 self.go_to_depot()
                 return False
 
+            if source_flag.memory.sponsor != self.home.room_name:
+                self.log("Remote hauler currently targetting foreign mine! Mine: {}, sponsor: {}, home: {}."
+                         "Adjusting home accordingly!".format(source_flag, source_flag.memory.sponsor,
+                                                              self.home.room_name))
+                self.memory.home = source_flag.memory.sponsor
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]
             target_pos = None
             if self.creep.pos.roomName == source_flag.pos.roomName:
@@ -139,7 +144,12 @@ class RemoteHauler(SpawnFill):
                         return False
                 if _.sum(self.creep.carry, 'amount') / self.creep.carryCapacity >= 0.75:
                     self.memory.harvesting = False
-                    self.last_checkpoint = source_flag  # follow the reverse path back
+                    if self.creep.pos.roomName == source_flag.pos.roomName:
+                        self.last_checkpoint = source_flag  # follow the reverse path back
+                    else:
+                        # best guess as to where we would have come into the room.
+                        self.last_checkpoint = movement.get_exit_flag_to(self.creep.pos.roomName,
+                                                                         source_flag.pos.roomName)
                     return True
                 # TODO: should we really be targetting the source flag, or should we target the miner if he's here?
                 self.move_to(source_flag, False, True)

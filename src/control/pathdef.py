@@ -31,7 +31,7 @@ class CachedTrails:
         if memory.cache[key].dead_at <= Game.time:
             del memory.cache[key]
             return None
-        return memory.cache[key].value
+        return Room.deserializePath(memory.cache[key].value)
 
 
 class HoneyTrails:
@@ -113,8 +113,8 @@ class HoneyTrails:
             return None
         key = "path_{}_{}_{}_{}".format(origin.x, origin.y, destination.x, destination.y)
         path = self.room.get_cached_property(key)
-        if path:
-            return path
+        if path and typeof(path) == 'string':
+            return Room.deserializePath(path)
         path = self.room.room.findPath(origin, destination, {
             "ignoreCreeps": True,
             "ignoreRoads": True,
@@ -123,7 +123,7 @@ class HoneyTrails:
         })
         # TODO: system to store last accessed time and remove paths which aren't accessed in the last 500 ticks.
         # TODO: longer TTL when we get this perfected
-        self.room.store_cached_property(key, path, 1000, 100)
+        self.room.store_cached_property(key, Room.serializePath(path), 1000, 100)
         return path
 
     def map_out_full_path(self, origin, destination):

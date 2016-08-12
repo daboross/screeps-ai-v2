@@ -244,16 +244,12 @@ class RoleBase:
             return OK
 
         if here.roomName != pos.roomName:
-            difference = movement.inter_room_difference(here.roomName, pos.roomName)
-            if not difference:
-                self.log("Couldn't find direction from {} to {} (target pos: {}, {})!!",
-                         here.roomName, pos.roomName, pos, pos.pos)
-                return OK
-            exit_flag, exit_direction = movement.get_exit_flag_and_direction(here.roomName, pos.roomName, difference)
+            exit_flag = movement.get_exit_flag_to(here.roomName, pos.roomName)
             if exit_flag:
                 # pathfind to the flag instead
                 pos = exit_flag
             else:
+                self.log("ERROR: Couldn't find exit flag from {} to {}.".format(here.roomName, pos.roomName))
                 return OK
         if follow_defined_path:
             return self._follow_path_to(pos)
@@ -261,7 +257,7 @@ class RoleBase:
             self.last_checkpoint = None
             return self.creep.moveTo(pos)
 
-    def move_to(self, target, same_position_ok=False, follow_defined_path=False, times_tried=0):
+    def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
         if not same_position_ok:
             # do this automatically, and the roles will set it to true once they've reached their destination.
             self.memory.stationary = False
@@ -284,13 +280,12 @@ class RoleBase:
                 return
             elif result != OK:
                 if result != ERR_NOT_FOUND:
-                    self.log("Unknown result from creep.moveByPath: {}", result)
+                    self.log("WARNING: Unknown result from creep.moveByPath: {}", result)
 
-                times_tried = times_tried or 0
-                if times_tried < 2:
-                    self.move_to(target, same_position_ok, follow_defined_path, times_tried + 1)
+                if not already_tried:
+                    self.move_to(target, same_position_ok, follow_defined_path, True)
                 else:
-                    self.log("Continually failed to move from {} to {}!", self.creep.pos, pos)
+                    self.log("WARNING: Failed to move from {} to {} twice.", self.creep.pos, pos)
                     self.last_checkpoint = None
                     self.creep.moveTo(pos, {"reusePath": 0})
 
