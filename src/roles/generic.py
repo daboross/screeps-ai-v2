@@ -87,7 +87,7 @@ class ReplacingExpendedCreep(RoleBase):
                 controller.room.memory.controller_remote_reserve_set = self.creep.name
         # TODO: instead of doing this, just somehow get hivemind to re-gen the replacement-time to include this creep
 
-        self.home.mem.meta.clear_now = True
+        self.home.mem.meta.clear_next = 0  # clear next tick
 
 
 profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
@@ -122,7 +122,7 @@ class Colonist(RoleBase):
                 self.memory.role = role_builder
             meta = context.hive().get_room(colony).mem.meta
             if meta:
-                meta.clear_now = True
+                meta.clear_next = 0  # clear next tick
         else:
             self.move_to(__new__(RoomPosition(25, 25, colony)))
 

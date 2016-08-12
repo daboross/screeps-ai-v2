@@ -154,11 +154,11 @@ class Cleanup(SpawnFill):
                     if self.name in next_to_die:
                         if self.home.role_count(role_local_hauler) < self.home.get_target_local_hauler_count():
                             self.memory.role = role_local_hauler
-                            self.home.mem.meta.clear_now = True
+                            self.home.mem.meta.clear_next = 0  # clear next tick
                             return False
                         if self.home.role_count(role_remote_hauler) < self.home.get_target_remote_hauler_count():
                             self.memory.role = role_remote_hauler
-                            self.home.mem.meta.clear_now = True
+                            self.home.mem.meta.clear_next = 0  # clear next tick
                             return False
                         self.recycle_me()
                         return

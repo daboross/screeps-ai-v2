@@ -122,7 +122,8 @@ class HoneyTrails:
             "maxRooms": 1
         })
         # TODO: system to store last accessed time and remove paths which aren't accessed in the last 500 ticks.
-        self.room.store_cached_property(key, path, 1000)  # TODO: longer TTL when we get this perfected
+        # TODO: longer TTL when we get this perfected
+        self.room.store_cached_property(key, path, 1000, 100)
         return path
 
     def map_out_full_path(self, origin, destination):

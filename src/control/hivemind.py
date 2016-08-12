@@ -270,14 +270,19 @@ class RoomMind:
         if not self.mem.cache:
             self.mem.cache = {}
         if name in self.mem.cache and self.mem.cache[name].dead_at > Game.time:
+            if self.mem.cache[name].ttl_after_use:
+                self.mem.cache[name].last_used = Game.time
             return self.mem.cache[name].value
         else:
             return None
 
-    def store_cached_property(self, name, value, ttl):
+    def store_cached_property(self, name, value, ttl, use_ttl=None):
         if not self.mem.cache:
             self.mem.cache = {}
         self.mem.cache[name] = {"value": value, "dead_at": Game.time + ttl}
+        if use_ttl:
+            self.mem.cache[name].ttl_after_use = use_ttl
+            self.mem.cache[name].last_used = Game.time
 
     def _get_role_counts(self):
         if not self.mem.roles_alive:
@@ -425,21 +430,27 @@ class RoomMind:
         time = Game.time
         meta = self.mem.meta
         if not meta:
-            meta = {"clear_now": False, "clear_next": 0}
+            meta = {"clear_next": 0, "reset_spawn_on": 0}
             self.mem.meta = meta
 
-        if meta.clear_now or time > meta.clear_next:
+        if time > meta.clear_next:
             print("[{}] Clearing memory".format(self.room_name))
             consistency.clear_memory(self)
             self.recalculate_roles_alive()
-            consistency.reassign_room_roles(self)
             # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
             # recalculated in the last 500 ticks.
             # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
             self.reset_planned_role()
-            meta.clear_now = False
-            print("[{}] Next clear: {} (now: {})".format(self.room_name, str(meta.clear_next)[-4:],
-                                                         str(Game.time)[-4:]))
+            del meta.clear_now
+            print("[{}] Next clear in {} ticks.".format(self.room_name, meta.clear_next - Game.time))
+
+        # reset_spawn_on is set to the tick after the next creep's TTR expires in consistency.clear_memory()
+        if time > meta.reset_spawn_on:
+            self.reset_planned_role()
+
+        # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is cleared!
+        if Game.time % 100 == 0:
+            consistency.reassign_room_roles(self)
 
     def poll_hostiles(self):
         if not Memory.hostiles:

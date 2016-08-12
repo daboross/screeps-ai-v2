@@ -35,6 +35,10 @@ def main():
     context.set_targets(target_mind)
     context.set_hive(hive_mind)
 
+    if Game.time % 300 == 50:
+        for room in hive_mind.visible_rooms:
+            consistency.clear_caches(room)
+
     hive_mind.poll_all_creeps()
     hive_mind.poll_hostiles()
 

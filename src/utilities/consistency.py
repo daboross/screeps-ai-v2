@@ -87,7 +87,16 @@ def clear_memory(room):
                     and creep.memory.calculated_replacement_time < closest_replacement_time:
                 closest_replacement_time = creep.memory.calculated_replacement_time
     dead_next = Game.time + smallest_ticks_to_live
-    room.mem.meta.clear_next = min(dead_next, closest_replacement_time) + 1  # some leeway
+    room.mem.meta.clear_next = dead_next + 1
+    room.mem.meta.reset_spawn_on = closest_replacement_time + 1
+
+
+def clear_caches(room):
+    if room.mem.cache:
+        for key in room.mem.cache:
+            cache = room.mem.cache[key]
+            if Game.time > cache.dead_at or (cache.ttl_after_use and Game.time > cache.last_used + cache.ttl_after_use):
+                del room.mem.cache[key]
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")

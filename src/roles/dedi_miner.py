@@ -98,7 +98,7 @@ class LocalHauler(SpawnFill):
                     return True
                 if miner_name and not miner:
                     del Memory.dedicated_miners_stationed[source.id]
-                    self.home.mem.meta.clear_now = True
+                    self.home.mem.meta.clear_next = 0  # clear next tick
                     self.report(speech.local_hauler_no_miner, miner_name)
                 else:
                     self.report(speech.local_hauler_no_miner_name, source.id[-4:])
