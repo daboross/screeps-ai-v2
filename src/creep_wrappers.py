@@ -9,6 +9,7 @@ from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
 from roles import utility
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -44,3 +45,6 @@ def wrap_creep(creep):
         return role_classes[role](context.targets(), creep)
     else:
         return None
+
+
+wrap_creep = profiling.profiled(wrap_creep, "creep_wrappers.wrap_creep")

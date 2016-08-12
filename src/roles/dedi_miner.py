@@ -3,6 +3,7 @@ import speech
 from constants import target_big_source, target_source, role_dedi_miner, target_closest_deposit_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -55,6 +56,9 @@ class DedicatedMiner(RoleBase):
         time = movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
         # self.log("Calculated dedi-miner replacement time (using {} to {}): {}", spawn_pos, source_pos, time)
         return time
+
+
+profiling.profile_whitelist(DedicatedMiner, ["run"])
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
@@ -170,3 +174,6 @@ class LocalHauler(SpawnFill):
                 self.report(speech.local_hauler_transfer_unknown_result)
 
             return False
+
+
+profiling.profile_whitelist(LocalHauler, ["run"])

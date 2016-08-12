@@ -4,6 +4,7 @@ from constants import target_remote_mine_miner, target_remote_mine_hauler, targe
     target_closest_deposit_site, role_remote_hauler, role_cleanup
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -59,6 +60,9 @@ class RemoteMiner(RoleBase):
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         return movement.path_distance(spawn_pos, source_pos, True) + RoleBase._calculate_time_to_replace(self)
+
+
+profiling.profile_whitelist(RemoteMiner, ["run"])
 
 
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
@@ -209,6 +213,9 @@ class RemoteHauler(SpawnFill):
             return False
 
 
+profiling.profile_whitelist(RemoteHauler, ["run"])
+
+
 class RemoteReserve(RoleBase):
     def run(self):
         controller = self.target_mind.get_new_target(self, target_remote_reserve)
@@ -246,3 +253,6 @@ class RemoteReserve(RoleBase):
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return movement.path_distance(spawn_pos, target_pos) + RoleBase._calculate_time_to_replace(self)
+
+
+profiling.profile_whitelist(RemoteReserve, ["run"])

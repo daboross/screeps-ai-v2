@@ -1,5 +1,6 @@
 import speech
 from role_base import RoleBase
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -52,3 +53,6 @@ class Upgrader(RoleBase):
                     self.report(speech.upgrading_unknown_result)
 
         return False
+
+
+profiling.profile_whitelist(Upgrader, ["run"])

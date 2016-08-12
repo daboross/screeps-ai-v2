@@ -1,5 +1,6 @@
 import random
 
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -84,3 +85,6 @@ def run():
     for room in new_alert_rooms:
         for rampart in room.find(FIND_STRUCTURES, {"filter": {"structureType": STRUCTURE_RAMPART}}):
             rampart.setPublic(False)
+
+
+run = profiling.profiled(run, "tower.run")

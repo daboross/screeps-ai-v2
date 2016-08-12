@@ -50,6 +50,19 @@ def profile_class(cls, ignored=None):
             profile_method(cls, func_name)
 
 
+def profile_whitelist(cls, allow):
+    if not enabled:
+        return
+    if not initialized:
+        init()
+    for func_name in allow:
+        profile_method(cls, func_name)
+
+
+def profiled(func, name):
+    return _profiled(name)(func)
+
+
 def _profiled(name):
     """
     Profiling decorator function.
@@ -69,12 +82,12 @@ def _profiled(name):
 
 
 def init():
+    global initialized
     if enabled:
         global module_profiler
-        global initialized
         module_profiler = require("screeps-profiler")
         module_profiler.enable()
-        initialized = True
+    initialized = True
 
 
 def wrap_main(main_func):

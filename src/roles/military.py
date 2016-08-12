@@ -1,6 +1,7 @@
 import math
 
 from role_base import RoleBase
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -57,3 +58,6 @@ class RoleDefender(RoleBase):
             return True
 
         self.move_to(target)
+
+
+profiling.profile_whitelist(RoleDefender, ["run"])

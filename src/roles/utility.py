@@ -2,6 +2,7 @@ import speech
 from constants import role_cleanup, role_local_hauler, role_remote_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -122,6 +123,9 @@ class LinkManager(RoleBase):
         return movement.path_distance(spawn_pos, link_pos) + RoleBase._calculate_time_to_replace(self)
 
 
+profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
+
+
 # TODO: Change the speech on this to something unique.
 class Cleanup(SpawnFill):
     def run(self):
@@ -205,3 +209,6 @@ class Cleanup(SpawnFill):
             else:
                 self.log("Unknown result from link-manager-creep.transfer({}, {}): {}", storage, resource_type, result)
                 self.report(speech.link_manager_unknown_result)
+
+
+profiling.profile_whitelist(Cleanup, ["run"])

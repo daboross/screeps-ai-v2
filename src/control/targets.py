@@ -445,4 +445,16 @@ class TargetMind:
         return best_id
 
 
-profiling.profile_class(TargetMind, ["targets", "targeters"])
+profiling.profile_whitelist(TargetMind, [
+    "_find_new_target",
+    "_find_new_source",
+    "_find_new_big_h_source",
+    "_find_new_harvester_deposit_site",
+    "_find_new_repair_site",
+    "_find_new_big_repair_site",
+    "_find_new_tower",
+    "_find_new_remote_miner_mine",
+    "_find_new_remote_hauler_mine",
+    "_find_closest_deposit_site",
+    "_find_new_reservable_controller",
+])

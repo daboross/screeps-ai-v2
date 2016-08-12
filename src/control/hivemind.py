@@ -174,10 +174,9 @@ class HiveMind:
     visible_rooms = property(find_visible_rooms)
 
 
-profiling.profile_class(HiveMind, [
-    "my_rooms",
-    "honey",
-    "visible_rooms",
+profiling.profile_whitelist(HiveMind, [
+    "poll_remote_mining_flags",
+    "poll_all_creeps",
 ])
 
 # TODO: A lot of these should be changed for if the room has 1 or 2 sources!
@@ -880,20 +879,9 @@ class RoomMind:
     max_sane_wall_hits = property(get_max_sane_wall_hits)
 
 
-profiling.profile_class(RoomMind, [
-    "mem",
-    "role_counts",
-    "room_name",
-    "position",
-    "sources",
-    "spawns",
-    "creeps",
-    "work_mass",
-    "next_role",
-    "remote_mining_operations",
-    "rt_map",
-    "are_all_big_miners_placed",
-    "trying_to_get_full_storage_use",
-    "full_storage_use",
-    "max_sane_wall_hits",
+profiling.profile_whitelist(RoomMind, [
+    "recalculate_roles_alive",
+    "precreep_tick_actions",
+    "poll_hostiles",
+    "plan_next_role"
 ])

@@ -1,6 +1,7 @@
 import speech
 from constants import target_repair, target_construction, target_big_repair
 from roles import upgrading
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -106,3 +107,12 @@ class Builder(upgrading.Upgrader):
             return True
 
         return False
+
+
+profiling.profile_whitelist(Builder, [
+    "run",
+    "get_new_repair_target",
+    "get_new_construction_target",
+    "execute_repair_target",
+    "execute_construction_target",
+])

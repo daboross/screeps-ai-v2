@@ -4,6 +4,7 @@ import context
 from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
     role_remote_mining_reserve, target_remote_reserve, role_builder, role_upgrader
 from role_base import RoleBase
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -89,6 +90,9 @@ class ReplacingExpendedCreep(RoleBase):
         self.home.mem.meta.clear_now = True
 
 
+profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
+
+
 class Colonist(RoleBase):
     def run(self):
         if not self.memory.colonizing:
@@ -121,3 +125,6 @@ class Colonist(RoleBase):
                 meta.clear_now = True
         else:
             self.move_to(__new__(RoomPosition(25, 25, colony)))
+
+
+profiling.profile_whitelist(Colonist, ["run"])

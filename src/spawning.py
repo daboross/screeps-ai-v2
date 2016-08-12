@@ -2,6 +2,7 @@ from math import floor
 
 import context
 from constants import *
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -224,3 +225,6 @@ def find_base_type(creep):
     print("[{}][{}] Re-assigned unknown body creep as {}.".format(
         context.room().room_name, creep.name, base))
     return base
+
+
+run = profiling.profiled(run, "spawning.run")

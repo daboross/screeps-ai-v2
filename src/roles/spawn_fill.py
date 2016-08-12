@@ -1,6 +1,7 @@
 import speech
 from constants import target_harvester_deposit
 from roles import building
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -62,3 +63,6 @@ class SpawnFill(building.Builder):
                         self.report((["No one", "to give", "this to."], False))
                         self.go_to_depot()
         return False
+
+
+profiling.profile_whitelist(SpawnFill, ["run"])

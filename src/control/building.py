@@ -1,4 +1,5 @@
 import flags
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -143,3 +144,6 @@ class ConstructionMind:
             self.mem.next_targets.dead_at = Game.time + 1
 
         return self.get_cached_property("next_targets")
+
+
+profiling.profile_whitelist(ConstructionMind, "refresh_targets")

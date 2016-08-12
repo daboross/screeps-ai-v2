@@ -2,6 +2,7 @@ import math
 
 import context
 from constants import *
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -87,3 +88,8 @@ def clear_memory(room):
                 closest_replacement_time = creep.memory.calculated_replacement_time
     dead_next = Game.time + smallest_ticks_to_live
     room.mem.meta.clear_next = min(dead_next, closest_replacement_time) + 1  # some leeway
+
+
+reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
+
+clear_memory = profiling.profiled(clear_memory, "consistency.clear_memory")

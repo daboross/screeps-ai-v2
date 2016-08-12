@@ -1,6 +1,7 @@
 import speech
 from constants import target_tower_fill
 from roles import spawn_fill
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -39,3 +40,6 @@ class TowerFill(spawn_fill.SpawnFill):
                 return spawn_fill.SpawnFill.run(self)
 
         return False
+
+
+profiling.profile_whitelist(TowerFill, ["run"])

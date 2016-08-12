@@ -1,4 +1,5 @@
 import flags
+from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -173,3 +174,9 @@ class HoneyTrails:
             return None
         path_list.append(path)
         return path_list
+
+
+profiling.profile_whitelist(HoneyTrails, [
+    "find_path",
+    "map_out_full_path",
+])

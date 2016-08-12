@@ -533,4 +533,13 @@ class RoleBase:
         print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
 
 
-profiling.profile_class(RoleBase, ["harvesting", "name", "home"])
+profiling.profile_whitelist(RoleBase, [
+    "_calculate_time_to_replace",
+    "_follow_path_to",
+    "move_to_with_queue",
+    "_try_move_to",
+    "move_to",
+    "harvest_energy",
+    "pick_up_available_energy",
+    "is_next_block_clear",
+])
