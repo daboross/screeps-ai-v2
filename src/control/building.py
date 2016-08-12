@@ -38,25 +38,14 @@ class ConstructionMind:
             self.room.room.memory.construction = {}
         return self.room.room.memory.construction
 
-    mem = property(_get_mem)
-
-    def get_cached_property(self, name):
-        if name in self.mem and self.mem[name].dead_at > Game.time:
-            return self.mem[name].value
-        else:
-            return None
-
-    def store_cached_property(self, name, value, ttl):
-        self.mem[name] = {"value": value, "dead_at": Game.time + ttl}
-
     def refresh_targets(self):
-        del self.mem.next_targets
+        del self.room.mem.cache.building_targets
 
     def next_priority_construction_targets(self):
-        priority_list = self.get_cached_property("next_targets")
+        priority_list = self.room.get_cached_property("building_targets")
         if priority_list is not None:
             return priority_list
-
+        print("[{}][building] Refreshing build targets.".format(self.room.room_name))
         current_targets = {}
         low_priority = []
         med_priority = []
@@ -127,23 +116,23 @@ class ConstructionMind:
 
         if len(high_priority):
             # We're going to want to work on high priority targets anyways, even if new ones are placed. Long TTL!
-            self.store_cached_property("next_targets", high_priority, 400)
+            self.room.store_cached_property("building_targets", high_priority, 400)
         elif len(med_priority):
             # We're halfway done. Somewhat random TTL!
-            self.store_cached_property("next_targets", med_priority, 200)
+            self.room.store_cached_property("building_targets", med_priority, 200)
         elif len(low_priority):
             # These are the last of the targets placed - there won't be any more unless more are placed manually.
             # TODO: This should be lower if auto-placing is ever implemented. Or, autoplacing should just use refresh()
-            self.store_cached_property("next_targets", low_priority, 300)
+            self.room.store_cached_property("building_targets", low_priority, 300)
         else:
             # No targets available at current controller level. TODO: refresh when controller upgrades!
-            self.store_cached_property("next_targets", low_priority, 70)
+            self.room.store_cached_property("building_targets", low_priority, 70)
 
         if new_site_placed:
             # expires in one tick, when new construction sites are active.
-            self.mem.next_targets.dead_at = Game.time + 1
+            self.room.mem.cache.building_targets.dead_at = Game.time + 1
 
-        return self.get_cached_property("next_targets")
+        return self.room.get_cached_property("building_targets")
 
 
 profiling.profile_whitelist(ConstructionMind, "refresh_targets")
