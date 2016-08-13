@@ -53,60 +53,85 @@ def main():
         for name in Object.keys(Game.creeps):
             Memory.creeps[name] = {}
 
-    total_creeps = 0
-    creeps_run = 0
-    broken = False
-    for room in hive_mind.my_rooms:
-        context.set_room(room)
-        room.precreep_tick_actions()
-        total_creeps += len(room.creeps)
-        for creep in room.creeps:
-            if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
-                broken = True
-                break
-            creeps_run += 1
-            try:
-                if creep.spawning and creep.memory.role != role_temporary_replacing:
-                    continue
-                if not creep.memory.base:
-                    creep.memory.base = spawning.find_base_type(creep)
+    def run_creep(creeps_skipped, room, creep):
+        if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
+            if creeps_skipped[room.room_name]:
+                creeps_skipped[room.room_name].append(creep.name)
+            else:
+                creeps_skipped[room.room_name] = [creep.name]
+            return
+        try:
+            if creep.spawning and creep.memory.role != role_temporary_replacing:
+                return
+            if not creep.memory.base:
+                creep.memory.base = spawning.find_base_type(creep)
+            instance = wrap_creep(creep)
+            if not instance:
+                if creep.memory.role:
+                    print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
+                        creep.memory.home, creep.name, creep.memory.role))
+                else:
+                    print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
+                role = default_roles[creep.memory.base]
+                if not role:
+                    base = RoleBase(target_mind, creep)
+                    base.go_to_depot()
+                    base.report(speech.base_no_role)
+                    return
+                creep.memory.role = role
                 instance = wrap_creep(creep)
-                if not instance:
-                    if creep.memory.role:
-                        print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
-                            creep.memory.home, creep.name, creep.memory.role))
-                    else:
-                        print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
-                    role = default_roles[creep.memory.base]
-                    if not role:
-                        base = RoleBase(target_mind, creep)
-                        base.go_to_depot()
-                        base.report(speech.base_no_role)
-                        continue
-                    creep.memory.role = role
-                    instance = wrap_creep(creep)
-                    room.register_to_role(instance)
+                room.register_to_role(instance)
+            rerun = instance.run()
+            if rerun:
                 rerun = instance.run()
-                if rerun:
-                    rerun = instance.run()
-                if rerun:
-                    rerun = instance.run()
-                if rerun:
-                    print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
-                                                                            creep.memory.role))
-            except:
-                e = __except__
-                role = creep.memory.role
-                Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
-                    role if role else "[no role]", creep.name, creep.memory.home, e.stack if e else "e == null??"
-                ), 10)
-                print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
-                                                               role if role else "[no role]"))
-                print(e.stack if e else "e == null??")
+            if rerun:
+                rerun = instance.run()
+            if rerun:
+                print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
+                                                                        creep.memory.role))
+        except:
+            e = __except__
+            role = creep.memory.role
+            Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
+                role if role else "[no role]", creep.name, creep.memory.home, e.stack if e else "e == null??"
+            ), 10)
+            print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
+                                                           role if role else "[no role]"))
+            print(e.stack if e else "e == null??")
 
-    if broken and creeps_run < total_creeps:
-        print("[main] Skipped {}/{} creeps, to save CPU.".format(total_creeps - creeps_run, total_creeps))
+    total_creeps = 0
+    creeps_skipped = {}
+    if Memory.skipped_last_turn:
+        print("[main] Running {} creeps skipped last tick, to save CPU.".format(
+            _.sum(Memory.skipped_last_turn, 'length')))
+        for room_name in Object.keys(Memory.skipped_last_turn):
+            room = hive_mind.get_room(room_name)
+            if not room:
+                print("[{}] Room no longer visible? skipping re-running creeps skipped last turn from this room."
+                      .format(room_name))
+                continue
+            context.set_room(room)
+            room.precreep_tick_actions()
+            total_creeps += len(Memory.skipped_last_turn[room_name])
+            for creep_name in Memory.skipped_last_turn[room_name]:
+                if not Game.creeps[creep_name]:
+                    continue
+                run_creep(creeps_skipped, room, Game.creeps[creep_name])
+        del Memory.skipped_last_turn
+    else:
+        for room in hive_mind.my_rooms:
+            context.set_room(room)
+            room.precreep_tick_actions()
+            total_creeps += len(room.creeps)
+            for creep in room.creeps:
+                run_creep(creeps_skipped, room, creep)
+    skipped_count = 0
+    for room_name in creeps_skipped.keys():
+        skipped_count += len(creeps_skipped[room_name])
+    if skipped_count:
+        print("[main] Skipped {}/{} creeps, to save CPU.".format(skipped_count, total_creeps))
         print("[main] Total CPU used: {}. Bucket: {}.".format(int(Game.cpu.getUsed()), Game.cpu.bucket))
+        Memory.skipped_last_turn = creeps_skipped
 
     for name in Object.keys(Game.spawns):
         spawn = Game.spawns[name]
