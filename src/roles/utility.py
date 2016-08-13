@@ -176,10 +176,10 @@ class Cleanup(SpawnFill):
                 if self.home.get_target_cleanup_mass() + carry_per_creep < self.home.carry_mass_of(role_cleanup):
                     # The creep with the lowest lifetime left should die.
                     # TODO: cleanup this mess
-                    next_to_die = self.home.next_x_to_die_of_role(
-                        role_cleanup,
-                        max((self.home.role_count(role_cleanup) - carry_per_creep - self.home.get_target_cleanup_mass())
-                            / carry_per_creep), 1)
+                    extra_mass = (self.home.carry_mass_of(role_cleanup)
+                                  - carry_per_creep - self.home.get_target_cleanup_mass())
+                    x_to_die = max(extra_mass / carry_per_creep, 1)
+                    next_to_die = self.home.next_x_to_die_of_role(role_cleanup, x_to_die)
                     if self.name in next_to_die:
                         if self.home.carry_mass_of(role_local_hauler) \
                                 < self.home.get_target_local_hauler_carry_mass():
