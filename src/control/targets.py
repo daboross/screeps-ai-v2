@@ -16,7 +16,7 @@ _MAX_BUILDERS = 3
 
 def _mass_count(name):
     # set in spawning and role base.
-    if name in Memory.creeps and ("carry" in Memory.creeps[name] or "work" in Memory.creeps[name]):
+    if name in Memory.creeps and (Memory.creeps[name].carry or Memory.creeps[name].work):
         carry = Memory.creeps[name].carry or 0
         work = Memory.creeps[name].work or 0
     elif name in Game.creeps:
@@ -111,14 +111,14 @@ class TargetMind:
             self.targets_workforce[ttype] = {
                 target_id: _mass_count(targeter_id)
             }
-        elif target_id not in self.targets[ttype]:
-            self.targets[ttype][target_id] = _mass_count(targeter_id)
+        elif target_id not in self.targets_workforce[ttype]:
+            self.targets_workforce[ttype][target_id] = _mass_count(targeter_id)
         else:
-            self.targets[ttype][target_id] += _mass_count(targeter_id)
+            self.targets_workforce[ttype][target_id] += _mass_count(targeter_id)
 
     def _reregister_all(self):
         new_targets = {}
-        targets_mass = {}
+        new_workforce = {}
         for targeter_id in Object.keys(self.targeters):
             mass = _mass_count(targeter_id)
             for ttype in Object.keys(self.targeters[targeter_id]):
@@ -126,15 +126,20 @@ class TargetMind:
                 if ttype in new_targets:
                     if target_id in new_targets[ttype]:
                         new_targets[ttype][target_id] += 1
-                        targets_mass[ttype][target_id] += mass
                     else:
                         new_targets[ttype][target_id] = 1
-                        targets_mass[ttype][target_id] = mass
                 else:
                     new_targets[ttype] = {target_id: 1}
-                    targets_mass[ttype] = {target_id: mass}
+                if ttype in new_workforce:
+                    if target_id in new_workforce[ttype]:
+                        new_workforce[ttype][target_id] += mass
+                    else:
+                        new_workforce[ttype][target_id] = mass
+                else:
+                    new_workforce[ttype] = {target_id: mass}
+
         self.targets = new_targets
-        self.targets_workforce = targets_mass
+        self.targets_workforce = new_workforce
 
     def _unregister_targeter(self, ttype, targeter_id):
         existing_target = self._get_existing_target_id(ttype, targeter_id)
@@ -163,8 +168,13 @@ class TargetMind:
             new_mass = _mass_count(new_targeter_id)
             for ttype in Object.keys(self.targeters[new_targeter_id]):
                 target = self.targeters[new_targeter_id][ttype]
-                if ttype in self.targets_workforce and target in self.targets_workforce[ttype]:
-                    self.targets_workforce[ttype][target] += new_mass - old_mass
+                if ttype in self.targets_workforce:
+                    if target in self.targets_workforce:
+                        self.targets_workforce[ttype][target] += new_mass - old_mass
+                    else:
+                        self.targets_workforce[ttype][target] = new_mass
+                else:
+                    self.targets_workforce[ttype] = {target: new_mass}
             del self.targeters[old_targeter_id]
 
     def _find_new_target(self, ttype, creep, extra_var):

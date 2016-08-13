@@ -1101,7 +1101,7 @@ class RoomMind:
                                                                                            creep_base_defender)),
             role_remote_hauler:
                 lambda: math.ceil(self.get_target_remote_hauler_carry_mass()
-                                  / self.get_target_remote_miner_count() / 3.0),
+                                  / self.role_count(role_remote_miner) / 2.0),
             role_remote_miner:
                 lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),
             role_remote_mining_reserve:
