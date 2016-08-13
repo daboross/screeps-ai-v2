@@ -102,5 +102,10 @@ __all__ = [
     "__pragma__",
     "__new__",
     "__except__",
+    "new_map",
 ]
 __pragma__('noskip')
+
+
+def new_map(iterable=None):
+    return __new__(Map(iterable))

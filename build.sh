@@ -26,8 +26,8 @@ cd "src"
 cp __javascript__/main.* ../target/
 cd ../
 
-patch target/main.js js_patches/fix_string_format.patch
-patch target/main.js js_patches/allow_in_on_objects.patch
+patch -lb target/main.js js_patches/fix_string_format.patch
+patch -lb target/main.js js_patches/allow_in_on_objects.patch
 
 mkdir -p dist/
 cp target/main.js dist/

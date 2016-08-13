@@ -11,12 +11,22 @@ def volatile():
     global _volatile_memory
     if _tick_stored_for < Game.time:
         _tick_stored_for = Game.time
-        _volatile_memory = __new__(Map())
+        _volatile_memory = new_map()
     return _volatile_memory
 
 
 def mem(key):
     v = volatile()
     if key not in v:
-        v[key] = {}
+        v[key] = new_map()
     return v[key]
+
+
+def submem(key1, key2):
+    v = volatile()
+    if key1 not in v:
+        v[key1] = new_map([[key2, new_map()]])
+        v[key1][key2] = new_map()
+    elif key2 not in v[key1]:
+        v[key1][key2] = new_map()
+    return v[key1][key2]
