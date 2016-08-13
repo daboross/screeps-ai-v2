@@ -6,6 +6,7 @@ __pragma__('noalias', 'name')
 module_profiler = None
 enabled = False
 initialized = False
+custom = True
 
 if Memory.meta and Memory.meta.enable_profiling:
     enabled = True
@@ -75,15 +76,44 @@ def _profiled(name):
     if not initialized:
         init()
 
-    def deco(func):
-        return module_profiler.registerFN(func, name)
+    if custom:
+        def deco(func):
+            return _get_custom_func(func, name)
+    else:
+        def deco(func):
+            return module_profiler.registerFN(func, name)
 
     return deco
 
 
+def _get_custom_func(func, name):
+    def wrapped_func(*args):
+        start = Game.cpu.getUsed()
+        value = func(*args)
+        end = Game.cpu.getUsed()
+        if end - start > 8:
+            arguments = ""
+            for arg in args:
+                try:
+                    if typeof(arg) == 'object' or typeof(arg) == 'number':
+                        arg = arg.toString()
+                    else:
+                        arg = "[non-viewable]"
+                except:
+                    arg = "[non-viewable]"
+                if len(arguments):
+                    arguments += ", " + arg
+                else:
+                    arguments += arg
+            print("[profiler] {}({}) used {} cpu!".format(name, arguments, round(end - start, 2)))
+        return value
+
+    return wrapped_func
+
+
 def init():
     global initialized
-    if enabled:
+    if enabled and not custom:
         global module_profiler
         module_profiler = require("screeps-profiler")
         module_profiler.enable()
@@ -91,7 +121,7 @@ def init():
 
 
 def wrap_main(main_func):
-    if enabled:
+    if enabled and not custom:
         if not initialized:
             init()
         return module_profiler.wrap(main_func)

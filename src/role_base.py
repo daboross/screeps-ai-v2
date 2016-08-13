@@ -539,6 +539,9 @@ class RoleBase:
         """
         print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
 
+    def toString(self):
+        return "Creep[role: {}, home: {}]".format(self.memory.role, self.home.room_name)
+
 
 profiling.profile_whitelist(RoleBase, [
     "_calculate_time_to_replace",
