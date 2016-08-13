@@ -179,27 +179,27 @@ class RoleBase:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
                                                         movement.is_block_clear(self.creep.room, target.x, target.y)):
                 self.last_checkpoint = target
-            return self.creep.moveTo(target)
+            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
         elif target.isEqualTo(self.last_checkpoint):
             self.log("Creep target not updated! Last checkpoint is still {}, at {} distance away.".format(
                 target, self.creep.pos.getRangeTo(target)
             ))
             self.last_checkpoint = None
-            return self.creep.moveTo(target)
+            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
         if self.last_checkpoint.roomName != self.creep.pos.roomName:
             entrance = movement.get_entrance_for_exit_pos(self.last_checkpoint)
             if entrance == -1:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}".format(
                     self.last_checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target)
+                return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
             # TODO: Remove debug logging
             self.last_checkpoint = entrance
             if entrance.roomName != self.creep.pos.roomName:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
                          "Removing checkpoint.".format(self.last_checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target)
+                return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
 
         # TODO: RoleBase should have a reference to the hive!
         room = context.hive().get_room(self.creep.pos.roomName)
@@ -215,7 +215,7 @@ class RoleBase:
                 pass
                 # self.log("Uh-oh! We've lost the path from {} to {}.".format(self.last_checkpoint, target))
 
-            return self.creep.moveTo(target)
+            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
         if result == OK:
             # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
             # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
@@ -244,7 +244,7 @@ class RoleBase:
             result = self._follow_path_to(queue_flag)
         else:
             self.last_checkpoint = None
-            result = self.creep.moveTo(queue_flag)
+            result = self.creep.moveTo(queue_flag, _DEFAULT_PATH_OPTIONS)
         if result == OK:
             if self.creep.pos.isNearTo(queue_flag.pos) and \
                     movement.is_block_clear(self.creep.room, queue_flag.pos.x, queue_flag.pos.y):
@@ -269,7 +269,7 @@ class RoleBase:
             return self._follow_path_to(pos)
         else:
             self.last_checkpoint = None
-            return self.creep.moveTo(pos)
+            return self.creep.moveTo(pos, _DEFAULT_PATH_OPTIONS)
 
     def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
         if not same_position_ok:
