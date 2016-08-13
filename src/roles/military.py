@@ -52,7 +52,7 @@ class RoleDefender(RoleBase):
 
         target = Game.getObjectById(target_id)
 
-        if target is None:
+        if target is None or self.room.hostile:
             self.memory.attack_target = None
             delete_target(target_id)
             return True

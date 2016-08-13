@@ -106,7 +106,7 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
         flag_list = flags.find_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
     if not len(flag_list):
         print(
-            "[movement] Couldn't find exit flag in room {} to direction {}! [targetting room {} from room {}] ({}, {})"
+            "[movement] Couldn't find exit flag in room {} to direction {}! [targeting room {} from room {}] ({}, {})"
                 .format(room_name, flags.DIR_TO_EXIT_FLAG[direction], to_room, room_name, difference[0], difference[1]))
         return None, direction
 

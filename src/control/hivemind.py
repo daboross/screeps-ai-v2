@@ -7,6 +7,7 @@ from constants import *
 from control.building import ConstructionMind
 from control.pathdef import HoneyTrails, CachedTrails
 from role_base import RoleBase
+from roles import military
 from tools import profiling
 from utilities import consistency
 from utilities import movement
@@ -256,6 +257,8 @@ class RoomMind:
         self._max_sane_wall_hits = None
         self._spawns = None
         self.my = room.controller and room.controller.my
+        # source keeper rooms are hostile
+        self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         self.spawn = self.spawns[0] if self.spawns and len(self.spawns) else None
         if self.mem.sponsor:
             self.sponsor_name = self.mem.sponsor
@@ -305,7 +308,7 @@ class RoomMind:
         Looks for something at a position, and caches the result for this tick.
 
         This is meant as a drop-in replacement for pos.lookFor() or room.lookForAt().
-        :param type: thing to look for, one of the FIND_* contants
+        :param type: thing to look for, one of the FIND_* constants
         :type type: str
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
@@ -361,13 +364,13 @@ class RoomMind:
                     found.append(element)
         return found
 
-    def find_closest_by_range(self, type,  pos, filter=None):
+    def find_closest_by_range(self, type, pos, filter=None):
         """
         Looks for something in this room closest the the given position, and caches the result for this tick.
 
         This is meant as a drop-in replacement for pos.findClosestByRange()
 
-        :param type: thing to look for, one of the FIND_* contants
+        :param type: thing to look for, one of the FIND_* constants
         :type type: str
         :param pos: The position to look for at
         :type pos: RoomPosition
@@ -525,9 +528,8 @@ class RoomMind:
         count = 0
         if role in rt_map and len(rt_map[role]):
             for creep, replacement_time in rt_map[role]:
-                if (not Memory.creeps[creep] or not Memory.creeps[creep].replacement) and replacement_time <= Game.time:
+                if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
                     count += 1
-                    print("[{}] No one currently replacing {}, a {}!".format(self.room_name, creep, role))
         return count
 
     def precreep_tick_actions(self):
@@ -556,7 +558,10 @@ class RoomMind:
         # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is
         # cleared!
         if Game.time % 100 == 0:
-            consistency.reassign_room_roles(self)
+            self.reassign_roles()
+
+    def reassign_roles(self):
+        return consistency.reassign_room_roles(self)
 
     def poll_hostiles(self):
         if not Memory.hostiles:
@@ -565,12 +570,21 @@ class RoomMind:
             Memory.hostile_last_rooms = {}
         if not Memory.hostile_last_positions:
             Memory.hostile_last_positions = {}
-        if Memory.meta.friends and len(Memory.meta.friends):
-            targets = self.room.find(FIND_HOSTILE_CREEPS, {
-                "filter": lambda c: c.owner.username not in Memory.meta.friends
-            })
-        else:
-            targets = self.room.find(FIND_HOSTILE_CREEPS)
+
+        if self.hostile:
+            return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
+
+        remove = None
+        for hostile_id in Memory.hostiles:
+            if Memory.hostile_last_rooms[hostile_id] == self.room_name and not Game.getObjectById(hostile_id):
+                if remove:
+                    remove.append(hostile_id)
+                else:
+                    remove = [hostile_id]
+        if remove:
+            for hostile_id in remove:
+                military.delete_target(hostile_id)
+        targets = self.find(FIND_HOSTILE_CREEPS)
         for hostile in targets:
             if hostile.id not in Memory.hostiles:
                 Memory.hostiles.push(hostile.id)

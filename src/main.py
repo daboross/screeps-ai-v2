@@ -24,12 +24,16 @@ def main():
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
     if Memory.meta.pause:
-        if Game.cpu.bucket >= 10000:
-            print("[paused] Bucket full, resuming next tick.")
-            Memory.meta.pause = False
-        else:
-            print("[paused] Bucket accumulated: {} (used loading code: {})".format(Game.cpu.bucket,
-                                                                                   int(Game.cpu.getUsed())))
+        if Memory.meta.waiting_for_bucket:
+            if Game.cpu.bucket >= 10000:
+                print("[paused] Bucket full, resuming next tick.")
+                Memory.meta.pause = False
+                del Memory.meta.waiting_for_bucket
+            else:
+                print("[paused] Bucket accumulated: {} (used loading code: {})".format(Game.cpu.bucket,
+                                                                                       int(Game.cpu.getUsed())))
+        elif Game.cpu.bucket <= 5000:
+            Memory.meta.waiting_for_bucket = True
         return
 
     flags.move_flags()

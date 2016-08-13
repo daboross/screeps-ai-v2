@@ -90,7 +90,8 @@ class LinkManager(RoleBase):
             link = Game.getObjectById(self.memory.target_link)
 
         if not link:
-            link = self.room.find_closest_by_range(FIND_STRUCTURES, self.creep.pos, {"structureType": STRUCTURE_LINK})
+            link = self.room.find_closest_by_range(FIND_STRUCTURES, self.creep.room.storage.pos,
+                                                   {"structureType": STRUCTURE_LINK})
             if not link:
                 if self.creep.carry.energy > 0:
                     self.memory.gathering_from_link = False
@@ -161,8 +162,8 @@ class Cleanup(SpawnFill):
                 pile = closest
             else:
                 pile = None
-            # This is the old code which is completely equivalent to the above, but much less optimized, and does not do any
-            # caching of "find" results like the RoomMind.find_* functions do.
+            # This is the old code which is completely equivalent to the above, but much less optimized, and does not do
+            # any caching of "find" results like the RoomMind.find_* functions do.
             # pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
             #     "filter": lambda s: len(
             #         _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)

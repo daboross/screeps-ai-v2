@@ -20,7 +20,7 @@ class RemoteMiner(RoleBase):
             self.report(speech.remote_miner_no_flag)
             return False
         if source_flag.memory.sponsor != self.home.room_name:
-            self.log("Remote miner currently targetting foreign mine! Mine: {}, sponsor: {}, home: {},"
+            self.log("Remote miner currently targeting foreign mine! Mine: {}, sponsor: {}, home: {},"
                      " home.targeting: {}. Adjusting home accordingly!".format(source_flag, source_flag.memory.sponsor,
                                                                                self.home.room_name,
                                                                                self.home.remote_mining_operations))
@@ -105,7 +105,7 @@ class RemoteHauler(SpawnFill):
                 return False
 
             if source_flag.memory.sponsor != self.home.room_name:
-                self.log("Remote hauler currently targetting foreign mine! Mine: {}, sponsor: {}, home: {}."
+                self.log("Remote hauler currently targeting foreign mine! Mine: {}, sponsor: {}, home: {}."
                          "Adjusting home accordingly!".format(source_flag, source_flag.memory.sponsor,
                                                               self.home.room_name))
                 self.memory.home = source_flag.memory.sponsor
@@ -157,7 +157,7 @@ class RemoteHauler(SpawnFill):
                         self.last_checkpoint = movement.get_exit_flag_to(self.creep.pos.roomName,
                                                                          source_flag.pos.roomName)
                     return True
-                # TODO: should we really be targetting the source flag, or should we target the miner if he's here?
+                # TODO: should we really be targeting the source flag, or should we target the miner if he's here?
                 self.move_to(source_flag, False, True)
                 self.report(speech.remote_hauler_moving_to_miner)
                 return False
