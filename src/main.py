@@ -118,7 +118,7 @@ def main():
         room = hive_mind.get_room(spawn.pos.roomName)
         spawning.run(room, spawn)
 
-    tower.run()
+    tower.run(hive_mind)
 
 
 module.exports.loop = profiling.wrap_main(main)

@@ -203,7 +203,7 @@ class TargetMind:
         best_id_2 = None
         sources = creep.room.find(FIND_SOURCES)
         for source in sources:
-            energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount') or 0
+            energy = _.sum(creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
             # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
             if source.id in self.targets[target_source]:
                 current_harvesters = self.targets[target_source][source.id]
@@ -217,7 +217,7 @@ class TargetMind:
         for source in sources:
             dedicated_miner_placed = not not (Memory.dedicated_miners_stationed and
                                               Memory.dedicated_miners_stationed[source.id])
-            energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount') or 0
+            energy = _.sum(creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
             if source.id in self.targets[target_source]:
                 current_harvesters = self.targets[target_source][source.id]
             else:
@@ -403,9 +403,9 @@ class TargetMind:
         # in a creep's lifetime.
         # target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
         # TODO: cache the closest deposit site to each mine site.
-        target = creep.creep.pos.findClosestByRange(FIND_STRUCTURES, {
-            "filter": lambda s: s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
-        })
+        target = creep.room.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,
+                                                  lambda s: s.structureType == STRUCTURE_LINK
+                                                            or s.structureType == STRUCTURE_STORAGE)
         if target:
             return target.id
         else:

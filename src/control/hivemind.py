@@ -290,9 +290,103 @@ class RoomMind:
         if parameter in cache:
             return cache[parameter]
         else:
-            result = self.room.find(parameter)
+            # this is patched in here because we pretty much never want to find hostile creeps besides like this:
+            if parameter == FIND_HOSTILE_CREEPS and len(Memory.meta.friends):
+                result = self.room.find(FIND_HOSTILE_CREEPS, {
+                    "filter": lambda c: c.owner.username not in Memory.meta.friends
+                })
+            else:
+                result = self.room.find(parameter)
             cache[parameter] = result
             return result
+
+    def find_at(self, type, pos, optional_y=None):
+        """
+        Looks for something at a position, and caches the result for this tick.
+
+        This is meant as a drop-in replacement for pos.lookFor() or room.lookForAt().
+        :param type: thing to look for, one of the FIND_* contants
+        :type type: str
+        :param pos: The position to look for at, or the x value of a position
+        :type pos: int | RoomPosition
+        :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
+        :type optional_y: int
+        :return: A list of results
+        :rtype: list[RoomObject]
+        """
+        if optional_y:
+            x = pos
+            y = optional_y
+        else:
+            x = pos.x
+            y = pos.y
+        raw_find_results = self.find(type)
+        found = []
+        if len(raw_find_results):
+            for element in raw_find_results:
+                if element.pos.x == x and element.pos.y == y:
+                    found.append(element)
+        return found
+
+    def find_in_range(self, type, range, pos, optional_y=None):
+        """
+        Looks for something near a position, and caches the result for this tick.
+
+        This is meant as a drop-in replacement for pos.findInRange().
+
+        Note that this performes a search using "rectangular range", or everything whose x and y are within range of the center
+         x and y, while the default findInRange() function uses a circular range, where the positions are compared using actual
+         distance.
+
+        :param type: thing to look for, one of the FIND_* contants
+        :type type: str
+        :param pos: The position to look for at, or the x value of a position
+        :type pos: int | RoomPosition
+        :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
+        :type optional_y: int
+        :return: A list of results
+        :rtype: list[RoomObject]
+        """
+        if optional_y:
+            x = pos
+            y = optional_y
+        else:
+            x = pos.x
+            y = pos.y
+        raw_find_results = self.find(type)
+        found = []
+        if len(raw_find_results):
+            for element in raw_find_results:
+                if abs(element.pos.x - x) <= range and abs(element.pos.y - y) <= range:
+                    found.append(element)
+        return found
+
+    def find_closest_by_range(self, type,  pos, filter=None):
+        """
+        Looks for something in this room closest the the given position, and caches the result for this tick.
+
+        This is meant as a drop-in replacement for pos.findClosestByRange()
+
+        :param type: thing to look for, one of the FIND_* contants
+        :type type: str
+        :param pos: The position to look for at
+        :type pos: RoomPosition
+        :return: A single result
+        :rtype: RoomObject
+        """
+        raw_find_results = self.find(type)
+        if filter:
+            raw_find_results = _.filter(raw_find_results, filter)
+        if not len(raw_find_results):
+            return None
+        closest_distance = math.pow(2, 30)
+        closest_element = None
+        for element in raw_find_results:
+            distance = movement.distance_squared_room_pos(pos, element.pos)
+            if distance < closest_distance:
+                closest_element = element
+                closest_distance = distance
+        return closest_element
 
     def _get_role_counts(self):
         if not self.mem.roles_alive:
@@ -686,7 +780,7 @@ class RoomMind:
                 # the storage and hauler capacity.
                 total_count = math.ceil(self.get_target_dedi_miner_count() * 1.5)
                 for source in self.sources:
-                    energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount')
+                    energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                     total_count += energy / 200.0
                 self._target_local_hauler_count = math.floor(total_count)
 
@@ -802,7 +896,7 @@ class RoomMind:
             else:
                 extra_count = 0
                 for source in self.sources:
-                    energy = _.sum(source.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount')
+                    energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                     extra_count += energy / 200.0
                 self._trying_to_get_full_storage_use = regular_count + extra_count
         return self._target_spawn_fill_count

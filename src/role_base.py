@@ -351,7 +351,7 @@ class RoleBase:
             self.report(speech.default_gather_moving_between_rooms)
             return False
 
-        piles = source.pos.findInRange(FIND_DROPPED_ENERGY, 3)
+        piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 3, source.pos)
         if len(piles) > 0:
             pile = piles[0]
             if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
@@ -366,11 +366,8 @@ class RoleBase:
                 self.report(speech.default_gather_unknown_result_pickup)
             return False
 
-        containers = source.pos.findInRange(FIND_STRUCTURES, 3, {"filter": lambda struct: (
-            (struct.structureType == STRUCTURE_CONTAINER
-             or struct.structureType == STRUCTURE_STORAGE)
-            and struct.store >= 0
-        )})
+        containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, source.pos),
+                              {"structureType": STRUCTURE_CONTAINER})
         if len(containers) > 0:
             container = containers[0]
             if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
@@ -395,8 +392,7 @@ class RoleBase:
             else:
                 self.home.mem.meta.clear_next = 0  # clear next tick
                 del Memory.dedicated_miners_stationed[source.id]
-
-        if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2, {"filter": {"memory": {"role": role_dedi_miner}}})):
+        if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), {"memory": {"role": role_dedi_miner}}):
             self.go_to_depot(follow_defined_path)
             return False
         if not self.creep.getActiveBodyparts(WORK):
@@ -429,11 +425,9 @@ class RoleBase:
     def pick_up_available_energy(self):
         if self.creep.getActiveBodyparts(CARRY) <= 0:
             return
-        resources = self.creep.pos.lookFor(LOOK_RESOURCES)
-        for resource in resources:
-            if resource.resourceType == RESOURCE_ENERGY:
-                self.creep.pickup(resource)
-                break
+        resources = self.room.find_at(FIND_DROPPED_ENERGY, self.creep.pos)
+        if len(resources):
+            self.creep.pickup(resources[0])
 
     def go_to_depot(self, follow_defined_path=False):
         depots = flags.find_flags(self.home, flags.DEPOT)

@@ -46,10 +46,10 @@ class SpawnFill(building.Builder):
             else:
                 if self.creep.getActiveBodyparts(WORK):
                     return building.Builder.run(self)
-                target = self.creep.pos.findClosestByRange(FIND_MY_CREEPS, {
-                    "filter": lambda c: c.getActiveBodyparts(WORK) and
-                                        c.getActiveBodyparts(CARRY) and c.carry.energy < c.carryCapacity
-                })
+                target = self.room.find_closest_by_range(FIND_MY_CREEPS, self.creep.pos,
+                                                         lambda c: c.getActiveBodyparts(WORK)
+                                                                   and c.getActiveBodyparts(CARRY)
+                                                                   and c.carry.energy < c.carryCapacity * 0.75)
                 if target:
                     if not self.creep.pos.isNearTo(target.pos):
                         self.move_to(target)

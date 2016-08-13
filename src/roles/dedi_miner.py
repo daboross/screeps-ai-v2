@@ -116,8 +116,8 @@ class LocalHauler(SpawnFill):
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
-                if len(self.creep.pos.findInRange(FIND_MY_CREEPS, 2,
-                                                  {"filter": {"memory": {"role": role_dedi_miner}}})):
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos),
+                          {"memory": {"role": role_dedi_miner}}):
                     self.go_to_depot()
                     return False
                 if not miner:

@@ -39,7 +39,7 @@ class RemoteMiner(RoleBase):
             self.report(speech.remote_miner_flag_no_source)
             return False
 
-        sitting = _.sum(source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1), 'amount')
+        sitting = _.sum(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, source_flag.pos), 'amount')
         source_flag.memory.energy_sitting = sitting
         result = self.creep.harvest(sources_list[0])
         if result == OK:
@@ -106,7 +106,7 @@ class RemoteHauler(SpawnFill):
             miner = Game.creeps[source_flag.memory.remote_miner_targeting]
             target_pos = None
             if self.creep.pos.roomName == source_flag.pos.roomName:
-                piles = source_flag.pos.findInRange(FIND_DROPPED_ENERGY, 1)
+                piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source_flag.pos)
                 if len(piles):
                     _.sortBy(piles, 'amount')
                     target_pos = piles[0].pos

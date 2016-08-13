@@ -1,3 +1,5 @@
+import math
+
 import speech
 from constants import role_cleanup, role_local_hauler, role_remote_hauler
 from role_base import RoleBase
@@ -88,9 +90,7 @@ class LinkManager(RoleBase):
             link = Game.getObjectById(self.memory.target_link)
 
         if not link:
-            link = self.creep.room.storage.pos.findClosestByRange(FIND_STRUCTURES, {
-                "filter": {"structureType": STRUCTURE_LINK}
-            })
+            link = self.room.find_closest_by_range(FIND_STRUCTURES, self.creep.pos, {"structureType": STRUCTURE_LINK})
             if not link:
                 if self.creep.carry.energy > 0:
                     self.memory.gathering_from_link = False
@@ -140,11 +140,34 @@ class Cleanup(SpawnFill):
 
         if self.memory.gathering:
             # TODO: Make some cached memory map of all hostile creeps, and use it to avoid.
-            pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
-                "filter": lambda s: len(
-                    _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)
-                ) == 0 and len(s.pos.findInRange(FIND_HOSTILE_CREEPS, 3)) == 0
-            })
+            resources = self.room.find(FIND_DROPPED_RESOURCES)
+            if len(resources):
+                closest = None
+                closest_distance = math.pow(2, 30)
+                for resource in resources:
+                    if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
+                        creeps = self.room.find_at(FIND_MY_CREEPS, resource.pos)
+                        any_stationary = False
+                        for creep in creeps:
+                            if creep.memory and creep.memory.stationary:
+                                any_stationary = True
+                                break
+                        if not any_stationary:
+                            # we've confirmed now that this is a valid target! congrats.
+                            distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
+                            if distance < closest_distance:
+                                closest = resource
+                                closest_distance = distance
+                pile = closest
+            else:
+                pile = None
+            # This is the old code which is completely equivalent to the above, but much less optimized, and does not do any
+            # caching of "find" results like the RoomMind.find_* functions do.
+            # pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
+            #     "filter": lambda s: len(
+            #         _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)
+            #     ) == 0 and len(s.pos.findInRange(FIND_HOSTILE_CREEPS, 3)) == 0
+            # })
 
             if not pile:
                 if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
