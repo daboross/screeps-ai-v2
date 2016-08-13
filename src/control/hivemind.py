@@ -1006,5 +1006,5 @@ profiling.profile_whitelist(RoomMind, [
     "recalculate_roles_alive",
     "precreep_tick_actions",
     "poll_hostiles",
-    "plan_next_role"
+    "plan_next_role",
 ])

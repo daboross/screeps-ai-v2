@@ -70,6 +70,8 @@ class RoleBase:
         """
         if not self._room:
             self._room = context.hive().get_room(self.creep.room.name)
+            if not self._room:
+                self.log("ERROR: can't find room we're in from hive! Room: {}".format(self.creep.room.name))
         return self._room
 
     room = property(get_room)
