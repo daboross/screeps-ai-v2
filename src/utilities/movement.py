@@ -148,13 +148,16 @@ def path_distance(here, target, non_roads_two_movement=False):
         if path:
             if not non_roads_two_movement:
                 path_len += len(path) + 1  # one to accommodate moving to the other room.
-            else:
+            elif room:
                 for pos in path:
                     if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
                         path_len += 1
                     else:
                         path_len += 2
                 path_len += 1
+            else:
+                # we can't see room but we have a cached path, so let's just assume path is no-roads
+                path_len += len(path) * 2 + 1
         else:
             if room:
                 if not path:
@@ -180,13 +183,16 @@ def path_distance(here, target, non_roads_two_movement=False):
     if path:
         if not non_roads_two_movement:
             path_len += len(path)
-        else:
+        elif room:
             for pos in path:
                 if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
                     path_len += 1
                 else:
                     path_len += 2
             path_len += 1
+        else:
+            # we can't see room but we have a cached path, so let's just assume path is no-roads
+            path_len += len(path) * 2 + 1
     else:
         if room:
             if not path:

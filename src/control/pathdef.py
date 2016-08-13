@@ -31,7 +31,12 @@ class CachedTrails:
         if memory.cache[key].dead_at <= Game.time:
             del memory.cache[key]
             return None
-        return Room.deserializePath(memory.cache[key].value)
+        try:
+            return Room.deserializePath(memory.cache[key].value)
+        except:
+            print("[{}][honey] Serialized path from {},{} to {},{} was invalid.")
+            del memory.cache[key]
+            return None
 
 
 class HoneyTrails:
@@ -113,8 +118,12 @@ class HoneyTrails:
             return None
         key = "path_{}_{}_{}_{}".format(origin.x, origin.y, destination.x, destination.y)
         path = self.room.get_cached_property(key)
-        if path and typeof(path) == 'string':
-            return Room.deserializePath(path)
+        if path:
+            try:
+                return Room.deserializePath(path)
+            except:
+                print("[{}][honey] Serialized path from {},{} to {},{} was invalid.")
+                del self.room.mem.cache[key]  # TODO: util method on room to do this.
         path = self.room.room.findPath(origin, destination, {
             "ignoreCreeps": True,
             "ignoreRoads": True,
