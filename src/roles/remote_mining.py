@@ -68,17 +68,20 @@ profiling.profile_whitelist(RemoteMiner, ["run"])
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class RemoteHauler(SpawnFill):
     def run(self):
+        source_flag = self.target_mind.get_new_target(self, target_remote_mine_hauler)
+
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.target_mind.untarget_all(self)
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
+            if self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
+                self.recycle_me()
+                return False
             self.memory.harvesting = True
             self.target_mind.untarget_all(self)
 
         if self.memory.harvesting:
-            source_flag = self.target_mind.get_new_target(self, target_remote_mine_hauler)
-
             if not source_flag:
                 # TODO: Re-enable after we get auto-respawning things *before* they die
                 # self.log("Remote hauler can't find any sources!")
@@ -95,7 +98,10 @@ class RemoteHauler(SpawnFill):
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
                 self.report(speech.remote_hauler_no_source)
-                self.go_to_depot()
+                if self.creep.ticksToLive < 200: # TODO: is this a good number?
+                    self.recycle_me()
+                else:
+                    self.go_to_depot()
                 return False
 
             if source_flag.memory.sponsor != self.home.room_name:
