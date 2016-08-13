@@ -75,7 +75,7 @@ class RemoteHauler(SpawnFill):
             self.target_mind.untarget_all(self)
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
-            if self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
+            if source_flag and self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
                 self.recycle_me()
                 return False
             self.memory.harvesting = True
@@ -98,7 +98,7 @@ class RemoteHauler(SpawnFill):
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
                 self.report(speech.remote_hauler_no_source)
-                if self.creep.ticksToLive < 200: # TODO: is this a good number?
+                if self.creep.ticksToLive < 200:  # TODO: is this a good number?
                     self.recycle_me()
                 else:
                     self.go_to_depot()
@@ -205,9 +205,14 @@ class RemoteHauler(SpawnFill):
                 target = storage
 
             if not self.creep.pos.isNearTo(target.pos):
-                self.move_to(target, False, True)
-                self.report(speech.remote_hauler_moving_to_storage)
-                return False
+                if self.creep.pos.isNearTo(storage):
+                    # being blocked by a link manager to get to the link
+                    target = storage
+                    self.last_target = storage
+                else:
+                    self.move_to(target, False, True)
+                    self.report(speech.remote_hauler_moving_to_storage, target.structureType)
+                    return False
 
             self.last_checkpoint = storage.pos
             self.memory.stationary = True
