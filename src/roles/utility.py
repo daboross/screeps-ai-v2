@@ -2,7 +2,7 @@ import math
 
 import spawning
 import speech
-from constants import role_cleanup, role_local_hauler, role_remote_hauler
+from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -132,6 +132,9 @@ profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
 # TODO: Change the speech on this to something unique.
 class Cleanup(SpawnFill):
     def run(self):
+        if self.creep.ticksToLive < recycle_time:
+            self.memory.role = role_recycling
+            return False
         storage = self.creep.room.storage
 
         if self.memory.gathering and _.sum(self.creep.carry) >= self.creep.carryCapacity:
@@ -191,7 +194,14 @@ class Cleanup(SpawnFill):
                             self.memory.role = role_remote_hauler
                             self.home.mem.meta.clear_next = 0  # clear next tick
                             return False
-                        self.recycle_me()
+                        self.memory.role = role_recycling
+                        # TODO: utility method for this kind of thing.
+                        if role_cleanup in self.home.role_counts:
+                            self.home.role_counts[role_cleanup] -= 1
+                            self.home.carry_mass_map[role_cleanup] -= spawning.carry_count(self)
+                        if role_recycling in self.home.role_counts:
+                            self.home.role_counts[role_recycling] += 1
+                            self.home.carry_mass_map[role_recycling] += spawning.carry_count(self)
                         return
                 if _.sum(self.creep.carry) >= 0:
                     self.memory.gathering = False

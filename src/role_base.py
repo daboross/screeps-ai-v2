@@ -3,7 +3,7 @@ import math
 import context
 import flags
 import speech
-from constants import target_source, role_dedi_miner
+from constants import target_source, role_dedi_miner, recycle_time
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -101,7 +101,7 @@ class RoleBase:
             return self.memory.calculated_replacement_time
 
     def _calculate_time_to_replace(self):
-        return _.size(self.creep.body) * 3
+        return recycle_time + _.size(self.creep.body) * 3
 
     def run(self):
         """

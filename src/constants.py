@@ -39,6 +39,7 @@ role_defender = "simple_defender"
 role_colonist = "basic_colonist"
 role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
+role_recycling = "recycling"
 
 role_bases = {
     role_upgrader: creep_base_worker,
@@ -66,3 +67,5 @@ default_roles = {
     creep_base_reserving: role_remote_mining_reserve,
     creep_base_defender: role_defender,
 }
+
+recycle_time = 50

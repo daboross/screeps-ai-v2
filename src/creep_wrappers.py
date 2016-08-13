@@ -30,6 +30,7 @@ role_classes = {
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
     role_colonist: generic.Colonist,
+    role_recycling: generic.Recycling,
 }
 
 

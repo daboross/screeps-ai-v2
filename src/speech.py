@@ -101,3 +101,4 @@ link_manager_storage_full = (["it's", "full,", None, "Jim", None], False)
 link_manager_unknown_result = (["AAAAhhhh", "!!!???", "link_store"], False)
 
 cleanup_found_energy = (["{}, {}"], True)
+recycling = (["I", "forfeit", "my life"])

@@ -2,7 +2,7 @@ import flags
 import spawning
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_deposit_site, role_remote_hauler, role_cleanup
+    target_closest_deposit_site, role_remote_hauler, role_cleanup, role_recycling
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -77,7 +77,7 @@ class RemoteHauler(SpawnFill):
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             if source_flag and self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
-                self.recycle_me()
+                self.memory.role = role_recycling
                 return False
             self.memory.harvesting = True
             self.target_mind.untarget_all(self)

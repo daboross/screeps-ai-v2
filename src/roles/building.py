@@ -1,5 +1,5 @@
 import speech
-from constants import target_repair, target_construction, target_big_repair
+from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time
 from roles import upgrading
 from tools import profiling
 from utilities.screeps_constants import *
@@ -9,6 +9,9 @@ __pragma__('noalias', 'name')
 
 class Builder(upgrading.Upgrader):
     def run(self):
+        if self.creep.ticksToLive < recycle_time:
+            self.memory.role = role_recycling
+            return False
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.target_mind.untarget_all(self)

@@ -1,8 +1,9 @@
 import math
 
 import context
+import speech
 from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
-    role_remote_mining_reserve, target_remote_reserve, role_builder, role_upgrader
+    role_remote_mining_reserve, target_remote_reserve, role_builder, role_upgrader, role_recycling
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement
@@ -44,11 +45,9 @@ class ReplacingExpendedCreep(RoleBase):
                 self.move_to(old_creep)
                 return
 
-        self.log("Commanding {} to suicide, and stealing their {} identity!".format(
+        self.log("Sending {} to recycling, and taking over as a {}.".format(
             old_name, self.memory.replacing_role,
         ))
-        old_time_to_live = old_creep.ticksToLive
-        old_creep.suicide()
         Memory.creeps[self.name] = {}
         _.assign(Memory.creeps[self.name], Memory.creeps[old_name])
         # TODO: this works because memory isn't a property, but set during construction. However, memory should probably
@@ -56,8 +55,7 @@ class ReplacingExpendedCreep(RoleBase):
         self.target_mind.assume_identity(old_name, self.creep.name)  # needs to happen before switching memory.
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
-        # any role here, doesn't really matter. it's already committed suicide
-        Memory.creeps[old_name] = {"role": "replaced", "home": self.memory.home}
+        Memory.creeps[old_name] = {"role": role_recycling, "home": self.memory.home}
         del self.memory.calculated_replacement_time
         del self.memory.replacement
         del self.memory.stationary
@@ -68,9 +66,6 @@ class ReplacingExpendedCreep(RoleBase):
 
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role
-        if role:
-            print("[{}][{}] {} died (identity stolen by {}) (time to live: {})".format(
-                self.home.room_name, old_name, role, self.name, old_time_to_live))
 
         if role == role_dedi_miner:
             source = self.target_mind.get_existing_target(self, target_big_source)
@@ -128,3 +123,21 @@ class Colonist(RoleBase):
 
 
 profiling.profile_whitelist(Colonist, ["run"])
+
+
+class Recycling(RoleBase):
+    def run(self):
+        if _.sum(self.creep.carry, 'amount') > 0:
+            storage = self.home.room.storage
+            if storage:
+                if self.creep.pos.isNearTo(storage.pos):
+                    resource = Object.keys(self.creep.carry)[0]
+                    result = self.creep.transfer(storage, resource)
+                    if result != OK:
+                        self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, resource, result))
+                else:
+                    self.move_to(storage)
+                return False
+
+        self.report(speech.recycling)
+        self.recycle_me()
