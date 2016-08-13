@@ -77,14 +77,14 @@ class HoneyTrails:
                 if not going_to_extension:
                     for x in range(pos.x - 1, pos.x + 1):
                         for y in range(pos.y - 1, pos.y + 1):
-                            cost_matrix.set(x, y, 50)
+                            cost_matrix.set(x, y, 7)
             elif type == STRUCTURE_CONTROLLER or type == "this_is_a_source":
                 for x in range(pos.x - 3, pos.x + 3):
                     for y in range(pos.y - 3, pos.y + 3):
-                        cost_matrix.set(x, y, 20)
+                        cost_matrix.set(x, y, 5)
                 for x in range(pos.x - 1, pos.x + 1):
                     for y in range(pos.y - 1, pos.y + 1):
-                        cost_matrix.set(x, y, 50)
+                        cost_matrix.set(x, y, 7)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in self.room.find(FIND_STRUCTURES):

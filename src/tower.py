@@ -47,6 +47,7 @@ def run(hive):
             if not target:
                 if mem.alert_for >= 20:
                     mem.alert = False
+                    del mem.alert_for
                     no_longer_alert_rooms.add(room)
 
             if mem.alert_for >= 50 or not target:
