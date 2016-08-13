@@ -22,6 +22,7 @@ SUB_SPAWN = "spawn"
 SUB_TOWER = "tower"
 SUB_STORAGE = "storage"
 SUB_LINK = "link"
+SUB_EXTRACTOR = "extractor"
 
 DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
@@ -54,6 +55,7 @@ sub_to_flag_secondary = {
     SUB_TOWER: COLOR_GREEN,
     SUB_STORAGE: COLOR_YELLOW,
     SUB_LINK: COLOR_ORANGE,
+    SUB_EXTRACTOR: COLOR_BROWN,
 }
 flag_secondary_to_sub = {
     COLOR_RED: SUB_WALL,
@@ -63,6 +65,7 @@ flag_secondary_to_sub = {
     COLOR_GREEN: SUB_TOWER,
     COLOR_YELLOW: SUB_STORAGE,
     COLOR_ORANGE: SUB_LINK,
+    COLOR_BROWN: SUB_EXTRACTOR,
 }
 
 _last_flag_len = 0

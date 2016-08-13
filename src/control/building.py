@@ -13,6 +13,7 @@ _flag_sub_to_structure_type = {
     flags.SUB_STORAGE: STRUCTURE_STORAGE,
     flags.SUB_TOWER: STRUCTURE_TOWER,
     flags.SUB_LINK: STRUCTURE_LINK,
+    flags.SUB_EXTRACTOR: STRUCTURE_EXTRACTOR,
 }
 
 
