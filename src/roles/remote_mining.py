@@ -1,4 +1,5 @@
 import flags
+import spawning
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site, role_remote_hauler, role_cleanup
@@ -88,11 +89,12 @@ class RemoteHauler(SpawnFill):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
-                if self.home.role_count(role_remote_hauler) > self.home.get_target_remote_hauler_count():
+                if self.home.carry_mass_of(role_remote_hauler) > self.home.get_target_remote_hauler_carry_mass():
                     # The creep with the lowest lifetime left should abandon post.
                     next_to_die = self.home.next_x_to_die_of_role(
                         role_remote_hauler,
-                        self.home.role_count(role_remote_hauler) - self.home.get_target_remote_hauler_count())
+                        (self.home.carry_mass_of(role_remote_hauler) - self.home.get_target_remote_hauler_carry_mass())
+                        / spawning.carry_count(self))
                     if self.name in next_to_die:
                         self.memory.role = role_cleanup
                         self.home.mem.meta.clear_next = 0  # clear next tick

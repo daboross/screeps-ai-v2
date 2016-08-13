@@ -1,9 +1,10 @@
 import math
 
 import context
+import spawning
 from constants import *
 from control.hivemind import SLIGHTLY_SMALLER_THAN_MAX_INT
-from control.hivemind import _get_hauler_count_for_mine
+from control.hivemind import get_carry_mass_for_remote_mine
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -11,6 +12,21 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 _MAX_BUILDERS = 3
+
+
+def _mass_count(name):
+    # set in spawning and role base.
+    if name in Memory.creeps and ("carry" in Memory.creeps[name] or "work" in Memory.creeps[name]):
+        carry = Memory.creeps[name].carry or 0
+        work = Memory.creeps[name].work or 0
+    elif name in Game.creeps:
+        creep = Game.creeps[name]
+        carry = spawning.carry_count(creep)
+        work = spawning.work_count(creep)
+    else:
+        return 1
+    # TODO: do we, instead of doing this, want to count two different mass targeting variables in memory?
+    return max(work, carry)
 
 
 class TargetMind:
@@ -24,14 +40,16 @@ class TargetMind:
         self.mem = Memory.targets
         if not self.mem.targets_used:
             self.mem.targets_used = {}
+        if not self.mem.targets_workforce:
+            self.mem.targets_workforce = {}
         if not self.mem.targeters_using:
             self.mem.targeters_using = {}
-        if (self.mem.last_clear or 0) + 500 < Game.time:
+        if (self.mem.last_clear or 0) + 1000 < Game.time:
             self._reregister_all()
             self.mem.last_clear = Game.time
         self.find_functions = {
             target_source: self._find_new_source,
-            target_big_source: self._find_new_big_h_source,
+            target_big_source: self._find_new_dedicated_miner_source,
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
@@ -55,8 +73,15 @@ class TargetMind:
     def __set_targeters(self, value):
         self.mem.targeters_using = value
 
+    def __get_targets_workforce(self):
+        return self.mem.targets_workforce
+
+    def __set_targets_workforce(self, value):
+        self.mem.targets_workforce = value
+
     targets = property(__get_targets, __set_targets)
     targeters = property(__get_targeters, __set_targeters)
+    targets_workforce = property(__get_targets_workforce, __set_targets_workforce)
 
     def _register_new_targeter(self, ttype, targeter_id, target_id):
         if targeter_id not in self.targeters:
@@ -82,46 +107,64 @@ class TargetMind:
             self.targets[ttype][target_id] = 1
         else:
             self.targets[ttype][target_id] += 1
+        if ttype not in self.targets_workforce:
+            self.targets_workforce[ttype] = {
+                target_id: _mass_count(targeter_id)
+            }
+        elif target_id not in self.targets[ttype]:
+            self.targets[ttype][target_id] = _mass_count(targeter_id)
+        else:
+            self.targets[ttype][target_id] += _mass_count(targeter_id)
 
     def _reregister_all(self):
         new_targets = {}
+        targets_mass = {}
         for targeter_id in Object.keys(self.targeters):
+            mass = _mass_count(targeter_id)
             for ttype in Object.keys(self.targeters[targeter_id]):
                 target_id = self.targeters[targeter_id][ttype]
                 if ttype in new_targets:
                     if target_id in new_targets[ttype]:
                         new_targets[ttype][target_id] += 1
+                        targets_mass[ttype][target_id] += mass
                     else:
                         new_targets[ttype][target_id] = 1
+                        targets_mass[ttype][target_id] = mass
                 else:
                     new_targets[ttype] = {target_id: 1}
+                    targets_mass[ttype] = {target_id: mass}
         self.targets = new_targets
+        self.targets_workforce = targets_mass
 
     def _unregister_targeter(self, ttype, targeter_id):
         existing_target = self._get_existing_target_id(ttype, targeter_id)
         if existing_target:
-            if self.targets[ttype] and self.targets[ttype][existing_target]:
+            if ttype in self.targets and existing_target in self.targets[ttype]:
                 self.targets[ttype][existing_target] -= 1
-                if self.targets[ttype][existing_target] <= 0:
-                    del self.targets[ttype][existing_target]
+            if ttype in self.targets_workforce and existing_target in self.targets_workforce[ttype]:
+                self.targets_workforce[ttype][existing_target] -= _mass_count(targeter_id)
             del self.targeters[targeter_id][ttype]
-            if len(self.targeters[targeter_id]) == 0:
-                del self.targeters[targeter_id]
 
     def _unregister_all(self, targeter_id):
         if self.targeters[targeter_id]:
+            mass = _mass_count(targeter_id)
             for ttype in Object.keys(self.targeters[targeter_id]):
-                if ttype in self.targets:
-                    target = self.targeters[targeter_id][ttype]
-                    if target in self.targets[ttype]:
-                        self.targets[ttype][target] -= 1
-                        if self.targets[ttype][target] <= 0:
-                            del self.targets[ttype][target]
+                target = self.targeters[targeter_id][ttype]
+                if ttype in self.targets and target in self.targets[ttype]:
+                    self.targets[ttype][target] -= 1
+                if ttype in self.targets_workforce and target in self.targets_workforce[ttype]:
+                    self.targets_workforce[ttype][target] -= mass
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
         if self.targeters[old_targeter_id]:
             self.targeters[new_targeter_id] = self.targeters[old_targeter_id]
+            old_mass = _mass_count(old_targeter_id)
+            new_mass = _mass_count(new_targeter_id)
+            for ttype in Object.keys(self.targeters[new_targeter_id]):
+                target = self.targeters[new_targeter_id][ttype]
+                if ttype in self.targets_workforce and target in self.targets_workforce[ttype]:
+                    self.targets_workforce[ttype][target] += new_mass - old_mass
             del self.targeters[old_targeter_id]
 
     def _find_new_target(self, ttype, creep, extra_var):
@@ -132,6 +175,8 @@ class TargetMind:
         """
         if not self.targets[ttype]:
             self.targets[ttype] = {}
+        if not self.targets_workforce[ttype]:
+            self.targets_workforce[ttype] = {}
         func = self.find_functions[ttype]
         if func:
             return func(creep, extra_var)
@@ -198,19 +243,19 @@ class TargetMind:
         """
         has_work = not not creep.creep.getActiveBodyparts(WORK)
         biggest_energy_store = 0
-        smallest_num_harvesters = SLIGHTLY_SMALLER_THAN_MAX_INT
+        smallest_work_force = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id_1 = None
         best_id_2 = None
         sources = creep.room.find(FIND_SOURCES)
         for source in sources:
             energy = _.sum(creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
             # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
-            if source.id in self.targets[target_source]:
-                current_harvesters = self.targets[target_source][source.id]
+            if source.id in self.targets_workforce[target_source]:
+                current_work_force = self.targets_workforce[target_source][source.id]
             else:
-                current_harvesters = 0
-            if current_harvesters < smallest_num_harvesters:
-                smallest_num_harvesters = current_harvesters
+                current_work_force = 0
+            if current_work_force < smallest_work_force:
+                smallest_work_force = current_work_force
             if energy > biggest_energy_store:
                 biggest_energy_store = energy
         # print("[{}] Biggest energy store: {}".format(creep.room.name, biggest_energy_store))
@@ -219,11 +264,11 @@ class TargetMind:
                                               Memory.dedicated_miners_stationed[source.id])
             energy = _.sum(creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
             if source.id in self.targets[target_source]:
-                current_harvesters = self.targets[target_source][source.id]
+                current_work_force = self.targets[target_source][source.id]
             else:
-                current_harvesters = 0
+                current_work_force = 0
             if dedicated_miner_placed or has_work:
-                if (current_harvesters <= smallest_num_harvesters) and energy + 100 > biggest_energy_store:
+                if (current_work_force <= smallest_work_force) and energy + 100 > biggest_energy_store:
                     # print("[{}] Setting best_id_1: {}. {} + 100 > {}".format(
                     #     creep.room.name, source.id[-4:], energy, biggest_energy_store))
                     best_id_1 = source.id
@@ -236,7 +281,7 @@ class TargetMind:
             return best_id_2
         return None
 
-    def _find_new_big_h_source(self, creep):
+    def _find_new_dedicated_miner_source(self, creep):
         """
         :type creep: role_base.RoleBase
         """
@@ -258,9 +303,9 @@ class TargetMind:
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
                 source_id = structure.id
-                current_num = self.targets[target_harvester_deposit][source_id]
+                current_carry = self.targets_workforce[target_harvester_deposit][source_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
-                if not current_num or current_num < math.ceil(structure.energyCapacity / creep.creep.carryCapacity):
+                if not current_carry or current_carry < structure.energyCapacity / 50.0:
                     distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                     if distance < closest_distance:
                         closest_distance = distance
@@ -276,17 +321,17 @@ class TargetMind:
         needs_refresh = False
         for site_id in creep.home.building.next_priority_construction_targets():
             if site_id.startsWith("flag-"):
-                max_num = _MAX_BUILDERS
+                max_work = _MAX_BUILDERS
             else:
                 site = Game.getObjectById(site_id)
                 if not site:
                     # we've built it
                     needs_refresh = True
                     continue
-                max_num = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 200))
-            current_num = self.targets[target_construction][site_id]
+                max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
+            current_work = self.targets_workforce[target_construction][site_id]
             # TODO: this 200 should be a decided factor based off of spawn extensions
-            if not current_num or current_num < max_num:
+            if not current_work or current_work < max_work:
                 best_id = site_id
                 break
         if needs_refresh:
@@ -297,6 +342,7 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
+        # TODO: adjust to use workforce rather than counting creeps
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         smallest_num_builders = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
@@ -387,9 +433,9 @@ class TargetMind:
             if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
-            haulers = self.targets[target_remote_mine_hauler][flag_id] or 0
-            hauler_percentage = float(haulers) / _get_hauler_count_for_mine(flag)
-            if not haulers or hauler_percentage < smallest_percentage:
+            hauler_mass = self.targets_workforce[target_remote_mine_hauler][flag_id] or 0
+            hauler_percentage = float(hauler_mass) / get_carry_mass_for_remote_mine(creep.home, flag)
+            if not hauler_mass or hauler_percentage < smallest_percentage:
                 smallest_percentage = hauler_percentage
                 best_id = flag_id
 

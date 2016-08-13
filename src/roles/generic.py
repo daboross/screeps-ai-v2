@@ -53,6 +53,7 @@ class ReplacingExpendedCreep(RoleBase):
         _.assign(Memory.creeps[self.name], Memory.creeps[old_name])
         # TODO: this works because memory isn't a property, but set during construction. However, memory should probably
         # be turned into a property in the future.
+        self.target_mind.assume_identity(old_name, self.creep.name)  # needs to happen before switching memory.
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
         # any role here, doesn't really matter. it's already committed suicide
@@ -60,12 +61,11 @@ class ReplacingExpendedCreep(RoleBase):
         del self.memory.calculated_replacement_time
         del self.memory.replacement
         del self.memory.stationary
-        del self.memory.path
-        del self.memory.reset_path
-        del self.memory.last_pos
+        del self.memory._path
+        del self.memory.work
+        del self.memory.carry
         self.memory.replaced = True
 
-        self.target_mind.assume_identity(old_name, self.creep.name)
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role
         if role:

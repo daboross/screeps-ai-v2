@@ -1,8 +1,8 @@
 import math
 
-import context
 import creep_wrappers
 import flags
+import spawning
 from constants import *
 from control.building import ConstructionMind
 from control.pathdef import HoneyTrails, CachedTrails
@@ -22,17 +22,18 @@ SLIGHTLY_SMALLER_THAN_MAX_INT = math.pow(2, 30)
 
 
 # TODO: MiningMind
-def _get_hauler_count_for_mine(flag):
+def get_carry_mass_for_remote_mine(home, flag):
     sitting = flag.memory.sitting if flag.memory.sitting else 0
-    carry_per_tick = (50.0 * 5.0) / (context.room().distance_storage_to_mine(flag) * 2.1)
+    # each carry can carry 50 energy.
+    carry_per_tick = (50.0) / (home.distance_storage_to_mine(flag) * 2.1)
     room = Game.rooms[flag.pos.roomName]
     if room and (not room.controller or room.controller.reservation):
         mining_per_tick = 9.0
     else:
         mining_per_tick = 4.0
     produce_per_tick = mining_per_tick + round(sitting / 200.0)
-    max_haulers = math.ceil(produce_per_tick / carry_per_tick)
-    return max_haulers
+    target_mass = math.ceil(produce_per_tick / carry_per_tick)
+    return target_mass
 
 
 class HiveMind:
@@ -243,15 +244,15 @@ class RoomMind:
         self._trying_to_get_full_storage_use = None
         self._full_storage_use = None
         self._target_remote_mining_operation_count = None
-        self._target_remote_hauler_count = None
+        self._target_remote_hauler_carry_mass = None
         self._first_target_remote_reserve_count = None
         self._target_remote_reserve_count = None
-        self._target_local_hauler_count = None
+        self._target_local_hauler_carry_mass = None
         self._target_link_managers = None
-        self._target_cleanup_count = None
+        self._target_cleanup_mass = None
         self._target_defender_count = None
         self._first_target_defender_count = None
-        self._first_target_cleanup_count = None
+        self._first_target_cleanup_mass = None
         self._target_colonist_count = None
         self._target_spawn_fill_count = None
         self._max_sane_wall_hits = None
@@ -398,6 +399,20 @@ class RoomMind:
 
     role_counts = property(_get_role_counts)
 
+    def _get_work_mass(self):
+        if not self.mem.roles_work:
+            self.recalculate_roles_alive()
+        return self.mem.roles_work
+
+    work_mass_map = property(_get_work_mass)
+
+    def _get_carry_mass(self):
+        if not self.mem.roles_carry:
+            self.recalculate_roles_alive()
+        return self.mem.roles_carry
+
+    carry_mass_map = property(_get_carry_mass)
+
     def _get_remote_mining_operations(self):
         if self._remote_mining_operations is None:
             self.hive_mind.poll_remote_mining_flags()
@@ -430,6 +445,20 @@ class RoomMind:
         else:
             return 0
 
+    def carry_mass_of(self, role):
+        mass = self.carry_mass_map[role]
+        if mass:
+            return mass
+        else:
+            return 0
+
+    def work_mass_of(self, role):
+        mass = self.work_mass_map[role]
+        if mass:
+            return mass
+        else:
+            return 0
+
     def register_to_role(self, creep):
         """
         Registers the creep's role and time till replacement in permanent memory. Should only be called once per creep.
@@ -437,10 +466,18 @@ class RoomMind:
         if not isinstance(creep, RoleBase):
             creep = creep_wrappers.wrap_creep(creep)
         role = creep.memory.role
-        if self.role_counts[role]:
+        if role in self.role_counts:
             self.role_counts[role] += 1
         else:
             self.role_counts[role] = 1
+        if role in self.carry_mass_map:
+            self.carry_mass_map[role] += spawning.carry_count(creep)
+        else:
+            self.carry_mass_map[role] = spawning.carry_count(creep)
+        if role in self.work_mass_map:
+            self.work_mass_map[role] += spawning.work_count(creep)
+        else:
+            self.work_mass_map[role] = spawning.work_count(creep)
         rt_map = self._get_rt_map()
         rt_pair = [creep.name, creep.get_replacement_time()]
         if not rt_map[role]:
@@ -459,16 +496,27 @@ class RoomMind:
         print("[{}] Recalculating roles alive.".format(self.room_name))
         # old_rt_map = self.mem.rt_map
         roles_alive = {}
+        roles_work = {}  # TODO: better system for storing these
+        roles_carry = {}
         rt_map = {}
 
         for creep in self.creeps:
             role = creep.memory.role
             if not role:
                 continue
-            if not roles_alive[role]:
+            if role not in roles_alive:
                 roles_alive[role] = 1
             else:
                 roles_alive[role] += 1
+            if role not in roles_work:
+                roles_work[role] = spawning.work_count(creep)
+            else:
+                roles_work[role] += spawning.work_count(creep)
+            if role not in roles_carry:
+                roles_carry[role] = spawning.carry_count(creep)
+            else:
+                roles_carry[role] += spawning.carry_count(creep)
+
             if creep.spawning or creep.memory.role == role_temporary_replacing:
                 continue  # don't add rt_pairs for spawning creeps
             creep = creep_wrappers.wrap_creep(creep)
@@ -481,6 +529,8 @@ class RoomMind:
                 # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
                 rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
         self.mem.roles_alive = roles_alive
+        self.mem.roles_work = roles_work
+        self.mem.roles_carry = roles_carry
         self.mem.rt_map = rt_map
 
     def get_next_replacement_name(self, role):
@@ -531,6 +581,24 @@ class RoomMind:
                 if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
                     count += 1
         return count
+
+    def carry_mass_of_replacements_currently_needed_for(self, role):
+        mass = 0
+        rt_map = self._get_rt_map()
+        if role in rt_map and len(rt_map[role]):
+            for creep, replacement_time in rt_map[role]:
+                if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
+                    mass += spawning.carry_count(Game.creeps[creep])
+        return mass
+
+    def work_mass_of_replacements_currently_needed_for(self, role):
+        mass = 0
+        rt_map = self._get_rt_map()
+        if role in rt_map and len(rt_map[role]):
+            for creep, replacement_time in rt_map[role]:
+                if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
+                    mass += spawning.work_count(Game.creeps[creep])
+        return mass
 
     def precreep_tick_actions(self):
         time = Game.time
@@ -695,7 +763,7 @@ class RoomMind:
             self.mem.upgrading_paused = True
         return not not self.mem.upgrading_paused
 
-    def get_target_dedi_miner_count(self):
+    def get_target_local_miner_count(self):
         """
         :rtype: int
         """
@@ -710,7 +778,7 @@ class RoomMind:
                 self._ideal_big_miner_count = 0
         return self._ideal_big_miner_count
 
-    def get_target_remote_mining_operation_count(self):
+    def get_target_remote_miner_count(self):
         """
         :rtype: int
         """
@@ -728,25 +796,25 @@ class RoomMind:
                 self._target_remote_mining_operation_count = 0
         return self._target_remote_mining_operation_count
 
-    def get_target_remote_hauler_count(self):
+    def get_target_remote_hauler_carry_mass(self):
         """
         :rtype: int
         """
-        if self._target_remote_hauler_count is None:
-            total_count = 0
-            if self.get_target_remote_mining_operation_count():
+        if self._target_remote_hauler_carry_mass is None:
+            total_mass = 0
+            if self.get_target_remote_miner_count():
                 for flag in self.remote_mining_operations:
                     if flag.memory.remote_miner_targeting or flag.memory.sitting > 500:
-                        total_count += _get_hauler_count_for_mine(flag)
-            self._target_remote_hauler_count = total_count
-        return self._target_remote_hauler_count
+                        total_mass += get_carry_mass_for_remote_mine(self, flag)
+            self._target_remote_hauler_carry_mass = total_mass
+        return self._target_remote_hauler_carry_mass
 
     def get_target_remote_reserve_count(self, first):
         """
         :rtype: int
         """
         if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
-            mining_op_count = self.get_target_remote_mining_operation_count()
+            mining_op_count = self.get_target_remote_miner_count()
             if mining_op_count:
                 rooms_mining_in = set()
                 rooms_under_1000 = set()
@@ -783,24 +851,27 @@ class RoomMind:
                 self._target_remote_reserve_count = 0
         return self._first_target_remote_reserve_count if first else self._target_remote_reserve_count
 
-    def get_target_local_hauler_count(self):
+    def get_target_local_hauler_carry_mass(self):
         """
         :rtype: int
         """
+        # TODO: dynamically spawn creeps with less mass!
         # TODO: Merge local hauler and spawn fill roles!
-        if self._target_local_hauler_count is None:
+        if self._target_local_hauler_carry_mass is None:
             if self.trying_to_get_full_storage_use:
-                # TODO: 2 here should ideally be replaced with a calculation taking in path distance from each source to
+                # TODO: "max_parts_on" is essentially trying to duplicate behavior prior to fully-dynamic creep bodies
+                # Previously, we grew bodies dynamically and maxed out at 5 carry per creep.
+                # TODO: this should be replaced with a calculation taking in path distance from each source to
                 # the storage and hauler capacity.
-                total_count = math.ceil(self.get_target_dedi_miner_count() * 1.5)
+                carry_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_hauler))
+                total_mass = math.ceil(self.get_target_local_miner_count() * 1.5 * carry_max_5)
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
-                    total_count += energy / 200.0
-                self._target_local_hauler_count = math.floor(total_count)
-
+                    total_mass += energy / 200.0
+                self._target_local_hauler_carry_mass = math.floor(total_mass)
             else:
-                self._target_local_hauler_count = 0
-        return self._target_local_hauler_count
+                self._target_local_hauler_carry_mass = 0
+        return self._target_local_hauler_carry_mass
 
     def get_target_link_manager_count(self):
         """
@@ -817,13 +888,13 @@ class RoomMind:
                 self._target_link_managers = 0
         return self._target_link_managers
 
-    def get_target_cleanup_count(self, first=False):
+    def get_target_cleanup_mass(self, first=False):
         """
         :rtype: int
         """
-        if (self._first_target_cleanup_count if first else self._target_cleanup_count) is None:
+        # TODO: dynamically spawn creeps with less mass!
+        if (self._first_target_cleanup_mass if first else self._target_cleanup_mass) is None:
             if self.full_storage_use:
-
                 # TODO: merge filter and generic.Cleanup's filter (the same code) together somehow.
                 piles = self.room.find(FIND_DROPPED_RESOURCES, {
                     "filter": lambda s: len(
@@ -833,16 +904,15 @@ class RoomMind:
                 for pile in piles:
                     total_energy += pile.amount
                 if first:
-                    self._first_target_cleanup_count = int(math.ceil(total_energy / 1000.0))
+                    self._first_target_cleanup_mass = int(math.ceil(total_energy / 200.0))
                 else:
-                    # TODO: replacing Math.round with round() once transcrypt fixes that.
-                    self._target_cleanup_count = int(min(round(total_energy / 500.0), 1))
+                    self._target_cleanup_mass = int(min(round(total_energy / 100.0), 1))
             else:
-                self._target_cleanup_count = 0
+                self._target_cleanup_mass = 0
 
-        return self._first_target_cleanup_count if first else self._target_cleanup_count
+        return self._first_target_cleanup_mass if first else self._target_cleanup_mass
 
-    def get_target_defender_count(self, first):
+    def get_target_defender_count(self, first=False):
         """
         :rtype: int
         """
@@ -869,33 +939,35 @@ class RoomMind:
                 self._first_target_defender_count = hostile_count
             else:
                 self._target_defender_count = hostile_count
-        return (self._first_target_defender_count if first else self._target_defender_count)
+        return self._first_target_defender_count if first else self._target_defender_count
 
-    def get_first_target_cleanup_count(self):
+    def get_first_target_cleanup_mass(self):
         """
         :rtype: int
         """
-        return self.get_target_cleanup_count(True)
+        return self.get_target_cleanup_mass(True)
 
-    def get_target_colonist_count(self):
+    def get_target_colonist_mass(self):
+        work_max_10 = min(10, spawning.max_sections_of(self.room, creep_base_worker))
         if not self._target_colonist_count:
             needed = 0
             for room in self.subsidiaries:
                 needed += max(0, 3 - _.sum(room.role_counts))
-            self._target_colonist_count = needed
+            self._target_colonist_count = needed * work_max_10
         return self._target_colonist_count
 
-    def get_target_spawn_fill_backup_count(self):
+    def get_target_spawn_fill_backup_mass(self):
+        work_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_worker))
         # TODO: 7 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed or self.work_mass > 8:
-            return 1
+            return 1 * work_max_5
         else:
-            return 2 + len(self.sources)
+            return (2 + len(self.sources)) * work_max_5
 
-    def get_target_spawn_fill_count(self):
+    def get_target_spawn_fill_mass(self):
         if self._target_spawn_fill_count is None:
-            spawn_fill_backup = self.role_count(role_spawn_fill_backup)
-            tower_fill = self.role_count(role_tower_fill)
+            spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
+            tower_fill = self.carry_mass_of(role_tower_fill)
             if self.room_name == "W46N28":
                 # TODO: Make it possible to scale things based off of "input energy" or hauler count of mined sources.
                 # more are needed because there are no links and storage is a long way from spawn.
@@ -904,7 +976,10 @@ class RoomMind:
                 print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
             else:
                 total_needed = 2 + len(self.sources)
-            regular_count = max(0, total_needed - tower_fill - spawn_fill_backup)
+            # TODO: hack, see other TODOs in file.
+            max_mass_per_creep = spawning.max_sections_of(self.room, creep_base_hauler)
+            total_mass = min(5, max_mass_per_creep) * total_needed
+            regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
             if self.trying_to_get_full_storage_use:
                 self._target_spawn_fill_count = regular_count
             else:
@@ -912,16 +987,37 @@ class RoomMind:
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                     extra_count += energy / 200.0
-                self._trying_to_get_full_storage_use = regular_count + extra_count
+                self._target_spawn_fill_count = regular_count + extra_count
         return self._target_spawn_fill_count
 
-    def get_target_builder_count(self):
+    def get_target_builder_work_mass(self):
         if self.upgrading_paused() and not len(self.building.next_priority_construction_targets()):
             return 0
         elif self.mining_ops_paused():
-            return 4 + 2 * len(self.sources)
+            # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
+            # 5 work per creep.
+            return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
         else:
-            return 2 + 2 * len(self.sources)
+            return 2 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
+
+    def get_target_upgrader_work_mass(self):
+        if self.upgrading_paused():
+            return 3
+        elif self.mining_ops_paused():
+            # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
+            # 5 work per creep.
+            return spawning.max_sections_of(self.room, creep_base_worker) * 2
+        else:
+            return min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
+
+    def get_target_tower_fill_work_mass(self):
+        mass = 0
+        for s in self.find(FIND_STRUCTURES):
+            if s.structureType == STRUCTURE_TOWER:
+                # TODO: cache max_parts_on? called a ton in this method and other get_target_*_mass methods.
+                # but we probably shouldn't since it's mostly a hack to emulate spawning 5-section creeps anyways?
+                mass += min(5, spawning.max_sections_of(self.room, creep_base_hauler)) * 0.75
+        return mass
 
     def get_max_sane_wall_hits(self):
         """
@@ -932,32 +1028,38 @@ class RoomMind:
         return self._max_sane_wall_hits
 
     def _next_needed_local_role(self):
-        tower_fillers = 0
-        for s in self.find(FIND_STRUCTURES):
-            if s.structureType == STRUCTURE_TOWER:
-                tower_fillers += 1
         requirements = [
-            [role_spawn_fill_backup, self.get_target_spawn_fill_backup_count],
+            [role_spawn_fill_backup, self.get_target_spawn_fill_backup_mass, False, True],
             [role_defender, lambda: self.get_target_defender_count(True)],
             [role_link_manager, self.get_target_link_manager_count],
-            [role_cleanup, self.get_first_target_cleanup_count],
-            [role_dedi_miner, self.get_target_dedi_miner_count],
-            [role_tower_fill, lambda: tower_fillers],
-            [role_cleanup, self.get_target_cleanup_count],
-            [role_spawn_fill, self.get_target_spawn_fill_count],
-            [role_local_hauler, self.get_target_local_hauler_count],
-            [role_upgrader, lambda: 1],
+            [role_cleanup, self.get_first_target_cleanup_mass, True],
+            [role_dedi_miner, self.get_target_local_miner_count],
+            [role_tower_fill, self.get_target_tower_fill_work_mass, True],
+            [role_cleanup, self.get_target_cleanup_mass, True],
+            [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+            [role_local_hauler, self.get_target_local_hauler_carry_mass, True],
+            [role_upgrader, self.get_target_upgrader_work_mass, False, True],
         ]
-        for role, get_ideal in requirements:
-            if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                return role
+        for role, get_ideal, count_carry, count_work in requirements:
+            if count_carry:
+                # TODO: this code is a mess!
+                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    return role
+            elif count_work:
+                # TODO: this code is a mess!
+                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    return role
+            else:
+                if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
+                    return role
 
     def _next_probably_local_role(self):
         roles = [
-            [role_builder, self.get_target_builder_count],
+            [role_builder, self.get_target_builder_work_mass],
         ]
         for role, ideal in roles:
-            if self.role_count(role) - self.replacements_currently_needed_for(role) < ideal():
+            # TODO: this code is a mess!
+            if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < ideal():
                 return role
 
     def _next_remote_mining_role(self):
@@ -966,14 +1068,54 @@ class RoomMind:
             # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
             # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
             [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
-            [role_remote_hauler, self.get_target_remote_hauler_count],
-            [role_remote_miner, self.get_target_remote_mining_operation_count],
+            [role_remote_hauler, self.get_target_remote_hauler_carry_mass],
+            [role_remote_miner, self.get_target_remote_miner_count],
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
-            [role_colonist, self.get_target_colonist_count],
+            [role_colonist, self.get_target_colonist_mass],
         ]
         for role, get_ideal in remote_operation_reqs:
             if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
                 return role
+
+    def get_max_sections_for_role(self, role):
+        max_mass = {
+            role_spawn_fill_backup:
+                self.get_target_spawn_fill_backup_mass,
+            role_link_manager:
+                lambda: self.get_target_link_manager_count() * 3,
+            role_dedi_miner:
+                lambda: None,  # non-dynamic completely
+            role_tower_fill:
+                self.get_target_tower_fill_work_mass,
+            role_cleanup:
+                lambda: math.ceil(max(self.get_target_cleanup_mass(),
+                                      min(10, spawning.max_sections_of(self.room, creep_base_hauler)))),
+            role_spawn_fill:
+                self.get_target_spawn_fill_mass,
+            role_local_hauler:
+                lambda: math.ceil(self.get_target_local_hauler_carry_mass() / len(self.sources)),
+            role_upgrader:
+                self.get_target_upgrader_work_mass,
+            role_defender:
+                lambda: self.get_target_defender_count() * min(6, spawning.max_sections_of(self.room,
+                                                                                           creep_base_defender)),
+            role_remote_hauler:
+                lambda: math.ceil(self.get_target_remote_hauler_carry_mass()
+                                  / self.get_target_remote_miner_count() / 3.0),
+            role_remote_miner:
+                lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),
+            role_remote_mining_reserve:
+                lambda: min(2, spawning.max_sections_of(self.room, creep_base_reserving)),
+            role_colonist:
+                lambda: min(10, spawning.max_sections_of(self.room, creep_base_worker)),
+            role_builder:
+                lambda: self.get_target_builder_work_mass() / 2.0,
+        }
+        if role in max_mass:
+            return max_mass[role]()
+        else:
+            print("[{}] Can't find max section function for role {}!".format(self.room_name, role))
+            return Infinity
 
     def reset_planned_role(self):
         del self.mem.next_role

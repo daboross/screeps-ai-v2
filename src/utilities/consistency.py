@@ -1,6 +1,7 @@
 import math
 
 import context
+import spawning
 from constants import *
 from tools import profiling
 from utilities.screeps_constants import *
@@ -14,8 +15,11 @@ def reassign_roles():
 
 
 def reassign_room_roles(room):
+    """
+    :type room: control.hivemind.RoomMind
+    """
     if room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) < 4 \
-            and room.role_count(role_dedi_miner) < room.get_target_dedi_miner_count():
+            and room.role_count(role_dedi_miner) < room.get_target_local_miner_count():
         num = 0
         for creep in room.creeps:
             memory = creep.memory
@@ -29,11 +33,12 @@ def reassign_room_roles(room):
                 break
         room.recalculate_roles_alive()
 
-    if room.role_count(role_local_hauler) > room.get_target_local_hauler_count():
+    if room.carry_mass_of(role_local_hauler) > room.get_target_local_hauler_carry_mass():
         # The creep with the lowest lifetime left should die.
         next_to_die = room.next_x_to_die_of_role(
             role_local_hauler,
-            room.role_count(role_local_hauler) - room.get_target_local_hauler_count())
+            max(1, (room.carry_mass_of(role_local_hauler) - room.get_target_local_hauler_carry_mass())
+                / room.get_max_sections_for_role(role_local_hauler)))
         changed = False
         for name in next_to_die:
             if Memory.creeps[name]:

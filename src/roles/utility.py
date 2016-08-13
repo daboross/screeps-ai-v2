@@ -1,5 +1,6 @@
 import math
 
+import spawning
 import speech
 from constants import role_cleanup, role_local_hauler, role_remote_hauler
 from role_base import RoleBase
@@ -171,17 +172,22 @@ class Cleanup(SpawnFill):
             # })
 
             if not pile:
-                if self.home.get_target_cleanup_count() + 1 < self.home.role_count(role_cleanup):
+                carry_per_creep = self.home.get_max_sections_for_role(role_cleanup)
+                if self.home.get_target_cleanup_mass() + carry_per_creep < self.home.carry_mass_of(role_cleanup):
                     # The creep with the lowest lifetime left should die.
+                    # TODO: cleanup this mess
                     next_to_die = self.home.next_x_to_die_of_role(
                         role_cleanup,
-                        self.home.role_count(role_cleanup) - 1 - self.home.get_target_cleanup_count())
+                        max((self.home.role_count(role_cleanup) - carry_per_creep - self.home.get_target_cleanup_mass())
+                            / carry_per_creep), 1)
                     if self.name in next_to_die:
-                        if self.home.role_count(role_local_hauler) < self.home.get_target_local_hauler_count():
+                        if self.home.carry_mass_of(role_local_hauler) \
+                                < self.home.get_target_local_hauler_carry_mass():
                             self.memory.role = role_local_hauler
                             self.home.mem.meta.clear_next = 0  # clear next tick
                             return False
-                        if self.home.role_count(role_remote_hauler) < self.home.get_target_remote_hauler_count():
+                        if self.home.carry_mass_of(role_remote_hauler) \
+                                < self.home.get_target_remote_hauler_carry_mass():
                             self.memory.role = role_remote_hauler
                             self.home.mem.meta.clear_next = 0  # clear next tick
                             return False
