@@ -1,11 +1,10 @@
 import flags
+from control.building import flag_sub_to_structure_type
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
-
-from control.building import _flag_sub_to_structure_type
 
 
 class CachedTrails:
@@ -61,8 +60,8 @@ class HoneyTrails:
                 if s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN:
                     going_to_extension = True
 
-        def set_matrix(type, pos):
-            if type == STRUCTURE_ROAD or type == STRUCTURE_RAMPART:
+        def set_matrix(stype, pos):
+            if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
                 return
             if pos.x == destination.x and pos.y == destination.y:
                 return
@@ -73,12 +72,12 @@ class HoneyTrails:
                 return
             if abs(pos.x - destination.x) <= 3 and abs(pos.y - destination.y) <= 3:
                 return
-            if type == STRUCTURE_SPAWN or type == STRUCTURE_EXTENSION:
+            if stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION:
                 if not going_to_extension:
                     for x in range(pos.x - 1, pos.x + 1):
                         for y in range(pos.y - 1, pos.y + 1):
                             cost_matrix.set(x, y, 7)
-            elif type == STRUCTURE_CONTROLLER or type == "this_is_a_source":
+            elif stype == STRUCTURE_CONTROLLER or stype == "this_is_a_source":
                 for x in range(pos.x - 3, pos.x + 3):
                     for y in range(pos.y - 3, pos.y + 3):
                         cost_matrix.set(x, y, 5)
@@ -91,8 +90,8 @@ class HoneyTrails:
             set_matrix(struct.structureType, struct.pos)
         for site in self.room.find(FIND_CONSTRUCTION_SITES):
             set_matrix(site.structureType, site.pos)
-        for flag, type in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
-            set_matrix(_flag_sub_to_structure_type[type], flag.pos)
+        for flag, stype in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
+            set_matrix(flag_sub_to_structure_type[stype], flag.pos)
         for source in self.room.find(FIND_SOURCES):
             set_matrix("this_is_a_source", source.pos)
         for x in [0, 49]:
@@ -139,7 +138,7 @@ class HoneyTrails:
         """
         :param origin: Starting position
         :param destination: Ending position
-        :return: None if any room inbetween isn't viewable, otherwise a list of paths
+        :return: None if any room in between isn't viewable, otherwise a list of paths
         :rtype: list[list[object]]
         """
         if origin.pos:

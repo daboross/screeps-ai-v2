@@ -35,6 +35,8 @@ class RoleBase:
             }
             Memory.creeps[creep.name] = memory
             self.memory = memory
+        self._home = None
+        self._room = None
 
     def get_harvesting(self):
         return self.memory.harvesting
@@ -95,9 +97,6 @@ class RoleBase:
             replacement_time = Game.time + ticks_to_live - ttr
             if store:
                 self.memory.calculated_replacement_time = math.floor(replacement_time)
-            # self.log("Calculated replacement time: {\n\tcurrent_time: {}\n\tttr: {}"
-            #          "\n\tdeath_time: {}\n\treplacement_time: {}\n}",
-            #          Game.time, ttr, Game.time + ticks_to_live, replacement_time)
             return self.memory.calculated_replacement_time
 
     def _calculate_time_to_replace(self):
@@ -251,7 +250,7 @@ class RoleBase:
                 self.last_checkpoint = queue_flag.pos
         return result
 
-    def _try_move_to(self, pos, same_position_ok=False, follow_defined_path=False):
+    def _try_move_to(self, pos, follow_defined_path=False):
         here = self.creep.pos
 
         if here == pos:
@@ -280,7 +279,7 @@ class RoleBase:
         else:
             pos = target
         if self.creep.fatigue <= 0:
-            result = self._try_move_to(pos, same_position_ok, follow_defined_path)
+            result = self._try_move_to(pos, follow_defined_path)
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
@@ -324,9 +323,9 @@ class RoleBase:
                 return False
 
             if _.sum(self.creep.carry) > self.creep.carry.energy:
-                for type in Object.keys(self.creep.carry):
-                    if type != RESOURCE_ENERGY:
-                        result = self.creep.trasnfer(storage, type)
+                for stype in Object.keys(self.creep.carry):
+                    if stype != RESOURCE_ENERGY:
+                        result = self.creep.trasnfer(storage, stype)
                         break
                 else:
                     result = self.creep.withdraw(storage, RESOURCE_ENERGY)

@@ -73,8 +73,9 @@ def run(hive):
     for room in no_longer_alert_rooms:
         for rampart in _.filter(room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_RAMPART}):
             # don't set ramparts over storage/roads to public.
-            if not _.find(room.find_at(FIND_STRUCTURES, rampart.pos), lambda s: s.structureType != STRUCTURE_RAMPART \
-                    and s.structureType != STRUCTURE_ROAD):
+            if not _.find(room.find_at(FIND_STRUCTURES, rampart.pos),
+                          lambda s: s.structureType != STRUCTURE_RAMPART
+                          and s.structureType != STRUCTURE_ROAD):
                 rampart.setPublic(True)
 
     for room in new_alert_rooms:

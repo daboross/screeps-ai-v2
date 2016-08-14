@@ -1,7 +1,6 @@
 import math
 
 import context
-import spawning
 from constants import *
 from tools import profiling
 from utilities.screeps_constants import *
@@ -88,8 +87,8 @@ def clear_memory(room):
         else:
             if creep.ticksToLive < smallest_ticks_to_live:
                 smallest_ticks_to_live = creep.ticksToLive
-            if creep.memory.calculated_replacement_time and creep.memory.calculated_replacement_time > Game.time \
-                    and creep.memory.calculated_replacement_time < closest_replacement_time:
+            replacement_time = creep.memory.calculated_replacement_time
+            if replacement_time and Game.time < replacement_time < closest_replacement_time:
                 closest_replacement_time = creep.memory.calculated_replacement_time
     dead_next = Game.time + smallest_ticks_to_live
     room.mem.meta.clear_next = dead_next + 1

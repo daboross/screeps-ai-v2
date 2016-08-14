@@ -5,7 +5,7 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-_flag_sub_to_structure_type = {
+flag_sub_to_structure_type = {
     flags.SUB_SPAWN: STRUCTURE_SPAWN,
     flags.SUB_EXTENSION: STRUCTURE_EXTENSION,
     flags.SUB_RAMPART: STRUCTURE_RAMPART,
@@ -89,7 +89,7 @@ class ConstructionMind:
         for flag, flag_type in _.sortBy(
                 flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
                 lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos, flag_tuple[0].pos)):
-            structure_type = _flag_sub_to_structure_type[flag_type]
+            structure_type = flag_sub_to_structure_type[flag_type]
             if not structure_type:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
                     self.room.room_name, flag_type
@@ -99,7 +99,7 @@ class ConstructionMind:
             else:
                 currently_built = 0
                 for s in self.room.find(FIND_STRUCTURES):
-                    if s.structureType == structure_type and s.my != False:
+                    if s.structureType == structure_type and (not s.owner or s.my):
                         currently_built += 1
                 currently_built_structures[structure_type] = currently_built
             if CONTROLLER_STRUCTURES[structure_type][controller_level] \

@@ -25,7 +25,7 @@ SLIGHTLY_SMALLER_THAN_MAX_INT = math.pow(2, 30)
 def get_carry_mass_for_remote_mine(home, flag):
     sitting = flag.memory.sitting if flag.memory.sitting else 0
     # each carry can carry 50 energy.
-    carry_per_tick = (50.0) / (home.distance_storage_to_mine(flag) * 2.1)
+    carry_per_tick = 50.0 / (home.distance_storage_to_mine(flag) * 2.1)
     room = Game.rooms[flag.pos.roomName]
     if room and (not room.controller or room.controller.reservation):
         mining_per_tick = 9.0
@@ -304,13 +304,13 @@ class RoomMind:
             cache[parameter] = result
             return result
 
-    def find_at(self, type, pos, optional_y=None):
+    def find_at(self, find_type, pos, optional_y=None):
         """
         Looks for something at a position, and caches the result for this tick.
 
         This is meant as a drop-in replacement for pos.lookFor() or room.lookForAt().
-        :param type: thing to look for, one of the FIND_* constants
-        :type type: str
+        :param find_type: thing to look for, one of the FIND_* constants
+        :type find_type: str
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
         :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
@@ -324,7 +324,7 @@ class RoomMind:
         else:
             x = pos.x
             y = pos.y
-        raw_find_results = self.find(type)
+        raw_find_results = self.find(find_type)
         found = []
         if len(raw_find_results):
             for element in raw_find_results:
@@ -332,18 +332,20 @@ class RoomMind:
                     found.append(element)
         return found
 
-    def find_in_range(self, type, range, pos, optional_y=None):
+    def find_in_range(self, find_type, find_range, pos, optional_y=None):
         """
         Looks for something near a position, and caches the result for this tick.
 
         This is meant as a drop-in replacement for pos.findInRange().
 
-        Note that this performes a search using "rectangular range", or everything whose x and y are within range of the center
+        Note that this performs a search using "rectangular range", or everything whose x and y are within range of the center
          x and y, while the default findInRange() function uses a circular range, where the positions are compared using actual
          distance.
 
-        :param type: thing to look for, one of the FIND_* contants
-        :type type: str
+        :param find_type: thing to look for, one of the FIND_* constants
+        :type find_type: str
+        :param find_range: the integer range to look within
+        :type find_range: int
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
         :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
@@ -357,30 +359,32 @@ class RoomMind:
         else:
             x = pos.x
             y = pos.y
-        raw_find_results = self.find(type)
+        raw_find_results = self.find(find_type)
         found = []
         if len(raw_find_results):
             for element in raw_find_results:
-                if abs(element.pos.x - x) <= range and abs(element.pos.y - y) <= range:
+                if abs(element.pos.x - x) <= find_range and abs(element.pos.y - y) <= find_range:
                     found.append(element)
         return found
 
-    def find_closest_by_range(self, type, pos, filter=None):
+    def find_closest_by_range(self, find_type, pos, lodash_filter=None):
         """
         Looks for something in this room closest the the given position, and caches the result for this tick.
 
         This is meant as a drop-in replacement for pos.findClosestByRange()
 
-        :param type: thing to look for, one of the FIND_* constants
-        :type type: str
+        :param find_type: thing to look for, one of the FIND_* constants
+        :type find_type: str
         :param pos: The position to look for at
         :type pos: RoomPosition
+        :param lodash_filter: Optional lodash filter object to apply to the results before checking distance.
+        :type lodash_filter: dict | callable
         :return: A single result
         :rtype: RoomObject
         """
-        raw_find_results = self.find(type)
-        if filter:
-            raw_find_results = _.filter(raw_find_results, filter)
+        raw_find_results = self.find(find_type)
+        if lodash_filter:
+            raw_find_results = _.filter(raw_find_results, lodash_filter)
         if not len(raw_find_results):
             return None
         closest_distance = math.pow(2, 30)
@@ -920,11 +924,11 @@ class RoomMind:
             hostile_count = 0
             hostiles_per_room = {}
             if Memory.hostiles:
-                for id in Memory.hostiles:
-                    if hostiles_per_room[Memory.hostile_last_rooms[id]]:
-                        hostiles_per_room[Memory.hostile_last_rooms[id]] += 1
+                for hostile_id in Memory.hostiles:
+                    if hostiles_per_room[Memory.hostile_last_rooms[hostile_id]]:
+                        hostiles_per_room[Memory.hostile_last_rooms[hostile_id]] += 1
                     else:
-                        hostiles_per_room[Memory.hostile_last_rooms[id]] = 1
+                        hostiles_per_room[Memory.hostile_last_rooms[hostile_id]] = 1
             for name in hostiles_per_room.keys():
                 # TODO: make a system for each remote mining room to have a base room!
                 # Currently, we just spawn defenders for all non-owned rooms, and for this room if it doesn't have

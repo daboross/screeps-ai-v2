@@ -357,7 +357,7 @@ class TargetMind:
         smallest_num_builders = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
-            if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
+            if (not structure.owner or structure.my) and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 struct_id = structure.id
                 current_num = self.targets[target_repair][struct_id]
@@ -381,7 +381,7 @@ class TargetMind:
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         for structure in creep.room.find(FIND_STRUCTURES):
-            if structure.my != False and structure.hits < structure.hitsMax * 0.9 \
+            if (not structure.owner or structure.my) and structure.hits < structure.hitsMax * 0.9 \
                     and (structure.hits < max_hits or not max_hits):
                 struct_id = structure.id
                 current_num = self.targets[target_big_repair][struct_id]
@@ -403,7 +403,9 @@ class TargetMind:
             tower = Game.getObjectById(tower_id)
             if tower.room != creep.creep.room:
                 continue
-            if tower.energyCapacity - tower.energy > most_lacking:
+            # 50 per carry part, but we don't know if it's full. this is a safe compromise
+            carry_targeting = self.targets_workforce[target_tower_fill][tower_id] * 25
+            if tower.energyCapacity - tower.energy - carry_targeting > most_lacking:
                 most_lacking = tower.energyCapacity - tower.energy
                 best_id = tower_id
 
