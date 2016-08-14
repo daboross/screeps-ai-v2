@@ -42,8 +42,6 @@ def run(room, spawn):
         #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
         #     room.mem.spawning_already_reported_no_next_role = True
         return
-    elif room.mem.spawning_already_reported_no_next_role:
-        del room.mem.spawning_already_reported_no_next_role
     base = role_bases[role]
 
     filled = spawn.room.energyAvailable

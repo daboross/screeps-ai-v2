@@ -1004,9 +1004,7 @@ class RoomMind:
         if self.upgrading_paused():
             return 3
         elif self.mining_ops_paused():
-            # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
-            # 5 work per creep.
-            return spawning.max_sections_of(self.room, creep_base_worker) * 2
+            return spawning.max_sections_of(self.room, creep_base_worker) * 4
         else:
             return min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
 
