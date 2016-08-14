@@ -2,7 +2,8 @@ import math
 
 import spawning
 import speech
-from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling
+from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling, \
+    target_closest_deposit_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -219,24 +220,41 @@ class Cleanup(SpawnFill):
                 self.memory.gathering = False
                 return True
             else:
-                self.log("Unknown result from link-manager-creep.pickup({}): {}", pile, result)
+                self.log("Unknown result from cleanup-creep.pickup({}): {}", pile, result)
                 self.report(speech.link_manager_unknown_result)
         else:
             if not storage:
-                return SpawnFill.run(self)
                 # self.log("Cleanup can't find storage in {}!", self.creep.room.name)
                 # self.go_to_depot()
                 # self.report(speech.link_manager_something_not_found)
                 # return False
-            if not self.creep.pos.isNearTo(storage.pos):
-                self.move_to(storage)
-                self.report(speech.link_manager_moving)
+                return SpawnFill.run(self)
+
+            if self.creep.pos.roomName != storage.pos.roomName:
+                self.move_to(storage, False, True)
+                self.report(speech.remote_hauler_moving_to_storage)
                 return False
+
+            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
+            if not target:
+                target = storage
+            if target.energy >= target.energyCapacity:
+                target = storage
+
+            if not self.creep.pos.isNearTo(target.pos):
+                if self.creep.pos.isNearTo(storage):
+                    # being blocked by a link manager to get to the link
+                    target = storage
+                    self.last_target = storage
+                else:
+                    self.move_to(target)
+                    self.report(speech.remote_hauler_moving_to_storage, target.structureType)
+                    return False
 
             self.memory.stationary = True
 
             resource_type = Object.keys(self.creep.carry)[0]
-            result = self.creep.transfer(storage, resource_type)
+            result = self.creep.transfer(target, resource_type)
             if result == OK:
                 self.report(speech.link_manager_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
@@ -246,7 +264,7 @@ class Cleanup(SpawnFill):
                 self.log("Storage in room {} full!", storage.room)
                 self.report(speech.link_manager_storage_full)
             else:
-                self.log("Unknown result from link-manager-creep.transfer({}, {}): {}", storage, resource_type, result)
+                self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)
                 self.report(speech.link_manager_unknown_result)
 
 
