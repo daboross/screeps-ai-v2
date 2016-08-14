@@ -216,8 +216,8 @@ def is_block_clear(room, x, y):
                 and struct.structureType != STRUCTURE_CONTAINER:
             return False
     for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
-        if terrain.type | TERRAIN_MASK_WALL == TERRAIN_MASK_WALL \
-                or terrain.type | TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA:
+        # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
+        if terrain == 'wall':
             return False
     return True
 

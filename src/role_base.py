@@ -506,10 +506,10 @@ class RoleBase:
             creeps = next_pos.lookFor(LOOK_CREEPS)
             if len(creeps):
                 continue
-            terrain = next_pos.lookFor(LOOK_TERRAIN)
-            if terrain[0].type & TERRAIN_MASK_WALL == TERRAIN_MASK_WALL \
-                    or terrain[0].type & TERRAIN_MASK_LAVA == TERRAIN_MASK_LAVA:
-                continue
+            for terrain in next_pos.lookFor(LOOK_TERRAIN):
+                # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
+                if terrain == 'wall':
+                    continue
 
             structures = next_pos.lookFor(LOOK_STRUCTURES)
             if len(structures):
