@@ -179,11 +179,11 @@ class Cleanup(SpawnFill):
                 extra_cleanup = self.home.extra_creeps_with_carry_in_role(
                     role_cleanup, self.home.get_target_cleanup_mass() + carry_per_creep)
                 if len(extra_cleanup) and self.name in extra_cleanup:
-                    if self.home.carry_mass_of(role_local_hauler) < self.home.get_target_local_hauler_carry_mass():
+                    if self.home.carry_mass_of(role_local_hauler) < self.home.get_target_local_hauler_mass():
                         self.memory.role = role_local_hauler
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
-                    if self.home.carry_mass_of(role_remote_hauler) < self.home.get_target_remote_hauler_carry_mass():
+                    if self.home.carry_mass_of(role_remote_hauler) < self.home.get_target_remote_hauler_mass():
                         self.memory.role = role_remote_hauler
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False

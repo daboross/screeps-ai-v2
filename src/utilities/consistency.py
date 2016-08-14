@@ -27,7 +27,7 @@ def reassign_room_roles(room):
         room.recalculate_roles_alive()
 
     extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
-                                                               room.get_target_local_hauler_carry_mass())
+                                                               room.get_target_local_hauler_mass())
     if len(extra_local_haulers):
         for name in extra_local_haulers:
             if name in Memory.creeps:

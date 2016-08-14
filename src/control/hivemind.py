@@ -876,7 +876,7 @@ class RoomMind:
                 self._target_remote_mining_operation_count = 0
         return self._target_remote_mining_operation_count
 
-    def get_target_remote_hauler_carry_mass(self):
+    def get_target_remote_hauler_mass(self):
         """
         :rtype: int
         """
@@ -931,7 +931,7 @@ class RoomMind:
                 self._target_remote_reserve_count = 0
         return self._first_target_remote_reserve_count if first else self._target_remote_reserve_count
 
-    def get_target_local_hauler_carry_mass(self):
+    def get_target_local_hauler_mass(self):
         """
         :rtype: int
         """
@@ -1027,7 +1027,7 @@ class RoomMind:
         """
         return self.get_target_cleanup_mass(True)
 
-    def get_target_colonist_mass(self):
+    def get_target_colonist_work_mass(self):
         work_max_10 = min(10, spawning.max_sections_of(self.room, creep_base_worker))
         if not self._target_colonist_count:
             needed = 0
@@ -1036,7 +1036,7 @@ class RoomMind:
             self._target_colonist_count = needed * work_max_10
         return self._target_colonist_count
 
-    def get_target_spawn_fill_backup_mass(self):
+    def get_target_spawn_fill_backup_work_mass(self):
         work_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_worker))
         # TODO: 7 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed or self.work_mass > 8:
@@ -1088,7 +1088,7 @@ class RoomMind:
         else:
             return min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
 
-    def get_target_tower_fill_work_mass(self):
+    def get_target_tower_fill_mass(self):
         mass = 0
         for s in self.find(FIND_STRUCTURES):
             if s.structureType == STRUCTURE_TOWER:
@@ -1107,15 +1107,15 @@ class RoomMind:
 
     def _next_needed_local_role(self):
         requirements = [
-            [role_spawn_fill_backup, self.get_target_spawn_fill_backup_mass, False, True],
+            [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
             [role_defender, lambda: self.get_target_defender_count(True)],
             [role_link_manager, self.get_target_link_manager_count],
             [role_cleanup, self.get_first_target_cleanup_mass, True],
             [role_dedi_miner, self.get_target_local_miner_count],
-            [role_tower_fill, self.get_target_tower_fill_work_mass, True],
+            [role_tower_fill, self.get_target_tower_fill_mass, True],
             [role_cleanup, self.get_target_cleanup_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
-            [role_local_hauler, self.get_target_local_hauler_carry_mass, True],
+            [role_local_hauler, self.get_target_local_hauler_mass, True],
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
         ]
         for role, get_ideal, count_carry, count_work in requirements:
@@ -1146,10 +1146,10 @@ class RoomMind:
             # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
             # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
             [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
-            [role_remote_hauler, self.get_target_remote_hauler_carry_mass],
+            [role_remote_hauler, self.get_target_remote_hauler_mass],
             [role_remote_miner, self.get_target_remote_miner_count],
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
-            [role_colonist, self.get_target_colonist_mass],
+            [role_colonist, self.get_target_colonist_work_mass],
         ]
         for role, get_ideal in remote_operation_reqs:
             if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
@@ -1158,27 +1158,27 @@ class RoomMind:
     def get_max_sections_for_role(self, role):
         max_mass = {
             role_spawn_fill_backup:
-                self.get_target_spawn_fill_backup_mass,
+                self.get_target_spawn_fill_backup_work_mass,
             role_link_manager:
                 lambda: self.get_target_link_manager_count() * 3,
             role_dedi_miner:
                 lambda: None,  # non-dynamic completely
             role_tower_fill:
-                self.get_target_tower_fill_work_mass,
+                self.get_target_tower_fill_mass,
             role_cleanup:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self.room, creep_base_hauler)))),
             role_spawn_fill:
                 self.get_target_spawn_fill_mass,
             role_local_hauler:
-                lambda: math.ceil(self.get_target_local_hauler_carry_mass() / len(self.sources)),
+                lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
                 self.get_target_upgrader_work_mass,
             role_defender:
                 lambda: self.get_target_defender_count() * min(6, spawning.max_sections_of(self.room,
                                                                                            creep_base_defender)),
             role_remote_hauler:
-                lambda: math.ceil(self.get_target_remote_hauler_carry_mass()
+                lambda: math.ceil(self.get_target_remote_hauler_mass()
                                   / self.role_count(role_remote_miner) / 2.0),
             role_remote_miner:
                 lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),

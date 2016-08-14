@@ -89,7 +89,7 @@ class RemoteHauler(SpawnFill):
                     self.memory.harvesting = False
                     return True
                 extra_haulers = self.home.extra_creeps_with_carry_in_role(
-                    role_remote_hauler, self.home.get_target_remote_hauler_carry_mass())
+                    role_remote_hauler, self.home.get_target_remote_hauler_mass())
                 if len(extra_haulers) and self.name in extra_haulers:
                     self.memory.role = role_cleanup
                     self.home.mem.meta.clear_next = 0  # TODO: method in RoomMind to re-register as another role.
