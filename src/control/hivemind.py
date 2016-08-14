@@ -603,12 +603,15 @@ class RoomMind:
                 if name not in Memory.creeps:
                     continue
                 carry = Memory.creeps[name].carry  # TODO: this should always be set, but what if it isn't?
-                if carry < left_to_remove:
+                if carry > left_to_remove:
                     # We don't want to go below the target, but there might be a smaller creep we can remove?
                     continue
                 left_to_remove -= carry
                 result.append(name)
-        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        if self.mem.meta.clear_next - Game.time < 19:
+            self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        else:
+            self.store_cached_property(key, result, 19)
         return result
 
     def extra_creeps_with_work_in_role(self, role, target_work_mass):
@@ -635,12 +638,15 @@ class RoomMind:
                 if name not in Memory.creeps:
                     continue
                 work = Memory.creeps[name].work  # TODO: this should always be set, but what if it isn't?
-                if work < left_to_remove:
+                if work > left_to_remove:
                     # We don't want to go below the target, but there might be a smaller creep we can remove?
                     continue
                 left_to_remove -= work
                 result.append(name)
-        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        if self.mem.meta.clear_next - Game.time < 19:
+            self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        else:
+            self.store_cached_property(key, result, 19)
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
