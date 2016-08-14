@@ -22,7 +22,7 @@ class ReplacingExpendedCreep(RoleBase):
 
         old_creep = Game.creeps[old_name]
 
-        if not old_creep or not Memory.creeps[old_name]:
+        if not old_creep or not Memory.creeps[old_name] or Memory.creeps[old_name].role == role_recycling:
             self.log("Now switching to role {}, to replace past-dead {}.".format(
                 self.memory.replacing_role, self.memory.replacing
             ))

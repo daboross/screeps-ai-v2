@@ -41,3 +41,8 @@ called `.screeps-email` in this project directory, and your password into a file
 
 Following that, you're all set up! All you need to do now is run the `./build.sh` script whenever you want to compile
 and deploy code, and it will deal with the rest of it.
+
+
+##### Notes (personal):
+
+Color scheme: #5c3732, #c2621b, #536958

@@ -32,7 +32,8 @@ def get_carry_mass_for_remote_mine(home, flag):
     else:
         mining_per_tick = 4.0
     produce_per_tick = mining_per_tick + round(sitting / 200.0)
-    target_mass = math.ceil(produce_per_tick / carry_per_tick)
+    target_mass = math.ceil(produce_per_tick / carry_per_tick) \
+                  + min(5, spawning.max_sections_of(home, creep_base_hauler))
     return target_mass
 
 

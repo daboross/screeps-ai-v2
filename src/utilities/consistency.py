@@ -8,10 +8,6 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
-def reassign_roles():
-    for room in context.hive().my_rooms:
-        reassign_room_roles(room)
-
 
 def reassign_room_roles(room):
     """
