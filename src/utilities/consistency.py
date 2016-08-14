@@ -1,12 +1,10 @@
 import math
 
-import context
 from constants import *
 from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
-
 
 
 def reassign_room_roles(room):
@@ -28,19 +26,13 @@ def reassign_room_roles(room):
                 break
         room.recalculate_roles_alive()
 
-    if room.carry_mass_of(role_local_hauler) > room.get_target_local_hauler_carry_mass():
-        # The creep with the lowest lifetime left should die.
-        next_to_die = room.next_x_to_die_of_role(
-            role_local_hauler,
-            max(1, (room.carry_mass_of(role_local_hauler) - room.get_target_local_hauler_carry_mass())
-                / room.get_max_sections_for_role(role_local_hauler)))
-        changed = False
-        for name in next_to_die:
-            if Memory.creeps[name]:
+    extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
+                                                               room.get_target_local_hauler_carry_mass())
+    if len(extra_local_haulers):
+        for name in extra_local_haulers:
+            if name in Memory.creeps:
                 Memory.creeps[name].role = role_cleanup
-                changed = True
-        if changed:
-            room.recalculate_roles_alive()
+        room.recalculate_roles_alive()
 
 
 def clear_memory(room):

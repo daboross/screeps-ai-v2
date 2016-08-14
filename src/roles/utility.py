@@ -176,33 +176,26 @@ class Cleanup(SpawnFill):
 
             if not pile:
                 carry_per_creep = self.home.get_max_sections_for_role(role_cleanup)
-                if self.home.get_target_cleanup_mass() + carry_per_creep < self.home.carry_mass_of(role_cleanup):
-                    # The creep with the lowest lifetime left should die.
-                    # TODO: cleanup this mess
-                    extra_mass = (self.home.carry_mass_of(role_cleanup)
-                                  - carry_per_creep - self.home.get_target_cleanup_mass())
-                    x_to_die = max(extra_mass / carry_per_creep, 1)
-                    next_to_die = self.home.next_x_to_die_of_role(role_cleanup, x_to_die)
-                    if self.name in next_to_die:
-                        if self.home.carry_mass_of(role_local_hauler) \
-                                < self.home.get_target_local_hauler_carry_mass():
-                            self.memory.role = role_local_hauler
-                            self.home.mem.meta.clear_next = 0  # clear next tick
-                            return False
-                        if self.home.carry_mass_of(role_remote_hauler) \
-                                < self.home.get_target_remote_hauler_carry_mass():
-                            self.memory.role = role_remote_hauler
-                            self.home.mem.meta.clear_next = 0  # clear next tick
-                            return False
-                        self.memory.role = role_recycling
-                        # TODO: utility method for this kind of thing.
-                        if role_cleanup in self.home.role_counts:
-                            self.home.role_counts[role_cleanup] -= 1
-                            self.home.carry_mass_map[role_cleanup] -= spawning.carry_count(self)
-                        if role_recycling in self.home.role_counts:
-                            self.home.role_counts[role_recycling] += 1
-                            self.home.carry_mass_map[role_recycling] += spawning.carry_count(self)
-                        return
+                extra_cleanup = self.home.extra_creeps_with_carry_in_role(
+                    role_cleanup, self.home.get_target_cleanup_mass() + carry_per_creep)
+                if len(extra_cleanup) and self.name in extra_cleanup:
+                    if self.home.carry_mass_of(role_local_hauler) < self.home.get_target_local_hauler_carry_mass():
+                        self.memory.role = role_local_hauler
+                        self.home.mem.meta.clear_next = 0  # clear next tick
+                        return False
+                    if self.home.carry_mass_of(role_remote_hauler) < self.home.get_target_remote_hauler_carry_mass():
+                        self.memory.role = role_remote_hauler
+                        self.home.mem.meta.clear_next = 0  # clear next tick
+                        return False
+                    self.memory.role = role_recycling
+                    # TODO: utility method for this kind of thing.
+                    if role_cleanup in self.home.role_counts:
+                        self.home.role_counts[role_cleanup] -= 1
+                        self.home.carry_mass_map[role_cleanup] -= spawning.carry_count(self)
+                    if role_recycling in self.home.role_counts:
+                        self.home.role_counts[role_recycling] += 1
+                        self.home.carry_mass_map[role_recycling] += spawning.carry_count(self)
+                    return
                 if _.sum(self.creep.carry) >= 0:
                     self.memory.gathering = False
                 self.go_to_depot()  # wait

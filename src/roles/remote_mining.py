@@ -1,5 +1,4 @@
 import flags
-import spawning
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
     target_closest_deposit_site, role_remote_hauler, role_cleanup, role_recycling
@@ -89,16 +88,11 @@ class RemoteHauler(SpawnFill):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
-                if self.home.carry_mass_of(role_remote_hauler) > self.home.get_target_remote_hauler_carry_mass():
-                    # The creep with the lowest lifetime left should abandon post.
-                    next_to_die = self.home.next_x_to_die_of_role(
-                        role_remote_hauler,
-                        (self.home.carry_mass_of(role_remote_hauler) - self.home.get_target_remote_hauler_carry_mass())
-                        / spawning.carry_count(self))
-                    if self.name in next_to_die:
-                        self.memory.role = role_cleanup
-                        self.home.mem.meta.clear_next = 0  # clear next tick
-                        return False
+                extra_haulers = self.home.extra_creeps_with_carry_in_role(
+                    role_remote_hauler, self.home.get_target_remote_hauler_carry_mass())
+                if len(extra_haulers) and self.name in extra_haulers:
+                    self.memory.role = role_cleanup
+                    self.home.mem.meta.clear_next = 0  # TODO: method in RoomMind to re-register as another role.
                 self.report(speech.remote_hauler_no_source)
                 if self.creep.ticksToLive < 200:  # TODO: is this a good number?
                     self.recycle_me()

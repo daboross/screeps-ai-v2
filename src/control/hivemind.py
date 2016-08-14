@@ -297,6 +297,11 @@ class RoomMind:
             self.mem.cache[name].ttl_after_use = use_ttl
             self.mem.cache[name].last_used = Game.time
 
+    def store_cached_property_at(self, name, value, dead_at):
+        if not self.mem.cache:
+            self.mem.cache = {}
+        self.mem.cache[name] = {"value": value, "dead_at": dead_at}
+
     def find(self, parameter):
         cache = volatile_cache.mem(self.room_name)
         if parameter in cache:
@@ -571,8 +576,71 @@ class RoomMind:
                 result.append(rt_pair[0])
                 if len(result) >= x:
                     break
-        self.store_cached_property(key, result, 0)
-        self.mem.cache[key].dead_at = self.mem.meta.clear_next + 1
+        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        return result
+
+    def extra_creeps_with_carry_in_role(self, role, target_carry_mass):
+        """
+        Gets a list of extra creep names who are in the given role, given that the target is target_carry_mass
+        :param role: The role
+        :param target_carry_mass: The desired carry mass
+        :return: Creeps who should be switched to a different role
+        :type role: str
+        :type target_carry_mass: int
+        :rtype: list[str]
+        """
+        key = "ecc_{}".format(role)
+        result = self.get_cached_property(key)
+        if result: return result
+        current = self.carry_mass_of(role)
+        left_to_remove = current - target_carry_mass
+        result = []
+        if left_to_remove < 0:
+            return result
+        rt_map = self._get_rt_map()
+        if role in rt_map:
+            for name, rt in rt_map[role]:
+                if name not in Memory.creeps:
+                    continue
+                carry = Memory.creeps[name].carry  # TODO: this should always be set, but what if it isn't?
+                if carry < left_to_remove:
+                    # We don't want to go below the target, but there might be a smaller creep we can remove?
+                    continue
+                left_to_remove -= carry
+                result.append(name)
+        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
+        return result
+
+    def extra_creeps_with_work_in_role(self, role, target_work_mass):
+        """
+        Gets a list of extra creep names who are in the given role, given that the target is target_work_mass
+        :param role: The role
+        :param target_work_mass: The desired work mass
+        :return: Creeps who should be switched to a different role
+        :type role: str
+        :type target_work_mass: int
+        :rtype: list[str]
+        """
+        key = "ecc_{}".format(role)
+        result = self.get_cached_property(key)
+        if result: return result
+        current = self.work_mass_of(role)
+        left_to_remove = current - target_work_mass
+        result = []
+        if left_to_remove < 0:
+            return result
+        rt_map = self._get_rt_map()
+        if role in rt_map:
+            for name, rt in rt_map[role]:
+                if name not in Memory.creeps:
+                    continue
+                work = Memory.creeps[name].work  # TODO: this should always be set, but what if it isn't?
+                if work < left_to_remove:
+                    # We don't want to go below the target, but there might be a smaller creep we can remove?
+                    continue
+                left_to_remove -= work
+                result.append(name)
+        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
