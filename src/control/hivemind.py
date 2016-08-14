@@ -32,8 +32,15 @@ def get_carry_mass_for_remote_mine(home, flag):
     else:
         mining_per_tick = 4.0
     produce_per_tick = mining_per_tick + round(sitting / 200.0)
-    target_mass = math.ceil(produce_per_tick / carry_per_tick) \
-                  + min(5, spawning.max_sections_of(home, creep_base_hauler))
+    extra_small_hauler_mass = min(5, spawning.max_sections_of(home, creep_base_hauler))
+    target_mass = math.ceil(produce_per_tick / carry_per_tick) + extra_small_hauler_mass
+    if not isFinite(target_mass):
+        print("[{}][mining_carry_mass] ERROR: Non-finite number of haulers determined for remote mine {}!"
+              " sitting: {}, cpt: {}, mpt: {}, ppt: {}, extra: {}, tm: {}".format(
+            home.room_name, flag.name, sitting, carry_per_tick, mining_per_tick, produce_per_tick,
+            extra_small_hauler_mass, target_mass))
+        target_mass = extra_small_hauler_mass * 5
+
     return target_mass
 
 

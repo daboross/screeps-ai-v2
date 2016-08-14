@@ -258,6 +258,8 @@ def energy_per_section(base):
 
 
 def max_sections_of(room, base):
+    if room.room:
+        room = room.room
     return floor(room.energyCapacityAvailable / energy_per_section(base))
 
 
