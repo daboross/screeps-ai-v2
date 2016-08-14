@@ -10,7 +10,7 @@ __pragma__('noalias', 'name')
 bases_max_energy = {
     creep_base_local_miner: 100 + 100 * 5,
     creep_base_full_miner: 150 * 5,
-    creep_base_small_hauler: 300,
+    creep_base_small_hauler: 100 * 3,
     creep_base_reserving: 650 * 2,
     creep_base_defender: 180 * 6,
 }
@@ -52,12 +52,17 @@ def run(room, spawn):
     if room.role_count(role_spawn_fill) < 3 and filled >= max(150 * room.work_mass, 250):
         energy = filled
     else:
-        max_energy = bases_max_energy[base]
-        if max_energy:
-            energy = min(spawn.room.energyCapacityAvailable, max(max_energy, filled))
+        if base in bases_max_energy:
+            # Minimum of actual capacity, and (maximum of needed and how much actual energy we have)
+            energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
+        elif base in scalable_sections:
+            # If we are spawning a scalable creep, wait until we're filled the maximum we are going to be filled.
+            energy = spawn.room.energyCapacityAvailable - (spawn.room.energyCapacityAvailable
+                                                           % energy_per_section(base))
         else:
+            print("[{}][spawning] Base {} has neither maximum energy nor scalable section energy!".format(
+                room.room_name, base))
             energy = spawn.room.energyCapacityAvailable
-
     if filled < energy:
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
         return

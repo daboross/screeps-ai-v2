@@ -636,8 +636,8 @@ class RoomMind:
             meta.reset_spawn_on = meta.clear_next + 1
 
         # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is
-        # cleared!
-        if Game.time % 100 == 0:
+        # cleared! Actually, it's quite cheap.
+        if Game.time % 10 == 0:
             self.reassign_roles()
 
     def reassign_roles(self):
