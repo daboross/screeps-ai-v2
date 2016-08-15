@@ -1,5 +1,5 @@
 import speech
-from constants import target_harvester_deposit, recycle_time, role_recycling, role_spawn_fill
+from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill
 from roles import building
 from tools import profiling
 from utilities.screeps_constants import *
@@ -23,11 +23,11 @@ class SpawnFill(building.Builder):
         if self.memory.harvesting:
             return self.harvest_energy()
         else:
-            target = self.target_mind.get_new_target(self, target_harvester_deposit)
+            target = self.target_mind.get_new_target(self, target_spawn_deposit)
             if target:
                 del self.memory.filling_now
                 if target.energy >= target.energyCapacity:
-                    self.target_mind.untarget(self, target_harvester_deposit)
+                    self.target_mind.untarget(self, target_spawn_deposit)
                     return True
                 else:
                     self.pick_up_available_energy()
@@ -41,11 +41,11 @@ class SpawnFill(building.Builder):
                     if result == OK:
                         self.report(speech.spawn_fill_ok)
                     elif result == ERR_FULL:
-                        self.target_mind.untarget(self, target_harvester_deposit)
+                        self.target_mind.untarget(self, target_spawn_deposit)
                         return True
                     else:
                         self.log("Unknown result from creep.transfer({}): {}", target, result)
-                        self.target_mind.untarget(self, target_harvester_deposit)
+                        self.target_mind.untarget(self, target_spawn_deposit)
                         self.report(speech.spawn_fill_unknown_result)
                         return True
             else:

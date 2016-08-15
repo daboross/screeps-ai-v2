@@ -30,6 +30,9 @@ def _mass_count(name):
     return max(work, carry)
 
 
+work_stealing_targets = [target_spawn_deposit]
+
+
 class TargetMind:
     def __init__(self):
         if not Memory.targets:
@@ -45,6 +48,8 @@ class TargetMind:
             self.mem.targets_workforce = {}
         if not self.mem.targeters_using:
             self.mem.targeters_using = {}
+        if not self.mem.targets_stealable:
+            self.mem.targets_stealable = {}
         if (self.mem.last_clear or 0) + 1000 < Game.time:
             self._reregister_all()
             self.mem.last_clear = Game.time
@@ -54,7 +59,7 @@ class TargetMind:
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
-            target_harvester_deposit: self._find_new_harvester_deposit_site,
+            target_spawn_deposit: self._find_new_spawn_fill_site,
             target_tower_fill: self._find_new_tower,
             target_remote_mine_miner: self._find_new_remote_miner_mine,
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
@@ -81,9 +86,16 @@ class TargetMind:
     def __set_targets_workforce(self, value):
         self.mem.targets_workforce = value
 
+    def __get_reverse_targets(self):
+        return self.mem.targets_stealable
+
+    def __set_reverse_targets(self, value):
+        self.mem.targets_stealable = value
+
     targets = property(__get_targets, __set_targets)
     targeters = property(__get_targeters, __set_targeters)
     targets_workforce = property(__get_targets_workforce, __set_targets_workforce)
+    reverse_targets = property(__get_reverse_targets, __set_reverse_targets)
 
     def _register_new_targeter(self, ttype, targeter_id, target_id):
         if targeter_id not in self.targeters:
@@ -117,10 +129,19 @@ class TargetMind:
             self.targets_workforce[ttype][target_id] = _mass_count(targeter_id)
         else:
             self.targets_workforce[ttype][target_id] += _mass_count(targeter_id)
+        if ttype in work_stealing_targets:
+            # this target can be stolen, mark the targeter:
+            if ttype not in self.reverse_targets:
+                self.reverse_targets[ttype] = {target_id: [targeter_id]}
+            elif target_id not in self.reverse_targets:
+                self.reverse_targets[ttype][target_id] = [targeter_id]
+            else:
+                self.reverse_targets[ttype][target_id].append(targeter_id)
 
     def _reregister_all(self):
         new_targets = {}
         new_workforce = {}
+        new_reverse = {}
         for targeter_id in Object.keys(self.targeters):
             mass = _mass_count(targeter_id)
             for ttype in Object.keys(self.targeters[targeter_id]):
@@ -139,9 +160,19 @@ class TargetMind:
                         new_workforce[ttype][target_id] = mass
                 else:
                     new_workforce[ttype] = {target_id: mass}
+                if ttype in work_stealing_targets:
+                    # this target can be stolen, mark the targeter:
+                    if ttype in new_reverse:
+                        if target_id in new_reverse:
+                            new_reverse[ttype][target_id].append(targeter_id)
+                        else:
+                            new_reverse[ttype][target_id] = [targeter_id]
+                    else:
+                        new_reverse[ttype] = {target_id: [targeter_id]}
 
         self.targets = new_targets
         self.targets_workforce = new_workforce
+        self.reverse_targets = new_reverse
 
     def _unregister_targeter(self, ttype, targeter_id):
         existing_target = self._get_existing_target_id(ttype, targeter_id)
@@ -150,6 +181,11 @@ class TargetMind:
                 self.targets[ttype][existing_target] -= 1
             if ttype in self.targets_workforce and existing_target in self.targets_workforce[ttype]:
                 self.targets_workforce[ttype][existing_target] -= _mass_count(targeter_id)
+            if ttype in work_stealing_targets:
+                if ttype in self.reverse_targets and existing_target in self.reverse_targets[ttype]:
+                    index = self.reverse_targets[ttype][existing_target].indexOf(targeter_id)
+                    if index > -1:
+                        self.reverse_targets[ttype][existing_target].splice(index, 1)
             del self.targeters[targeter_id][ttype]
 
     def _unregister_all(self, targeter_id):
@@ -161,6 +197,11 @@ class TargetMind:
                     self.targets[ttype][target] -= 1
                 if ttype in self.targets_workforce and target in self.targets_workforce[ttype]:
                     self.targets_workforce[ttype][target] -= mass
+                if ttype in work_stealing_targets:
+                    if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
+                        index = self.reverse_targets[ttype][target].indexOf(targeter_id)
+                        if index > -1:
+                            self.reverse_targets[ttype][target].splice(index, 1)
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
@@ -177,6 +218,11 @@ class TargetMind:
                         self.targets_workforce[ttype][target] = new_mass
                 else:
                     self.targets_workforce[ttype] = {target: new_mass}
+                if ttype in work_stealing_targets:
+                    if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
+                        index = self.reverse_targets[ttype][target].indexOf(old_targeter_id)
+                        if index > -1:
+                            self.reverse_targets[ttype][target].splice(index, 1, new_targeter_id)
             del self.targeters[old_targeter_id]
 
     def _find_new_target(self, ttype, creep, extra_var):
@@ -189,6 +235,8 @@ class TargetMind:
             self.targets[ttype] = {}
         if not self.targets_workforce[ttype]:
             self.targets_workforce[ttype] = {}
+        if ttype in work_stealing_targets and ttype not in self.reverse_targets:
+            self.reverse_targets[ttype] = {}
         func = self.find_functions[ttype]
         if func:
             return func(creep, extra_var)
@@ -305,23 +353,44 @@ class TargetMind:
 
         return None
 
-    def _find_new_harvester_deposit_site(self, creep):
+    def _find_new_spawn_fill_site(self, creep):
         """
         :type creep: role_base.RoleBase
         """
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
+        stealing_from = None
         for structure in creep.room.find(FIND_STRUCTURES):
             if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
                     and structure.energy < structure.energyCapacity and structure.my:
-                source_id = structure.id
-                current_carry = self.targets_workforce[target_harvester_deposit][source_id]
+                structure_id = structure.id
+                current_carry = self.targets_workforce[target_spawn_deposit][structure_id]
                 # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
-                if not current_carry or current_carry < structure.energyCapacity / 50.0:
-                    distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-                    if distance < closest_distance:
+                distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+                if distance < closest_distance:
+                    if not current_carry or current_carry < structure.energyCapacity / 50.0:
                         closest_distance = distance
-                        best_id = source_id
+                        best_id = structure_id
+                        stealing_from = None
+                    else:
+                        targeting = self.reverse_targets[target_spawn_deposit][structure_id]
+                        if not targeting:
+                            # TODO: remove this once we have all memory cleared so this will never be true
+                            self.mem.last_clear = 0
+                            continue
+                        for name in targeting:
+                            if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                    Game.creeps[name].pos, structure.pos) > distance * 2.25:
+                                # If we're at least 1.5x closer than them, let's steal their place.
+                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
+                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                                closest_distance = distance
+                                best_id = structure_id
+                                stealing_from = name
+                                break
+
+        if stealing_from is not None:
+            self._unregister_targeter(target_spawn_deposit, stealing_from)
 
         return best_id
 
