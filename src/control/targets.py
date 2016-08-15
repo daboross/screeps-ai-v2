@@ -470,15 +470,14 @@ class TargetMind:
         """
         most_lacking = 0
         best_id = None
-        for tower_id in Memory.tower.towers:
-            tower = Game.getObjectById(tower_id)
-            if tower.room != creep.creep.room:
+        for tower in creep.room.find(FIND_MY_STRUCTURES):
+            if tower.structureType != STRUCTURE_TOWER:
                 continue
             # 50 per carry part, but we don't know if it's full. this is a safe compromise
-            carry_targeting = self.targets_workforce[target_tower_fill][tower_id] * 25
+            carry_targeting = (self.targets_workforce[target_tower_fill][tower.id] or 0) * 25
             if tower.energyCapacity - tower.energy - carry_targeting > most_lacking:
                 most_lacking = tower.energyCapacity - tower.energy
-                best_id = tower_id
+                best_id = tower.id
 
         return best_id
 
