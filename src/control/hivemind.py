@@ -193,8 +193,7 @@ profiling.profile_whitelist(HiveMind, [
 # TODO: A lot of these should be changed for if the room has 1 or 2 sources!
 _min_work_mass_big_miner = 8  # TODO: This really should be based off of spawn extensions & work mass percentage!
 _extra_work_mass_per_big_miner = 10
-_min_work_mass_remote_mining_operation = 25
-_extra_work_mass_per_extra_remote_mining_operation = 10
+
 _min_energy_pause_remote_mining = 950000
 _max_energy_resume_remote_mining = 700000
 _min_work_mass_for_full_storage_use = 35
@@ -851,17 +850,84 @@ class RoomMind:
             self.mem.upgrading_paused = True
         return not not self.mem.upgrading_paused
 
+    def get_max_mining_op_count(self):
+        if self.room.storage:
+            self.energy = self.room.storage.store.energy
+        else:
+            self.energy = 0
+        spawning_energy = self.room.energyCapacityAvailable
+        sources = len(self.sources)
+        rcl = self.room.controller.level
+
+        if sources <= 1:
+            min_wm = 25
+            extra_wm = 10
+            min_energy = 550  # rcl 2, fully built
+            min_rcl = 2
+            extra_rcl = 0
+        else:
+            min_wm = 40
+            extra_wm = 30
+            min_energy = 800  # rcl 3, fully built
+            min_rcl = 3
+            extra_rcl = 1
+
+        if self.work_mass < min_wm:
+            max_via_wm = 0
+        else:
+            max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
+        if spawning_energy < min_energy:
+            max_via_energy = 0
+        else:
+            max_via_energy = Infinity
+        if rcl < min_rcl:
+            max_via_rcl = 0
+        else:
+            max_via_rcl = math.floor((rcl - min_rcl) / extra_rcl) + 1
+        return min(max_via_wm, max_via_energy, max_via_rcl)
+
+    def get_max_local_miner_count(self):
+        if self.room.storage:
+            self.energy = self.room.storage.store.energy
+        else:
+            self.energy = 0
+        spawning_energy = self.room.energyCapacityAvailable
+        sources = len(self.sources)
+
+        min_energy = 550  # rcl 2, fully built
+        if sources <= 1:
+            min_wm = 7
+            extra_wm = 10
+        else:
+            min_wm = 15
+            extra_wm = 10
+
+        if self.work_mass < min_wm:
+            max_via_wm = 0
+        else:
+            max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
+        if spawning_energy < min_energy:
+            max_via_energy = 0
+        else:
+            max_via_energy = Infinity
+        return min(max_via_wm, max_via_energy)
+
+    def get_max_sane_wall_hits(self):
+        """
+        :rtype: int
+        """
+        if self._max_sane_wall_hits is None:
+            self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
+        return self._max_sane_wall_hits
+
     def get_target_local_miner_count(self):
         """
         :rtype: int
         """
         if self._ideal_big_miner_count is None:
-            if self.work_mass >= _min_work_mass_big_miner:
-                self._ideal_big_miner_count = min(
-                    len(self.sources),
-                    1 + math.floor((self.work_mass - _min_work_mass_big_miner) /
-                                   _extra_work_mass_per_big_miner)
-                )
+            miner_count = self.get_max_local_miner_count()
+            if miner_count > 0:
+                self._ideal_big_miner_count = min(len(self.sources), miner_count)
             else:
                 self._ideal_big_miner_count = 0
         return self._ideal_big_miner_count
@@ -871,15 +937,9 @@ class RoomMind:
         :rtype: int
         """
         if self._target_remote_mining_operation_count is None:
-            # TODO: don't count rooms mined by other owned rooms! This is a hack.
-            if self.work_mass > _min_work_mass_remote_mining_operation and not self.mining_ops_paused():
-                self._target_remote_mining_operation_count = min(
-                    1 + math.floor(
-                        (self.work_mass - _min_work_mass_remote_mining_operation)
-                        / _extra_work_mass_per_extra_remote_mining_operation
-                    ),
-                    len(self.remote_mining_operations)
-                )
+            max_miners = self.get_max_mining_op_count()
+            if max_miners > 0 and not self.mining_ops_paused():
+                self._target_remote_mining_operation_count = min(max_miners, len(self.remote_mining_operations))
             else:
                 self._target_remote_mining_operation_count = 0
         return self._target_remote_mining_operation_count
@@ -1134,14 +1194,6 @@ class RoomMind:
             self._target_room_reserve_count = count
             # claimable!
         return self._target_room_reserve_count
-
-    def get_max_sane_wall_hits(self):
-        """
-        :rtype: int
-        """
-        if self._max_sane_wall_hits is None:
-            self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
-        return self._max_sane_wall_hits
 
     def _next_needed_local_role(self):
         requirements = [
