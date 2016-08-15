@@ -5,17 +5,6 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-flag_sub_to_structure_type = {
-    flags.SUB_SPAWN: STRUCTURE_SPAWN,
-    flags.SUB_EXTENSION: STRUCTURE_EXTENSION,
-    flags.SUB_RAMPART: STRUCTURE_RAMPART,
-    flags.SUB_WALL: STRUCTURE_WALL,
-    flags.SUB_STORAGE: STRUCTURE_STORAGE,
-    flags.SUB_TOWER: STRUCTURE_TOWER,
-    flags.SUB_LINK: STRUCTURE_LINK,
-    flags.SUB_EXTRACTOR: STRUCTURE_EXTRACTOR,
-}
-
 
 class ConstructionMind:
     """
@@ -89,7 +78,7 @@ class ConstructionMind:
         for flag, flag_type in _.sortBy(
                 flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
                 lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos, flag_tuple[0].pos)):
-            structure_type = flag_sub_to_structure_type[flag_type]
+            structure_type = flags.flag_sub_to_structure_type[flag_type]
             if not structure_type:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
                     self.room.room_name, flag_type

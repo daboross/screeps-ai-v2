@@ -1,5 +1,4 @@
 import flags
-from control.building import flag_sub_to_structure_type
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -167,7 +166,7 @@ class HoneyTrails:
         for site in self.room.find(FIND_CONSTRUCTION_SITES):
             set_matrix(site.structureType, site.pos)
         for flag, stype in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
-            set_matrix(flag_sub_to_structure_type[stype], flag.pos)
+            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos)
         for source in self.room.find(FIND_SOURCES):
             set_matrix("this_is_a_source", source.pos)
         for x in [0, 49]:
@@ -222,7 +221,10 @@ class HoneyTrails:
             if from_dest_path is not None:
                 path = reverse_path(from_dest_path, origin)
                 if path is not None:
-                    self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+                    if self.room.my:
+                        self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+                    else:
+                        self.room.store_cached_property(key, Room.serializePath(path), 10000, 1000)
                     return path
 
         result = PathFinder.search(origin, {"pos": destination, "range": range}, {
@@ -247,7 +249,10 @@ class HoneyTrails:
                 'dy': dy,
                 'direction': get_direction(dx, dy)
             })
-        self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+        if self.room.my:
+            self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+        else:
+            self.room.store_cached_property(key, Room.serializePath(path), 10000, 1000)
         return path
 
     def map_out_full_path(self, origin, destination):
