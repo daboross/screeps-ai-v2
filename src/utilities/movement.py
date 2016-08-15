@@ -165,6 +165,7 @@ def path_distance(here, target, non_roads_two_movement=False):
                         exit_direction, current.roomName))
                     return -1
             else:
+                # TODO: use PathFinder here!
                 print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
                 if not non_roads_two_movement:
                     path_len += math.sqrt(distance_squared_room_pos(current, exit_pos)) + 1

@@ -3,7 +3,7 @@ import math
 import context
 import flags
 import speech
-from constants import target_source, role_dedi_miner, recycle_time
+from constants import target_source, role_dedi_miner, recycle_time, role_recycling
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -447,13 +447,19 @@ class RoleBase:
 
     def recycle_me(self):
         spawn = self.home.spawns[0]
+        if not spawn:
+            self.go_to_depot()
+            return
         if not self.creep.pos.isNearTo(spawn.pos):
             self.pick_up_available_energy()
             self.move_to(self.home.spawns[0])
         else:
             result = spawn.recycleCreep(self.creep)
             if result == OK:
-                self.log("{} committed suicide (life left: {}).", self.memory.role, self.creep.ticksToLive)
+                if self.memory.role == role_recycling:
+                    self.log("{} recycled (ttl: {}).", self.memory.last_role, self.creep.ticksToLive)
+                else:
+                    self.log("{} committed suicide (ttl: {}).", self.memory.role, self.creep.ticksToLive)
                 self.home.mem.meta.clear_next = 0  # clear next tick
             else:
                 self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)

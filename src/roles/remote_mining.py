@@ -77,6 +77,7 @@ class RemoteHauler(SpawnFill):
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             if source_flag and self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
                 self.memory.role = role_recycling
+                self.memory.last_role = role_remote_hauler
                 return False
             self.memory.harvesting = True
             self.target_mind.untarget_all(self)

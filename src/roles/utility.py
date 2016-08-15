@@ -135,6 +135,7 @@ class Cleanup(SpawnFill):
     def run(self):
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
+            self.memory.last_role = role_cleanup
             return False
         storage = self.creep.room.storage
 
@@ -194,6 +195,7 @@ class Cleanup(SpawnFill):
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
                     self.memory.role = role_recycling
+                    self.memory.last_role = role_cleanup
                     # TODO: utility method for this kind of thing.
                     if role_cleanup in self.home.role_counts:
                         self.home.role_counts[role_cleanup] -= 1

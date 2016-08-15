@@ -55,7 +55,8 @@ class ReplacingExpendedCreep(RoleBase):
         self.target_mind.assume_identity(old_name, self.creep.name)  # needs to happen before switching memory.
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
-        Memory.creeps[old_name] = {"role": role_recycling, "home": self.memory.home}
+        Memory.creeps[old_name] = {"role": role_recycling, "home": self.memory.home, "body": self.memory.body,
+                                   "last_role": "replaced-{}".format(self.memory.role)}
         del self.memory.calculated_replacement_time
         del self.memory.replacement
         del self.memory.stationary

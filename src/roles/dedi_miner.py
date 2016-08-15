@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_big_source, target_source, role_dedi_miner, target_closest_deposit_site, role_recycling, \
-    recycle_time
+    recycle_time, role_local_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -67,6 +67,7 @@ class LocalHauler(SpawnFill):
     def run(self):
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
+            self.memory.last_role = role_local_hauler
             return False
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
