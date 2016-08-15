@@ -41,7 +41,7 @@ def clear_memory(room):
     :type room: control.hivemind.RoomMind
     """
     smallest_ticks_to_live = 500
-    closest_replacement_time = math.pow(2, 30)
+    closest_replacement_time = Game.time + 100 # reset spawn at a minimum of every 100 ticks.
     target_mind = room.hive_mind.target_mind
     for name in Object.keys(Memory.creeps):
         memory = Memory.creeps[name]

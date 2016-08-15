@@ -866,7 +866,7 @@ class RoomMind:
             min_rcl = 2
             extra_rcl = 0
         else:
-            min_wm = 40
+            min_wm = 40  # Around all roles built needed for an rcl 3 room!
             extra_wm = 30
             min_energy = 800  # rcl 3, fully built
             min_rcl = 3
@@ -1150,11 +1150,13 @@ class RoomMind:
 
     def get_target_upgrader_work_mass(self):
         if self.upgrading_paused():
-            return 3
+            wm = 3
         elif self.mining_ops_paused():
-            return spawning.max_sections_of(self.room, creep_base_worker) * 4
+            wm= spawning.max_sections_of(self.room, creep_base_worker) * 4
         else:
-            return min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
+            wm=min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
+        if self.full_storage_use and self.room.storage.store.energy > 700000:
+            wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
 
     def get_target_tower_fill_mass(self):
         mass = 0
