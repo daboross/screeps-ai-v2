@@ -174,6 +174,9 @@ class RoleBase:
                 self.last_target = target
         else:
             self.last_target = target
+        if self.creep.pos.isNearTo(target):
+            self.creep.move(self.creep.pos.getDirectionTo(target))
+            return OK
         if not self.last_checkpoint:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
                                                         movement.is_block_clear(self.creep.room, target.x, target.y)):

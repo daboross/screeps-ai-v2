@@ -7,6 +7,65 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
+def get_direction(dx, dy):
+    """
+    Gets the screeps direction constant from a given dx and dy.
+    :type dx: int
+    :type dy: int
+    :rtype: int
+    """
+    direction = None
+    if dx < 0:
+        if dy < 0:
+            direction = TOP_LEFT
+        elif dy == 0:
+            direction = LEFT
+        elif dy > 0:
+            direction = BOTTOM_LEFT
+    elif dx == 0:
+        if dy < 0:
+            direction = TOP
+        elif dy > 0:
+            direction = BOTTOM
+    elif dx > 0:
+        if dy < 0:
+            direction = TOP_RIGHT
+        elif dy == 0:
+            direction = RIGHT
+        elif dy > 0:
+            direction = BOTTOM_RIGHT
+    if direction is None:
+        print("[honey][direction] ERROR: Unknown dx/dy: {},{}!".format(dx, dy))
+        return None
+    else:
+        return direction
+
+
+def reverse_path(input_path, new_origin):
+    """
+    :type input_path: list[Any]
+    :type new_origin: RoomPosition
+    """
+    output_path = []
+    last_x, last_y = new_origin.x, new_origin.y
+    for pos in reversed(input_path):
+        dx = pos.x - last_x
+        dy = pos.y - last_y
+        direction = get_direction(dx, dy)
+        if direction is None:
+            return None
+        last_x = pos.x
+        last_y = pos.y
+        output_path.append({
+            'x': pos.x,
+            'y': pos.y,
+            'dx': dx,
+            'dy': dy,
+            'direction': direction
+        })
+    return output_path
+
+
 class CachedTrails:
     def __init__(self, hive):
         self.hive = hive
@@ -47,21 +106,33 @@ class HoneyTrails:
         self.room = room
         self.hive = room.hive_mind
 
-    def _modify_cost_matrix(self, room_name, cost_matrix, origin, destination):
+    def _new_cost_matrix(self, room_name, origin, destination, opts):
+        use_roads = opts['roads']
+        if_roads_mutiplier = 2 if use_roads else 1
         if self.room.room_name != room_name:
             return
 
-        going_to_extension = False
-        for s in self.room.room.lookForAt(LOOK_STRUCTURES, destination):
-            if s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN:
-                going_to_extension = True
-        if not going_to_extension:
-            for s in self.room.room.lookForAt(LOOK_STRUCTURES, origin):
-                if s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN:
-                    going_to_extension = True
+        structures_ignore = [s.structureType for s in self.room.find_at(FIND_STRUCTURES, origin)] + \
+                            [s.structureType for s in self.room.find_at(FIND_STRUCTURES, destination)]
+        going_to_extension = STRUCTURE_EXTENSION in structures_ignore or STRUCTURE_SPAWN in structures_ignore
+        going_to_storage = STRUCTURE_STORAGE in structures_ignore or STRUCTURE_LINK in structures_ignore
+        going_to_controller = STRUCTURE_CONTROLLER in structures_ignore
+        going_to_source = len(self.room.find_at(FIND_SOURCES, origin)) or len(
+            self.room.find_at(FIND_SOURCES, destination))
+
+        cost_matrix = __new__(PathFinder.CostMatrix())
+
+        def wall_at(x, y):
+            for t in self.room.room.lookForAt(LOOK_TERRAIN, x, y):
+                # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
+                if t == 'wall':
+                    return True
+            return False
 
         def set_matrix(stype, pos):
             if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
+                if stype == STRUCTURE_ROAD and use_roads:
+                    cost_matrix.set(pos.x, pos.y, 1)
                 return
             if pos.x == destination.x and pos.y == destination.y:
                 return
@@ -72,18 +143,23 @@ class HoneyTrails:
                 return
             if abs(pos.x - destination.x) <= 3 and abs(pos.y - destination.y) <= 3:
                 return
-            if stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION:
+            if ((stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION) and not going_to_extension) \
+                    or ((stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK) and not going_to_storage):
                 if not going_to_extension:
-                    for x in range(pos.x - 1, pos.x + 1):
-                        for y in range(pos.y - 1, pos.y + 1):
-                            cost_matrix.set(x, y, 7)
-            elif stype == STRUCTURE_CONTROLLER or stype == "this_is_a_source":
-                for x in range(pos.x - 3, pos.x + 3):
-                    for y in range(pos.y - 3, pos.y + 3):
-                        cost_matrix.set(x, y, 5)
-                for x in range(pos.x - 1, pos.x + 1):
-                    for y in range(pos.y - 1, pos.y + 1):
-                        cost_matrix.set(x, y, 7)
+                    for x in range(pos.x - 1, pos.x + 2):
+                        for y in range(pos.y - 1, pos.y + 2):
+                            if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_mutiplier:
+                                cost_matrix.set(x, y, 20 * if_roads_mutiplier)
+            elif (stype == STRUCTURE_CONTROLLER and not going_to_controller) or \
+                    (stype == "this_is_a_source" and not going_to_source):
+                for x in range(pos.x - 3, pos.x + 4):
+                    for y in range(pos.y - 3, pos.y + 4):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_mutiplier:
+                            cost_matrix.set(x, y, 5 * if_roads_mutiplier)
+                for x in range(pos.x - 1, pos.x + 2):
+                    for y in range(pos.y - 1, pos.y + 2):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_mutiplier:
+                            cost_matrix.set(x, y, 20 * if_roads_mutiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in self.room.find(FIND_STRUCTURES):
@@ -105,10 +181,18 @@ class HoneyTrails:
                         and (x != destination.x or y != destination.y):
                     cost_matrix.set(x, y, 255)
 
-    def _get_callback(self, origin, destination):
-        return lambda room_name, cost_matrix: self._modify_cost_matrix(room_name, cost_matrix, origin, destination)
+        return cost_matrix
 
-    def find_path(self, origin, destination):
+    def _get_callback(self, origin, destination, opts):
+        return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
+
+    def find_path(self, origin, destination, opts=None):
+        if opts:
+            roads_better = opts["use_roads"] if "use_roads" in opts else False
+            range = opts["range"] if "range" in opts else 1
+        else:
+            roads_better = False
+            range = 1
         if origin.pos:
             origin = origin.pos
         if destination.pos:
@@ -116,22 +200,54 @@ class HoneyTrails:
         if origin.roomName != self.room.room_name or destination.roomName != self.room.room_name:
             return None
         key = "path_{}_{}_{}_{}".format(origin.x, origin.y, destination.x, destination.y)
-        path = self.room.get_cached_property(key)
-        if path:
+        serialized_path = self.room.get_cached_property(key)
+        if serialized_path is not None:
             try:
-                return Room.deserializePath(path)
+                return Room.deserializePath(serialized_path)
             except:
-                print("[{}][honey] Serialized path from {},{} to {},{} was invalid.")
+                print("[{}][honey] Serialized path from {},{} to {},{} was invalid.".format(
+                    self.room.room_name, origin.x, origin.y, destination.x, destination.y))
                 del self.room.mem.cache[key]  # TODO: util method on room to do this.
-        path = self.room.room.findPath(origin, destination, {
-            "ignoreCreeps": True,
-            "ignoreRoads": True,
-            "costCallback": self._get_callback(origin, destination),
+
+        from_dest_path_serialized = self.room.get_cached_property("path_{}_{}_{}_{}".format(
+            destination.x, destination.y, origin.x, origin.y))
+        if from_dest_path_serialized is not None:
+            from_dest_path = None
+            try:
+                from_dest_path = Room.deserializePath(from_dest_path_serialized)
+            except:
+                print("[{}][honey] Serialized path (retrieved reverse) from {},{} to {},{} was invalid.".format(
+                    self.room.room_name, destination.x, destination.y, origin.x, origin.y))
+            # TODO: replace this check with a "try..except..else" clause when it starts working in Transcrypt.
+            if from_dest_path is not None:
+                path = reverse_path(from_dest_path, origin)
+                if path is not None:
+                    self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+                    return path
+
+        result = PathFinder.search(origin, {"pos": destination, "range": range}, {
+            "plainCost": 2 if roads_better else 1,
+            "swampCost": 10 if roads_better else 5,
+            "roomCallback": self._get_callback(origin, destination, {"roads": roads_better}),
             "maxRooms": 1
         })
-        # TODO: system to store last accessed time and remove paths which aren't accessed in the last 500 ticks.
-        # TODO: longer TTL when we get this perfected
-        self.room.store_cached_property(key, Room.serializePath(path), 1000, 100)
+        # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
+        # all of this to convert PathFinder results into a Room-compatible format.
+        path = []
+        last_x, last_y = origin.x, origin.y
+        for pos in result.path:
+            dx = pos.x - last_x
+            dy = pos.y - last_y
+            last_x = pos.x
+            last_y = pos.y
+            path.append({
+                'x': pos.x,
+                'y': pos.y,
+                'dx': dx,
+                'dy': dy,
+                'direction': get_direction(dx, dy)
+            })
+        self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
         return path
 
     def map_out_full_path(self, origin, destination):
