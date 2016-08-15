@@ -111,6 +111,39 @@ def get_exit_flag_and_direction(room_name, to_room, difference):
         return None, direction
 
     return flag_list[0].pos, direction
+def get_no_exit_flag_and_direction(room_name, to_room, difference):
+    if abs(difference[0]) > abs(difference[1]):
+        if difference[0] > 0:
+            direction = RIGHT
+        else:
+            direction = LEFT
+    else:
+        if difference[1] > 0:
+            direction = BOTTOM
+        else:
+            direction = TOP
+
+    flag_list = flags.find_flags(room_name, flags.DIR_TO_NO_EXIT_FLAG[direction])
+    if not len(flag_list):
+        # If we have another direction (if path is diagonal), try another way?
+        if abs(difference[0]) > abs(difference[1]):
+            if difference[1] > 0:
+                direction = BOTTOM
+            elif difference[1] < 0:
+                direction = TOP
+        else:
+            if difference[0] > 0:
+                direction = RIGHT
+            elif difference[0] < 0:
+                direction = LEFT
+        flag_list = flags.find_flags(room_name, flags.DIR_TO_EXIT_FLAG[direction])
+    if not len(flag_list):
+        print("[movement] Couldn't find exit flag in room {} to direction {}!"
+              " [targeting room {} from room {}] ({}, {})".format(
+            room_name, flags.DIR_TO_EXIT_FLAG[direction], to_room, room_name, difference[0], difference[1]))
+        return None, direction
+
+    return flag_list[0].pos, direction
 
 
 def get_exit_flag_to(from_room, to_room):
@@ -118,6 +151,12 @@ def get_exit_flag_to(from_room, to_room):
     if not difference:
         return None
     return get_exit_flag_and_direction(from_room, to_room, difference)[0]
+
+def get_no_exit_flag_to(from_room, to_room):
+    difference = inter_room_difference(from_room, to_room)
+    if not difference:
+        return None
+    return get_no_exit_flag_and_direction(from_room, to_room, difference)[0]
 
 
 def path_distance(here, target, non_roads_two_movement=False):

@@ -10,8 +10,7 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-# TODO: set this back to 1
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 16}
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
 
 
 class RoleBase:
@@ -266,7 +265,13 @@ class RoleBase:
                 # pathfind to the flag instead
                 pos = exit_flag
             else:
-                self.log("ERROR: Couldn't find exit flag from {} to {}.".format(here.roomName, pos.roomName))
+                # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
+                # instead of the direct route using these flags.
+                no_exit_flag = movement.get_no_exit_flag_to(here.roomName, pos.roomName)
+                if not no_exit_flag:
+                    self.log("ERROR: Couldn't find exit flag from {} to {}.".format(here.roomName, pos.roomName))
+                self.last_checkpoint = None
+                return self.creep.moveTo(pos)  # no _DEFAULT_PATH_OPTIONS since we're doing multi-room here.
         if follow_defined_path:
             return self._follow_path_to(pos)
         else:
