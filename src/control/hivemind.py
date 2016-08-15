@@ -1101,7 +1101,7 @@ class RoomMind:
                 # TODO: cache max_parts_on? called a ton in this method and other get_target_*_mass methods.
                 # but we probably shouldn't since it's mostly a hack to emulate spawning 5-section creeps anyways?
                 mass += min(5, spawning.max_sections_of(self.room, creep_base_hauler)) * 0.75
-        return mass
+        return math.ceil(mass)
 
     def get_max_sane_wall_hits(self):
         """

@@ -447,6 +447,12 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             hauler_mass = self.targets_workforce[target_remote_mine_hauler][flag_id] or 0
             hauler_percentage = float(hauler_mass) / get_carry_mass_for_remote_mine(creep.home, flag)
+            too_long = creep.creep.ticksToLive < 2.2 * creep.home.distance_storage_to_mine(flag)
+            if too_long:
+                if hauler_percentage < 0.5:
+                    hauler_percentage *= 2
+                else:
+                    hauler_percentage = 0.99
             if not hauler_mass or hauler_percentage < smallest_percentage:
                 smallest_percentage = hauler_percentage
                 best_id = flag_id
