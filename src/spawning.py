@@ -119,15 +119,14 @@ def run(room, spawn):
         parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_reserving:
-        if energy >= 1300:
-            parts = [MOVE, CLAIM, CLAIM, MOVE]
-            descriptive_level = 2
-        elif energy >= 650:
-            parts = [MOVE, CLAIM]
-            descriptive_level = 1
-        else:
-            print("[{}][spawning] Too few extensions to build a remote creep!".format(room.room_name))
-            return
+        parts = []
+        num_sections = min(int(floor(energy / 650)), room.get_max_sections_for_role(role))
+        for i in range(0, num_sections - 1):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(CLAIM)
+        parts.append(MOVE)
+        descriptive_level = num_sections
     elif base is creep_base_hauler:
         parts = []
         num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))

@@ -262,6 +262,8 @@ class RoomMind:
         self._first_target_defender_count = None
         self._first_target_cleanup_mass = None
         self._target_colonist_count = None
+        self._target_simple_claim_count = None
+        self._target_room_reserve_count = None
         self._target_spawn_fill_count = None
         self._max_sane_wall_hits = None
         self._spawns = None
@@ -1103,6 +1105,36 @@ class RoomMind:
                 mass += min(5, spawning.max_sections_of(self.room, creep_base_hauler)) * 0.75
         return math.ceil(mass)
 
+    def get_target_simple_claim_count(self):
+        if self._target_simple_claim_count is None:
+            count = 0
+            for flag in flags.find_flags_global(flags.CLAIM_LATER):
+                room = self.hive_mind.get_room(flag.pos.roomName)
+                if not room or (not room.my and not room.room.controller.owner):
+                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
+                        # there's a closer room, let's not claim here.
+                        continue
+                    count += 1
+            self._target_simple_claim_count = count
+        return self._target_simple_claim_count
+
+    def get_target_room_reserve_count(self):
+        if self._target_room_reserve_count is None:
+            count = 0
+            for flag in flags.find_flags_global(flags.RESERVE_NOW):
+                room_name = flag.pos.roomName
+                room = Game.rooms[room_name]
+                if not room or (room.controller and not room.controller.my and not room.controller.owner):
+                    # TODO: save in memory and predict the time length this room is reserved, and only send out a
+                    # reserve creep for <3000 ticks reserved.
+                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
+                        # there's a closer room, let's not claim here.
+                        continue
+                    count += 1
+            self._target_room_reserve_count = count
+            # claimable!
+        return self._target_room_reserve_count
+
     def get_max_sane_wall_hits(self):
         """
         :rtype: int
@@ -1123,6 +1155,10 @@ class RoomMind:
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
             [role_local_hauler, self.get_target_local_hauler_mass, True],
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
+            [role_simple_claim, self.get_target_simple_claim_count],
+            [role_room_reserve, self.get_target_room_reserve_count],
+            # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
+            [role_colonist, self.get_target_colonist_work_mass],
         ]
         for role, get_ideal, count_carry, count_work in requirements:
             if count_carry:
@@ -1155,7 +1191,6 @@ class RoomMind:
             [role_remote_hauler, self.get_target_remote_hauler_mass],
             [role_remote_miner, self.get_target_remote_miner_count],
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
-            [role_colonist, self.get_target_colonist_work_mass],
         ]
         for role, get_ideal in remote_operation_reqs:
             if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
@@ -1190,6 +1225,10 @@ class RoomMind:
                 lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),
             role_remote_mining_reserve:
                 lambda: min(2, spawning.max_sections_of(self.room, creep_base_reserving)),
+            role_simple_claim:
+                lambda: 1,
+            role_room_reserve:
+                lambda: min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self.room, creep_base_worker)),
             role_builder:

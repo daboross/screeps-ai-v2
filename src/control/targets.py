@@ -1,6 +1,7 @@
 import math
 
 import context
+import flags
 import spawning
 from constants import *
 from control.hivemind import SLIGHTLY_SMALLER_THAN_MAX_INT
@@ -58,6 +59,7 @@ class TargetMind:
             target_remote_mine_miner: self._find_new_remote_miner_mine,
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
             target_remote_reserve: self._find_new_reservable_controller,
+            target_reserve_now: self._find_top_priority_reservable_room,
             target_closest_deposit_site: self._find_closest_deposit_site,
         }
 
@@ -507,6 +509,27 @@ class TargetMind:
                         best_id = controller_id
 
         return best_id
+
+    def _find_top_priority_reservable_room(self, creep):
+        """
+        :type creep: role_base.RoleBase
+        """
+        closest_flag = None
+        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        for flag in flags.find_flags_global(flags.RESERVE_NOW):
+            room_name = flag.pos.roomName
+            room = Game.rooms[room_name]
+            if not room or (room.controller and not room.controller.my and not room.controller.owner):
+                # claimable!
+                current_targets = self.targets[target_reserve_now][room_name]
+                if not current_targets or current_targets < 1:
+                    distance = movement.distance_squared_room_pos(creep.creep.pos,
+                                                                  __new__(RoomPosition(25, 25, room_name)))
+
+                    if distance < closest_distance:
+                        closest_distance = distance
+                        closest_flag = flag.name
+        return "flag-{}".format(closest_flag)
 
 
 profiling.profile_whitelist(TargetMind, [

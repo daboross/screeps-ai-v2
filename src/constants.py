@@ -23,6 +23,7 @@ target_remote_mine_miner = "remote_miner_mine"
 target_remote_mine_hauler = "remote_mine_hauler"
 target_remote_reserve = "remote_reserve"
 target_closest_deposit_site = "generic_deposit"
+target_reserve_now = "top_priority_reserve"
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -37,6 +38,8 @@ role_local_hauler = "local_hauler"
 role_link_manager = "link_manager"
 role_defender = "simple_defender"
 role_colonist = "basic_colonist"
+role_simple_claim = "simple_claim"
+role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
 role_recycling = "recycling"
@@ -56,6 +59,8 @@ role_bases = {
     role_defender: creep_base_defender,
     role_cleanup: creep_base_hauler,
     role_colonist: creep_base_worker,
+    role_simple_claim: creep_base_reserving,
+    role_room_reserve: creep_base_reserving,
 }
 
 default_roles = {

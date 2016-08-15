@@ -10,7 +10,8 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
+# TODO: set this back to 1
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 16}
 
 
 class RoleBase:
@@ -266,7 +267,6 @@ class RoleBase:
                 pos = exit_flag
             else:
                 self.log("ERROR: Couldn't find exit flag from {} to {}.".format(here.roomName, pos.roomName))
-                return OK
         if follow_defined_path:
             return self._follow_path_to(pos)
         else:

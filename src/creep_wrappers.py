@@ -1,6 +1,7 @@
 import context
 from constants import *
 from roles import building
+from roles import colonizing
 from roles import dedi_miner
 from roles import generic
 from roles import military
@@ -29,7 +30,9 @@ role_classes = {
     role_defender: military.RoleDefender,
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
-    role_colonist: generic.Colonist,
+    role_colonist: colonizing.Colonist,
+    role_simple_claim: colonizing.Claim,
+    role_room_reserve: colonizing.ReserveNow,
     role_recycling: generic.Recycling,
 }
 
