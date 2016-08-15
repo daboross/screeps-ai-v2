@@ -1152,9 +1152,9 @@ class RoomMind:
         if self.upgrading_paused():
             wm = 3
         elif self.mining_ops_paused():
-            wm= spawning.max_sections_of(self.room, creep_base_worker) * 4
+            wm = spawning.max_sections_of(self.room, creep_base_worker) * 4
         else:
-            wm=min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
+            wm = min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
         if self.full_storage_use and self.room.storage.store.energy > 700000:
             wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
 
