@@ -488,7 +488,7 @@ class RoleBase:
                 next_pos.x += 1
             elif direction == BOTTOM_RIGHT:
                 next_pos.x += 1
-                next_pos.y -= 1
+                next_pos.y += 1
             elif direction == BOTTOM:
                 next_pos.y += 1
             elif direction == BOTTOM_LEFT:
