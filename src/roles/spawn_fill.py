@@ -25,6 +25,7 @@ class SpawnFill(building.Builder):
         else:
             target = self.target_mind.get_new_target(self, target_harvester_deposit)
             if target:
+                del self.memory.filling_now
                 if target.energy >= target.energyCapacity:
                     self.target_mind.untarget(self, target_harvester_deposit)
                     return True
@@ -50,25 +51,28 @@ class SpawnFill(building.Builder):
             else:
                 if self.creep.getActiveBodyparts(WORK):
                     return building.Builder.run(self)
-                if self.creep.carry.energy < self.creep.carryCapacity:
+                if not self.memory.filling_now and self.__name__ == SpawnFill.__name__ \
+                        and self.creep.carry.energy < self.creep.carryCapacity * 0.4:
                     self.memory.harvesting = True
                     return True
                 target = self.room.find_closest_by_range(FIND_MY_CREEPS, self.creep.pos,
                                                          lambda c: c.getActiveBodyparts(WORK)
                                                                    and c.getActiveBodyparts(CARRY)
                                                                    and c.carry.energy < c.carryCapacity * 0.75)
-                if target:
-                    if not self.creep.pos.isNearTo(target.pos):
-                        self.move_to(target)
-                        return False
-                    self.creep.transfer(target, RESOURCE_ENERGY)
-                else:
-                    if self.creep.carry.energy < self.creep.carryCapacity:
-                        self.memory.harvesting = True
-                        return True
-                    else:
-                        self.report((["No one", "to give", "this to."], False))
-                        self.go_to_depot()
+                if not target:
+                    target = self.room.find_closest_by_range(FIND_MY_CREEPS, self.creep.pos,
+                                                             lambda c: c.getActiveBodyparts(WORK)
+                                                                       and c.getActiveBodyparts(CARRY)
+                                                                       and c.carry.energy < c.carryCapacity)
+                if not target:
+                    self.go_to_depot()
+                    return False
+                self.memory.filling_now = True
+                if not self.creep.pos.isNearTo(target.pos):
+                    self.move_to(target)
+                    return False
+                self.creep.transfer(target, RESOURCE_ENERGY)
+
         return False
 
 

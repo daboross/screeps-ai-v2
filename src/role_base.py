@@ -321,7 +321,8 @@ class RoleBase:
             storage = context.room().room.storage
             if not self.creep.pos.isNearTo(storage.pos):
                 # TODO: 5 should ideally be instead 1/4 of the distance to this creep's next target.
-                if self.creep.carry.energy > 0 and self.creep.pos.getRangeTo(storage.pos) > 5:
+                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and self.creep.pos.getRangeTo(
+                        storage.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.harvesting = False
@@ -364,6 +365,10 @@ class RoleBase:
         if len(piles) > 0:
             pile = piles[0]
             if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
+                if not self.creep.pos.isNearTo(pile) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                        and self.creep.pos.getRangeTo(pile.pos) > 5:
+                    # a spawn fill has given use some extra energy, let's go use it.
+                    self.memory.harvesting = False
                 self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START, follow_defined_path)
                 self.report(speech.default_gather_moving_to_energy)
                 return False
@@ -380,6 +385,10 @@ class RoleBase:
         if len(containers) > 0:
             container = containers[0]
             if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
+                if not self.creep.pos.isNearTo(container) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                        and self.creep.pos.getRangeTo(container.pos) > 5:
+                    # a spawn fill has given use some extra energy, let's go use it.
+                    self.memory.harvesting = False
                 self.report(speech.default_gather_moving_to_container)
                 self.move_to_with_queue(container, flags.SOURCE_QUEUE_START, follow_defined_path)
 
@@ -395,6 +404,10 @@ class RoleBase:
             miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
             if miner:
                 if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
+                    if not self.creep.pos.isNearTo(miner) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                            and self.creep.pos.getRangeTo(miner.pos) > 5:
+                        # a spawn fill has given use some extra energy, let's go use it.
+                        self.memory.harvesting = False
                     self.report(speech.default_gather_moving_to_source)  # TODO: moving to miner speech
                     self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
                 return False  # waiting for the miner to gather energy.
