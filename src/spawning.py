@@ -10,7 +10,6 @@ __pragma__('noalias', 'name')
 bases_max_energy = {
     creep_base_local_miner: 100 + 100 * 5,
     creep_base_full_miner: 150 * 5,
-    creep_base_small_hauler: 100 * 3,
     creep_base_reserving: 650 * 2,
     creep_base_defender: 180 * 6,
 }
@@ -109,15 +108,6 @@ def run(room, spawn):
         parts.append(MOVE)
         if num_move < 5:
             descriptive_level = num_move
-    elif base is creep_base_small_hauler:
-        parts = []
-        num_sections = min(int(floor(energy / 100)), 3)
-        for i in range(0, num_sections - 1):
-            parts.append(MOVE)
-        for i in range(0, num_sections):
-            parts.append(CARRY)
-        parts.append(MOVE)
-        descriptive_level = num_sections
     elif base is creep_base_reserving:
         parts = []
         num_sections = min(int(floor(energy / 650)), room.get_max_sections_for_role(role))
@@ -227,19 +217,18 @@ def random_four_digits():
 
 def find_base_type(creep):
     part_counts = _.countBy(creep.body, lambda p: p.type)
-    if part_counts[WORK] == part_counts[CARRY] and part_counts[WORK] == part_counts[MOVE] / 2:
+    total = _.sum(part_counts)
+    if part_counts[WORK] == part_counts[CARRY] == part_counts[MOVE] / 2 == total / 4:
         base = creep_base_worker
     elif not part_counts[CARRY] and part_counts[MOVE] < part_counts[WORK] <= 5:
         base = creep_base_local_miner
-    elif not part_counts[WORK] and part_counts[CARRY] == part_counts[MOVE] <= 3:
-        base = creep_base_small_hauler
-    elif not part_counts[CARRY] and part_counts[WORK] == part_counts[MOVE] <= 5:
+    elif part_counts[WORK] == part_counts[MOVE] == total / 2 <= 5:
         base = creep_base_full_miner
-    elif not part_counts[WORK] and part_counts[CARRY] == part_counts[MOVE]:
+    elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
-    elif not part_counts[WORK] and not part_counts[CARRY] and part_counts[CLAIM] == part_counts[MOVE] <= 2:
+    elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
-    elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE]:
+    elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE] == total / 3:
         base = creep_base_defender
     else:
         print("[{}][{}] Creep has unknown body! {}".format(

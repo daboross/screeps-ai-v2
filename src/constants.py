@@ -6,7 +6,6 @@ __pragma__('noalias', 'name')
 creep_base_worker = "worker"
 creep_base_local_miner = "dedicated_miner"
 creep_base_full_miner = "fast_big_miner"
-creep_base_small_hauler = "small_hauler"
 creep_base_hauler = "med_hauler"
 creep_base_reserving = "remote_reserve"
 creep_base_defender = "simple_defender"
@@ -55,7 +54,7 @@ role_bases = {
     role_remote_hauler: creep_base_hauler,
     role_remote_mining_reserve: creep_base_reserving,
     role_local_hauler: creep_base_hauler,
-    role_link_manager: creep_base_small_hauler,
+    role_link_manager: creep_base_hauler,
     role_defender: creep_base_defender,
     role_cleanup: creep_base_hauler,
     role_colonist: creep_base_worker,
@@ -67,7 +66,6 @@ default_roles = {
     creep_base_worker: role_spawn_fill_backup,
     creep_base_local_miner: role_dedi_miner,
     creep_base_full_miner: role_remote_miner,
-    creep_base_small_hauler: role_local_hauler,
     creep_base_hauler: role_cleanup,
     creep_base_reserving: role_remote_mining_reserve,
     creep_base_defender: role_defender,

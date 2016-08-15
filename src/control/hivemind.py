@@ -1255,16 +1255,18 @@ class RoomMind:
             role_spawn_fill_backup:
                 self.get_target_spawn_fill_backup_work_mass,
             role_link_manager:
-                lambda: self.get_target_link_manager_count() * 3,
+                lambda: min(self.get_target_link_manager_count() * 8,
+                            spawning.max_sections_of(self.room, creep_base_hauler)),
             role_dedi_miner:
                 lambda: None,  # non-dynamic completely
-            role_tower_fill:
-                self.get_target_tower_fill_mass,
             role_cleanup:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self.room, creep_base_hauler)))),
             role_spawn_fill:
                 self.get_target_spawn_fill_mass,
+            role_tower_fill:
+            # Tower fillers are basically specialized spawn fillers.
+                lambda: self.get_target_spawn_fill_mass() / 2,
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
