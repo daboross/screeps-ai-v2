@@ -1156,6 +1156,7 @@ class RoomMind:
             wm = min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
         if self.full_storage_use and self.room.storage.store.energy > 700000:
             wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
+        return wm
 
     def get_target_tower_fill_mass(self):
         mass = 0
