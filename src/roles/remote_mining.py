@@ -26,12 +26,13 @@ class RemoteMiner(RoleBase):
                                                                                self.home.remote_mining_operations))
             self.memory.home = source_flag.memory.sponsor
 
+        source_flag.memory.remote_miner_targeting = self.name
+
         if not self.creep.pos.isNearTo(source_flag.pos):
             self.move_to(source_flag)
             self.report(speech.remote_miner_moving)
             return False
 
-        source_flag.memory.remote_miner_targeting = self.name
         self.memory.stationary = True
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):

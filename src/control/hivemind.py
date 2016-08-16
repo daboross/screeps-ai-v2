@@ -1189,13 +1189,16 @@ class RoomMind:
                 self._target_spawn_fill_count = regular_count + extra_count
         return self._target_spawn_fill_count
 
-    def get_target_builder_work_mass(self):
+    def get_target_builder_work_mass(self, first):
         if self.upgrading_paused() and not len(self.building.next_priority_construction_targets()):
             return 0
         elif self.mining_ops_paused():
             # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
             # 5 work per creep.
             return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
+        elif first:
+            if len(self.building.next_priority_construction_targets()):
+                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self.room, creep_base_worker))
         else:
             return 2 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
 

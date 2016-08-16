@@ -5,6 +5,9 @@ from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
+__pragma__('noalias', 'name')
+
+
 
 def delete_target(target_id):
     if target_id in Memory.hostiles:
