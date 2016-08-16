@@ -314,8 +314,11 @@ class RoomMind:
                     "filter": lambda c: c.owner.username not in Memory.meta.friends
                 })
             elif parameter == PYFIND_REPAIRABLE_ROADS:
-                result = _.filter(self.find(FIND_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD
-                                                                        and s.hits < s.hitsMax)
+                result = _.filter(self.find(FIND_STRUCTURES),
+                                  lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax \
+                                            and not _.find(self.room.lookForAt(LOOK_FLAGS, s),
+                                                           lambda f: f.color == flags.MAIN_DESTRUCT \
+                                                                     and f.secondaryColor == flags.SUB_ROAD))
             elif parameter == PYFIND_BUILDABLE_ROADS:
                 result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES), lambda s: s.structureType == STRUCTURE_ROAD)
             else:
@@ -502,6 +505,7 @@ class RoomMind:
                 self.store_cached_property("completely_paved", paved, 200)
         else:
             self.store_cached_property("completely_paved", paved, 20)
+        return paved
 
     def _get_rt_map(self):
         if not self.mem.rt_map:

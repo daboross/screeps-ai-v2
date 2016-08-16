@@ -49,12 +49,12 @@ class ConstructionMind:
                 high_priority.append(site.id)
             elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_LINK):
                 med_priority.append(site.id)
-            elif site.structureType == STRUCTURE_ROAD:
-                # let's only have haulers repairing roads, that way we won't build too many where we don't need them,
-                # if the pathfinding doesn't work.
-                # TODO: Remove this statement once we rewrite the remote pathfinding to iterate over remote mines and
-                # only place paths for a single path to each mine, instead of using recently-used cached paths.
-                continue
+            # elif site.structureType == STRUCTURE_ROAD:
+            #     # let's only have haulers repairing roads, that way we won't build too many where we don't need them,
+            #     # if the pathfinding doesn't work.
+            #     # TODO: Remove this statement once we rewrite the remote pathfinding to iterate over remote mines and
+            #     # only place paths for a single path to each mine, instead of using recently-used cached paths.
+            #     continue
             else:
                 low_priority.append(site.id)
             if current_targets[site.structureType]:
@@ -151,15 +151,26 @@ class ConstructionMind:
         placed_count = 0
         path_count = 0
         if room_cache:
-            for key in Object.keys(room_cache):
-                if not key.startswith("path_"):
+            for rhp_key in Object.keys(room_cache):
+                # This rhp key is a slight hack to ensure we only count paths remote miners are taking, not other paths
+                # cached for calculation.
+                if not rhp_key.startswith("rhp_"):
                     continue
-                value = room_cache[key]
+                rhp_value = room_cache[rhp_key]
+
+                if rhp_value.dead_at < Game.time:
+                    continue
+
+                sx, sy, ex, ey = rhp_value.value
+
+                path_key = "path_{}_{}_{}_{}".format(sx, sy, ex, ey)
+
+                value = room_cache[path_key]
 
                 # If we were checking for anything but paths, we'd want to check if `value.ttl_after_use` is set, as
                 # that dictates whether `value.last_used` is set at all. But, for path caching, we always know
                 # `ttl_after_use` is used.
-                if Game.time < value.dead_at and (Game.time < value.last_used + 20):
+                if value and Game.time < value.dead_at and (Game.time < value.last_used + 20):
                     try:
                         path = Room.deserializePath(value.value)
                     except:
@@ -168,21 +179,21 @@ class ConstructionMind:
                     for pos in path:
                         # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
                         # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                        key = pos.x * 64 + pos.y
-                        if not checked_positions.has(key):
+                        path_key = pos.x * 64 + pos.y
+                        if not checked_positions.has(path_key):
                             if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
                                           {"structureType": STRUCTURE_ROAD}) \
                                     and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
                                 self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
                                 placed_count += 1
-                            checked_positions.add(key)
+                            checked_positions.add(path_key)
 
         print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
             self.room.room_name, checked_positions.size, placed_count, path_count))
 
         # random to stagger redoing this, as this feature was implemented all at once.
         # the key is the version of code we've ran - so we will re-run it if an update happens.
-        self.room.store_cached_property("placed_mining_roads", 3, random.randint(40, 70))
+        self.room.store_cached_property("placed_mining_roads", 3, random.randint(200, 250))
         # Done!
 
 

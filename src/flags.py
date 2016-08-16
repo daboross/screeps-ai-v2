@@ -28,6 +28,7 @@ SUB_TOWER = "tower"
 SUB_STORAGE = "storage"
 SUB_LINK = "link"
 SUB_EXTRACTOR = "extractor"
+SUB_ROAD = "road"
 
 DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
@@ -44,7 +45,7 @@ DIR_TO_NO_EXIT_FLAG = {
 
 flag_definitions = {
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
-    PATH_FINDING_AVOID: (COLOR_BLUE, COLOR_RED),
+    PATH_FINDING_AVOID: (COLOR_BLUE, COLOR_WHITE),
     EXIT_NORTH: (COLOR_WHITE, COLOR_RED),
     EXIT_EAST: (COLOR_WHITE, COLOR_PURPLE),
     EXIT_SOUTH: (COLOR_WHITE, COLOR_BLUE),
@@ -72,6 +73,7 @@ sub_to_flag_secondary = {
     SUB_STORAGE: COLOR_YELLOW,
     SUB_LINK: COLOR_ORANGE,
     SUB_EXTRACTOR: COLOR_BROWN,
+    SUB_ROAD: COLOR_WHITE,
 }
 flag_secondary_to_sub = {
     COLOR_RED: SUB_WALL,
@@ -82,6 +84,7 @@ flag_secondary_to_sub = {
     COLOR_YELLOW: SUB_STORAGE,
     COLOR_ORANGE: SUB_LINK,
     COLOR_BROWN: SUB_EXTRACTOR,
+    COLOR_WHITE: SUB_ROAD,
 }
 flag_sub_to_structure_type = {
     SUB_SPAWN: STRUCTURE_SPAWN,

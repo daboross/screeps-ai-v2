@@ -274,6 +274,9 @@ class RoleBase:
                 self.last_checkpoint = None
                 return self.creep.moveTo(pos)  # no _DEFAULT_PATH_OPTIONS since we're doing multi-room here.
         if follow_defined_path:
+            # TODO: remove this - this is a semi-hacky thing to make road building work only for building remote miner roads
+            self.room.store_cached_property('rhp_{}_{}_{}_{}'.format(here.x, here.y, pos.x, pos.y),
+                                            [here.x, here.y, pos.x, pos.y], 50)
             return self._follow_path_to(pos)
         else:
             self.last_checkpoint = None
