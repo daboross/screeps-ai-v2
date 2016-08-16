@@ -14,9 +14,16 @@ bases_max_energy = {
     creep_base_defender: 180 * 6,
 }
 
+initial_section = {
+    creep_base_work_full_move_hauler: [WORK, MOVE],
+    creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
+}
+
 scalable_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
     creep_base_hauler: [MOVE, CARRY],
+    creep_base_work_full_move_hauler: [MOVE, CARRY],
+    creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [CARRY, MOVE, ATTACK],
     creep_base_full_miner: [WORK, MOVE],
@@ -43,6 +50,9 @@ def run(room, spawn):
         return
     base = role_bases[role]
 
+    if base == "ask":
+        base = room.get_variable_base(role)
+
     filled = spawn.room.energyAvailable
     # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
     # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
@@ -56,8 +66,8 @@ def run(room, spawn):
             energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
         elif base in scalable_sections:
             # If we are spawning a scalable creep, wait until we're filled the maximum we are going to be filled.
-            energy = spawn.room.energyCapacityAvailable - (spawn.room.energyCapacityAvailable
-                                                           % energy_per_section(base))
+            energy = spawn.room.energyCapacityAvailable - (
+                (spawn.room.energyCapacityAvailable - initial_section_cost(base)) % energy_per_section(base))
         else:
             print("[{}][spawning] Base {} has neither maximum energy nor scalable section energy!".format(
                 room.room_name, base))
@@ -120,11 +130,30 @@ def run(room, spawn):
     elif base is creep_base_hauler:
         parts = []
         num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
-        for i in range(0, num_sections - 1):
-            parts.append(MOVE)
         for i in range(0, num_sections):
             parts.append(CARRY)
-        parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+        descriptive_level = num_sections
+    elif base is creep_base_work_full_move_hauler:
+        parts = []
+        num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
+        for part in initial_section[base]:
+            parts.append(part)
+        for i in range(0, num_sections):
+            parts.append(CARRY)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+        descriptive_level = num_sections
+    elif base is creep_base_work_half_move_hauler:
+        parts = []
+        num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
+        for part in initial_section[base]:
+            parts.append(part)
+        for i in range(0, num_sections * 2):
+            parts.append(CARRY)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_worker:
         if energy >= 500:
@@ -226,6 +255,8 @@ def find_base_type(creep):
         base = creep_base_full_miner
     elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
+    elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:
+        base = creep_base_work_full_move_hauler
     elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
     elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE] == total / 3:
@@ -250,10 +281,18 @@ def energy_per_section(base):
         return None
 
 
+def initial_section_cost(base):
+    cost = 0
+    if base in initial_section:
+        for part in initial_section[base]:
+            cost += BODYPART_COST[part]
+    return cost
+
+
 def max_sections_of(room, base):
     if room.room:
         room = room.room
-    return floor(room.energyCapacityAvailable / energy_per_section(base))
+    return floor((room.energyCapacityAvailable - initial_section_cost(base)) / energy_per_section(base))
 
 
 def work_count(creep):

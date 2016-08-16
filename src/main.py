@@ -52,6 +52,10 @@ def main():
     hive_mind.poll_all_creeps()
     hive_mind.poll_hostiles()
 
+    if Game.time % 20 == 7:
+        for room in hive_mind.visible_rooms:
+            room.building.place_remote_mining_roads()
+
     if not Memory.creeps:
         Memory.creeps = {}
         for name in Object.keys(Game.creeps):

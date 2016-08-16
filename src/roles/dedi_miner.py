@@ -69,6 +69,9 @@ class LocalHauler(SpawnFill):
             self.memory.role = role_recycling
             self.memory.last_role = role_local_hauler
             return False
+        # just always be running this - TODO: do local haulers want to do this, or just remote haulers?
+        # a local hauler could definitely be a repurposed remote hauler though, in which case this is a good idea.
+        self.repair_nearby_roads()
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
 

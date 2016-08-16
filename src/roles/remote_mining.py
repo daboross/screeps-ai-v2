@@ -70,6 +70,9 @@ class RemoteHauler(SpawnFill):
     def run(self):
         source_flag = self.target_mind.get_new_target(self, target_remote_mine_hauler)
 
+        # just always be running this xD
+        self.repair_nearby_roads()
+
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
             self.target_mind.untarget_all(self)
@@ -89,6 +92,11 @@ class RemoteHauler(SpawnFill):
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
+                parts = _.countBy(self.creep.body, 'type')
+                if parts[MOVE] < parts[CARRY]:
+                    # Don't repurpose a half-move remote hauler as anything but a remote hauler!
+                    self.go_to_depot()
+                    return False
                 extra_haulers = self.home.extra_creeps_with_carry_in_role(
                     role_remote_hauler, self.home.get_target_remote_hauler_mass())
                 if len(extra_haulers) and self.name in extra_haulers:

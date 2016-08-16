@@ -1,4 +1,7 @@
+import random
+
 import flags
+from constants import PYFIND_BUILDABLE_ROADS
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -124,6 +127,57 @@ class ConstructionMind:
             self.room.mem.cache.building_targets.dead_at = Game.time + 1
 
         return self.room.get_cached_property("building_targets")
+
+    def place_remote_mining_roads(self):
+        # TODO: I'm not sure if this or iterating over all mining flags and the paths to them would be better:
+        # if we start using HoneyTrails for more things, we might want to do that instead of this - or we could
+        # just pave those paths too?
+        last_run_version = self.room.get_cached_property("placed_mining_roads")
+        if last_run_version and last_run_version >= 3:
+            return  # Don't do this every tick, even though this function is called every tick.
+
+        if not self.room.paving():
+            self.room.store_cached_property("placed_mining_roads", True, 100)
+            return
+
+        room_cache = self.room.mem.cache
+        checked_positions = __pragma__('js', 'new Set()')
+        placed_count = 0
+        path_count = 0
+        if room_cache:
+            for key in Object.keys(room_cache):
+                if not key.startswith("path_"):
+                    continue
+                value = room_cache[key]
+
+                # If we were checking for anything but paths, we'd want to check if `value.ttl_after_use` is set, as
+                # that dictates whether `value.last_used` is set at all. But, for path caching, we always know
+                # `ttl_after_use` is used.
+                if Game.time < value.dead_at and (Game.time < value.last_used + 50):
+                    try:
+                        path = Room.deserializePath(value.value)
+                    except:
+                        continue  # not a path, apparently
+                    path_count += 1
+                    for pos in path:
+                        # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
+                        # equals, and thus wouldn't be unique in the set - but this *is* unique.
+                        key = pos.x * 64 + pos.y
+                        if not checked_positions.has(key):
+                            if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                                          {"structureType": STRUCTURE_ROAD}) \
+                                    and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                                self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
+                                placed_count += 1
+                            checked_positions.add(key)
+
+        print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
+            self.room.room_name, checked_positions.size,placed_count, path_count))
+
+        # random to stagger redoing this, as this feature was implemented all at once.
+        # the key is the version of code we've ran - so we will re-run it if an update happens.
+        self.room.store_cached_property("placed_mining_roads", 3, random.randint(20, 50))
+        # Done!
 
 
 profiling.profile_whitelist(ConstructionMind, "refresh_targets")

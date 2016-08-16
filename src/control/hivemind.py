@@ -313,6 +313,11 @@ class RoomMind:
                 result = self.room.find(FIND_HOSTILE_CREEPS, {
                     "filter": lambda c: c.owner.username not in Memory.meta.friends
                 })
+            elif parameter == PYFIND_REPAIRABLE_ROADS:
+                result = _.filter(self.find(FIND_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD
+                                                                        and s.hits < s.hitsMax)
+            elif parameter == PYFIND_BUILDABLE_ROADS:
+                result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES), lambda s: s.structureType == STRUCTURE_ROAD)
             else:
                 result = self.room.find(parameter)
             cache[parameter] = result
@@ -450,6 +455,53 @@ class RoomMind:
             distance = movement.path_distance(self.spawn.pos, flag.pos)
             self.store_cached_property(cache_name, distance, 75)
         return distance
+
+    def paving(self):
+        paving = self.get_cached_property("paving_here")
+        if paving is None:
+            if self.my:
+                # TODO: 2 maybe should be a constant?
+                paving = self.full_storage_use and len(self.remote_mining_operations) > 2
+            else:
+                paving = False
+                for flag in flags.find_flags(self, flags.REMOTE_MINE):
+                    if flag.memory.sponsor and flag.memory.remote_miner_targeting:
+                        # if we're a remote mine and our sponsor is paving, let's also pave.
+                        sponsor = self.hive_mind.get_room(flag.memory.sponsor)
+                        if sponsor and sponsor.paving():
+                            paving = True
+                            break
+            self.store_cached_property("paving_here", paving, 200)
+
+        return self.get_cached_property("paving_here")
+
+    def all_paved(self):
+        paved = self.get_cached_property("completely_paved")
+        if paved is not None:
+            return paved
+
+        paved = True
+        unreachable_rooms = False
+        if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
+            paved = False  # no roads
+        elif len(self.find(PYFIND_BUILDABLE_ROADS)):
+            paved = False  # still paving
+        else:
+            for flag in self.remote_mining_operations:
+                room = self.hive_mind.get_room(flag.pos.roomName)
+                if room:
+                    if not room.all_paved():
+                        paved = False
+                        break
+                else:
+                    unreachable_rooms = True  # Cache for less time
+        if paved:
+            if unreachable_rooms:
+                self.store_cached_property("completely_paved", paved, 50)
+            else:
+                self.store_cached_property("completely_paved", paved, 200)
+        else:
+            self.store_cached_property("completely_paved", paved, 20)
 
     def _get_rt_map(self):
         if not self.mem.rt_map:
@@ -1266,7 +1318,8 @@ class RoomMind:
                 self.get_target_spawn_fill_mass,
             role_tower_fill:
             # Tower fillers are basically specialized spawn fillers.
-                lambda: self.get_target_spawn_fill_mass() / 2,
+                lambda: min(spawning.max_sections_of(self.room, creep_base_hauler),
+                            max(self.get_target_tower_fill_mass(), self.get_target_spawn_fill_mass() / 2)),
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
@@ -1295,6 +1348,18 @@ class RoomMind:
         else:
             print("[{}] Can't find max section function for role {}!".format(self.room_name, role))
             return Infinity
+
+    def get_variable_base(self, role):
+        if role == role_remote_hauler:
+            if self.paving():
+                if self.all_paved():
+                    return creep_base_work_half_move_hauler
+                else:
+                    return creep_base_work_full_move_hauler
+            else:
+                return creep_base_hauler
+        else:
+            return role_bases[role]
 
     def reset_planned_role(self):
         del self.mem.next_role

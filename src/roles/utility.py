@@ -233,7 +233,7 @@ class Cleanup(SpawnFill):
                 return SpawnFill.run(self)
 
             if self.creep.pos.roomName != storage.pos.roomName:
-                self.move_to(storage, False, True)
+                self.move_to(storage)
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 

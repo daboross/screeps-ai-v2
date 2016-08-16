@@ -3,7 +3,8 @@ import math
 import context
 import flags
 import speech
-from constants import target_source, role_dedi_miner, recycle_time, role_recycling
+from constants import target_source, role_dedi_miner, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
+    PYFIND_BUILDABLE_ROADS
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -450,6 +451,23 @@ class RoleBase:
         resources = self.room.find_at(FIND_DROPPED_ENERGY, self.creep.pos)
         if len(resources):
             self.creep.pickup(resources[0])
+
+    def repair_nearby_roads(self):
+        if self.creep.getActiveBodyparts(WORK) <= 0:
+            return
+        if self.creep.carry.energy <= 0:
+            return
+        repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
+        if len(repair):
+            result = self.creep.repair(repair[0])
+            if result != OK:
+                self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
+        else:
+            build = self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos)
+            if len(build):
+                result = self.creep.build(build[0])
+                if result != OK:
+                    self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
 
     def go_to_depot(self, follow_defined_path=False):
         depots = flags.find_flags(self.home, flags.DEPOT)
