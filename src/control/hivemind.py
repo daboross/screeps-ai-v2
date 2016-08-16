@@ -567,7 +567,7 @@ class RoomMind:
         no effect. However, it is useful to run this method frequently, for if memory becomes corrupted or a bug is
         introduced, this can ensure that everything is entirely correct.
         """
-        print("[{}] Recalculating roles alive.".format(self.room_name))
+        # print("[{}] Recalculating roles alive.".format(self.room_name))
         # old_rt_map = self.mem.rt_map
         roles_alive = {}
         roles_work = {}  # TODO: better system for storing these
@@ -751,7 +751,7 @@ class RoomMind:
             self.mem.meta = meta
 
         if time > meta.clear_next:
-            print("[{}] Clearing memory".format(self.room_name))
+            # print("[{}] Clearing memory".format(self.room_name))
             consistency.clear_memory(self)
             self.recalculate_roles_alive()
             # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
@@ -759,7 +759,7 @@ class RoomMind:
             # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
             self.reset_planned_role()
             del meta.clear_now
-            print("[{}] Next clear in {} ticks.".format(self.room_name, meta.clear_next - Game.time))
+            # print("[{}] Next clear in {} ticks.".format(self.room_name, meta.clear_next - Game.time))
 
         # reset_spawn_on is set to the tick after the next creep's TTR expires in consistency.clear_memory()
         if time > meta.reset_spawn_on:
@@ -1176,12 +1176,12 @@ class RoomMind:
                 # more are needed because there are no links and storage is a long way from spawn.
                 total_needed = 3 + len(self.sources) + len(_.filter(
                     self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
-                print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
+                # print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
+                max_mass_per_creep = spawning.max_sections_of(self.room, creep_base_hauler)
+                total_mass = min(5, max_mass_per_creep) * total_needed
             else:
-                total_needed = 2 + len(self.sources)
-            # TODO: hack, see other TODOs in file.
-            max_mass_per_creep = spawning.max_sections_of(self.room, creep_base_hauler)
-            total_mass = min(5, max_mass_per_creep) * total_needed
+                total_mass = min(5 * spawning.max_sections_of(self.room, creep_base_hauler),
+                                 3 * self.room.controller.level * len(self.sources))
             regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
             if self.trying_to_get_full_storage_use:
                 self._target_spawn_fill_count = regular_count
@@ -1193,7 +1193,7 @@ class RoomMind:
                 self._target_spawn_fill_count = regular_count + extra_count
         return self._target_spawn_fill_count
 
-    def get_target_builder_work_mass(self, first):
+    def get_target_builder_work_mass(self, first=False):
         if self.upgrading_paused() and not len(self.building.next_priority_construction_targets()):
             return 0
         elif self.mining_ops_paused():
@@ -1203,12 +1203,14 @@ class RoomMind:
         elif first:
             if len(self.building.next_priority_construction_targets()):
                 return 2 * len(self.sources) * min(8, spawning.max_sections_of(self.room, creep_base_worker))
+            else:
+                return min(8, spawning.max_sections_of(self.room, creep_base_worker))
         else:
             return 2 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
 
     def get_target_upgrader_work_mass(self):
         if self.upgrading_paused():
-            wm = 3
+            wm = 1
         elif self.mining_ops_paused():
             wm = spawning.max_sections_of(self.room, creep_base_worker) * 4
         else:
@@ -1272,6 +1274,7 @@ class RoomMind:
             [role_room_reserve, self.get_target_room_reserve_count],
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
             [role_colonist, self.get_target_colonist_work_mass],
+            [role_builder, lambda: self.get_target_builder_work_mass(True), False, True]
         ]
         for role, get_ideal, count_carry, count_work in requirements:
             if count_carry:
