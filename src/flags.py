@@ -16,6 +16,7 @@ NO_EXIT_WEST = "no_exit_west"
 REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
 RESERVE_NOW = "top_priority_reserve"
+SPAWN_FILL_WAIT = "spawnfill_wait"
 PATH_FINDING_AVOID = "avoid_moving_through"
 SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
@@ -58,6 +59,7 @@ flag_definitions = {
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
     RESERVE_NOW: (COLOR_GREEN, COLOR_RED),
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
+    SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
 }
 
 main_to_flag_primary = {

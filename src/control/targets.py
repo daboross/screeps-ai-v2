@@ -360,34 +360,47 @@ class TargetMind:
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         stealing_from = None
-        for structure in creep.room.find(FIND_STRUCTURES):
-            if (structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN) \
-                    and structure.energy < structure.energyCapacity and structure.my:
+        structures = _.filter(creep.room.find(FIND_STRUCTURES),
+                              lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN) \
+                                        and s.energy < s.energyCapacity and s.my)
+        if not len(structures):
+            # waiting flag instead:
+            structures = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
+            # We could do two loops, but this way we only have to write work stealing code once, and it works for both spawns
+            # and spawn fill wait places!
+        for structure in structures:
+            if structure.id:
                 structure_id = structure.id
-                current_carry = self.targets_workforce[target_spawn_deposit][structure_id]
-                # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
-                distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-                if distance < closest_distance:
-                    if not current_carry or current_carry < structure.energyCapacity / 50.0:
-                        closest_distance = distance
-                        best_id = structure_id
-                        stealing_from = None
-                    else:
-                        targeting = self.reverse_targets[target_spawn_deposit][structure_id]
-                        if not targeting:
-                            # TODO: remove this once we have all memory cleared so this will never be true
-                            self.mem.last_clear = 0
-                            continue
-                        for name in targeting:
-                            if not Game.creeps[name] or movement.distance_squared_room_pos(
-                                    Game.creeps[name].pos, structure.pos) > distance * 2.25:
-                                # If we're at least 1.5x closer than them, let's steal their place.
-                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
-                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
-                                closest_distance = distance
-                                best_id = structure_id
-                                stealing_from = name
-                                break
+            else:
+                structure_id = "flag-{}".format(structure.name)
+            current_carry = self.targets_workforce[target_spawn_deposit][structure_id]
+            # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
+            distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+            if distance < closest_distance:
+                if structure.color:
+                    max = 1
+                else:
+                    max = structure.energyCapacity / 50.0
+                if not current_carry or current_carry < max:
+                    closest_distance = distance
+                    best_id = structure_id
+                    stealing_from = None
+                else:
+                    targeting = self.reverse_targets[target_spawn_deposit][structure_id]
+                    if not targeting:
+                        # TODO: remove this once we have all memory cleared so this will never be true
+                        self.mem.last_clear = 0
+                        continue
+                    for name in targeting:
+                        if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                Game.creeps[name].pos, structure.pos) > distance * 2.25:
+                            # If we're at least 1.5x closer than them, let's steal their place.
+                            # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
+                            # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                            closest_distance = distance
+                            best_id = structure_id
+                            stealing_from = name
+                            break
 
         if stealing_from is not None:
             self._unregister_targeter(target_spawn_deposit, stealing_from)
