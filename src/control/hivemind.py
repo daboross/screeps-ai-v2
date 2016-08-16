@@ -651,8 +651,8 @@ class RoomMind:
         return result
 
     def register_new_replacing_creep(self, role, replaced_name, replacing_name):
-        print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name, replaced_name,
-                                                                          role))
+        # print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name,
+        #                                                                   replaced_name, role))
         if Memory.creeps[replaced_name]:
             Memory.creeps[replaced_name].replacement = replacing_name
         else:
@@ -851,10 +851,6 @@ class RoomMind:
         return not not self.mem.upgrading_paused
 
     def get_max_mining_op_count(self):
-        if self.room.storage:
-            self.energy = self.room.storage.store.energy
-        else:
-            self.energy = 0
         spawning_energy = self.room.energyCapacityAvailable
         sources = len(self.sources)
         rcl = self.room.controller.level
@@ -1108,7 +1104,10 @@ class RoomMind:
         work_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_worker))
         # TODO: 7 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed or self.work_mass > 8:
-            return 1 * work_max_5
+            if self.full_storage_use and (self.are_all_big_miners_placed or self.work_mass > 25):
+                return 0
+            else:
+                return 1 * work_max_5
         else:
             return (2 + len(self.sources)) * work_max_5
 
