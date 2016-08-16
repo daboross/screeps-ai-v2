@@ -153,7 +153,7 @@ class ConstructionMind:
                 # If we were checking for anything but paths, we'd want to check if `value.ttl_after_use` is set, as
                 # that dictates whether `value.last_used` is set at all. But, for path caching, we always know
                 # `ttl_after_use` is used.
-                if Game.time < value.dead_at and (Game.time < value.last_used + 50):
+                if Game.time < value.dead_at and (Game.time < value.last_used + 20):
                     try:
                         path = Room.deserializePath(value.value)
                     except:
@@ -172,11 +172,11 @@ class ConstructionMind:
                             checked_positions.add(key)
 
         print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-            self.room.room_name, checked_positions.size,placed_count, path_count))
+            self.room.room_name, checked_positions.size, placed_count, path_count))
 
         # random to stagger redoing this, as this feature was implemented all at once.
         # the key is the version of code we've ran - so we will re-run it if an update happens.
-        self.room.store_cached_property("placed_mining_roads", 3, random.randint(20, 50))
+        self.room.store_cached_property("placed_mining_roads", 3, random.randint(40, 70))
         # Done!
 
 
