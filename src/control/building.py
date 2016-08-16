@@ -49,6 +49,12 @@ class ConstructionMind:
                 high_priority.append(site.id)
             elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_LINK):
                 med_priority.append(site.id)
+            elif site.structureType == STRUCTURE_ROAD:
+                # let's only have haulers repairing roads, that way we won't build too many where we don't need them,
+                # if the pathfinding doesn't work.
+                # TODO: Remove this statement once we rewrite the remote pathfinding to iterate over remote mines and
+                # only place paths for a single path to each mine, instead of using recently-used cached paths.
+                continue
             else:
                 low_priority.append(site.id)
             if current_targets[site.structureType]:
