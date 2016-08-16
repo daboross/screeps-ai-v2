@@ -338,7 +338,7 @@ class RoleBase:
             if _.sum(self.creep.carry) > self.creep.carry.energy:
                 for stype in Object.keys(self.creep.carry):
                     if stype != RESOURCE_ENERGY:
-                        result = self.creep.trasnfer(storage, stype)
+                        result = self.creep.transfer(storage, stype)
                         break
                 else:
                     result = self.creep.withdraw(storage, RESOURCE_ENERGY)
@@ -407,7 +407,9 @@ class RoleBase:
         if Memory.dedicated_miners_stationed and Memory.dedicated_miners_stationed[source.id]:
             miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
             if miner:
-                if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
+                if not miner.pos.isNearTo(source.pos):
+                    self.go_to_depot()
+                elif not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
                     if not self.creep.pos.isNearTo(miner) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                             and self.creep.pos.getRangeTo(miner.pos) > 5:
                         # a spawn fill has given use some extra energy, let's go use it.

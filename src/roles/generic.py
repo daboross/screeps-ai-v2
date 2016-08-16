@@ -91,10 +91,13 @@ class Recycling(RoleBase):
             storage = self.home.room.storage
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):
-                    resource = Object.keys(self.creep.carry)[0]
-                    result = self.creep.transfer(storage, resource)
-                    if result != OK:
-                        self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, resource, result))
+                    for rtype in Object.keys(self.creep.carry):
+                        if self.creep.carry[rtype] > 0:
+                            result = self.creep.transfer(storage, rtype)
+                            if result == OK:
+                                break
+                            else:
+                                self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, rtype, result))
                 else:
                     self.move_to(storage)
                 return False
