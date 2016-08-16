@@ -29,6 +29,7 @@ scalable_sections = {
     creep_base_full_miner: [WORK, MOVE],
 }
 
+known_no_energy_limit = [creep_base_mammoth_miner]
 
 def run(room, spawn):
     """
@@ -189,6 +190,39 @@ def run(room, spawn):
             parts.append(ATTACK)
         parts.append(MOVE)
         descriptive_level = num_sections
+    elif base is creep_base_mammoth_miner:
+        parts = [MOVE]
+        energy_counter = 50
+        part_counter = 1
+        move_counter = 0
+        # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like this for now.
+        for i in range(0, 2):
+            if part_counter >= 50:
+                break
+            if energy_counter >= energy - 50:
+                break
+            parts.append(CARRY)
+            energy_counter += 50
+            part_counter += 1
+            move_counter += 0.25
+            for i in range(0, 25):
+                if move_counter >= 1:
+                    if part_counter >= 50:
+                        break
+                    if energy_counter >= energy - 50:
+                        break
+                    parts.append(MOVE)
+                    energy_counter += 50
+                    part_counter += 1
+                    move_counter -= 1
+                if part_counter >= 50:
+                    break
+                if energy_counter >= energy - 100:
+                    break
+                parts.append(WORK)
+                energy_counter += 100
+                part_counter += 1
+                move_counter += 0.25
     else:
         print("[{}][spawning] Unknown creep base {} (for role {})!".format(room.room_name, base, role))
         room.reset_planned_role()
@@ -257,6 +291,8 @@ def find_base_type(creep):
         base = creep_base_hauler
     elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:
         base = creep_base_work_full_move_hauler
+    elif part_counts[WORK] == 1 and part_counts[MOVE] * 2 == part_counts[CARRY] + 1 == total / 3:
+        base = creep_base_work_half_move_hauler
     elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
     elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE] == total / 3:
@@ -292,7 +328,10 @@ def initial_section_cost(base):
 def max_sections_of(room, base):
     if room.room:
         room = room.room
-    return floor((room.energyCapacityAvailable - initial_section_cost(base)) / energy_per_section(base))
+    max_by_cost = floor((room.energyCapacityAvailable - initial_section_cost(base)) / energy_per_section(base))
+    initial_base_parts = len(initial_section[base]) if base in initial_section else 0
+    max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
+    return min(max_by_cost, max_by_parts)
 
 
 def work_count(creep):

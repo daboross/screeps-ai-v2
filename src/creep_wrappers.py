@@ -5,6 +5,7 @@ from roles import colonizing
 from roles import dedi_miner
 from roles import generic
 from roles import military
+from roles import minerals
 from roles import remote_mining
 from roles import spawn_fill
 from roles import tower_fill
@@ -34,6 +35,8 @@ role_classes = {
     role_simple_claim: colonizing.Claim,
     role_room_reserve: colonizing.ReserveNow,
     role_recycling: generic.Recycling,
+    role_mineral_miner: minerals.MineralMiner,
+    role_mineral_hauler: minerals.MineralHauler,
 }
 
 

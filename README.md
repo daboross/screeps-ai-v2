@@ -46,3 +46,11 @@ and deploy code, and it will deal with the rest of it.
 ##### Notes (personal):
 
 Color scheme: #5c3732, #c2621b, #536958
+
+Some copy/paste commands:
+
+```
+JSON.stringify(Game.market.outgoingTransactions, null, 4)
+Game.rooms.W47N26.terminal.send(RESOURCE_LEMERGIUM, 5000, "W43N52", "Trading")
+Game.market.calcTransactionCost(5000, "W47N26","W43N52")
+```

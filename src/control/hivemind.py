@@ -1258,6 +1258,19 @@ class RoomMind:
             # claimable!
         return self._target_room_reserve_count
 
+    def get_target_mineral_miner_count(self):
+        # TODO: cache this
+        # TODO: this should also depend on work mass
+        minerals = self.find(FIND_MINERALS)
+        if _.sum(minerals, 'mineralAmount') > 0 and _.find(self.find(FIND_MY_STRUCTURES),
+                                                           {'structureType': STRUCTURE_EXTRACTOR}):
+            return 1
+        else:
+            return 0
+
+    def get_target_mineral_hauler_count(self):
+        return self.role_count(role_mineral_miner) * 2
+
     def _next_needed_local_role(self):
         requirements = [
             [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
@@ -1269,11 +1282,13 @@ class RoomMind:
             [role_cleanup, self.get_target_cleanup_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
             [role_local_hauler, self.get_target_local_hauler_mass, True],
+            [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
             [role_simple_claim, self.get_target_simple_claim_count],
             [role_room_reserve, self.get_target_room_reserve_count],
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
             [role_colonist, self.get_target_colonist_work_mass],
+            [role_mineral_miner, self.get_target_mineral_miner_count],
             [role_builder, lambda: self.get_target_builder_work_mass(True), False, True]
         ]
         for role, get_ideal, count_carry, count_work in requirements:
@@ -1352,6 +1367,10 @@ class RoomMind:
                 lambda: min(10, spawning.max_sections_of(self.room, creep_base_worker)),
             role_builder:
                 lambda: self.get_target_builder_work_mass() / 2.0,
+            role_mineral_miner:
+                lambda: None,  # fully dynamic
+            role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral
+                lambda: spawning.max_sections_of(self.room, creep_base_hauler),
         }
         if role in max_mass:
             return max_mass[role]()
