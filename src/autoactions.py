@@ -19,7 +19,7 @@ def pathfinder_enemy_array_for_room(room_name):
         if abs(dx) <= 1 and abs(dy) <= 1:
             pos = Memory.hostile_last_positions[hostile]
             pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
-            enemy_positions.append({"pos": pos, "range": 10})
+            enemy_positions.append({"pos": pos, "range": 50})
 
     cache[room_name] = enemy_positions
     return enemy_positions
@@ -91,6 +91,7 @@ def get_path_away(origin):
     targets = pathfinder_enemy_array_for_room(origin.roomName)
     # TODO: This current search does avoid enemies, but can very easily lead to creeps getting cornered. I'm thinking
     # a path to the nearest exit might be better.
+    # This might have been fixed by setting range to 50 instead of 10, but I'm also unsure if that actually works...
     result = PathFinder.search(origin, targets, {
         "roomCallback": get_cost_matrix,
         "flee": True,
