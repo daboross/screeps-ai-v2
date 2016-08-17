@@ -31,6 +31,7 @@ scalable_sections = {
 
 known_no_energy_limit = [creep_base_mammoth_miner]
 
+
 def run(room, spawn):
     """
     Activates the spawner, spawning what's needed, as determined by the RoomManager.
@@ -291,7 +292,7 @@ def find_base_type(creep):
         base = creep_base_hauler
     elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:
         base = creep_base_work_full_move_hauler
-    elif part_counts[WORK] == 1 and part_counts[MOVE] * 2 == part_counts[CARRY] + 1 == total / 3:
+    elif part_counts[WORK] == 1 and part_counts[MOVE] == (part_counts[CARRY] + 1) / 2 == total / 3:
         base = creep_base_work_half_move_hauler
     elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
