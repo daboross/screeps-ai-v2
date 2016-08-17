@@ -28,9 +28,9 @@ def get_carry_mass_for_remote_mine(home, flag):
     carry_per_tick = 50.0 / (home.distance_storage_to_mine(flag) * 2.1)
     room = Game.rooms[flag.pos.roomName]
     if room and (not room.controller or room.controller.reservation):
-        mining_per_tick = 9.0
+        mining_per_tick = 10.0
     else:
-        mining_per_tick = 4.0
+        mining_per_tick = 5.0
     produce_per_tick = mining_per_tick + round(sitting / 200.0)
     extra_small_hauler_mass = min(5, spawning.max_sections_of(home, creep_base_hauler))
     target_mass = math.ceil(produce_per_tick / carry_per_tick) + extra_small_hauler_mass
@@ -1271,6 +1271,18 @@ class RoomMind:
     def get_target_mineral_hauler_count(self):
         return self.role_count(role_mineral_miner) * 2
 
+    def get_new_remote_hauler_num_sections(self):
+        if self.all_paved():
+            return min(spawning.max_sections_of(self.room, creep_base_work_half_move_hauler),
+                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner) / 2.0) + 3)
+        elif self.paving():
+            return min(spawning.max_sections_of(self.room, creep_base_work_full_move_hauler),
+                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
+        else:
+            return min(spawning.max_sections_of(self.room, creep_base_hauler),
+                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
+
+
     def _next_needed_local_role(self):
         requirements = [
             [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
@@ -1353,8 +1365,7 @@ class RoomMind:
                 lambda: self.get_target_defender_count() * min(6, spawning.max_sections_of(self.room,
                                                                                            creep_base_defender)),
             role_remote_hauler:
-                lambda: math.ceil(self.get_target_remote_hauler_mass()
-                                  / self.role_count(role_remote_miner) / 2.0),
+                self.get_new_remote_hauler_num_sections,
             role_remote_miner:
                 lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),
             role_remote_mining_reserve:

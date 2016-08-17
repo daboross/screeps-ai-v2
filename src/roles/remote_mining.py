@@ -207,8 +207,8 @@ class RemoteHauler(SpawnFill):
             target = self.target_mind.get_new_target(self, target_closest_deposit_site)
             if not target:
                 target = storage
-            if target.energy >= target.energyCapacity:
-                target = storage
+            # if target.energy >= target.energyCapacity:
+            #     target = storage
 
             if not self.creep.pos.isNearTo(target.pos):
                 if self.creep.pos.isNearTo(storage):
@@ -230,8 +230,8 @@ class RemoteHauler(SpawnFill):
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                self.log("{} in room {} full!", target, target.pos.roomName)
-                self.go_to_depot()
+                # self.log("{} in room {} full!", target, target.pos.roomName)
+                # self.go_to_depot()
                 self.report(speech.remote_hauler_storage_full)
             else:
                 self.log("Unknown result from hauler-creep.transfer({}): {}", target, result)
