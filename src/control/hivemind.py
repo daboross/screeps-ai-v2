@@ -1305,11 +1305,9 @@ class RoomMind:
         ]
         for role, get_ideal, count_carry, count_work in requirements:
             if count_carry:
-                # TODO: this code is a mess!
                 if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
                     return role
             elif count_work:
-                # TODO: this code is a mess!
                 if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
                     return role
             else:
@@ -1331,13 +1329,20 @@ class RoomMind:
             # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
             # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
             [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
-            [role_remote_hauler, self.get_target_remote_hauler_mass],
+            [role_remote_hauler, self.get_target_remote_hauler_mass, True],
             [role_remote_miner, self.get_target_remote_miner_count],
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
         ]
-        for role, get_ideal in remote_operation_reqs:
-            if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                return role
+        for role, get_ideal, count_carry, count_work in remote_operation_reqs:
+            if count_carry:
+                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    return role
+            elif count_work:
+                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    return role
+            else:
+                if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
+                    return role
 
     def get_max_sections_for_role(self, role):
         max_mass = {
