@@ -77,12 +77,13 @@ class SpawnFill(building.Builder):
                 return True
             target = self.room.find_closest_by_range(FIND_MY_CREEPS, self.creep.pos,
                                                      lambda c: c.getActiveBodyparts(WORK)
-                                                               and c.getActiveBodyparts(CARRY)
+                                                               # > 1 to avoid 1-work remote haulers
+                                                               and c.getActiveBodyparts(CARRY) > 1
                                                                and c.carry.energy < c.carryCapacity * 0.75)
             if not target:
                 target = self.room.find_closest_by_range(FIND_MY_CREEPS, self.creep.pos,
                                                          lambda c: c.getActiveBodyparts(WORK)
-                                                                   and c.getActiveBodyparts(CARRY)
+                                                                   and c.getActiveBodyparts(CARRY) > 1
                                                                    and c.carry.energy < c.carryCapacity)
             if not target:
                 self.go_to_depot()
