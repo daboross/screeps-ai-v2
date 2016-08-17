@@ -506,6 +506,24 @@ class RoleBase:
                 self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)
                 self.go_to_depot()
 
+    def empty_to_storage(self):
+        total = _.sum(self.creep.carry, 'amount')
+        if total > 0:
+            storage = self.home.room.storage
+            if storage:
+                if self.creep.pos.isNearTo(storage.pos):
+                    for rtype in Object.keys(self.creep.carry):
+                        if self.creep.carry[rtype] > 0:
+                            result = self.creep.transfer(storage, rtype)
+                            if result == OK:
+                                break
+                            else:
+                                self.log("Unknown result from creep.transfer({}, {}): {}"
+                                         .format(storage, rtype, result))
+                else:
+                    self.move_to(storage)
+        return False
+
     # def _calculate_renew_cost_per_tick(self):
     #     creep_cost = _.sum()
     #

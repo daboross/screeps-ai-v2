@@ -69,7 +69,7 @@ class SpawnFill(building.Builder):
                             return True
                         return False
 
-            if self.creep.getActiveBodyparts(WORK):
+            if self.creep.getActiveBodyparts(WORK) and not self.home.upgrading_paused():
                 return building.Builder.run(self)
             if not self.memory.filling_now and self.__name__ == SpawnFill.__name__ \
                     and self.creep.carry.energy < self.creep.carryCapacity * 0.4:

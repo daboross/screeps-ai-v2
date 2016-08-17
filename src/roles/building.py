@@ -51,8 +51,10 @@ class Builder(upgrading.Upgrader):
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(target, max_hits, target_big_repair)
-
-            return upgrading.Upgrader.run(self)
+            if not self.home.upgrading_paused():
+                return upgrading.Upgrader.run(self)
+            else:
+                return self.empty_to_storage()
 
     def get_new_repair_target(self, max_hits, ttype):
         return self.target_mind.get_new_target(self, ttype, max_hits)
@@ -63,6 +65,7 @@ class Builder(upgrading.Upgrader):
     def execute_repair_target(self, target, max_hits, ttype):
         self.report(speech.building_repair_target, target.structureType)
         if target.hits >= target.hitsMax or target.hits >= max_hits * 2:
+            self.home.building.refresh_repair_targets()
             self.target_mind.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
             return True
@@ -90,6 +93,7 @@ class Builder(upgrading.Upgrader):
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
             # available targets. Let's ask for a new target, so as to allow it to update the targets list.
             # this seems like an OK way to do this!
+            self.home.building.refresh_building_targets()
             self.target_mind.untarget(self, target_construction)
             self.move_to(target)
             return True

@@ -42,7 +42,7 @@ upgrading_controller_not_owned = (["not", "ours", "to", "upgrade!"], False)
 upgrading_ok = (["U"], False)
 upgrading_moving_to_controller = (["U"], False)
 upgrading_unknown_result = (["AAAAhhhh", "!!!???", "(upgrade)"], False)
-upgrading_upgrading_paused = (["waiting", "on more", "energy"], True)
+upgrading_upgrading_paused = (["still","recovering"], False)
 
 tower_fill_moving_to_tower = (["tower", "fill", "regiment", "reporting", "for", "duty"], False)
 tower_fill_ok = (["T. F."], False)

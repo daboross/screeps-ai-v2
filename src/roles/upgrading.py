@@ -19,12 +19,11 @@ class Upgrader(RoleBase):
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
 
+        if self.home.upgrading_paused() and self.creep.room.controller.ticksToDowngrade >= 5000:
+            self.report(speech.upgrading_upgrading_paused)
+            self.go_to_depot()
+            return False
         if self.memory.harvesting:
-            if self.home.full_storage_use:
-                if self.home.upgrading_paused() and self.creep.room.controller.ticksToDowngrade >= 5000:
-                    self.report(speech.upgrading_upgrading_paused)
-                    self.go_to_depot()
-                    return False
             self.memory.stationary = False
             return self.harvest_energy()
         elif not self.creep.room.controller.my:

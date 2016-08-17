@@ -31,14 +31,16 @@ class ConstructionMind:
             self.room.room.memory.construction = {}
         return self.room.room.memory.construction
 
-    def refresh_targets(self):
+    def refresh_building_targets(self):
         del self.room.mem.cache.building_targets
+
+    def refresh_repair_targets(self):
+        del self.room.mem.cache.repair_targets
 
     def next_priority_construction_targets(self):
         priority_list = self.room.get_cached_property("building_targets")
         if priority_list is not None:
             return priority_list
-        print("[{}][building] Refreshing build targets.".format(self.room.room_name))
         current_targets = {}
         low_priority = []
         med_priority = []
@@ -133,6 +135,54 @@ class ConstructionMind:
             self.room.mem.cache.building_targets.dead_at = Game.time + 1
 
         return self.room.get_cached_property("building_targets")
+
+    def next_priority_repair_targets(self):
+        priority_list = self.room.get_cached_property("repair_targets")
+        if priority_list is not None:
+            return priority_list
+        low_priority = []
+        med_priority = []
+        high_priority = []
+
+        if self.room.spawn:
+            spawn_pos = self.room.spawn.pos
+        else:
+            spawn_flag = flags.find_ms_flag(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
+            if len(spawn_flag):
+                spawn_pos = spawn_flag[0].pos
+            else:
+                print("[{}][building] Warning: Finding repair targets for room {},"
+                      " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
+                spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
+
+        # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
+        max_hits = min(350000, self.room.max_sane_wall_hits)
+
+        for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES), lambda s:
+                        (s.my or not s.owner) and s.hits < s.hitsMax * 0.9 and s.hits < max_hits),
+                                  lambda s: movement.distance_squared_room_pos(spawn_pos, s.pos)):
+            structure_type = structure.type
+
+            if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION,
+                                  STRUCTURE_TOWER, STRUCTURE_STORAGE, STRUCTURE_LINK):
+                high_priority.append(structure.id)
+            elif structure_type in (STRUCTURE_WALL, STRUCTURE_RAMPART):
+                med_priority.append(structure.id)
+            else:
+                low_priority.append(structure.id)
+
+        if len(high_priority):
+            self.room.store_cached_property("repair_targets", high_priority, 100)
+            return high_priority
+        elif len(med_priority):
+            self.room.store_cached_property("repair_targets", med_priority, 70)
+            return med_priority
+        elif len(low_priority):
+            self.room.store_cached_property("repair_targets", low_priority, 40)
+            return low_priority
+        else:
+            self.room.store_cached_property("repair_targets", low_priority, 70)
+            return low_priority
 
     def place_remote_mining_roads(self):
         # TODO: I'm not sure if this or iterating over all mining flags and the paths to them would be better:
