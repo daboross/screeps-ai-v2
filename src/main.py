@@ -1,3 +1,4 @@
+import autoactions
 import constants
 import context
 import flags
@@ -89,6 +90,9 @@ def main():
                 creep.memory.role = role
                 instance = wrap_creep(creep)
                 room.register_to_role(instance)
+            canceled_via_instict = autoactions.instinct_check(instance)
+            if canceled_via_instict:
+                return
             rerun = instance.run()
             if rerun:
                 rerun = instance.run()

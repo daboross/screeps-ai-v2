@@ -18,6 +18,10 @@ def inter_room_difference(from_room, to_room):
     :type to_room: Room
     :rtype: (int, int)
     """
+    # Make this work in the simulation, for little to no cost!
+    if from_room == to_room:
+        return 0, 0
+
     # example room string: W47N26 or E1S1 or E1N1
     pos1 = parse_room_to_xy(from_room)
     pos2 = parse_room_to_xy(to_room)
