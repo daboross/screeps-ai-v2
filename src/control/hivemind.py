@@ -786,8 +786,8 @@ class RoomMind:
             return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
 
         remove = None
-        for hostile_id in Memory.hostiles:
-            if Memory.hostile_last_rooms[hostile_id] == self.room_name and not Game.getObjectById(hostile_id):
+        for hostile_id, hostile_room, pos, owner in Memory.hostiles:
+            if hostile_room == self.room_name and not Game.getObjectById(hostile_id):
                 if remove:
                     remove.append(hostile_id)
                 else:
@@ -797,9 +797,13 @@ class RoomMind:
                 military.delete_target(hostile_id)
         targets = self.find(FIND_HOSTILE_CREEPS)
         for hostile in targets:
-            if hostile.id not in Memory.hostiles:
-                Memory.hostiles.push(hostile.id)
-            Memory.hostile_last_rooms[hostile.id] = self.room_name
+            # TODO: overhaul hostile info storage
+            hostile_list = _.find(Memory.hostiles, lambda t: t[0] == hostile.id and t[1] == self.room_name)
+            if hostile_list:
+                hostile_list[2] = hostile.pos  # this is the only thing which would update
+            else:
+                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, hostile.owner.username])
+                Memory.hostile_last_rooms[hostile.id] = self.room_name
             Memory.hostile_last_positions[hostile.id] = hostile.pos
 
     def get_name(self):
@@ -1120,11 +1124,12 @@ class RoomMind:
             hostile_count = 0
             hostiles_per_room = {}
             if Memory.hostiles:
-                for hostile_id in Memory.hostiles:
-                    if hostiles_per_room[Memory.hostile_last_rooms[hostile_id]]:
-                        hostiles_per_room[Memory.hostile_last_rooms[hostile_id]] += 1
-                    else:
-                        hostiles_per_room[Memory.hostile_last_rooms[hostile_id]] = 1
+                for hostile_id, hostile_room, hostile_pos, hostile_owner in Memory.hostiles:
+                    if hostile_owner == "Invader":  # TODO: ranged defenders to go against player attackers!
+                        if hostiles_per_room[hostile_room]:
+                            hostiles_per_room[hostile_room] += 1
+                        else:
+                            hostiles_per_room[hostile_room] = 1
             for name in hostiles_per_room.keys():
                 # TODO: make a system for each remote mining room to have a base room!
                 # Currently, we just spawn defenders for all non-owned rooms, and for this room if it doesn't have

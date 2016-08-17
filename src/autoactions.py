@@ -14,12 +14,17 @@ def pathfinder_enemy_array_for_room(room_name):
 
     enemy_positions = []
 
-    for hostile in Memory.hostiles:
-        dx, dy = movement.inter_room_difference(room_name, Memory.hostile_last_rooms[hostile])
+    for hostile, room_name, pos, owner in Memory.hostiles:
+        dx, dy = movement.inter_room_difference(room_name, room_name)
         if abs(dx) <= 1 and abs(dy) <= 1:
-            pos = Memory.hostile_last_positions[hostile]
+            if owner == "Source Keeper":
+                range = 5
+            elif owner == "Invader":
+                range = 20
+            else:
+                range = 60
             pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
-            enemy_positions.append({"pos": pos, "range": 50})
+            enemy_positions.append({"pos": pos, "range": range})
 
     cache[room_name] = enemy_positions
     return enemy_positions
@@ -32,8 +37,8 @@ def room_hostile(room_name):
 
     room_under_attack = False
 
-    for hostile in Memory.hostiles:
-        if Memory.hostile_last_rooms[hostile] == room_name:
+    for hostile, hostile_room, pos, owner in Memory.hostiles:
+        if hostile_room == room_name and owner != "Source Keeper":
             room_under_attack = True
             break
 
@@ -86,9 +91,8 @@ def get_cost_matrix(room_name):
     return cost_matrix
 
 
-def get_path_away(origin):
+def get_path_away(origin, targets):
     # TODO: any path caching here? I don't think it'd be beneficiary, since enemy creeps generally move each tick...
-    targets = pathfinder_enemy_array_for_room(origin.roomName)
     # TODO: This current search does avoid enemies, but can very easily lead to creeps getting cornered. I'm thinking
     # a path to the nearest exit might be better.
     # This might have been fixed by setting range to 50 instead of 10, but I'm also unsure if that actually works...
@@ -125,18 +129,23 @@ def run_away_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if not room_hostile(creep.creep.pos.roomName):
-        return
+    hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
+    if not len(hostile_path_targets):
+        return False
     parts = _.countBy(creep.creep.body, 'type')
     if parts[ATTACK] or parts[RANGED_ATTACK]:
-        return  # we're a defender, defenders don't run away!
+        return False  # we're a defender, defenders don't run away!
 
     path = get_path_away(creep.creep.pos)
+
     if len(path):
         result = creep.creep.moveByPath(path)
         if result != OK:
             creep.log("Unknown result from moving when running away: {}".format(result))
-    return True
+        return True
+    else:
+        # we're a safe distance away from all enemies
+        return False
 
 
 run_away_check = profiling.profiled(run_away_check, "autoactions.run_away_check")

@@ -8,11 +8,10 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
-
 def delete_target(target_id):
-    if target_id in Memory.hostiles:
-        index = Memory.hostiles.indexOf(target_id)
-        Memory.hostiles.splice(index, 1)
+    index = _.findIndex(Memory.hostiles, lambda t: t[0] == target_id)
+    if index >= 0:
+        Memory.hosties.splice(index, 1)
     del Memory.hostile_last_rooms[target_id]
     del Memory.hostile_last_positions[target_id]
 
@@ -23,15 +22,7 @@ class RoleDefender(RoleBase):
         if not target_id:
             best_id = None
             closest_distance = math.pow(2, 30)
-            for target_id in Memory.hostiles:
-                pos = Memory.hostile_last_positions[target_id]
-                if not pos:
-                    room_name = Memory.hostile_last_rooms[target_id]
-                    if room_name:
-                        pos = __new__(RoomPosition(25, 25, Memory.hostile_last_rooms[target_id]))
-                    else:
-                        delete_target(target_id)
-                        return True
+            for target_id, room_name, pos, target_owner in Memory.hostiles:
                 distance = movement.distance_squared_room_pos(self.creep.pos, pos)
                 if distance < closest_distance:
                     best_id = target_id
