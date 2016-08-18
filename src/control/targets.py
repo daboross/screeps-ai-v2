@@ -594,7 +594,7 @@ class TargetMind:
             room = Game.rooms[room_name]
             if not room or (room.controller and not room.controller.my and not room.controller.owner):
                 # claimable!
-                flag_id = "flag-{}".format(flag)
+                flag_id = "flag-{}".format(flag.name)
                 current_targets = self.targets[target_reserve_now][flag_id]
                 if not current_targets or current_targets < 1:
                     distance = movement.distance_squared_room_pos(creep.creep.pos,
