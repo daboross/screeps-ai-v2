@@ -37,6 +37,16 @@ class ConstructionMind:
     def refresh_repair_targets(self):
         del self.room.mem.cache.repair_targets
 
+        big_targets = self.room.get_cached_property("big_repair_targets")
+        if big_targets:
+            max_hits = self.room.max_sane_wall_hits
+            i = 0
+            while i <= len(big_targets):
+                if big_targets[i].hits >= max_hits:
+                    big_targets.splice(i, 1)
+                else:
+                    i += 1
+
     def next_priority_construction_targets(self):
         priority_list = self.room.get_cached_property("building_targets")
         if priority_list is not None:
@@ -183,6 +193,22 @@ class ConstructionMind:
         else:
             self.room.store_cached_property("repair_targets", low_priority, 70)
             return low_priority
+
+    def next_priority_big_repair_targets(self):
+        target_list = self.room.get_cached_property("big_repair_targets")
+        if target_list is not None:
+            return target_list
+
+        # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
+        max_hits = self.room.max_sane_wall_hits
+
+        target_list = _.sortBy(
+            _.filter(self.room.find(FIND_STRUCTURES), lambda s: (s.my or not s.owner) and s.hits < max_hits),
+            lambda s: s.hits
+        )
+
+        self.room.store_cached_property("big_repair_targets", target_list, 200)
+        return target_list
 
     def retest_mining_roads(self):
         # TODO: Make a "trigger" function which runs when a controller upgrades which runs things like this.

@@ -456,25 +456,15 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_big_repair_site(self, creep, max_hits):
+    def _find_new_big_repair_site(self, creep):
         """
         :type creep: role_base.RoleBase
-        :type max_hits: int
         """
-        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
-        best_id = None
-        for structure in creep.room.find(FIND_STRUCTURES):
-            if (not structure.owner or structure.my) and structure.hits < structure.hitsMax * 0.9 \
-                    and (structure.hits < max_hits or not max_hits):
-                struct_id = structure.id
-                current_num = self.targets[target_big_repair][struct_id]
-                if not current_num or current_num < 1:
-                    distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-                    if distance < closest_distance:
-                        closest_distance = distance
-                        best_id = struct_id
-
-        return best_id
+        for struct_id in creep.home.building.next_priority_repair_targets():
+            current_num = self.targets[target_big_repair][struct_id]
+            if not current_num or current_num < 1:
+                # List is already in priority.
+                return struct_id
 
     def _find_new_tower(self, creep):
         """
