@@ -845,6 +845,17 @@ class RoomMind:
             self._work_mass = math.floor(mass / 2)
         return self._work_mass
 
+    def get_target_terminal_energy(self):
+        if not self.room.terminal:
+            return 0
+        target = self.mem.target_terminal_energy
+        if not target:
+            return 0
+        if self.room.terminal.store.energy >= target:
+            del self.mem.target_terminal_energy
+            return 0
+        return target
+
     def get_if_all_big_miners_are_placed(self):
         """
         :rtype: bool
@@ -1281,7 +1292,13 @@ class RoomMind:
             return 0
 
     def get_target_mineral_hauler_count(self):
-        return self.role_count(role_mineral_miner) * 2
+        if self.get_target_mineral_miner_count():
+            return self.role_count(role_mineral_miner) * 2
+        elif self.get_target_terminal_energy():  # this method returns 0 once the terminal has reached it's target
+            # this is really a hack, and should be changed soon!
+            return 1
+        else:
+            return 0
 
     def get_new_remote_hauler_num_sections(self):
         if self.all_paved():

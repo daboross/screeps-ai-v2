@@ -52,5 +52,5 @@ Some copy/paste commands:
 ```
 JSON.stringify(Game.market.outgoingTransactions, null, 4)
 Game.rooms.W47N26.terminal.send(RESOURCE_LEMERGIUM, 5000, "W43N52", "Trading")
-Game.market.calcTransactionCost(5000, "W47N26","W43N52")
+Game.market.calcTransactionCost(5000, "W47N26", "W43N52")
 ```

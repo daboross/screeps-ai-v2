@@ -99,7 +99,7 @@ class MineralHauler(RoleBase):
             else:
                 terminal = self.home.room.terminal
                 # TODO: this should be a constant
-                if not terminal or terminal.store.energy > 50000:
+                if not terminal or terminal.store.energy > self.home.get_target_terminal_energy():
                     # setting this to true again will re-toggle remote miner harvesting!
                     self.memory.harvesting = False
                     return True
@@ -122,7 +122,13 @@ class MineralHauler(RoleBase):
                 self.log("MineralHauler failed to find resource to deposit, despite having a full carry...")
                 return False
 
-            if terminal and (terminal.store[resource] | 0) < (ideal_terminal_counts[resource] | 10000):
+            if resource == RESOURCE_ENERGY:
+                ideal =  self.home.get_target_terminal_energy()
+            elif resource in ideal_terminal_counts:
+                ideal = ideal_terminal_counts[resource]
+            else:
+                ideal = 10000
+            if terminal and (terminal.store[resource] or 0) < ideal:
                 target = terminal
             else:
                 target = storage
