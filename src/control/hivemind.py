@@ -1150,24 +1150,20 @@ class RoomMind:
         """
         if (self._first_simple_target_defender_count if first else self._target_defender_count) is None:
             hostile_count = 0
-            hostiles_per_room = {}
+            room_mine_to_protect = {}
             if Memory.hostiles:
                 for hostile_id, hostile_room, hostile_pos, hostile_owner in Memory.hostiles:
                     if hostile_owner == "Invader":  # TODO: ranged defenders to go against player attackers!
-                        if hostiles_per_room[hostile_room]:
-                            hostiles_per_room[hostile_room] += 1
-                        else:
-                            hostiles_per_room[hostile_room] = 1
-            for name in hostiles_per_room.keys():
-                # TODO: make a system for each remote mining room to have a base room!
-                # Currently, we just spawn defenders for all non-owned rooms, and for this room if it doesn't have
-                # any towers. We don't check remote rooms if first is true.
-                room = self.hive_mind.get_room(name)
-                # TODO: store and find if there are any HEALers, and if there aren't only use towers.
-                # TODO: Much more sophisticated attack code needed!
-                # TODO: determine if the room is a mining op of ours or not!
-                if not room or (room.room_name == self.room_name or (not first and not room.my)):
-                    hostile_count += hostiles_per_room[name]
+                        if hostile_room not in room_mine_to_protect:
+                            room = self.hive_mind.get_room(hostile_room)
+                            closest_owned_room = self.hive_mind.get_closest_owned_room(hostile_room)
+                            if (not first or (room and room.room_name == self.room_name)) \
+                                    and closest_owned_room.room_name == self.room_name:
+                                room_mine_to_protect[hostile_room] = True
+                            else:
+                                room_mine_to_protect[hostile_room] = False
+                        if room_mine_to_protect[hostile_room]:
+                            hostile_count += 1
             if first:
                 self._first_simple_target_defender_count = hostile_count
             else:
