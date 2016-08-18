@@ -594,15 +594,16 @@ class TargetMind:
             room = Game.rooms[room_name]
             if not room or (room.controller and not room.controller.my and not room.controller.owner):
                 # claimable!
-                current_targets = self.targets[target_reserve_now][room_name]
+                flag_id = "flag-{}".format(flag)
+                current_targets = self.targets[target_reserve_now][flag_id]
                 if not current_targets or current_targets < 1:
                     distance = movement.distance_squared_room_pos(creep.creep.pos,
                                                                   __new__(RoomPosition(25, 25, room_name)))
 
                     if distance < closest_distance:
                         closest_distance = distance
-                        closest_flag = flag.name
-        return "flag-{}".format(closest_flag)
+                        closest_flag = flag_id
+        return closest_flag
 
 
 profiling.profile_whitelist(TargetMind, [
