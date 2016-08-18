@@ -87,6 +87,9 @@ profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
 class Recycling(RoleBase):
     def run(self):
+        # flag to other creeps
+        self.memory.emptying = True
+        self.memory.harvesting = False
         if _.sum(self.creep.carry, 'amount') > 0:
             storage = self.home.room.storage
             if storage:
@@ -97,7 +100,8 @@ class Recycling(RoleBase):
                             if result == OK:
                                 break
                             else:
-                                self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, rtype, result))
+                                self.log("Unknown result from creep.transfer({}, {}): {}".format(
+                                    storage, rtype, result))
                 else:
                     self.move_to(storage)
                 return False
