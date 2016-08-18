@@ -506,12 +506,6 @@ class TargetMind:
                 if distance < closest_flag:
                     closest_flag = distance
                     best_id = flag_id
-                else:
-                    print("[{}][{}] Flag is further than {} away... (range: {})".format(
-                        creep.memory.home, creep.name, closest_flag, distance))
-            else:
-                print("[{}][{}] flag has {} miners already...".format(
-                    creep.memory.home, creep.name, miners))
 
         return best_id
 
