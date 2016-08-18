@@ -228,6 +228,10 @@ class RemoteHauler(SpawnFill):
             result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:
                 self.report(speech.remote_hauler_transfer_ok)
+            elif result == ERR_FULL:
+                if target == storage:
+                    self.log("Storage in {} full!".format(self.creep.pos.roomName))
+                self.go_to_depot()
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 return True

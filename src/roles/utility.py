@@ -241,7 +241,8 @@ class Cleanup(SpawnFill):
                 self.memory.gathering = True
                 return True
             elif result == ERR_FULL:
-                self.log("Storage in room {} full!", storage.room)
+                if target == storage:
+                    self.log("Storage in room {} full!", storage.room.name)
                 self.report(speech.link_manager_storage_full)
             else:
                 self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)

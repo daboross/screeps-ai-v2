@@ -347,13 +347,10 @@ class RoleBase:
                 self.report(speech.default_gather_moving_to_storage)
                 return False
 
-            if _.sum(self.creep.carry) > self.creep.carry.energy:
-                for stype in Object.keys(self.creep.carry):
-                    if stype != RESOURCE_ENERGY:
-                        result = self.creep.transfer(target, stype)
-                        break
-                else:
-                    result = self.creep.withdraw(target, RESOURCE_ENERGY)
+            for stype in Object.keys(self.creep.carry):
+                if stype != RESOURCE_ENERGY and self.creep.carry[stype] > 0:
+                    result = self.creep.transfer(target, stype)
+                    break
             else:
                 result = self.creep.withdraw(target, RESOURCE_ENERGY)
 

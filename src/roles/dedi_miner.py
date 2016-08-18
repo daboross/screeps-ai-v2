@@ -176,7 +176,8 @@ class LocalHauler(SpawnFill):
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                self.log("{} in room {} full!", target, target.pos.roomName)
+                if target == storage:
+                    self.log("Storage in {} full!".format(self.creep.pos.roomName))
                 self.go_to_depot()
                 self.report(speech.local_hauler_storage_full)
             else:

@@ -47,8 +47,9 @@ class Upgrader(RoleBase):
         self.memory.stationary = True
         result = self.creep.upgradeController(target)
         if result == ERR_NOT_ENOUGH_RESOURCES:
-            self.memory.harvesting = True
-            return True
+            if not self.memory.harvesting:
+                self.memory.harvesting = True
+                return True
         elif result == OK:
             if self.is_next_block_clear(target):
                 self.pick_up_available_energy()
