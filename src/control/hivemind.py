@@ -1445,11 +1445,9 @@ class RoomMind:
             if not next_role:
                 next_role = self._next_probably_local_role()
         if next_role:
-            print("[{}] Next role to spawn: {}".format(self.room_name, next_role))
             self.mem.next_role = next_role
         else:
-            print("[{}] Everything's good!".format(self.room_name))
-            # set to false specifically to avoid "is None" check in get_next_role()
+            print("[{}] All creep targets reached!".format(self.room_name))
             self.mem.next_role = None
 
     def get_next_role(self):

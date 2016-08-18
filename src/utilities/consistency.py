@@ -51,8 +51,8 @@ def clear_memory(room):
         creep = Game.creeps[name]
         if not creep:
             role = Memory.creeps[name].role
-            if role:
-                print("[{}][{}] {} died".format(home, name, role))
+            if role and role != role_recycling:
+                print("[{}][{}] {} died.".format(home, name, role))
             if role == role_dedi_miner:
                 source_id = target_mind._get_existing_target_id(target_big_source, name)
                 if source_id:

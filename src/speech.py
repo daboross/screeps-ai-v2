@@ -18,7 +18,7 @@ _we_are_miners = (
         "and", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", None,
         "Yes,", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", None, None, None,
     ],
-    True
+    False
 )
 
 base_no_role = (["No role", "!!!"], True)
@@ -102,4 +102,4 @@ link_manager_storage_full = (["it's", "full,", None, "Jim", None], False)
 link_manager_unknown_result = (["AAAAhhhh", "!!!???", "link_store"], False)
 
 cleanup_found_energy = (["{}, {}"], True)
-recycling = (["I forfeit", "my life"], True)
+recycling = (["I forfeit", "my life"], False)

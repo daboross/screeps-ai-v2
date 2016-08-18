@@ -238,8 +238,8 @@ class ConstructionMind:
                                 placed_count += 1
                             checked_positions.add(path_key)
 
-        print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-            self.room.room_name, checked_positions.size, placed_count, path_count))
+        # print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
+        #     self.room.room_name, checked_positions.size, placed_count, path_count))
 
         # random to stagger redoing this, as this feature was implemented all at once.
         # the key is the version of code we've ran - so we will re-run it if an update happens.
