@@ -352,10 +352,14 @@ class RoleBase:
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 
+        if not self.memory.last_source_change or self.memory.last_source_change + 50 < Game.time:
+            self.target_mind.untarget(self, target_source)
+            self.memory.last_source_change = Game.time
         source = self.target_mind.get_new_target(self, target_source)
         if not source:
-            self.log("Wasn't able to find a source!")
-            self.finished_energy_harvest()
+            if self.creep.getActiveBodyparts(WORK):
+                self.log("Wasn't able to find a source!")
+                self.finished_energy_harvest()
             self.go_to_depot(follow_defined_path)
             self.report(speech.default_gather_no_sources)
             return False
@@ -415,6 +419,9 @@ class RoleBase:
                         # a spawn fill has given use some extra energy, let's go use it.
                         self.memory.harvesting = False
                     self.report(speech.default_gather_moving_to_source)  # TODO: moving to miner speech
+                    if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
+                        # Just get all you can - if this much has built up, it means something's blocking the queue...
+                        self.move_to(miner)
                     self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
                 return False  # waiting for the miner to gather energy.
             else:
@@ -522,6 +529,9 @@ class RoleBase:
                                          .format(storage, rtype, result))
                 else:
                     self.move_to(storage)
+                return True
+            else:
+                self.log("Can't empty to storage: no storage!")
         return False
 
     # def _calculate_renew_cost_per_tick(self):

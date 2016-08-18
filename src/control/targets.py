@@ -329,7 +329,7 @@ class TargetMind:
             else:
                 current_work_force = 0
             if dedicated_miner_placed or has_work:
-                if (current_work_force <= smallest_work_force) and energy + 100 > biggest_energy_store:
+                if (current_work_force <= smallest_work_force) and energy + 1000 > biggest_energy_store:
                     # print("[{}] Setting best_id_1: {}. {} + 100 > {}".format(
                     #     creep.room.name, source.id[-4:], energy, biggest_energy_store))
                     best_id_1 = source.id

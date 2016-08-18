@@ -54,7 +54,8 @@ class Builder(upgrading.Upgrader):
             if not self.home.upgrading_paused():
                 return upgrading.Upgrader.run(self)
             else:
-                return self.empty_to_storage()
+                if not self.empty_to_storage():
+                    self.go_to_depot()
 
     def get_new_repair_target(self, max_hits, ttype):
         return self.target_mind.get_new_target(self, ttype, max_hits)
