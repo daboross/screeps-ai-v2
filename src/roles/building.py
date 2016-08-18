@@ -107,6 +107,7 @@ class Builder(upgrading.Upgrader):
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
+            self.home.building.refresh_repair_targets()
             return True
         else:
             self.log("Unknown result from creep.repair({}): {}", target, result)
