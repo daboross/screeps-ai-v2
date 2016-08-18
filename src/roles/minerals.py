@@ -59,10 +59,9 @@ class MineralHauler(RoleBase):
     def run(self):
         if not self.memory.state:
             self.memory.state = "miner_harvesting"
-        del self.memory.harvesting
-        del self.memory.miner_harvesting
         state = self.memory.state
-        if state == "miner_harvesting" or "storage_harvest_energy" \
+
+        if state == "miner_harvesting" or state == "storage_harvest_energy" \
                 and _.sum(self.creep.carry) >= self.creep.carryCapacity \
                 or (_.sum(self.creep.carry) > 0 and self.creep.ticksToLive < 100):
             self.memory.state = state = "terminal_deposit_minerals"
@@ -154,7 +153,7 @@ class MineralHauler(RoleBase):
             if result != OK:
                 self.log("Unknown result from MineralHauler.transfer({}, {}): {}".format(target, mtype, result))
         elif state == "empty_terminal_deposit":
-            if  _.sum(self.creep.carry) <= 0:
+            if _.sum(self.creep.carry) <= 0:
                 self.memory.state = "empty_terminal_withdraw"
                 return True
             storage = self.home.room.storage
@@ -177,14 +176,13 @@ class MineralHauler(RoleBase):
                 self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, resource, result))
         elif state == "empty_terminal_withdraw":
             terminal = self.home.room.terminal
-            max_store = max(terminal.storeCapacity * 0.75, self.home.get_target_terminal_energy())
-            if _.sum(terminal.store) <= max_store:
+            if _.sum(terminal.store) < terminal.storeCapacity * 0.75 \
+                    or _.sum(terminal.store) == terminal.store.energy <= self.home.get_target_terminal_energy():
                 self.memory.state = "terminal_deposit_energy"
                 return True
-            if  _.sum(self.creep.carry) >= self.creep.carryCapacity:
+            if _.sum(self.creep.carry) >= self.creep.carryCapacity:
                 self.memory.state = "empty_terminal_deposit"
                 return True
-
 
             for mtype in Object.keys(terminal.store):
                 if terminal.store[mtype] > 0:
