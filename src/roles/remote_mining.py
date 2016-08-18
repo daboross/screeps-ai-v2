@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_deposit_site, role_remote_hauler, role_cleanup, role_recycling
+    target_closest_deposit_site, role_remote_hauler, role_cleanup, role_recycling, creep_base_work_half_move_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -88,13 +88,13 @@ class RemoteHauler(SpawnFill):
 
         if self.memory.harvesting:
             if not source_flag:
+                self.target_mind.untarget_all(self)
                 # TODO: Re-enable after we get auto-respawning things *before* they die
                 # self.log("Remote hauler can't find any sources!")
                 if self.creep.carry.energy > 0:
                     self.memory.harvesting = False
                     return True
-                parts = _.countBy(self.creep.body, 'type')
-                if parts[MOVE] < parts[CARRY]:
+                if self.memory.base == creep_base_work_half_move_hauler:
                     # Don't repurpose a half-move remote hauler as anything but a remote hauler!
                     self.go_to_depot()
                     return False
