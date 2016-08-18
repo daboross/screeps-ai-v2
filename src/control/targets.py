@@ -362,9 +362,9 @@ class TargetMind:
         closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
         best_id = None
         stealing_from = None
-        structures = _.filter(creep.room.find(FIND_STRUCTURES),
+        structures = _.filter(creep.room.find(FIND_MY_STRUCTURES),
                               lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN) \
-                                        and s.energy < s.energyCapacity and s.my)
+                                        and s.energy < s.energyCapacity)
         if not len(structures):
             # waiting flag instead:
             structures = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
@@ -541,7 +541,12 @@ class TargetMind:
         """
         # --Called once per creep in the entire lifetime-- < NOT TRUE, we are now resetting all targets multiple times
         # in a creep's lifetime.
-        # target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+        # if creep.home.links.enabled:
+        #     target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
+        #         "filter": lambda s: s.structureType == STRUCTURE_LINK
+        #                             or s.structureType == STRUCTURE_STORAGE
+        #     })
+
         # TODO: cache the closest deposit site to each mine site.
         if creep.home.links.enabled:
             target = creep.room.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,

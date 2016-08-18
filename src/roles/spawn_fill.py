@@ -28,6 +28,12 @@ class SpawnFill(building.Builder):
             target = self.target_mind.get_new_target(self, target_spawn_deposit)
             if target:
                 if target.color:  # it's a spawn fill wait flag
+                    if _.find(self.room.find(FIND_MY_STRUCTURES),
+                              lambda s: (s.structureType == STRUCTURE_EXTENSION
+                                         or s.structureType == STRUCTURE_SPAWN)
+                              and s.energy < s.energyCapacity):
+                        self.target_mind.untarget(self, target_spawn_deposit)
+                        return True
                     if self.__name__ == SpawnFill.__name__:
                         del self.memory.filling_now
                         if self.creep.carry.energy < self.creep.carryCapacity:
@@ -37,12 +43,6 @@ class SpawnFill(building.Builder):
                                 (not self.creep.pos.isEqualTo(target.pos)
                                  and movement.is_block_clear(self.room.room, target.pos.x, target.pos.y)):
                             self.move_to(target)
-                        if _.find(self.room.find(FIND_MY_STRUCTURES),
-                                  lambda s: (s.structureType == STRUCTURE_EXTENSION
-                                             or s.structureType == STRUCTURE_SPAWN)
-                                  and s.energy < s.energyCapacity):
-                            self.target_mind.untarget(self, target_spawn_deposit)
-                            return True
                         return False
                 else:
                     del self.memory.filling_now
@@ -76,7 +76,7 @@ class SpawnFill(building.Builder):
 
             if self.home.room.controller.level > 4:
                 # We have links, let's not do this manually
-                if self.creep.carryCapacity > self.creep.carry.energy:
+                if self.creep.carry.energy < self.creep.carryCapacity * 0.8:
                     self.memory.harvesting = True
                     return True
                 target = flags.find_closest_in_room(self.creep.pos, flags.SPAWN_FILL_WAIT)
