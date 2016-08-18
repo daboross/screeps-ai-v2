@@ -126,6 +126,19 @@ def get_path_away(origin, targets):
 get_path_away = profiling.profiled(get_path_away, "autoactions.get_path_away")
 
 
+def get_cached_away_path(creep, targets):
+    """
+    :type creep: role_base.RoleBase
+    """
+
+    if '_away_path' in creep.memory and creep.memory._away_path.reset > Game.time:
+        return Room.deserializePath(creep.memory._away_path.path)
+    else:
+        path = get_path_away(creep.creep.pos, targets)
+        creep.memory._away_path = {"reset": Game.time + 3, "path": Room.serializePath(path)}
+        return path
+
+
 def instinct_do_heal(creep):
     """
     :type creep: role_base.RoleBase
@@ -163,18 +176,35 @@ def run_away_check(creep):
     """
     hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
     if not len(hostile_path_targets):
+        del creep.memory._away_path
         return False
     if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK):
         return False  # we're a defender, defenders don't run away!
 
-    path = get_path_away(creep.creep.pos, hostile_path_targets)
+    if not creep.creep.getActiveBodyparts(MOVE) or creep.creep.fatigue >= 0:  # if we can't move, we won't move.
+        instinct_do_heal(creep)
+        instinct_do_attack(creep)
+        return True
+
+    for target, target_range in hostile_path_targets:
+        if not movement.squared_distance(target, creep.creep.pos) > target_range * target_range:
+            break
+    else:
+        # No targets in range, no need to do anything
+        return False
+
+    path = get_cached_away_path(creep, hostile_path_targets)
 
     if len(path):
-        result = creep.creep.moveByPath(path)
         if creep.creep.getActiveBodyparts(HEAL):
             instinct_do_heal(creep)
         if creep.creep.getActiveBodyparts(ATTACK):
             instinct_do_attack(creep)
+        result = creep.creep.moveByPath(path)
+        if result == ERR_NO_PATH:
+            del creep.memory._away_path
+            path = get_cached_away_path(creep, hostile_path_targets)
+            result = creep.creep.moveByPath(path)
         if result != OK:
             creep.log("Unknown result from moving when running away: {}".format(result))
         return True
