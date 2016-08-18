@@ -156,7 +156,7 @@ class ConstructionMind:
                 spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
 
         # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
-        max_hits = min(350000, self.room.max_sane_wall_hits)
+        max_hits = min(350000, self.room.min_sane_wall_hits)
 
         for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES), lambda s:
                         (s.my or not s.owner) and s.hits < s.hitsMax * 0.9 and s.hits < max_hits),

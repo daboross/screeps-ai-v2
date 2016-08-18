@@ -15,7 +15,7 @@ class Builder(upgrading.Upgrader):
             return True
         if self.target_mind.get_existing_target(self, target_big_repair):
             return True
-        if self.target_mind.get_new_target(self, target_repair, min(350000, self.home.max_sane_wall_hits)):
+        if self.target_mind.get_new_target(self, target_repair, min(350000, self.home.min_sane_wall_hits)):
             self.target_mind.untarget(self, target_repair)
             return True
         if self.target_mind.get_new_target(self, target_construction):
@@ -54,15 +54,15 @@ class Builder(upgrading.Upgrader):
         else:
             target = self.target_mind.get_existing_target(self, target_repair)
             if target:
-                return self.execute_repair_target(target, min(350000, self.home.max_sane_wall_hits), target_repair)
+                return self.execute_repair_target(target, min(350000, self.home.min_sane_wall_hits), target_repair)
             target = self.target_mind.get_existing_target(self, target_construction)
             if target:
                 return self.execute_construction_target(target)
-            target = self.get_new_repair_target(min(350000, self.home.max_sane_wall_hits), target_repair)
+            target = self.get_new_repair_target(min(350000, self.home.min_sane_wall_hits), target_repair)
             if target:
                 self.target_mind.untarget(self, target_big_repair)
                 del self.memory.last_big_repair_max_hits
-                return self.execute_repair_target(target, min(350000, self.home.max_sane_wall_hits), target_repair)
+                return self.execute_repair_target(target, min(350000, self.home.min_sane_wall_hits), target_repair)
 
             target = self.get_new_construction_target()
             if target:
@@ -75,7 +75,7 @@ class Builder(upgrading.Upgrader):
                 target = self.get_new_repair_target(max_hits, target_big_repair)
                 if target:
                     return self.execute_repair_target(target, max_hits, target_big_repair)
-            for max_hits in range(min(400000, self.home.max_sane_wall_hits), self.home.max_sane_wall_hits, 50000):
+            for max_hits in range(min(400000, self.home.min_sane_wall_hits), self.home.max_sane_wall_hits, 50000):
                 target = self.get_new_repair_target(max_hits, target_big_repair)
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits

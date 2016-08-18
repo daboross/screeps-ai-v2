@@ -206,7 +206,8 @@ _energy_to_pause_upgrading = 8000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
 # 0 is rcl 1
-_rcl_to_sane_wall_hits = [100, 1000, 10 * 1000, 100 * 1000, 500 * 1000, 600 * 1000, 1000 * 1000, 10 * 1000 * 1000]
+_rcl_to_sane_wall_hits = [100, 1000, 10 * 1000, 100 * 1000, 400 * 1000, 600 * 1000, 1000 * 1000, 10 * 1000 * 1000]
+_rcl_to_min_wall_hits = [100, 1000, 5 * 1000, 50 * 1000, 200 * 1000, 500 * 1000, 8 * 1000, 1000 * 1000]
 
 
 class RoomMind:
@@ -235,6 +236,7 @@ class RoomMind:
     :type trying_to_get_full_storage_use: bool
     :type full_storage_use: bool
     :type max_sane_wall_hits: int
+    :type min_sane_wall_hits: int
     """
 
     def __init__(self, hive_mind, room):
@@ -995,6 +997,9 @@ class RoomMind:
             self._max_sane_wall_hits = _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
         return self._max_sane_wall_hits
 
+    def get_min_sane_wall_hits(self):
+        return _rcl_to_min_wall_hits[self.room.controller.level - 1]  # 1-to-0 based index
+
     def get_target_local_miner_count(self):
         """
         :rtype: int
@@ -1522,6 +1527,7 @@ class RoomMind:
     trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
     full_storage_use = property(get_full_storage_use)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
+    min_sane_wall_hits = property(get_min_sane_wall_hits)
 
 
 profiling.profile_whitelist(RoomMind, [
