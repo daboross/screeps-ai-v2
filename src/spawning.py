@@ -127,7 +127,7 @@ def run(room, spawn):
             descriptive_level = num_move
     elif base is creep_base_reserving:
         parts = []
-        num_sections = min(int(floor(energy / 650)), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections - 1):
             parts.append(MOVE)
         for i in range(0, num_sections):
@@ -136,7 +136,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_hauler:
         parts = []
-        num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections):
@@ -144,7 +144,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_full_move_hauler:
         parts = []
-        num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections):
@@ -154,7 +154,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_half_move_hauler:
         parts = []
-        num_sections = min(int(floor(energy / 100)), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections * 2):
@@ -165,8 +165,7 @@ def run(room, spawn):
     elif base is creep_base_worker:
         if energy >= 500:
             parts = []
-            max_sections = int(floor(energy / 250))
-            num_sections = min(max_sections, room.get_max_sections_for_role(role))
+            num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
             for i in range(0, num_sections * 2 - 1):
                 parts.append(MOVE)
             for i in range(0, num_sections):
@@ -187,7 +186,7 @@ def run(room, spawn):
         parts = []
         # # MOVE, MOVE, ATTACK, TOUCH = one section = 190
         # MOVE, ATTACK, CARRY = one section = 180
-        num_sections = min(int(floor(energy / 180)), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections - 1):
