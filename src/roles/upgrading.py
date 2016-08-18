@@ -9,6 +9,7 @@ __pragma__('noalias', 'name')
 
 class Upgrader(RoleBase):
     def run(self):
+        del self.memory.emptying
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
             self.memory.last_role = role_upgrader
@@ -21,7 +22,9 @@ class Upgrader(RoleBase):
 
         if self.home.upgrading_paused() and self.creep.room.controller.ticksToDowngrade >= 5000:
             self.report(speech.upgrading_upgrading_paused)
-            self.go_to_depot()
+            self.memory.emptying = True # flag for spawn fillers to not refill me.
+            if not self.empty_to_storage():
+                self.go_to_depot()
             return False
         if self.memory.harvesting:
             self.memory.stationary = False

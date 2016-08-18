@@ -8,7 +8,26 @@ __pragma__('noalias', 'name')
 
 
 class Builder(upgrading.Upgrader):
+    def any_building_targets(self):
+        if self.target_mind.get_existing_target(self, target_repair):
+            return True
+        if self.target_mind.get_existing_target(self, target_construction):
+            return True
+        if self.target_mind.get_existing_target(self, target_big_repair):
+            return True
+        if self.target_mind.get_new_target(self, target_repair, min(350000, self.home.max_sane_wall_hits)):
+            self.target_mind.untarget(self, target_repair)
+            return True
+        if self.target_mind.get_new_target(self, target_construction):
+            self.target_mind.untarget(self, target_construction)
+            return True
+        if self.target_mind.get_new_target(self, target_big_repair, self.home.max_sane_wall_hits):
+            self.target_mind.untarget(self, target_big_repair)
+            return True
+        return False
+
     def run(self):
+        del self.memory.emptying
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
             self.memory.last_role = role_builder
@@ -17,8 +36,18 @@ class Builder(upgrading.Upgrader):
             self.memory.harvesting = False
             self.target_mind.untarget_all(self)
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
+            # don't do this if we don't have targets
             self.target_mind.untarget_all(self)
             self.memory.harvesting = True
+
+        if not self.any_building_targets():
+            if not self.home.upgrading_paused():
+                return upgrading.Upgrader.run(self)
+            else:
+                self.memory.emptying = True # flag for spawn fillers to not refill me.
+                if not self.empty_to_storage():
+                    self.go_to_depot()
+                return False
 
         if self.memory.harvesting:
             return self.harvest_energy()
@@ -51,11 +80,6 @@ class Builder(upgrading.Upgrader):
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(target, max_hits, target_big_repair)
-            if not self.home.upgrading_paused():
-                return upgrading.Upgrader.run(self)
-            else:
-                if not self.empty_to_storage():
-                    self.go_to_depot()
 
     def get_new_repair_target(self, max_hits, ttype):
         return self.target_mind.get_new_target(self, ttype, max_hits)

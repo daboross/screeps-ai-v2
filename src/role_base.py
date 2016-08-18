@@ -520,13 +520,15 @@ class RoleBase:
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):
                     for rtype in Object.keys(self.creep.carry):
-                        if self.creep.carry[rtype] > 0:
+                        if self.creep.carry[rtype].amount > 0:
                             result = self.creep.transfer(storage, rtype)
                             if result == OK:
                                 break
                             else:
                                 self.log("Unknown result from creep.transfer({}, {}): {}"
                                          .format(storage, rtype, result))
+                    else:
+                        self.log("[empty_to_storage] Couldn't find resource to empty!")
                 else:
                     self.move_to(storage)
                 return True
