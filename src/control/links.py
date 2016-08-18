@@ -157,14 +157,16 @@ class LinkingMind:
         if taking_from_main and main_ready_to_send:
             send_from_main.sort(lambda t: -t[1])
             if main_link.energy < taking_from_main:
-                main_ready_to_send = min(main_link.energy, send_from_main[0][1])
-                energy_needed_in_main = taking_from_main - main_link.energy  # TODO: should this statement use sending?
+                sending = min(main_link.energy, send_from_main[0][1])
+                # TODO: should this statement use sending?
+                energy_needed_in_main = min(taking_from_main, main_link.energyCapacity) - main_link.energy
                 new_main_energy -= main_link.energy
             else:
-                main_ready_to_send = send_from_main[0][1]
-                energy_needed_in_main = taking_from_main - main_ready_to_send  # TODO: is this the right thing to do?
-                new_main_energy -= main_ready_to_send
-            main_link.transferEnergy(send_from_main[0][0], main_ready_to_send)
+                sending = send_from_main[0][1]
+                # TODO: is this the right thing to do?
+                energy_needed_in_main = min(taking_from_main - sending, main_link.energyCapacity - main_link.enery)
+                new_main_energy -= sending
+            main_link.transferEnergy(send_from_main[0][0], sending)
         else:
             if taking_from_main and len(send_to_main) <= 1:
                 energy_needed_in_main = main_link.energyCapacity - main_link.energy
