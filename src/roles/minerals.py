@@ -54,64 +54,73 @@ ideal_terminal_counts = {
     # TODO: dynamically set this in room mind
 }
 
+
 class MineralHauler(RoleBase):
     def run(self):
-        if self.memory.miner_harvesting is undefined:
-            self.memory.miner_harvesting = True
-        if self.memory.harvesting and _.sum(self.creep.carry) >= self.creep.carryCapacity \
+        if not self.memory.state:
+            self.memory.state = "miner_harvesting"
+        del self.memory.harvesting
+        del self.memory.miner_harvesting
+        state = self.memory.state
+        if state == "miner_harvesting" or "storage_harvest_energy" \
+                and _.sum(self.creep.carry) >= self.creep.carryCapacity \
                 or (_.sum(self.creep.carry) > 0 and self.creep.ticksToLive < 100):
-            self.memory.harvesting = False
-        if not self.memory.harvesting and _.sum(self.creep.carry) <= 0:
-            self.memory.harvesting = True
-            # Every other trip should be storage -> terminal
-            self.memory.miner_harvesting = not self.memory.miner_harvesting
+            self.memory.state = state = "terminal_deposit_minerals"
 
-        if self.memory.harvesting:
-            if self.memory.miner_harvesting:
-                if self.creep.ticksToLive < 100:
-                    self.recycle_me()
-                    return False
-                minerals = self.home.find(FIND_MINERALS)
+        if state == "terminal_deposit_minerals" and _.sum(self.creep.carry) <= 0:
+            self.memory.state = state = "storage_harvest_energy"
 
-                if len(minerals) != 1:
-                    self.log("MineralHauler's home has an incomprehensible number of minerals: {}! To the depot it is."
-                             .format(len(minerals)))
-                    self.go_to_depot()
-                    return False
-
-                mineral = minerals[0]
-                extractor = _.find(self.home.find_at(FIND_MY_STRUCTURES, mineral.pos),
-                                   {'structureType': STRUCTURE_EXTRACTOR})
-                if not extractor:
-                    self.log("MineralHauler's mineral at {} does not have an extractor. D:".format(mineral.pos))
-                    self.go_to_depot()
-                    return False
-
-                # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
-                miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos))
-                if not miner:
-                    # Let's spend some time filling up the terminal with energy, shall we?
-                    self.memory.harvesting = False
-                    return True
-
-                if not self.creep.pos.isNearTo(miner.pos):
-                    self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
+        if state == "terminal_deposit_energy" and _.sum(self.creep.carry) <= 0:
+            if len(self.home.role_count(role_mineral_miner)):
+                self.memory.state = state = "miner_harvesting"
             else:
-                terminal = self.home.room.terminal
-                # TODO: this should be a constant
-                if not terminal or terminal.store.energy > self.home.get_target_terminal_energy():
-                    # setting this to true again will re-toggle remote miner harvesting!
-                    self.memory.harvesting = False
+                self.memory.state = state = "storage_harvest_energy"
+
+        if state == "miner_harvesting":
+            minerals = self.home.find(FIND_MINERALS)
+
+            if len(minerals) != 1:
+                self.log("MineralHauler's home has an incomprehensible number of minerals: {}! To the depot it is."
+                         .format(len(minerals)))
+                self.go_to_depot()
+                return False
+
+            mineral = minerals[0]
+            extractor = _.find(self.home.find_at(FIND_MY_STRUCTURES, mineral.pos),
+                               {'structureType': STRUCTURE_EXTRACTOR})
+            if not extractor:
+                self.log("MineralHauler's mineral at {} does not have an extractor. D:".format(mineral.pos))
+                self.go_to_depot()
+                return False
+
+            # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
+            miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos))
+            if not miner:
+                # Let's spend some time filling up the terminal with energy, shall we?
+                self.memory.harvesting = False
+                return True
+
+            if not self.creep.pos.isNearTo(miner.pos):
+                self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
+        elif state == "storage_harvest_energy":
+            terminal = self.home.room.terminal
+            if not terminal or terminal.store.energy > self.home.get_target_terminal_energy():
+                if len(self.home.role_count(role_mineral_miner)):
+                    self.memory.state = "miner_harvesting"
                     return True
-                storage = self.home.room.storage
-                if not self.creep.pos.isNearTo(storage):
-                    self.move_to(storage)
-                    return False
-                result = self.creep.withdraw(storage, RESOURCE_ENERGY)
-                if result != OK:
-                    self.log("Unknown result from mineral-hauler.withdraw({}, {}): {}".format(
-                        storage, RESOURCE_ENERGY, result))
-        else:
+                elif self.home.get_target_mineral_miner_count():
+                    self.go_to_depot()
+                else:
+                    self.recycle_me()
+            storage = self.home.room.storage
+            if not self.creep.pos.isNearTo(storage):
+                self.move_to(storage)
+                return False
+            result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+            if result != OK:
+                self.log("Unknown result from mineral-hauler.withdraw({}, {}): {}".format(
+                    storage, RESOURCE_ENERGY, result))
+        elif state == "terminal_deposit_minerals" or state == "terminal_deposit_energy":
             terminal = self.home.room.terminal
             storage = self.home.room.storage
             for mtype in Object.keys(self.creep.carry):
@@ -123,15 +132,19 @@ class MineralHauler(RoleBase):
                 return False
 
             if resource == RESOURCE_ENERGY:
-                ideal =  self.home.get_target_terminal_energy()
+                ideal = self.home.get_target_terminal_energy()
             elif resource in ideal_terminal_counts:
                 ideal = ideal_terminal_counts[resource]
             else:
                 ideal = 10000
-            if terminal and (terminal.store[resource] or 0) < ideal:
+            if terminal and ((terminal.store[resource] or 0) < ideal) or state == "terminal_deposit_energy":
                 target = terminal
             else:
                 target = storage
+
+            if target is terminal and _.sum(terminal.store) >= terminal.storeCapacity:
+                self.memory.state = "empty_terminal_deposit"
+                return True
 
             if not self.creep.pos.isNearTo(target):
                 self.move_to(target)
@@ -139,6 +152,56 @@ class MineralHauler(RoleBase):
 
             result = self.creep.transfer(target, resource)
             if result != OK:
-                self.log("Unknown result from MineralHauler.transfer({}, {})".format(target, mtype))
+                self.log("Unknown result from MineralHauler.transfer({}, {}): {}".format(target, mtype, result))
+        elif state == "empty_terminal_deposit":
+            if  _.sum(self.creep.carry) <= 0:
+                self.memory.state = "empty_terminal_withdraw"
+                return True
+            storage = self.home.room.storage
+
+            for mtype in Object.keys(self.creep.carry):
+                if self.creep.carry[mtype] > 0:
+                    resource = mtype
+                    break
+            else:
+                self.log("No resources to remove to clear up terminal!")
+                self.go_to_depot()
+                return False
+
+            if not self.creep.pos.isNearTo(storage.pos):
+                self.move_to(storage)
+                return False
+
+            result = self.creep.transfer(storage, resource)
+            if result != OK:
+                self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, resource, result))
+        elif state == "empty_terminal_withdraw":
+            terminal = self.home.room.terminal
+            max_store = max(terminal.storeCapacity * 0.75, self.home.get_target_terminal_energy())
+            if _.sum(terminal.store) <= max_store:
+                self.memory.state = "terminal_deposit_energy"
+                return True
+            if  _.sum(self.creep.carry) >= self.creep.carryCapacity:
+                self.memory.state = "empty_terminal_deposit"
+                return True
+
+
+            for mtype in Object.keys(terminal.store):
+                if terminal.store[mtype] > 0:
+                    if mtype != RESOURCE_ENERGY or terminal.store[mtype] > self.home.get_target_terminal_energy():
+                        resource = mtype
+                        break
+            else:
+                self.log("No resources to remove to clear up terminal!")
+                self.go_to_depot()
+                return False
+
+            if not self.creep.pos.isNearTo(terminal.pos):
+                self.move_to(terminal)
+                return False
+
+            result = self.creep.withdraw(terminal, resource)
+            if result != OK:
+                self.log("Unknown result from creep.withdraw({}, {}): {}".format(terminal, resource, result))
 
         return False
