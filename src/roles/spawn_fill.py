@@ -1,3 +1,4 @@
+import flags
 import speech
 from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill
 from roles import building
@@ -69,8 +70,23 @@ class SpawnFill(building.Builder):
                             return True
                         return False
 
-            if self.creep.getActiveBodyparts(WORK) and not self.home.upgrading_paused():
+            if self.creep.getActiveBodyparts(WORK) and (self.any_building_targets()
+                                                        or not self.home.upgrading_paused()):
                 return building.Builder.run(self)
+
+            if self.home.room.controller.level > 4:
+                # We have links, let's not do this manually
+                if self.creep.carryCapacity > self.creep.carry.energy:
+                    self.memory.harvesting = True
+                    return True
+                target = flags.find_closest_in_room(self.creep.pos, flags.SPAWN_FILL_WAIT)
+                if target:
+                    if not self.creep.pos.isNearTo(target):
+                        self.move_to(target)
+                else:
+                    self.go_to_depot()
+                return False
+
             if not self.memory.filling_now and self.__name__ == SpawnFill.__name__ \
                     and self.creep.carry.energy < self.creep.carryCapacity * 0.4:
                 self.memory.harvesting = True
