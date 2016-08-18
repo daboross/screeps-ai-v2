@@ -184,6 +184,10 @@ class ConstructionMind:
             self.room.store_cached_property("repair_targets", low_priority, 70)
             return low_priority
 
+    def retest_mining_roads(self):
+        # TODO: Make a "trigger" function which runs when a controller upgrades which runs things like this.
+        del self.room.mem.cache.placed_mining_roads
+
     def place_remote_mining_roads(self):
         # TODO: I'm not sure if this or iterating over all mining flags and the paths to them would be better:
         # if we start using HoneyTrails for more things, we might want to do that instead of this - or we could
