@@ -1,3 +1,5 @@
+import math
+
 import autoactions
 import constants
 import context
@@ -24,6 +26,19 @@ require("perf")()
 def main():
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
+
+    bucket_tier = int(math.floor((Game.cpu.bucket - 1) / 1000))  # -1 so we don't count max bucket as a separate teir
+    if bucket_tier != Memory.meta.last_bucket:
+        if bucket_tier > Memory.meta.last_bucket:
+            print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
+            if bucket_tier >= 6:
+                Memory.meta.enable_profiling = False
+        else:
+            print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
+            if bucket_tier < 4:
+                Memory.meta.enable_profiling = True
+    Memory.meta.last_bucket = bucket_tier
+
     if Memory.meta.pause:
         if Memory.meta.waiting_for_bucket:
             if Game.cpu.bucket >= 10000:
@@ -47,8 +62,7 @@ def main():
     context.set_hive(hive_mind)
 
     if Game.time % 300 == 50:
-        for room in hive_mind.visible_rooms:
-            consistency.clear_caches(room)
+        consistency.clear_cache()
 
     hive_mind.poll_all_creeps()
     hive_mind.poll_hostiles()

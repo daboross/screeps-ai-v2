@@ -1,5 +1,3 @@
-import math
-
 from constants import *
 from tools import profiling
 from utilities.screeps_constants import *
@@ -41,7 +39,7 @@ def clear_memory(room):
     :type room: control.hivemind.RoomMind
     """
     smallest_ticks_to_live = 500
-    closest_replacement_time = Game.time + 100 # reset spawn at a minimum of every 100 ticks.
+    closest_replacement_time = Game.time + 100  # reset spawn at a minimum of every 100 ticks.
     target_mind = room.hive_mind.target_mind
     for name in Object.keys(Memory.creeps):
         memory = Memory.creeps[name]
@@ -83,14 +81,23 @@ def clear_memory(room):
     room.mem.meta.reset_spawn_on = closest_replacement_time + 1
 
 
-def clear_caches(room):
-    if room.mem.cache:
-        for key in room.mem.cache:
-            cache = room.mem.cache[key]
-            if Game.time > cache.dead_at or (cache.ttl_after_use and Game.time > cache.last_used + cache.ttl_after_use):
-                del room.mem.cache[key]
+def clear_cache():
+    for name in Object.keys(Memory.rooms):
+        mem = Memory.rooms[name]
+        if mem.cache:
+            for key in Object.keys(mem.cache):
+                cache = mem.cache[key]
+                if Game.time > cache.dead_at or (
+                    cache.ttl_after_use and Game.time > cache.last_used + cache.ttl_after_use):
+                    del mem.cache[key]
+            if len(mem.cache) <= 0:
+                del mem.cache
+        if len(mem) <= 0:
+            del Memory.rooms[mem]
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
 
 clear_memory = profiling.profiled(clear_memory, "consistency.clear_memory")
+
+clear_cache = profiling.profiled(clear_cache, "consistency.clear_cache")
