@@ -4,7 +4,7 @@ import context
 import flags
 import speech
 from constants import target_source, role_dedi_miner, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
-    PYFIND_BUILDABLE_ROADS
+    PYFIND_BUILDABLE_ROADS, target_closest_energy_site
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -323,32 +323,47 @@ class RoleBase:
         if context.room().full_storage_use:
             # Full storage use enabled! Just do that.
             storage = context.room().room.storage
-            if not self.creep.pos.isNearTo(storage.pos):
+            if _.sum(self.creep.carry) == self.creep.carry.energy:  # don't do this if we have minerals
+                target = self.target_mind.get_new_target(self, target_closest_energy_site)
+                if not target:
+                    target = storage
+                if target.energy <= 0 and not self.home.links.enabled:
+                    target = storage
+                if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
+                    self.home.links.register_target_withdraw(target, self,
+                                                             self.creep.carryCapacity - self.creep.carry.energy)
+            else:
+                target = storage
+
+            if not self.creep.pos.isNearTo(target.pos):
                 # TODO: 5 should ideally be instead 1/4 of the distance to this creep's next target.
-                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and self.creep.pos.getRangeTo(
-                        storage.pos) > 5:
+                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
+                                self.creep.pos.getRangeTo(target.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.harvesting = False
                 self.pick_up_available_energy()
-                self.move_to(storage, False, follow_defined_path)
+                self.move_to(target, False, follow_defined_path)
                 self.report(speech.default_gather_moving_to_storage)
                 return False
 
             if _.sum(self.creep.carry) > self.creep.carry.energy:
                 for stype in Object.keys(self.creep.carry):
                     if stype != RESOURCE_ENERGY:
-                        result = self.creep.transfer(storage, stype)
+                        result = self.creep.transfer(target, stype)
                         break
                 else:
-                    result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+                    result = self.creep.withdraw(target, RESOURCE_ENERGY)
             else:
-                result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+                result = self.creep.withdraw(target, RESOURCE_ENERGY)
 
             if result == OK:
                 self.report(speech.default_gather_storage_withdraw_ok)
+            elif result == ERR_NOT_ENOUGH_RESOURCES:
+                if target == storage:
+                    self.log("Storage empty in {}!".format(target.pos.roomName))
             else:
-                self.log("Unknown result from creep.withdraw({}): {}", storage, result)
+                self.log("Unknown result from creep.withdraw({}): {}", target, result)
                 self.report(speech.default_gather_unknown_result_withdraw)
             return False
 

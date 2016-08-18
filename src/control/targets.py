@@ -66,7 +66,7 @@ class TargetMind:
             target_remote_mine_hauler: self._find_new_remote_hauler_mine,
             target_remote_reserve: self._find_new_reservable_controller,
             target_reserve_now: self._find_top_priority_reservable_room,
-            target_closest_deposit_site: self._find_closest_deposit_site,
+            target_closest_energy_site: self._find_closest_deposit_site,
             target_single_flag: self._find_closest_flag,
         }
 
@@ -543,11 +543,16 @@ class TargetMind:
         # in a creep's lifetime.
         # target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
         # TODO: cache the closest deposit site to each mine site.
-        target = creep.room.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,
-                                                  lambda s: s.structureType == STRUCTURE_LINK
-                                                            or s.structureType == STRUCTURE_STORAGE)
-        if target:
-            return target.id
+        if creep.home.links.enabled:
+            target = creep.room.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,
+                                                      lambda s: s.structureType == STRUCTURE_LINK
+                                                                or s.structureType == STRUCTURE_STORAGE)
+            if target:
+                return target.id
+            else:
+                return None
+        elif creep.home.room.storage:
+            return creep.home.room.storage.id
         else:
             return None
 

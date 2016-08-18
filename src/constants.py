@@ -30,7 +30,7 @@ target_tower_fill = "fillable_tower"
 target_remote_mine_miner = "remote_miner_mine"
 target_remote_mine_hauler = "remote_mine_hauler"
 target_remote_reserve = "remote_reserve"
-target_closest_deposit_site = "generic_deposit"
+target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
 

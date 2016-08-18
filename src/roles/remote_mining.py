@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_deposit_site, role_remote_hauler, role_cleanup, role_recycling, creep_base_work_half_move_hauler
+    target_closest_energy_site, role_remote_hauler, role_cleanup, role_recycling, creep_base_work_half_move_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -204,11 +204,13 @@ class RemoteHauler(SpawnFill):
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
-            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
+            target = self.target_mind.get_new_target(self, target_closest_energy_site)
             if not target:
                 target = storage
-            # if target.energy >= target.energyCapacity:
-            #     target = storage
+            if target.energy >= target.energyCapacity and not self.home.links.enabled:
+                target = storage
+            if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
+                self.home.links.register_target_deposit(target, self, self.creep.carry.energy)
 
             if not self.creep.pos.isNearTo(target.pos):
                 if self.creep.pos.isNearTo(storage):

@@ -5,6 +5,7 @@ import flags
 import spawning
 from constants import *
 from control.building import ConstructionMind
+from control.links import LinkingMind
 from control.pathdef import HoneyTrails, CachedTrails
 from role_base import RoleBase
 from roles import military
@@ -225,6 +226,7 @@ class RoomMind:
     :type room: Room
     :type building: ConstructionMind
     :type honey: HoneyTrails
+    :type links: LinkingMind
     :type subsidiaries: list[RoomMind]
     :type sources: list[Source]
     :type creeps: list[Creep]
@@ -240,6 +242,7 @@ class RoomMind:
         self.room = room
         self.building = ConstructionMind(self)
         self.honey = HoneyTrails(self)
+        self.links = LinkingMind(self)
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None

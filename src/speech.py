@@ -99,6 +99,7 @@ link_manager_something_not_found = (["where", "do", "I", "go???", None], True)
 link_manager_moving = (["i'll", "find", "it", "eventually"], False)
 link_manager_ok = (["and", "I", "threw", "it", "on", "the", "ground!"], False)
 link_manager_storage_full = (["it's", "full,", None, "Jim", None], False)
+link_manager_storage_empty = (["it's", "empty,", None, "Jim", None], False)
 link_manager_unknown_result = (["AAAAhhhh", "!!!???", "link_store"], False)
 
 cleanup_found_energy = (["{}, {}"], True)

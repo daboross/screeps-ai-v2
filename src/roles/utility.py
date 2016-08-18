@@ -3,7 +3,7 @@ import math
 import spawning
 import speech
 from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling, \
-    target_closest_deposit_site
+    target_closest_energy_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -15,110 +15,83 @@ __pragma__('noalias', 'name')
 
 class LinkManager(RoleBase):
     def run(self):
-        if self.run_creep():
-            if self.run_creep():
-                if self.run_creep():
-                    self.log("Link manager tried to rerun three times!")
-        self.run_links()
-        return False
-
-    def run_creep(self):
-        storage = self.creep.room.storage
-        if not storage:
-            self.log("Link manager can't find storage in {}!", self.creep.room.name)
+        link = self.home.links.main_link
+        storage = self.home.room.storage
+        if not link or not storage:
+            self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.room.room_name))
             self.go_to_depot()
             self.report(speech.link_manager_something_not_found)
             return False
+        # TODO: this could go quite wrong if there are more than two squares between the storage and the main link.
+        if not self.creep.pos.isNearTo(link):
+            self.move_to(link)
+            self.report(speech.link_manager_moving)
+            return False
+        elif not self.creep.pos.isNearTo(storage):
+            self.move_to(storage)
+            self.report(speech.link_manager_moving)
+            return False
 
-        if self.memory.gathering_from_link and self.creep.carry.energy >= self.creep.carryCapacity:
-            self.memory.gathering_from_link = False
+        self.memory.stationary = True
 
-        if not self.memory.gathering_from_link and self.creep.carry.energy <= 0:
-            self.memory.gathering_from_link = True
+        if self.ensure_no_minerals():
+            return False
 
-        if self.memory.gathering_from_link:
-            link = self.get_storage_link()
-
-            if not self.creep.pos.isNearTo(link.pos):
-                self.pick_up_available_energy()
-                self.move_to(link)
-                self.report(speech.link_manager_moving)
-                return False
-
-            if link.energy <= 0:
-                if self.creep.carry.energy > 0:
-                    self.memory.gathering_from_link = False
-                    return True
-                return False
-
-            self.memory.stationary = True
-
-            result = self.creep.withdraw(link, RESOURCE_ENERGY)
-
-            if result == OK:
-                self.report(speech.link_manager_ok)
-            elif result == ERR_FULL:
-                self.memory.gathering_from_link = False
+        if self.creep.carry.energy != self.creep.carryCapacity / 2:
+            # this is not the norm.
+            if self.creep.carry.energy > self.creep.carryCapacity / 2:
+                self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, self.creep.carry.energy
+                                                   - self.creep.carryCapacity / 2), "transfer", storage,
+                               RESOURCE_ENERGY)
             else:
-                self.log("Unknown result from link-manager-creep.withdraw({}): {}", link, result)
-                self.report(speech.link_manager_unknown_result)
-        else:
-            if not self.creep.pos.isNearTo(storage.pos):
-                self.pick_up_available_energy()
-                self.move_to(storage)
-                self.report(speech.link_manager_moving)
-                return False
+                self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, self.creep.carryCapacity / 2
+                                                   - self.creep.carry.energy), "withdraw", storage,
+                               RESOURCE_ENERGY)
+            self.report((["balancing"], True))
+            return False
 
-            self.memory.stationary = True
-
-            result = self.creep.transfer(storage, RESOURCE_ENERGY)
-            if result == OK:
-                self.report(speech.link_manager_ok)
-            elif result == ERR_NOT_ENOUGH_RESOURCES:
-                self.memory.gathering_from_link = True
-                return True
-            elif result == ERR_FULL:
-                self.log("Storage in room {} full!", storage.room)
-                self.report(speech.link_manager_storage_full)
-            else:
-                self.log("Unknown result from link-manager-creep.transfer({}): {}", storage, result)
-                self.report(speech.link_manager_unknown_result)
+        self.home.links.note_link_manager(self)
 
         return False
 
-    def get_storage_link(self):
-        link = None
-        if self.memory.target_link:
-            link = Game.getObjectById(self.memory.target_link)
+    def ensure_ok(self, result, action, p1, p2):
+        # TODO: nicer messages for running out of energy, and also saying if this was a transfer or withdraw, from a
+        # link or storage.
+        if result != OK:
+            self.log("ERROR: Unknown result from link creep.{}({},{}): {}!".format(action, p1, p2, result))
 
-        if not link:
-            link = self.room.find_closest_by_range(FIND_STRUCTURES, self.creep.room.storage.pos,
-                                                   {"structureType": STRUCTURE_LINK})
-            if not link:
-                if self.creep.carry.energy > 0:
-                    self.memory.gathering_from_link = False
+    def ensure_no_minerals(self):
+        storage = self.home.room.storage
+        if _.sum(self.creep.carry) > self.creep.carry.energy:
+            for rtype in Object.keys(self.creep.carry):
+                if rtype != RESOURCE_ENERGY:
+                    self.ensure_ok(self.creep.transfer(storage, rtype), "transfer", storage, rtype)
                     return True
-                self.log("Link-storage manager can't find link in {}!", self.creep.room.name)
-                self.go_to_depot()
-                self.report(speech.link_manager_something_not_found)
-                return False
-            self.memory.target_link = link.id
-        return link
+        return False
 
-    def run_links(self):
-        my_link = self.get_storage_link()
-        if not my_link or my_link.energy >= my_link.energyCapacity:
-            return
-        for link in self.room.find(FIND_STRUCTURES):
-            if link.structureType == STRUCTURE_LINK:
-                # TODO: is a minimum like this ever helpful?
-                if link.id != self.memory.gathering_from_link and link.cooldown <= 0 \
-                        and (link.energy > link.energyCapacity / 4 or (link.energy > 0 >= my_link.energy)):
-                    link.transferEnergy(my_link)
+    def send_to_link(self, amount=None):
+        storage = self.home.room.storage
+        link = self.home.links.main_link
+
+        if not amount or amount > self.creep.carryCapacity / 2:
+            amount = self.creep.carryCapacity / 2
+
+        self.ensure_ok(self.creep.transfer(link, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
+        self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
+
+    def send_from_link(self, amount=None):
+        storage = self.home.room.storage
+        link = self.home.links.main_link
+
+        if not amount or amount > self.creep.carryCapacity / 2:
+            amount = self.creep.carryCapacity / 2
+
+        self.ensure_ok(self.creep.withdraw(link, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
+        self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
 
     def _calculate_time_to_replace(self):
         # TODO: maybe merge this logic with DedicatedMiner?
-        link = self.get_storage_link()
+        link = self.home.links.main_link
         if not link:
             return -1
         link_pos = link.pos
@@ -237,11 +210,16 @@ class Cleanup(SpawnFill):
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
-            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
-            if not target:
+            if _.sum(self.creep.carry) > self.creep.carry.energy:
                 target = storage
-            if target.energy >= target.energyCapacity:
-                target = storage
+            else:
+                target = self.target_mind.get_new_target(self, target_closest_energy_site)
+                if not target:
+                    target = storage
+            # if target.energy >= target.energyCapacity:
+            #     target = storage
+            if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
+                self.home.links.register_target_deposit(target, self, self.creep.carry.energy)
 
             if not self.creep.pos.isNearTo(target.pos):
                 if self.creep.pos.isNearTo(storage):

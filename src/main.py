@@ -129,6 +129,7 @@ def main():
                 if not Game.creeps[creep_name]:
                     continue
                 run_creep(creeps_skipped, room, Game.creeps[creep_name])
+            room.links.tick_links()
         del Memory.skipped_last_turn
     else:
         for room in hive_mind.my_rooms:
@@ -137,6 +138,7 @@ def main():
             total_creeps += len(room.creeps)
             for creep in room.creeps:
                 run_creep(creeps_skipped, room, creep)
+            room.links.tick_links()
     skipped_count = 0
     for room_name in creeps_skipped.keys():
         skipped_count += len(creeps_skipped[room_name])

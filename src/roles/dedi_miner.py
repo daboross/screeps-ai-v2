@@ -1,6 +1,6 @@
 import flags
 import speech
-from constants import target_big_source, target_source, role_dedi_miner, target_closest_deposit_site, role_recycling, \
+from constants import target_big_source, target_source, role_dedi_miner, target_closest_energy_site, role_recycling, \
     recycle_time, role_local_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
@@ -154,11 +154,13 @@ class LocalHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
-            target = self.target_mind.get_new_target(self, target_closest_deposit_site)
+            target = self.target_mind.get_new_target(self, target_closest_energy_site)
             if not target:
                 target = self.creep.room.storage  # This apparently has happened, I don't know why though?
-            if target.energy >= target.energyCapacity:
+            if target.energy >= target.energyCapacity and not self.home.links.enabled:
                 target = storage
+            if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
+                self.home.links.register_target_deposit(target, self, self.creep.carry.energy)
 
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)
