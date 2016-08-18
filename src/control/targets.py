@@ -67,6 +67,7 @@ class TargetMind:
             target_remote_reserve: self._find_new_reservable_controller,
             target_reserve_now: self._find_top_priority_reservable_room,
             target_closest_deposit_site: self._find_closest_deposit_site,
+            target_single_flag: self._find_closest_flag,
         }
 
     def __get_targets(self):
@@ -603,6 +604,19 @@ class TargetMind:
                     if distance < closest_distance:
                         closest_distance = distance
                         closest_flag = flag_id
+        return closest_flag
+
+    def _find_closest_flag(self, creep, flag_type):
+        closest_flag = None
+        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        for flag in flags.find_flags_global(flag_type):
+            flag_id = "flag-{}".format(flag.name)
+            current = self.targets[target_single_flag][flag_id]
+            if not current or current < 1:
+                distance = movement.distance_squared_room_pos(creep.creep.pos, flag.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_flag = flag_id
         return closest_flag
 
 

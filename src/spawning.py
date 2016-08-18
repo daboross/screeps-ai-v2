@@ -17,8 +17,10 @@ bases_max_energy = {
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],
     creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
+    creep_base_goader: [ATTACK, MOVE, TOUGH],
 }
 
+# TODO: limit goader and healer in RoomMind
 scalable_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
     creep_base_hauler: [MOVE, CARRY],
@@ -27,6 +29,9 @@ scalable_sections = {
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [CARRY, MOVE, ATTACK],
     creep_base_full_miner: [WORK, MOVE],
+    creep_base_goader: [MOVE, TOUGH, TOUGH],
+    creep_base_half_move_healer: [MOVE, HEAL, HEAL],
+    creep_base_dismantler: [WORK, MOVE]
 }
 
 known_no_energy_limit = [creep_base_mammoth_miner]
@@ -224,6 +229,30 @@ def run(room, spawn):
                 energy_counter += 100
                 part_counter += 1
                 move_counter += 0.25
+    elif base is creep_base_goader:
+        parts = []
+        num_sections = room.get_max_sections_for_role(role)
+        for i in range(0, num_sections * 2 + 1):  # extra tough in initial section
+            parts.append(TOUGH)
+        parts.append(ATTACK)
+        for i in range(0, num_sections + 1):  # extra move in initial section
+            parts.append(MOVE)
+    elif base is creep_base_half_move_healer:
+        parts = []
+        num_sections = room.get_max_sections_for_role(role)
+        for i in range(0, num_sections):
+            parts.append(HEAL)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(HEAL)
+    elif base is creep_base_dismantler:
+        parts = []
+        num_sections = room.get_max_sections_for_role(role)
+        for i in range(0, num_sections):
+            parts.append(WORK)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
     else:
         print("[{}][spawning] Unknown creep base {} (for role {})!".format(room.room_name, base, role))
         room.reset_planned_role()

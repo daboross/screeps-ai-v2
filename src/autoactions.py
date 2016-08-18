@@ -18,13 +18,13 @@ def pathfinder_enemy_array_for_room(room_name):
         dx, dy = movement.inter_room_difference(room_name, room_name)
         if abs(dx) <= 1 and abs(dy) <= 1:
             if owner == "Source Keeper":
-                range = 5
+                enemy_range = 5
             elif owner == "Invader":
-                range = 20
+                enemy_range = 20
             else:
-                range = 60
+                enemy_range = 60
             pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
-            enemy_positions.append({"pos": pos, "range": range})
+            enemy_positions.append({"pos": pos, "range": enemy_range})
 
     cache[room_name] = enemy_positions
     return enemy_positions
@@ -46,9 +46,9 @@ def room_hostile(room_name):
     return room_under_attack
 
 
-def get_cost_matrix(room_name):
+def simple_cost_matrix(room_name, new_to_use_as_base=False):
     cache = volatile_cache.mem("enemy_cost_matrix")
-    if room_name in cache:
+    if room_name in cache and not new_to_use_as_base:
         return cache[room_name]
     # TODO: some of this is duplicated in pathdef.HoneyTrails
 
@@ -87,7 +87,8 @@ def get_cost_matrix(room_name):
         set_in_range(creep.pos, 1, 5, 0)
         cost_matrix.set(creep.pos.x, creep.pos.y, 255)
 
-    cache[room_name] = cost_matrix
+    if not new_to_use_as_base:
+        cache[room_name] = cost_matrix
     return cost_matrix
 
 
@@ -97,7 +98,7 @@ def get_path_away(origin, targets):
     # a path to the nearest exit might be better.
     # This might have been fixed by setting range to 50 instead of 10, but I'm also unsure if that actually works...
     result = PathFinder.search(origin, targets, {
-        "roomCallback": get_cost_matrix,
+        "roomCallback": simple_cost_matrix,
         "flee": True,
         "maxRooms": 8,
     })
@@ -125,6 +126,37 @@ def get_path_away(origin, targets):
 get_path_away = profiling.profiled(get_path_away, "autoactions.get_path_away")
 
 
+def instinct_do_heal(creep):
+    """
+    :type creep: role_base.RoleBase
+    """
+    damaged = None
+    most_damage = 0
+    for ally in creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos):
+        damage = ally.hitsMax - ally.hits
+        if damage > most_damage:
+            most_damage = damage
+            damaged = ally
+    if damaged:
+        result = creep.creep.heal(damaged)
+        if result != OK:
+            creep.log("Unknown heal result! {}".format(result))
+
+
+def instinct_do_attack(creep):
+    """
+    :type creep: role_base.RoleBase
+    """
+    damaged = None
+    most_damage = 0
+    for enemy in creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos):
+        damage = enemy.hitsMax - enemy.hits
+        if damage < most_damage:
+            most_damage = damage
+            damaged = enemy
+        creep.creep.attack(damaged)
+
+
 def run_away_check(creep):
     """
     :type creep: role_base.RoleBase
@@ -132,14 +164,17 @@ def run_away_check(creep):
     hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
     if not len(hostile_path_targets):
         return False
-    parts = _.countBy(creep.creep.body, 'type')
-    if parts[ATTACK] or parts[RANGED_ATTACK]:
+    if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK):
         return False  # we're a defender, defenders don't run away!
 
-    path = get_path_away(creep.creep.pos)
+    path = get_path_away(creep.creep.pos, hostile_path_targets)
 
     if len(path):
         result = creep.creep.moveByPath(path)
+        if creep.creep.getActiveBodyparts(HEAL):
+            instinct_do_heal(creep)
+        if creep.creep.getActiveBodyparts(ATTACK):
+            instinct_do_attack(creep)
         if result != OK:
             creep.log("Unknown result from moving when running away: {}".format(result))
         return True

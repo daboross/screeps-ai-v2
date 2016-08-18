@@ -264,6 +264,9 @@ class RoomMind:
         self._target_simple_claim_count = None
         self._target_room_reserve_count = None
         self._target_spawn_fill_count = None
+        self._target_td_healer_count = None
+        self._target_td_goader_count = None
+        self._target_simple_dismantler_count = None
         self._max_sane_wall_hits = None
         self._spawns = None
         self.my = room.controller and room.controller.my
@@ -913,8 +916,10 @@ class RoomMind:
         return not not self.mem.focusing_home
 
     def upgrading_paused(self):
-        if self.room.controller.level < 5:
+        if self.room.controller.level < 4:
             return False
+        if self.get_target_td_healer_count() > 0:
+            return True  # Don't upgrade while we're taking someone down.
         if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
             self.mem.upgrading_paused = False
         if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
@@ -1311,6 +1316,39 @@ class RoomMind:
             return min(spawning.max_sections_of(self.room, creep_base_hauler),
                        math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
 
+    def get_target_td_healer_count(self):
+        if self._target_td_healer_count is None:
+            if not self.full_storage_use or not self.get_target_td_goader_count():
+                return 0
+            count = 0
+            for flag in flags.find_flags_global(flags.TD_H_H_STOP):
+                if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                    count += 1
+            self._target_td_healer_count = count
+        return self._target_td_healer_count
+
+    def get_target_td_goader_count(self):
+        if self._target_td_goader_count is None:
+            if not self.full_storage_use:
+                return 0
+            count = 0
+            for flag in flags.find_flags_global(flags.TD_D_GOAD):
+                if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                    count += 1
+            self._target_td_goader_count = count
+        return self._target_td_goader_count
+
+    def get_target_simple_dismantler_count(self):
+        if self._target_simple_dismantler_count is None:
+            if not self.full_storage_use:
+                return 0
+            count = 0
+            for flag in flags.find_flags_global(flags.ATTACK_DISMANTLE):
+                if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                    count += 1
+            self._target_simple_dismantler_count = count
+        return self._target_simple_dismantler_count
+
     def _next_needed_local_role(self):
         requirements = [
             [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
@@ -1355,6 +1393,9 @@ class RoomMind:
     def _next_remote_mining_role(self):
         remote_operation_reqs = [
             [role_defender, self.get_target_simple_defender_count],
+            [role_td_healer, self.get_target_td_healer_count],
+            [role_td_goad, self.get_target_td_goader_count],
+            [role_simple_dismantle, self.get_target_simple_dismantler_count],
             # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
             # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
             [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
@@ -1416,6 +1457,12 @@ class RoomMind:
                 lambda: None,  # fully dynamic
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral
                 lambda: spawning.max_sections_of(self.room, creep_base_hauler),
+            role_td_goad:
+                lambda: spawning.max_sections_of(self.room, creep_base_goader),
+            role_td_healer:
+                lambda: spawning.max_sections_of(self.room, creep_base_half_move_healer),
+            role_simple_dismantle:
+                lambda: spawning.max_sections_of(self.room, creep_base_dismantler),
         }
         if role in max_mass:
             return max_mass[role]()

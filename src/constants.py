@@ -12,6 +12,9 @@ creep_base_work_half_move_hauler = "fw_hm_hauler"
 creep_base_reserving = "remote_reserve"
 creep_base_defender = "simple_defender"
 creep_base_mammoth_miner = "mammoth_miner"
+creep_base_half_move_healer = "hm_healer"
+creep_base_goader = "med_goader"
+creep_base_dismantler = "med_dismantle"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room, and
 # away from enemies.
@@ -29,6 +32,7 @@ target_remote_mine_hauler = "remote_mine_hauler"
 target_remote_reserve = "remote_reserve"
 target_closest_deposit_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
+target_single_flag = "sccf"  # single creep, closest flag
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -50,6 +54,9 @@ role_temporary_replacing = "currently_replacing"
 role_recycling = "recycling"
 role_mineral_miner = "local_mineral_miner"
 role_mineral_hauler = "local_mineral_hauler"
+role_td_healer = "tower_drain_healer"
+role_td_goad = "tower_drain_goader"
+role_simple_dismantle = "simple_dismantler"
 
 role_bases = {
     role_upgrader: creep_base_worker,
@@ -70,6 +77,9 @@ role_bases = {
     role_room_reserve: creep_base_reserving,
     role_mineral_miner: creep_base_mammoth_miner,
     role_mineral_hauler: creep_base_hauler,
+    role_td_goad: creep_base_goader,
+    role_td_healer: creep_base_half_move_healer,
+    role_simple_dismantle: creep_base_dismantler,
 }
 
 default_roles = {
@@ -82,6 +92,9 @@ default_roles = {
     creep_base_reserving: role_remote_mining_reserve,
     creep_base_defender: role_defender,
     creep_base_mammoth_miner: role_mineral_miner,
+    creep_base_goader: role_td_goad,
+    creep_base_half_move_healer: role_td_healer,
+    creep_base_dismantler: role_simple_dismantle,
 }
 
 PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"

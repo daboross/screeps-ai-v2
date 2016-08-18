@@ -37,6 +37,9 @@ role_classes = {
     role_recycling: generic.Recycling,
     role_mineral_miner: minerals.MineralMiner,
     role_mineral_hauler: minerals.MineralHauler,
+    role_td_healer: military.TowerDrainHealer,
+    role_td_goad: military.TowerDrainer,
+    role_simple_dismantle: military.Dismantler,
 }
 
 

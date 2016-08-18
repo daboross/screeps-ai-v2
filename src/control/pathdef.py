@@ -5,6 +5,20 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
+# # TODO: function to use pathfinder to search and cache results
+# if self.memory.path_cached and self.memory.path_reset > Game.time:
+#     path = Room.deserializePath(self.memory.path_cached)
+# else:
+#     result = PathFinder.search(self.creep.pos, {"pos": target.pos, "range": 1}, {
+#         "roomCallback": autoactions.simple_cost_matrix,
+#         "maxOps": 1000,
+#     })
+#     path = pathdef.pathfinder_to_regular_path(self.creep.pos, result.path)
+#     self.memory.path_cached = Room.serializePath(path)
+#     self.memory.path_reset = Game.time + 10
+# result = self.creep.moveTo(target)
+# if result != OK:
+#     self.log("Unknown result from creep.moveByPath(): {}".format(result))
 
 def get_direction(dx, dy):
     """
@@ -63,6 +77,24 @@ def reverse_path(input_path, new_origin):
             'direction': direction
         })
     return output_path
+
+
+def pathfinder_to_regular_path(origin, input):
+    path = []
+    last_x, last_y = origin.x, origin.y
+    for pos in input:
+        dx = pos.x - last_x
+        dy = pos.y - last_y
+        last_x = pos.x
+        last_y = pos.y
+        path.append({
+            'x': pos.x,
+            'y': pos.y,
+            'dx': dx,
+            'dy': dy,
+            'direction': get_direction(dx, dy)
+        })
+    return path
 
 
 class CachedTrails:
@@ -235,20 +267,7 @@ class HoneyTrails:
         })
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
         # all of this to convert PathFinder results into a Room-compatible format.
-        path = []
-        last_x, last_y = origin.x, origin.y
-        for pos in result.path:
-            dx = pos.x - last_x
-            dy = pos.y - last_y
-            last_x = pos.x
-            last_y = pos.y
-            path.append({
-                'x': pos.x,
-                'y': pos.y,
-                'dx': dx,
-                'dy': dy,
-                'direction': get_direction(dx, dy)
-            })
+        path = pathfinder_to_regular_path(origin, result.path)
         if self.room.my:
             self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
         else:
