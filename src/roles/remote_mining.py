@@ -29,7 +29,7 @@ class RemoteMiner(RoleBase):
         source_flag.memory.remote_miner_targeting = self.name
 
         if not self.creep.pos.isNearTo(source_flag.pos):
-            self.move_to(source_flag)
+            self.move_to(source_flag, False, True)
             self.report(speech.remote_miner_moving)
             return False
 

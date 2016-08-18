@@ -477,8 +477,9 @@ class TargetMind:
                 continue
             # 50 per carry part, but we don't know if it's full. this is a safe compromise
             carry_targeting = (self.targets_workforce[target_tower_fill][tower.id] or 0) * 25
-            if tower.energyCapacity - tower.energy - carry_targeting > most_lacking:
-                most_lacking = tower.energyCapacity - tower.energy
+            tower_lacking = tower.energyCapacity - tower.energy - carry_targeting
+            if tower_lacking > most_lacking:
+                most_lacking = tower_lacking
                 best_id = tower.id
 
         return best_id

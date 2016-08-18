@@ -269,9 +269,9 @@ class HoneyTrails:
         # all of this to convert PathFinder results into a Room-compatible format.
         path = pathfinder_to_regular_path(origin, result.path)
         if self.room.my:
-            self.room.store_cached_property(key, Room.serializePath(path), 3000, 500)
+            self.room.store_cached_property(key, Room.serializePath(path), 20000, 200)
         else:
-            self.room.store_cached_property(key, Room.serializePath(path), 10000, 1000)
+            self.room.store_cached_property(key, Room.serializePath(path), 40000, 4000)
         return path
 
     def map_out_full_path(self, origin, destination):
