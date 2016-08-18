@@ -11,7 +11,7 @@ __pragma__('noalias', 'name')
 def delete_target(target_id):
     index = _.findIndex(Memory.hostiles, lambda t: t[0] == target_id)
     if index >= 0:
-        Memory.hosties.splice(index, 1)
+        Memory.hostiles.splice(index, 1)
     del Memory.hostile_last_rooms[target_id]
     del Memory.hostile_last_positions[target_id]
 
