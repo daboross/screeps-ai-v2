@@ -65,6 +65,7 @@ profiling.profile_whitelist(DedicatedMiner, ["run"])
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class LocalHauler(SpawnFill):
     def run(self):
+        del self.memory.emptying
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
             self.memory.last_role = role_local_hauler
@@ -154,6 +155,7 @@ class LocalHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
+            self.memory.emptying = True
             target = self.target_mind.get_new_target(self, target_closest_energy_site)
             if not target:
                 target = self.creep.room.storage  # This apparently has happened, I don't know why though?

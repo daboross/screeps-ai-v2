@@ -90,7 +90,7 @@ class Recycling(RoleBase):
         # flag to other creeps
         self.memory.emptying = True
         self.memory.harvesting = False
-        if _.sum(self.creep.carry, 'amount') > 0:
+        if _.sum(self.creep.carry) > 0:
             storage = self.home.room.storage
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):

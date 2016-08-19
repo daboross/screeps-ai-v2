@@ -222,10 +222,10 @@ def transfer_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if creep.memory.harvesting is False and creep.creep.getActiveBodyparts(WORK) < 2 and creep.creep.carry.energy > 0:
+    if creep.memory.emptying and creep.creep.carry.energy > 0:
         others = creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos)
         for other in others:
-            if other.memory.harvesting and other.getActiveBodyparts(WORK) >= 2 \
+            if other.memory.harvesting and not other.memory.emptying \
                     and _.sum(other.carry) < other.carryCapacity:
                 result = creep.creep.transfer(other, RESOURCE_ENERGY)
                 if result != OK:

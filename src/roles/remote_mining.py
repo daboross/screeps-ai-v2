@@ -69,6 +69,7 @@ profiling.profile_whitelist(RemoteMiner, ["run"])
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class RemoteHauler(SpawnFill):
     def run(self):
+        del self.memory.emptying
         source_flag = self.target_mind.get_new_target(self, target_remote_mine_hauler)
 
         # just always be running this xD
@@ -154,7 +155,7 @@ class RemoteHauler(SpawnFill):
                     else:
                         self.go_to_depot()
                         return False
-                if _.sum(self.creep.carry, 'amount') / self.creep.carryCapacity >= 0.75:
+                if _.sum(self.creep.carry) / self.creep.carryCapacity >= 0.75:
                     self.memory.harvesting = False
                     if self.creep.pos.roomName == source_flag.pos.roomName:
                         self.last_checkpoint = source_flag  # follow the reverse path back
@@ -199,6 +200,7 @@ class RemoteHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
+            self.memory.emptying = True
             if self.creep.pos.roomName != storage.pos.roomName:
                 self.move_to(storage, False, True)
                 self.report(speech.remote_hauler_moving_to_storage)

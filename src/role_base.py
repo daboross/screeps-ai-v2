@@ -526,13 +526,13 @@ class RoleBase:
                 self.go_to_depot()
 
     def empty_to_storage(self):
-        total = _.sum(self.creep.carry, 'amount')
+        total = _.sum(self.creep.carry)
         if total > 0:
             storage = self.home.room.storage
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):
                     for rtype in Object.keys(self.creep.carry):
-                        if self.creep.carry[rtype].amount > 0:
+                        if self.creep.carry[rtype] > 0:
                             result = self.creep.transfer(storage, rtype)
                             if result == OK:
                                 break
