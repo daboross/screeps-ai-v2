@@ -233,6 +233,18 @@ def transfer_check(creep):
                 return True
 
 
+def pickup_check(creep):
+    """
+    :type creep: role_base.RoleBase
+    """
+    if not creep.memory.emptying and creep.creep.carry < creep.creep.carryCapacity:
+        energy = creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, creep.creep.pos)
+        if len(energy) > 0:
+            if len(energy) > 1:
+                energy = _.sortBy(energy, lambda e: e.amount)
+            creep.creep.pickup(energy[0])
+
+
 transfer_check = profiling.profiled(transfer_check, "autoactions.transfer_check")
 
 
@@ -247,8 +259,8 @@ def instinct_check(creep):
         return False
     if run_away_check(creep):
         return True
-    if transfer_check(creep):
-        return True
+    pickup_check(creep)
+    transfer_check(creep)
     return False
 
 
