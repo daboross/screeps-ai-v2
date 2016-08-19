@@ -27,7 +27,7 @@ def main():
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
-    bucket_tier = int(math.floor((Game.cpu.bucket - 1) / 1000))  # -1 so we don't count max bucket as a separate teir
+    bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate teir
     if bucket_tier != Memory.meta.last_bucket:
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
@@ -47,7 +47,7 @@ def main():
                 del Memory.meta.waiting_for_bucket
             else:
                 print("[paused] Bucket accumulated: {} (used loading code: {})".format(Game.cpu.bucket,
-                                                                                       int(Game.cpu.getUsed())))
+                                                                                       math.floor(Game.cpu.getUsed())))
         elif Game.cpu.bucket <= 5000:
             Memory.meta.waiting_for_bucket = True
         return
@@ -158,7 +158,7 @@ def main():
         skipped_count += len(creeps_skipped[room_name])
     if skipped_count:
         print("[main] Skipped {}/{} creeps, to save CPU.".format(skipped_count, total_creeps))
-        print("[main] Total CPU used: {}. Bucket: {}.".format(int(Game.cpu.getUsed()), Game.cpu.bucket))
+        print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
         Memory.skipped_last_turn = creeps_skipped
 
     for name in Object.keys(Game.spawns):

@@ -1138,7 +1138,7 @@ class RoomMind:
                 total_energy = 0
                 for pile in piles:
                     total_energy += pile.amount
-                self._target_cleanup_mass = int(math.floor(total_energy / 200.0))
+                self._target_cleanup_mass = math.floor(total_energy / 200.0)
             else:
                 self._target_cleanup_mass = 0
 
