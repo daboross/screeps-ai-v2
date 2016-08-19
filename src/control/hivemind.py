@@ -197,7 +197,7 @@ _extra_work_mass_per_big_miner = 10
 
 _min_energy_pause_remote_mining = 950000
 _max_energy_resume_remote_mining = 700000
-_min_work_mass_for_full_storage_use = 35
+_min_work_mass_per_source_for_full_storage_use = 15
 
 _min_energy_enable_full_storage_use = 10000
 _max_energy_disable_full_storage_use = 5000
@@ -882,7 +882,8 @@ class RoomMind:
         :rtype: bool
         """
         if self._trying_to_get_full_storage_use is None:
-            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_for_full_storage_use \
+            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_per_source_for_full_storage_use \
+                                                                     * len(self.sources) \
                                                    and self.are_all_big_miners_placed \
                                                    and self.room.storage
         return self._trying_to_get_full_storage_use
