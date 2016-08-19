@@ -14,8 +14,8 @@ def pathfinder_enemy_array_for_room(room_name):
 
     enemy_positions = []
 
-    for hostile, room_name, pos, owner in Memory.hostiles:
-        dx, dy = movement.inter_room_difference(room_name, room_name)
+    for hostile, hostile_room, pos, owner in Memory.hostiles:
+        dx, dy = movement.inter_room_difference(hostile_room, room_name)
         if abs(dx) <= 1 and abs(dy) <= 1:
             if owner == "Source Keeper":
                 enemy_range = 5
