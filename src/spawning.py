@@ -127,7 +127,7 @@ def run(room, spawn):
             descriptive_level = num_move
     elif base is creep_base_reserving:
         parts = []
-        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections - 1):
             parts.append(MOVE)
         for i in range(0, num_sections):
@@ -136,7 +136,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_hauler:
         parts = []
-        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections):
@@ -144,7 +144,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_full_move_hauler:
         parts = []
-        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections):
@@ -154,7 +154,7 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_half_move_hauler:
         parts = []
-        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections * 2):
@@ -165,7 +165,7 @@ def run(room, spawn):
     elif base is creep_base_worker:
         if energy >= 500:
             parts = []
-            num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+            num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
             for i in range(0, num_sections * 2 - 1):
                 parts.append(MOVE)
             for i in range(0, num_sections):
@@ -186,7 +186,7 @@ def run(room, spawn):
         parts = []
         # # MOVE, MOVE, ATTACK, TOUCH = one section = 190
         # MOVE, ATTACK, CARRY = one section = 180
-        num_sections = min(max_sections_of(room.room, base), room.get_max_sections_for_role(role))
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections - 1):
@@ -294,6 +294,8 @@ def run(room, spawn):
     result = spawn.createCreep(parts, name, memory)
     if result not in Game.creeps:
         print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
+        if result == ERR_NOT_ENOUGH_RESOURCES:
+            print("[{}][spawning] Couldn't create body {} with energy {}!".format(room.room_name, parts, energy))
     else:
         if replacing:
             room.register_new_replacing_creep(role, replacing, result)
@@ -355,9 +357,12 @@ def initial_section_cost(base):
 
 
 def max_sections_of(room, base):
-    if room.room:
-        room = room.room
-    max_by_cost = floor((room.energyCapacityAvailable - initial_section_cost(base)) / energy_per_section(base))
+    # TODO: this is duplicated in run()
+    if room.role_count(role_spawn_fill) < 3 and room.room.energyAvailable >= max(150 * room.work_mass, 250):
+        energy = room.room.energyAvailable
+    else:
+        energy = room.room.energyCapacityAvailable
+    max_by_cost = floor((energy - initial_section_cost(base)) / energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
     max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
     return min(max_by_cost, max_by_parts)

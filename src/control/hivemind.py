@@ -1098,7 +1098,7 @@ class RoomMind:
                 # Previously, we grew bodies dynamically and maxed out at 5 carry per creep.
                 # TODO: this should be replaced with a calculation taking in path distance from each source to
                 # the storage and hauler capacity.
-                carry_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_hauler))
+                carry_max_5 = min(5, spawning.max_sections_of(self, creep_base_hauler))
                 total_mass = math.ceil(self.get_target_local_miner_count() * 1.5 * carry_max_5)
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
@@ -1171,7 +1171,7 @@ class RoomMind:
         return self._first_simple_target_defender_count if first else self._target_defender_count
 
     def get_target_colonist_work_mass(self):
-        work_max_10 = min(10, spawning.max_sections_of(self.room, creep_base_worker))
+        work_max_10 = min(10, spawning.max_sections_of(self, creep_base_worker))
         if not self._target_colonist_count:
             needed = 0
             for room in self.subsidiaries:
@@ -1180,7 +1180,7 @@ class RoomMind:
         return self._target_colonist_count
 
     def get_target_spawn_fill_backup_work_mass(self):
-        work_max_5 = min(5, spawning.max_sections_of(self.room, creep_base_worker))
+        work_max_5 = min(5, spawning.max_sections_of(self, creep_base_worker))
         # TODO: 7 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed or self.work_mass > 8:
             if self.full_storage_use and (self.are_all_big_miners_placed or self.work_mass > 25):
@@ -1200,10 +1200,10 @@ class RoomMind:
                 total_needed = 3 + len(self.sources) + len(_.filter(
                     self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
                 # print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
-                max_mass_per_creep = spawning.max_sections_of(self.room, creep_base_hauler)
+                max_mass_per_creep = spawning.max_sections_of(self, creep_base_hauler)
                 total_mass = min(5, max_mass_per_creep) * total_needed
             else:
-                total_mass = min(5 * spawning.max_sections_of(self.room, creep_base_hauler),
+                total_mass = min(5 * spawning.max_sections_of(self, creep_base_hauler),
                                  3 * self.room.controller.level * len(self.sources))
             regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
             if self.trying_to_get_full_storage_use:
@@ -1230,23 +1230,23 @@ class RoomMind:
         elif self.mining_ops_paused():
             # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
             # 5 work per creep.
-            return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self.room, creep_base_worker))
+            return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self, creep_base_worker))
         elif first:
             if len(self.building.next_priority_construction_targets()) or \
                     len(self.building.next_priority_repair_targets()):
-                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self.room, creep_base_worker))
+                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
             else:
                 return 0
         else:
-            return 2 * len(self.sources) * min(8, spawning.max_sections_of(self.room, creep_base_worker))
+            return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
 
     def get_target_upgrader_work_mass(self):
         if self.upgrading_paused():
             wm = 1
         elif self.mining_ops_paused():
-            wm = spawning.max_sections_of(self.room, creep_base_worker) * 4
+            wm = spawning.max_sections_of(self, creep_base_worker) * 4
         else:
-            wm = min(2 + self.room.controller.level, spawning.max_sections_of(self.room, creep_base_worker))
+            wm = min(2 + self.room.controller.level, spawning.max_sections_of(self, creep_base_worker))
         if self.full_storage_use and self.room.storage.store.energy > 700000:
             wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
         return wm
@@ -1257,7 +1257,7 @@ class RoomMind:
             if s.structureType == STRUCTURE_TOWER:
                 # TODO: cache max_parts_on? called a ton in this method and other get_target_*_mass methods.
                 # but we probably shouldn't since it's mostly a hack to emulate spawning 5-section creeps anyways?
-                mass += min(5, spawning.max_sections_of(self.room, creep_base_hauler)) * 0.75
+                mass += min(5, spawning.max_sections_of(self, creep_base_hauler)) * 0.75
         return math.ceil(mass)
 
     def get_target_simple_claim_count(self):
@@ -1311,13 +1311,13 @@ class RoomMind:
 
     def get_new_remote_hauler_num_sections(self):
         if self.all_paved():
-            return min(spawning.max_sections_of(self.room, creep_base_work_half_move_hauler),
+            return min(spawning.max_sections_of(self, creep_base_work_half_move_hauler),
                        math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner) / 2.0) + 3)
         elif self.paving():
-            return min(spawning.max_sections_of(self.room, creep_base_work_full_move_hauler),
+            return min(spawning.max_sections_of(self, creep_base_work_full_move_hauler),
                        math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
         else:
-            return min(spawning.max_sections_of(self.room, creep_base_hauler),
+            return min(spawning.max_sections_of(self, creep_base_hauler),
                        math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
 
     def get_target_td_healer_count(self):
@@ -1424,49 +1424,49 @@ class RoomMind:
                 self.get_target_spawn_fill_backup_work_mass,
             role_link_manager:
                 lambda: min(self.get_target_link_manager_count() * 8,
-                            spawning.max_sections_of(self.room, creep_base_hauler)),
+                            spawning.max_sections_of(self, creep_base_hauler)),
             role_dedi_miner:
                 lambda: None,  # non-dynamic completely
             role_cleanup:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
-                                      min(10, spawning.max_sections_of(self.room, creep_base_hauler)))),
+                                      min(10, spawning.max_sections_of(self, creep_base_hauler)))),
             role_spawn_fill:
                 self.get_target_spawn_fill_mass,
             role_tower_fill:
             # Tower fillers are basically specialized spawn fillers.
-                lambda: min(spawning.max_sections_of(self.room, creep_base_hauler),
+                lambda: min(spawning.max_sections_of(self, creep_base_hauler),
                             max(self.get_target_tower_fill_mass(), self.get_target_spawn_fill_mass() / 2)),
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
                 self.get_target_upgrader_work_mass,
             role_defender:
-                lambda: self.get_target_simple_defender_count() * min(6, spawning.max_sections_of(self.room,
+                lambda: self.get_target_simple_defender_count() * min(6, spawning.max_sections_of(self,
                                                                                                   creep_base_defender)),
             role_remote_hauler:
                 self.get_new_remote_hauler_num_sections,
             role_remote_miner:
-                lambda: min(5, spawning.max_sections_of(self.room, creep_base_full_miner)),
+                lambda: min(5, spawning.max_sections_of(self, creep_base_full_miner)),
             role_remote_mining_reserve:
-                lambda: min(2, spawning.max_sections_of(self.room, creep_base_reserving)),
+                lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_simple_claim:
                 lambda: 1,
             role_room_reserve:
-                lambda: min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
+                lambda: min(5, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
-                lambda: min(10, spawning.max_sections_of(self.room, creep_base_worker)),
+                lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
             role_builder:
                 lambda: self.get_target_builder_work_mass(),
             role_mineral_miner:
                 lambda: None,  # fully dynamic
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral
-                lambda: spawning.max_sections_of(self.room, creep_base_hauler),
+                lambda: spawning.max_sections_of(self, creep_base_hauler),
             role_td_goad:
-                lambda: spawning.max_sections_of(self.room, creep_base_goader),
+                lambda: spawning.max_sections_of(self, creep_base_goader),
             role_td_healer:
-                lambda: spawning.max_sections_of(self.room, creep_base_half_move_healer),
+                lambda: spawning.max_sections_of(self, creep_base_half_move_healer),
             role_simple_dismantle:
-                lambda: spawning.max_sections_of(self.room, creep_base_dismantler),
+                lambda: spawning.max_sections_of(self, creep_base_dismantler),
         }
         if role in max_mass:
             return max_mass[role]()

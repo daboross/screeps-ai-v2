@@ -178,6 +178,7 @@ __pragma__('js', 'global').py = {
     "hivemind": hivemind,
     "flags": flags,
     "constants": constants,
+    "spawning": spawning,
     "get_room": lambda name: context.hive().get_room(name)
 }
 
