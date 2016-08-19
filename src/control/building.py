@@ -41,8 +41,9 @@ class ConstructionMind:
         if big_targets:
             max_hits = self.room.max_sane_wall_hits
             i = 0
-            while i <= len(big_targets):
-                if big_targets[i].hits >= max_hits:
+            while i < len(big_targets):
+                target = Game.getObjectById(big_targets[i])
+                if not target or target.hits >= min(target.hitsMax, max_hits):
                     big_targets.splice(i, 1)
                 else:
                     i += 1
@@ -202,10 +203,12 @@ class ConstructionMind:
         # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
         max_hits = self.room.max_sane_wall_hits
 
-        target_list = _.sortBy(
-            _.filter(self.room.find(FIND_STRUCTURES), lambda s: (s.my or not s.owner) and s.hits < max_hits),
-            lambda s: s.hits
-        )
+        target_list = []
+
+        for struct in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES),
+                                        lambda s: (s.my or not s.owner) and s.hits < min(s.hitsMax, max_hits)),
+                               lambda s: s.hits):
+            target_list.append(struct.id)
 
         self.room.store_cached_property("big_repair_targets", target_list, 200)
         return target_list

@@ -1233,7 +1233,8 @@ class RoomMind:
             return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self, creep_base_worker))
         elif first:
             if len(self.building.next_priority_construction_targets()) or \
-                    len(self.building.next_priority_repair_targets()):
+                    len(self.building.next_priority_repair_targets()) or \
+                    len(self.building.next_priority_big_repair_targets()):
                 return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
             else:
                 return 0

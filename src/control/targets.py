@@ -456,15 +456,17 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_big_repair_site(self, creep):
+    def _find_new_big_repair_site(self, creep, max_hits):
         """
         :type creep: role_base.RoleBase
         """
-        for struct_id in creep.home.building.next_priority_repair_targets():
-            current_num = self.targets[target_big_repair][struct_id]
-            if not current_num or current_num < 1:
-                # List is already in priority.
-                return struct_id
+        for struct_id in creep.home.building.next_priority_big_repair_targets():
+            struct =  Game.getObjectById(struct_id)
+            if struct and struct.hits < max_hits:
+                current_num = self.targets[target_big_repair][struct_id]
+                if not current_num or current_num < 1:
+                    # List is already in priority.
+                    return struct_id
 
     def _find_new_tower(self, creep):
         """
