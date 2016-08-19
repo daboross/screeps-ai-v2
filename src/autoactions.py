@@ -181,12 +181,14 @@ def run_away_check(creep):
     if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK):
         return False  # we're a defender, defenders don't run away!
 
-    if not creep.creep.getActiveBodyparts(MOVE) or creep.creep.fatigue >= 0:  # if we can't move, we won't move.
+    if not creep.creep.getActiveBodyparts(MOVE) or creep.creep.fatigue > 0:  # if we can't move, we won't move.
         instinct_do_heal(creep)
         instinct_do_attack(creep)
-        return True
+        return False
 
-    for target, target_range in hostile_path_targets:
+    for obj in hostile_path_targets:
+        target = obj.pos
+        target_range = obj.range
         if not movement.squared_distance(target, creep.creep.pos) > target_range * target_range:
             break
     else:
@@ -201,7 +203,7 @@ def run_away_check(creep):
         if creep.creep.getActiveBodyparts(ATTACK):
             instinct_do_attack(creep)
         result = creep.creep.moveByPath(path)
-        if result == ERR_NO_PATH:
+        if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
             del creep.memory._away_path
             path = get_cached_away_path(creep, hostile_path_targets)
             result = creep.creep.moveByPath(path)
@@ -241,6 +243,8 @@ def instinct_check(creep):
     :param creep: Creep to perform an instinct check on.
     :return: True of instinct has taken effect and creep should not run it's original function.
     """
+    if creep.creep.spawning:
+        return False
     if run_away_check(creep):
         return True
     if transfer_check(creep):
