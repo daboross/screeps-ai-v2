@@ -125,8 +125,10 @@ class LocalHauler(SpawnFill):
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
             if not len(piles):
-                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos),
-                          {"memory": {"role": role_dedi_miner}}):
+                # TODO: temporary hack...
+                miner_near = _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos),
+                          {"memory": {"role": role_dedi_miner}})
+                if miner_near and not miner_near.pos.isNearTo(source.pos):
                     self.go_to_depot()
                     return False
                 if not miner:
@@ -180,8 +182,8 @@ class LocalHauler(SpawnFill):
             elif result == ERR_FULL:
                 if target == storage:
                     self.log("Storage in {} full!".format(self.creep.pos.roomName))
-                self.go_to_depot()
-                self.report(speech.local_hauler_storage_full)
+                    self.go_to_depot()
+                    self.report(speech.local_hauler_storage_full)
             else:
                 self.log("Unknown result from hauler-creep.transfer({}): {}", target, result)
                 self.report(speech.local_hauler_transfer_unknown_result)
