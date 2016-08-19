@@ -121,7 +121,7 @@ def __check_new_flags():
     global _closest_flag_refresh_time, _closest_flag_cache
     if _last_checked_flag_len < Game.time:
         length = Object.keys(Game.flags).length
-        if _last_flag_len < length:
+        if _last_flag_len != length:
             # TODO: make 50 here a constant, to agree with refresh times set below
             refresh_time = Game.time + 50
             _room_flag_cache = new_map()
