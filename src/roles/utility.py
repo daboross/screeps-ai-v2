@@ -75,6 +75,8 @@ class LinkManager(RoleBase):
 
         if not amount or amount > self.creep.carryCapacity / 2:
             amount = self.creep.carryCapacity / 2
+        if amount > link.energyCapacity - link.energy:
+            amount = link.energyCapacity - link.energy
 
         self.ensure_ok(self.creep.transfer(link, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
         self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
@@ -85,6 +87,8 @@ class LinkManager(RoleBase):
 
         if not amount or amount > self.creep.carryCapacity / 2:
             amount = self.creep.carryCapacity / 2
+        if amount > link.energy:
+            amount = link.energy
 
         self.ensure_ok(self.creep.withdraw(link, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
         self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)

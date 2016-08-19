@@ -111,14 +111,17 @@ class LinkingMind:
                     energy_sending = link.energy - now_withdrawing
                     send_to_main.append((link, energy_sending))
                     sending_to_main += energy_sending
-                elif future_energy > link.energyCapacity * 0.5 and now_withdrawing < min(link.energy,
-                                                                                         link.energyCapacity * 0.5):
+                elif future_energy < 0:
+                    needed = min(link.energyCapacity - link.energy, -future_energy)
+                    send_from_main.append((link, needed))
+                    taking_from_main += needed
+                elif future_energy > link.energyCapacity * 0.5 and now_withdrawing <= 0:
                     new_energy = future_energy - now_withdrawing
-                    if new_energy > link.energyCapacity * 0.5:
+                    if future_energy > link.energyCapacity * 0.8:
                         energy_sending = min(link.energy, new_energy - link.energyCapacity * 0.5)
                         send_to_main.append((link, energy_sending))
                         sending_to_main += energy_sending
-                    else:
+                    elif future_energy < link.energyCapacity * 0.2:
                         energy_recv = min(link.energyCapacity - link.energy, link.energy * 0.5 - new_energy)
                         send_from_main.append((link, energy_recv))
                         taking_from_main += energy_recv
@@ -156,17 +159,12 @@ class LinkingMind:
 
         if taking_from_main and main_ready_to_send:
             send_from_main.sort(lambda t: -t[1])
-            if main_link.energy < taking_from_main:
-                sending = min(main_link.energy, send_from_main[0][1])
-                # TODO: should this statement use sending?
-                energy_needed_in_main = min(taking_from_main, main_link.energyCapacity) - main_link.energy
-                new_main_energy -= main_link.energy
-            else:
-                sending = send_from_main[0][1]
-                # TODO: is this the right thing to do?
-                energy_needed_in_main = min(taking_from_main - sending, main_link.energyCapacity - main_link.enery)
-                new_main_energy -= sending
-            main_link.transferEnergy(send_from_main[0][0], sending)
+            sending_this_tick = min(send_from_main[0][1], main_link.energy)
+            # TODO: is this the right thing to do?
+            energy_needed_in_main = min(main_link.energy - sending_this_tick - (taking_from_main - sending_this_tick),
+                                        main_link.energyCapacity - main_link.energy)
+            new_main_energy -= sending_this_tick
+            main_link.transferEnergy(send_from_main[0][0], sending_this_tick)
         else:
             if taking_from_main and len(send_to_main) <= 1:
                 energy_needed_in_main = main_link.energyCapacity - main_link.energy
@@ -180,6 +178,10 @@ class LinkingMind:
         # pickups?
         # print("[links] Ideal diff: {}".format(ideal_diff))
         if ideal_diff < 0:
+            if main_link.energy == 0:
+                print("[{}][links] Ideal diff found to be below main link energy!"
+                      "needed: {}, space needed: {}, ideal diff: {}".format(self.room.room_name, energy_needed_in_main,
+                                                                            space_needed_in_main, ideal_diff))
             # we should be emptying the main link
             self.link_creep.send_from_link(-ideal_diff)
         elif ideal_diff > 0:
