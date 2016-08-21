@@ -135,7 +135,7 @@ def get_cached_away_path(creep, targets):
         return Room.deserializePath(creep.memory._away_path.path)
     else:
         path = get_path_away(creep.creep.pos, targets)
-        creep.memory._away_path = {"reset": Game.time + 3, "path": Room.serializePath(path)}
+        creep.memory._away_path = {"reset": Game.time + 10, "path": Room.serializePath(path)}
         return path
 
 
@@ -143,6 +143,8 @@ def instinct_do_heal(creep):
     """
     :type creep: role_base.RoleBase
     """
+    if not creep.creep.getActiveBodyparts(HEAL):
+        return
     damaged = None
     most_damage = 0
     for ally in creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos):
@@ -160,6 +162,8 @@ def instinct_do_attack(creep):
     """
     :type creep: role_base.RoleBase
     """
+    if not creep.creep.getActiveBodyparts(ATTACK):
+        return
     damaged = None
     most_damage = 0
     for enemy in creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos):
@@ -193,7 +197,7 @@ def run_away_check(creep):
             break
     else:
         # No targets in range, no need to do anything
-        return False
+        return True  # Still cancel creep actions, so as not to do back-and-forth.
 
     path = get_cached_away_path(creep, hostile_path_targets)
 
@@ -204,9 +208,12 @@ def run_away_check(creep):
             instinct_do_attack(creep)
         result = creep.creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
-            del creep.memory._away_path
-            path = get_cached_away_path(creep, hostile_path_targets)
-            result = creep.creep.moveByPath(path)
+            # del creep.memory._away_path
+            # path = get_cached_away_path(creep, hostile_path_targets)
+            # result = creep.creep.moveByPath(path)
+            # I had the above enabled previously, and I don't think it really helped any... the ERR_NOT_FOUND would just
+            # happen with the newly-generated path too.
+            return True
         if result != OK:
             creep.log("Unknown result from moving when running away: {}".format(result))
         return True
