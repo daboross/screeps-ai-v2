@@ -77,7 +77,7 @@ class RemoteHauler(SpawnFill):
 
         if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.harvesting = False
-            self.target_mind.untarget_all(self)
+            self.target_mind.untarget(self, target_closest_energy_site)
 
         if not self.memory.harvesting and self.creep.carry.energy <= 0:
             if source_flag and self.creep.ticksToLive < 2.2 * self.home.distance_storage_to_mine(source_flag):
@@ -85,11 +85,10 @@ class RemoteHauler(SpawnFill):
                 self.memory.last_role = role_remote_hauler
                 return False
             self.memory.harvesting = True
-            self.target_mind.untarget_all(self)
 
         if self.memory.harvesting:
             if not source_flag:
-                self.target_mind.untarget_all(self)
+                # self.target_mind.untarget_all(self)
                 # TODO: Re-enable after we get auto-respawning things *before* they die
                 # self.log("Remote hauler can't find any sources!")
                 if self.creep.carry.energy > 0:
@@ -145,7 +144,8 @@ class RemoteHauler(SpawnFill):
 
             self.pick_up_available_energy()
             if not self.creep.pos.isNearTo(source_flag) and not self.creep.pos.isNearTo(target_pos):
-                if miner and not miner.memory.stationary and target_pos.roomName == miner.pos.roomName:
+                if (miner and not miner.memory.stationary and target_pos.roomName == miner.pos.roomName) \
+                        and source_flag.memory.energy_sitting < 200:
                     self.memory.go_to_depot_until = Game.time + 20
                     self.go_to_depot()
                     return False
@@ -155,7 +155,8 @@ class RemoteHauler(SpawnFill):
                     else:
                         self.go_to_depot()
                         return False
-                if _.sum(self.creep.carry) / self.creep.carryCapacity >= 0.75:
+                # TODO: based 0.5 on how far away from the mine we are.
+                if _.sum(self.creep.carry) / self.creep.carryCapacity >= 0.5:
                     self.memory.harvesting = False
                     if self.creep.pos.roomName == source_flag.pos.roomName:
                         self.last_checkpoint = source_flag  # follow the reverse path back
@@ -200,7 +201,8 @@ class RemoteHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
-            self.memory.emptying = True
+            # TODO: after we get *only transfers to creeps closer to storage working*, we can re-enable this
+            # self.memory.emptying = True
             if self.creep.pos.roomName != storage.pos.roomName:
                 self.move_to(storage, False, True)
                 self.report(speech.remote_hauler_moving_to_storage)
@@ -230,17 +232,14 @@ class RemoteHauler(SpawnFill):
             result = self.creep.transfer(target, RESOURCE_ENERGY)
             if result == OK:
                 self.report(speech.remote_hauler_transfer_ok)
-            elif result == ERR_FULL:
-                if target == storage:
-                    self.log("Storage in {} full!".format(self.creep.pos.roomName))
-                self.go_to_depot()
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.harvesting = True
                 return True
             elif result == ERR_FULL:
-                # self.log("{} in room {} full!", target, target.pos.roomName)
-                # self.go_to_depot()
-                self.report(speech.remote_hauler_storage_full)
+                if target == storage:
+                    self.log("Storage in {} full!".format(self.creep.pos.roomName))
+                    self.go_to_depot()
+                    self.report(speech.remote_hauler_storage_full)
             else:
                 self.log("Unknown result from hauler-creep.transfer({}): {}", target, result)
                 self.report(speech.remote_hauler_transfer_unknown_result)

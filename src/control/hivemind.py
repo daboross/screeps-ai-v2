@@ -272,6 +272,7 @@ class RoomMind:
         self._target_td_healer_count = None
         self._target_td_goader_count = None
         self._target_simple_dismantler_count = None
+        self._target_remote_hauler_count = None
         self._max_sane_wall_hits = None
         self._spawns = None
         self.my = room.controller and room.controller.my
@@ -1022,10 +1023,10 @@ class RoomMind:
             if max_via_state > 0 and not self.mining_ops_paused():
                 max_via_plan = len(self.remote_mining_operations)
 
-                if self.get_target_remote_hauler_mass() * 0.8 < self.role_count("remote_hauler"):
-                    max_via_haulers = self.role_count(role_remote_miner)
+                if self.carry_mass_of(role_remote_hauler) >= self.get_target_remote_hauler_mass():
+                    max_via_haulers = self.role_count(role_remote_miner) + 2
                 else:
-                    max_via_haulers = self.role_count(role_remote_miner) + 1
+                    max_via_haulers = self.role_count(role_remote_miner)
 
                 self._target_remote_mining_operation_count = min(max_via_state, max_via_plan, max_via_haulers)
             else:
@@ -1037,13 +1038,26 @@ class RoomMind:
         :rtype: int
         """
         if self._target_remote_hauler_carry_mass is None:
-            total_mass = 0
+            needed_ops = 0
+            biggest_op_mass_needed = 0  # TODO: this should be eventually replaced with spawning hauler specific to the mine.
             if self.get_max_mining_op_count():
                 for flag in self.remote_mining_operations:
                     if flag.memory.remote_miner_targeting or flag.memory.sitting > 500:
-                        total_mass += get_carry_mass_for_remote_mine(self, flag)
-            self._target_remote_hauler_carry_mass = total_mass
+                        needed_ops += 1
+                    mass_for_op = get_carry_mass_for_remote_mine(self, flag)
+                    if mass_for_op > biggest_op_mass_needed:
+                        biggest_op_mass_needed = mass_for_op
+            self._target_remote_hauler_carry_mass = needed_ops * biggest_op_mass_needed
+            self._target_remote_hauler_count = needed_ops
         return self._target_remote_hauler_carry_mass
+
+    def get_target_remote_hauler_count(self):
+        """
+        :rtype int
+        """
+        if self._target_remote_hauler_count is None:
+            self.get_target_remote_hauler_mass()
+        return self._target_remote_hauler_count
 
     def get_target_remote_reserve_count(self, first):
         """
@@ -1325,14 +1339,25 @@ class RoomMind:
 
     def get_new_remote_hauler_num_sections(self):
         if self.all_paved():
-            return min(spawning.max_sections_of(self, creep_base_work_half_move_hauler),
-                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner) / 2.0) + 3)
+            biggest_mass = spawning.max_sections_of(self, creep_base_work_half_move_hauler)
         elif self.paving():
-            return min(spawning.max_sections_of(self, creep_base_work_full_move_hauler),
-                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
+            biggest_mass = spawning.max_sections_of(self, creep_base_work_full_move_hauler)
         else:
-            return min(spawning.max_sections_of(self, creep_base_hauler),
-                       math.ceil(self.get_target_remote_hauler_mass() / self.role_count(role_remote_miner)))
+            biggest_mass = spawning.max_sections_of(self, creep_base_hauler)
+        needed = self.get_target_remote_hauler_mass() / self.get_target_remote_hauler_count()
+        if needed > biggest_mass:
+            if math.ceil(needed / 2) > biggest_mass:
+                if math.ceil(needed / 3) > biggest_mass:
+                    if math.ceil(needed / 4) > biggest_mass:
+                        return biggest_mass
+                    else:
+                        return math.ceil(needed / 4)
+                else:
+                    return math.ceil(needed / 3)
+            else:
+                return math.ceil(needed / 2)
+        else:
+            return needed
 
     def get_target_td_healer_count(self):
         if self._target_td_healer_count is None:
