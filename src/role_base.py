@@ -1,4 +1,5 @@
 import math
+import random
 
 import context
 import flags
@@ -363,6 +364,10 @@ class RoleBase:
             elif result == ERR_NOT_ENOUGH_RESOURCES:
                 if target == storage:
                     self.log("Storage empty in {}!".format(target.pos.roomName))
+                else:
+                    # in case there are remote miners waiting to deposit here
+                    # TODO: make this also not move away from the target, and only move to a free space.
+                    self.creep.move(random.randint(1, 9))
             else:
                 self.log("Unknown result from creep.withdraw({}): {}", target, result)
                 self.report(speech.default_gather_unknown_result_withdraw)
@@ -532,6 +537,7 @@ class RoleBase:
     def empty_to_storage(self):
         total = _.sum(self.creep.carry)
         if total > 0:
+            self.creep.say("Emptying", True)
             storage = self.home.room.storage
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):

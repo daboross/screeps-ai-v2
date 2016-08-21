@@ -1470,11 +1470,10 @@ class RoomMind:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self, creep_base_hauler)))),
             role_spawn_fill:
-                self.get_target_spawn_fill_mass,
+                lambda: math.ceil(self.get_target_spawn_fill_mass() / 2),
             role_tower_fill:
             # Tower fillers are basically specialized spawn fillers.
-                lambda: min(spawning.max_sections_of(self, creep_base_hauler),
-                            max(self.get_target_tower_fill_mass(), self.get_target_spawn_fill_mass() / 2)),
+                lambda: max(self.get_target_tower_fill_mass(), math.ceil(self.get_target_spawn_fill_mass() / 2)),
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
