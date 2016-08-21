@@ -565,27 +565,30 @@ class TargetMind:
         # TODO: this really needs to be some kind of thing merged into RoomMind!
         max_reservable = 2 if Game.rooms[creep.memory.home].energyCapacityAvailable < 1300 else 1
         for flag in creep.home.remote_mining_operations:
-            # TODO: should we only target already-mined rooms?
-            if Game.rooms[flag.pos.roomName]:
+            flag_id = "flag-{}".format(flag.name)
+            current_reservers = self.targets[target_remote_reserve][flag_id]
+            room = Game.rooms[flag.pos.roomName]
+            if room:
                 # must have a remote miner targeting, and be a room we have a view into.
-                controller = Game.rooms[flag.pos.roomName].controller
-                current_reservers = self.targets[target_remote_reserve][controller.id]
-                if current_reservers >= max_reservable:  # TODO: should this be a constant, or is 2 a good small number?
-                    continue  # max is 2
+                controller = room.controller
                 if controller.my or (controller.reservation
                                      and controller.reservation.username != creep.creep.owner.username):
                     continue
-                # Dispatch logic is to send 2 reservers to controllers with ticksToEnd < 4000, and 1 reserver to all
-                # others.
-                if not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
-                    # Ok, it's a controller we can reserve
-                    controller_id = controller.id
-                    distance = movement.distance_squared_room_pos(controller.pos, creep.creep.pos)
-                    if not flag.memory.remote_miner_targeting:
-                        distance += 10000  # Choose an already targeted mine if possible!
-                    if distance < closest_room:
-                        closest_room = distance
-                        best_id = controller_id
+            if current_reservers >= max_reservable:
+                continue
+            # Dispatch logic is to send 2 reservers to controllers with ticksToEnd < 4000, and 1 reserver to all
+            # others.
+            if not room or not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
+                # Ok, it's a controller we can reserve
+                controller_id = controller.id
+                distance = movement.distance_squared_room_pos(controller.pos, creep.creep.pos)
+                if not flag.memory.remote_miner_targeting:
+                    distance += 500  # Choose an already targeted mine if possible!
+                if not room:
+                    distance += 500  # Choose an already operating mine if possible!
+                if distance < closest_room:
+                    closest_room = distance
+                    best_id = controller_id
 
         return best_id
 

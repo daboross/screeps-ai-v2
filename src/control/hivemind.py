@@ -81,7 +81,7 @@ class HiveMind:
                 for subsidiary in sponsoring[sponsor_name]:
                     sponsor.subsidiaries.push(subsidiary)
             self._my_rooms = my_rooms
-            self._all_rooms = all_rooms
+            self._all_rooms = _.sortBy(all_rooms, 'room_name')
         return self._my_rooms
 
     def find_visible_rooms(self):
