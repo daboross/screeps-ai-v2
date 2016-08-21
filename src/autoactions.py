@@ -244,7 +244,7 @@ def pickup_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if not creep.memory.emptying and creep.creep.carry < creep.creep.carryCapacity:
+    if not creep.memory.emptying and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
         energy = creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, creep.creep.pos)
         if len(energy) > 0:
             if len(energy) > 1:
