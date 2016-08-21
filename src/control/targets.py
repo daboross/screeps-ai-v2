@@ -444,15 +444,17 @@ class TargetMind:
         best_id = None
         for struct_id in creep.home.building.next_priority_repair_targets():
             structure = Game.getObjectById(struct_id)
-            current_workforce = self.targets_workforce[target_repair][struct_id]
-            if not current_workforce or current_workforce < min(
-                    _MAX_REPAIR_WORKFORCE, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50)) \
-                    or current_workforce < smallest_num_builders + 1:
-                distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-                if distance < closest_distance:
-                    smallest_num_builders = current_workforce
-                    closest_distance = distance
-                    best_id = struct_id
+            if structure and structure.hits < min(max_hits, structure.hitsMax):
+                current_workforce = self.targets_workforce[target_repair][struct_id]
+                if not current_workforce or current_workforce < min(
+                        _MAX_REPAIR_WORKFORCE,
+                        math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50)) \
+                        or current_workforce < smallest_num_builders + 1:
+                    distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+                    if distance < closest_distance:
+                        smallest_num_builders = current_workforce
+                        closest_distance = distance
+                        best_id = struct_id
 
         return best_id
 
@@ -461,8 +463,8 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         for struct_id in creep.home.building.next_priority_big_repair_targets():
-            struct =  Game.getObjectById(struct_id)
-            if struct and struct.hits < max_hits:
+            struct = Game.getObjectById(struct_id)
+            if struct and struct.hits < min(max_hits, struct.hitsMax):
                 current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
                     # List is already in priority.

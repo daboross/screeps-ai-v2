@@ -1218,6 +1218,11 @@ class RoomMind:
         return self._target_spawn_fill_count
 
     def get_target_builder_work_mass(self, first=False, last=False):
+        def is_relatively_decayed(id):
+            thing = Game.getObjectById(id)
+            return thing is not None and thing.structureType != STRUCTURE_ROAD \
+                   and thing.hits > min(thing.hitsMax, self.max_sane_wall_hits) * 0.85
+
         # TODO: this is a hack to get correct workmasses (this is called twice)
         if self._builder_use_first_only:
             if last:
@@ -1233,14 +1238,21 @@ class RoomMind:
             # 5 work per creep.
             return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self, creep_base_worker))
         elif first:
-            if len(self.building.next_priority_construction_targets()) or \
-                    len(self.building.next_priority_repair_targets()) or \
-                    len(self.building.next_priority_big_repair_targets()):
-                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+            if len(self.building.next_priority_construction_targets()):
+                if len(self.sources) >= 2:
+                    return 1.5 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+                else:
+                    return min(8, spawning.max_sections_of(self, creep_base_worker))
+            elif _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
+                    or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
+                return len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
             else:
                 return 0
         else:
-            return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+            if len(self.building.next_priority_construction_targets()) \
+                    or _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
+                    or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
+                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
 
     def get_target_upgrader_work_mass(self):
         if self.upgrading_paused():

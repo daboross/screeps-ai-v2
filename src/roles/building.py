@@ -1,3 +1,5 @@
+import random
+
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, role_builder
 from roles import upgrading
@@ -44,7 +46,7 @@ class Builder(upgrading.Upgrader):
             if not self.home.upgrading_paused():
                 return upgrading.Upgrader.run(self)
             else:
-                self.memory.emptying = True # flag for spawn fillers to not refill me.
+                self.memory.emptying = True  # flag for spawn fillers to not refill me.
                 if not self.empty_to_storage():
                     self.go_to_depot()
                 return False
@@ -58,6 +60,7 @@ class Builder(upgrading.Upgrader):
             target = self.target_mind.get_existing_target(self, target_construction)
             if target:
                 return self.execute_construction_target(target)
+
             target = self.get_new_repair_target(min(350000, self.home.min_sane_wall_hits), target_repair)
             if target:
                 self.target_mind.untarget(self, target_big_repair)
@@ -80,6 +83,19 @@ class Builder(upgrading.Upgrader):
                 if target:
                     self.memory.last_big_repair_max_hits = max_hits
                     return self.execute_repair_target(target, max_hits, target_big_repair)
+            target = self.get_new_repair_target(self.home.max_sane_wall_hits, target_big_repair)
+            if target:
+                self.memory.last_big_repair_max_hits = self.home.max_sane_wall_hits
+                return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
+
+            # TODO: duplicated above
+            if not self.home.upgrading_paused():
+                return upgrading.Upgrader.run(self)
+            else:
+                self.memory.emptying = True  # flag for spawn fillers to not refill me.
+                if not self.empty_to_storage():
+                    self.go_to_depot()
+                return False
 
     def get_new_repair_target(self, max_hits, ttype):
         return self.target_mind.get_new_target(self, ttype, max_hits)
@@ -104,6 +120,9 @@ class Builder(upgrading.Upgrader):
         if result == OK:
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
+            else:
+                # TODO: make this also not move away from the target, and only move to a free space.
+                self.creep.move(random.randint(1, 9))
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
@@ -134,6 +153,9 @@ class Builder(upgrading.Upgrader):
         if result == OK:
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
+            else:
+                # TODO: make this also not move away from the target, and only move to a free space.
+                self.creep.move(random.randint(1, 9))
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, target_construction)
         else:

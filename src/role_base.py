@@ -535,7 +535,7 @@ class RoleBase:
                         if self.creep.carry[rtype] > 0:
                             result = self.creep.transfer(storage, rtype)
                             if result == OK:
-                                break
+                                return True
                             else:
                                 self.log("Unknown result from creep.transfer({}, {}): {}"
                                          .format(storage, rtype, result))
@@ -543,7 +543,7 @@ class RoleBase:
                         self.log("[empty_to_storage] Couldn't find resource to empty!")
                 else:
                     self.move_to(storage)
-                return True
+                    return True
             else:
                 self.log("Can't empty to storage: no storage!")
         return False
