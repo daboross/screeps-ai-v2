@@ -165,7 +165,7 @@ class RoleBase:
 
     last_target = property(_get_last_target, _set_last_target)
 
-    def _follow_path_to(self, target):
+    def _follow_path_to(self, target, set_rhp=False):
         if target.pos:
             target = target.pos
         if self.last_target:
@@ -207,6 +207,12 @@ class RoleBase:
         # TODO: RoleBase should have a reference to the hive!
         room = context.hive().get_room(self.creep.pos.roomName)
         path = room.honey.find_path(self.last_checkpoint, target)
+        if set_rhp:
+            # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
+            self.room.store_cached_property('rhp_{}_{}_{}_{}'.format(self.last_checkpoint.x, self.last_checkpoint.y,
+                                                                     target.x, target.y),
+                                            [self.last_checkpoint.x, self.last_checkpoint.y,
+                                             target.x, target.y], 300)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         # TODO: this code should be able to space out creeps eventually
         result = self.creep.moveByPath(path)
@@ -274,10 +280,8 @@ class RoleBase:
                 self.last_checkpoint = None
                 return self.creep.moveTo(pos)  # no _DEFAULT_PATH_OPTIONS since we're doing multi-room here.
         if follow_defined_path:
-            # TODO: remove this - this is a semi-hacky thing to make road building work only for building remote miner roads
-            self.room.store_cached_property('rhp_{}_{}_{}_{}'.format(here.x, here.y, pos.x, pos.y),
-                                            [here.x, here.y, pos.x, pos.y], 50)
-            return self._follow_path_to(pos)
+            # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
+            return self._follow_path_to(pos, True)
         else:
             self.last_checkpoint = None
             return self.creep.moveTo(pos, _DEFAULT_PATH_OPTIONS)

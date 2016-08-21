@@ -5,6 +5,7 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
+
 # # TODO: function to use pathfinder to search and cache results
 # if self.memory.path_cached and self.memory.path_reset > Game.time:
 #     path = Room.deserializePath(self.memory.path_cached)
@@ -162,7 +163,8 @@ class HoneyTrails:
 
         def set_matrix(stype, pos):
             if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
-                if stype == STRUCTURE_ROAD and use_roads:
+                if stype == STRUCTURE_ROAD and use_roads \
+                        and not flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
                     cost_matrix.set(pos.x, pos.y, 1)
                 return
             if pos.x == destination.x and pos.y == destination.y:
@@ -219,10 +221,10 @@ class HoneyTrails:
 
     def find_path(self, origin, destination, opts=None):
         if opts:
-            roads_better = opts["use_roads"] if "use_roads" in opts else False
+            roads_better = opts["use_roads"] if "use_roads" in opts else True
             range = opts["range"] if "range" in opts else 1
         else:
-            roads_better = False
+            roads_better = True
             range = 1
         if origin.pos:
             origin = origin.pos

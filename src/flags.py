@@ -109,6 +109,17 @@ flag_sub_to_structure_type = {
     SUB_LINK: STRUCTURE_LINK,
     SUB_EXTRACTOR: STRUCTURE_EXTRACTOR,
 }
+structure_type_to_flag_sub = {
+    STRUCTURE_SPAWN: SUB_SPAWN,
+    STRUCTURE_EXTENSION: SUB_EXTENSION,
+    STRUCTURE_RAMPART: SUB_RAMPART,
+    STRUCTURE_WALL: SUB_WALL,
+    STRUCTURE_STORAGE: SUB_STORAGE,
+    STRUCTURE_TOWER: SUB_TOWER,
+    STRUCTURE_LINK: SUB_LINK,
+    STRUCTURE_EXTRACTOR: SUB_EXTRACTOR,
+    STRUCTURE_ROAD: SUB_ROAD,
+}
 
 _last_flag_len = 0
 _last_checked_flag_len = 0
@@ -315,13 +326,18 @@ def __create_flag(position, flag_type, primary, secondary):
     name = "{}_{}".format(flag_type, random_digits())
     # TODO: Make some sort of utility for finding a visible position, so we can do this
     # even if all our spawns are dead!
-    known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
-    flag_name = known_position.createFlag(name, primary, secondary)
-    if Memory.flags_to_move:
-        Memory.flags_to_move.push((flag_name, position))
+    room = Game.rooms[position.roomName]
+    if room:
+        result = room.createFlag(position, name, primary, secondary)
+        print("[flags] Created flag at {}: {}".format(position, result))
     else:
-        Memory.flags_to_move = [(flag_name, position)]
-    return flag_name
+        known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
+        flag_name = known_position.createFlag(name, primary, secondary)
+        if Memory.flags_to_move:
+            Memory.flags_to_move.push((flag_name, position))
+        else:
+            Memory.flags_to_move = [(flag_name, position)]
+        return flag_name
 
 
 def create_flag(position, flag_type):
@@ -331,6 +347,27 @@ def create_flag(position, flag_type):
 
 def create_ms_flag(position, main, sub):
     __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub])
+
+
+def look_for(room, position, main, sub=None):
+    if room.room:
+        room = room.room
+    if position.pos:
+        position = position.pos
+    if sub:
+        return _.find(room.lookForAt(LOOK_FLAGS, position.x, position.y),
+                      lambda f: f.color == main_to_flag_primary[main] and
+                                f.secondaryColor == sub_to_flag_secondary[sub])
+    else:
+        flag_def = flag_definitions[main]
+        if not flag_def:
+            # TODO: This is a hack because a common pattern is
+            # look_for(room, pos, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type])
+            # if there is no flag for a given structure, sub will be undefined, and thus this side will be called
+            # and not the above branch.
+            return []
+        return _.find(room.lookForAt(LOOK_FLAGS, position.x, position.y),
+                      lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
 
 
 def random_digits():

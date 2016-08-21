@@ -323,12 +323,12 @@ class RoomMind:
                 })
             elif parameter == PYFIND_REPAIRABLE_ROADS:
                 result = _.filter(self.find(FIND_STRUCTURES),
-                                  lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax \
-                                            and not _.find(self.room.lookForAt(LOOK_FLAGS, s),
-                                                           lambda f: f.color == flags.MAIN_DESTRUCT \
-                                                                     and f.secondaryColor == flags.SUB_ROAD))
+                                  lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax
+                                            and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD))
             elif parameter == PYFIND_BUILDABLE_ROADS:
-                result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES), lambda s: s.structureType == STRUCTURE_ROAD)
+                result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES),
+                                  lambda s: s.structureType == STRUCTURE_ROAD
+                                            and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD))
             else:
                 result = self.room.find(parameter)
             cache[parameter] = result
