@@ -99,16 +99,16 @@ class RemoteHauler(SpawnFill):
                     # Don't repurpose a half-move remote hauler as anything but a remote hauler!
                     self.go_to_depot()
                     return False
-                extra_haulers = self.home.extra_creeps_with_carry_in_role(
-                    role_remote_hauler, self.home.get_target_remote_hauler_mass())
-                if len(extra_haulers) and self.name in extra_haulers:
-                    self.memory.role = role_cleanup
-                    self.home.mem.meta.clear_next = 0  # TODO: method in RoomMind to re-register as another role.
-                self.report(speech.remote_hauler_no_source)
-                if self.creep.ticksToLive < 200:  # TODO: is this a good number?
-                    self.recycle_me()
-                else:
-                    self.go_to_depot()
+                # extra_haulers = self.home.extra_creeps_with_carry_in_role(
+                #     role_remote_hauler, self.home.get_target_remote_hauler_mass())
+                # if len(extra_haulers) and self.name in extra_haulers:
+                #     self.memory.role = role_cleanup
+                #     self.home.mem.meta.clear_next = 0  # TODO: method in RoomMind to re-register as another role.
+                # self.report(speech.remote_hauler_no_source)
+                # if self.creep.ticksToLive < 200:  # TODO: is this a good number?
+                #     self.recycle_me()
+                # else:
+                self.go_to_depot()
                 return False
 
             if source_flag.memory.sponsor != self.home.room_name:

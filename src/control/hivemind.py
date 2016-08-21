@@ -1130,18 +1130,18 @@ class RoomMind:
         """
         # TODO: dynamically spawn creeps with less mass!
         if self._target_cleanup_mass is None:
-            if self.full_storage_use:
-                # TODO: merge filter and generic.Cleanup's filter (the same code) together somehow.
-                piles = self.room.find(FIND_DROPPED_RESOURCES, {
-                    "filter": lambda s: len(
-                        _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)) == 0
-                })
-                total_energy = 0
-                for pile in piles:
-                    total_energy += pile.amount
-                self._target_cleanup_mass = math.floor(total_energy / 200.0)
-            else:
-                self._target_cleanup_mass = 0
+            # if self.full_storage_use:
+            #     # TODO: merge filter and generic.Cleanup's filter (the same code) together somehow.
+            #     piles = self.room.find(FIND_DROPPED_RESOURCES, {
+            #         "filter": lambda s: len(
+            #             _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)) == 0
+            #     })
+            #     total_energy = 0
+            #     for pile in piles:
+            #         total_energy += pile.amount
+            #     self._target_cleanup_mass = math.floor(total_energy / 200.0)
+            # else:
+            self._target_cleanup_mass = 0
 
         return self._target_cleanup_mass
 

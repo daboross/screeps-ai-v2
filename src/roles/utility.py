@@ -158,7 +158,7 @@ class Cleanup(SpawnFill):
 
             if not pile:
                 extra_cleanup = self.home.extra_creeps_with_carry_in_role(role_cleanup,
-                                                                          self.home.get_target_cleanup_mass() + 1)
+                                                                          self.home.get_target_cleanup_mass())
                 if len(extra_cleanup) and self.name in extra_cleanup:
                     if self.home.carry_mass_of(role_local_hauler) < self.home.get_target_local_hauler_mass():
                         self.memory.role = role_local_hauler
