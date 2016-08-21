@@ -1,5 +1,6 @@
 from constants import role_mineral_hauler, role_recycling, role_mineral_miner
 from role_base import RoleBase
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -27,7 +28,7 @@ class MineralMiner(RoleBase):
             self.move_to(mineral)
             return False
 
-        if self.creep.carryCapacity - _.sum(self.creep.carry) > 1 * self.creep.getActiveBodyparts(WORK):
+        if self.creep.carryCapacity - _.sum(self.creep.carry) >= 1 * self.creep.getActiveBodyparts(WORK):
             # let's be sure not to drop any on the ground
 
             result = self.creep.harvest(mineral)
@@ -49,6 +50,17 @@ class MineralMiner(RoleBase):
             self.log("Not transfering from miner to hauler: no resources")
 
 
+    def _calculate_time_to_replace(self):
+        minerals = self.home.find(FIND_MINERALS)
+
+        if not len(minerals):
+            return -1
+        mineral_pos = minerals[0].pos
+        spawn_pos = movement.average_pos_same_room(self.home.spawns)
+        time = movement.path_distance(spawn_pos, mineral_pos, True) * 2 + RoleBase._calculate_time_to_replace(self)
+        return time
+
+
 ideal_terminal_counts = {
     RESOURCE_ENERGY: 50000,
     # TODO: dynamically set this in room mind
@@ -61,16 +73,21 @@ class MineralHauler(RoleBase):
             self.memory.state = "miner_harvesting"
         state = self.memory.state
 
-        if state == "miner_harvesting" or state == "storage_harvest_energy" \
+        if state == "miner_harvesting" \
                 and _.sum(self.creep.carry) >= self.creep.carryCapacity \
                 or (_.sum(self.creep.carry) > 0 and self.creep.ticksToLive < 100):
             self.memory.state = state = "terminal_deposit_minerals"
+
+        if state == state == "storage_harvest_energy" \
+                and _.sum(self.creep.carry) >= self.creep.carryCapacity \
+                or (_.sum(self.creep.carry) > 0 and self.creep.ticksToLive < 100):
+            self.memory.state = state = "terminal_deposit_energy"
 
         if state == "terminal_deposit_minerals" and _.sum(self.creep.carry) <= 0:
             self.memory.state = state = "storage_harvest_energy"
 
         if state == "terminal_deposit_energy" and _.sum(self.creep.carry) <= 0:
-            if len(self.home.role_count(role_mineral_miner)):
+            if self.home.role_count(role_mineral_miner):
                 self.memory.state = state = "miner_harvesting"
             else:
                 self.memory.state = state = "storage_harvest_energy"
@@ -95,22 +112,27 @@ class MineralHauler(RoleBase):
             # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
             miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos))
             if not miner:
-                # Let's spend some time filling up the terminal with energy, shall we?
-                self.memory.harvesting = False
-                return True
+                if mineral.mineralAmount > 0:
+                    self.go_to_depot()
+                    return False
+                else:
+                    # Let's spend some time filling up the terminal with energy, shall we?
+                    self.memory.state = "terminal_deposit_minerals"
+                    return True
 
             if not self.creep.pos.isNearTo(miner.pos):
                 self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
         elif state == "storage_harvest_energy":
             terminal = self.home.room.terminal
             if not terminal or terminal.store.energy > self.home.get_target_terminal_energy():
-                if len(self.home.role_count(role_mineral_miner)):
+                if self.home.role_count(role_mineral_miner):
                     self.memory.state = "miner_harvesting"
                     return True
                 elif self.home.get_target_mineral_miner_count():
                     self.go_to_depot()
                 else:
                     self.recycle_me()
+                return False
             storage = self.home.room.storage
             if not self.creep.pos.isNearTo(storage):
                 self.move_to(storage)
