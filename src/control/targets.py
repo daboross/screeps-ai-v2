@@ -593,7 +593,7 @@ class TargetMind:
                     distance += 500  # Choose an already operating mine if possible!
                 if distance < closest_room:
                     closest_room = distance
-                    best_id = controller_id
+                    best_id = flag_id
 
         return best_id
 

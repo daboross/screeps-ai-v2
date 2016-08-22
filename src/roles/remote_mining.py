@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_energy_site, role_remote_hauler, role_cleanup, role_recycling, creep_base_work_half_move_hauler
+    target_closest_energy_site, role_remote_hauler, role_recycling, creep_base_work_half_move_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -85,6 +85,7 @@ class RemoteHauler(SpawnFill):
                 self.memory.last_role = role_remote_hauler
                 return False
             self.memory.harvesting = True
+            self.target_mind.untarget(self, target_closest_energy_site)
 
         if self.memory.harvesting:
             if not source_flag:
@@ -120,7 +121,7 @@ class RemoteHauler(SpawnFill):
             if self.creep.pos.roomName == source_flag.pos.roomName:
                 piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source_flag.pos)
                 if len(piles):
-                    _.sortBy(piles, 'amount')
+                    _.sortBy(piles, lambda p: -p.amount)
                     target_pos = piles[0].pos
                     if not miner:
                         # Update this here.
@@ -156,7 +157,8 @@ class RemoteHauler(SpawnFill):
                         self.go_to_depot()
                         return False
                 # TODO: based 0.5 on how far away from the mine we are.
-                if _.sum(self.creep.carry) / self.creep.carryCapacity >= 0.5:
+                if self.room.room_name != self.home.room_name and \
+                                        _.sum(self.creep.carry) / self.creep.carryCapacity >= 0.5:
                     self.memory.harvesting = False
                     if self.creep.pos.roomName == source_flag.pos.roomName:
                         self.last_checkpoint = source_flag  # follow the reverse path back
@@ -171,7 +173,7 @@ class RemoteHauler(SpawnFill):
                 return False
             self.last_checkpoint = source_flag
             if not self.creep.pos.isNearTo(target_pos):
-                self.move_to(target_pos, False, True)
+                self.move_to(target_pos)
                 self.report(speech.remote_hauler_moving_to_miner)  # TODO: different message here
                 return False
             self.memory.stationary = True
@@ -252,17 +254,26 @@ profiling.profile_whitelist(RemoteHauler, ["run"])
 
 class RemoteReserve(RoleBase):
     def run(self):
-        controller = self.target_mind.get_new_target(self, target_remote_reserve)
+        claim_flag = self.target_mind.get_new_target(self, target_remote_reserve)
 
-        if not controller:
+        if not claim_flag:
             self.log("Remote reserve couldn't find controller open!")
             self.recycle_me()
             return
 
-        if not self.creep.pos.isNearTo(controller.pos):
-            self.move_to(controller)
+        if self.creep.pos.roomName != claim_flag.pos.roomName:
+            self.move_to(claim_flag)
             self.report(speech.remote_reserve_moving)
             return False
+
+        controller = self.room.room.controller
+        if not controller:
+            self.log("Remote reserve can't find controller in room {}!".format(self.room.room_name))
+            self.move_to(claim_flag)  # get out of the way
+            return
+
+        if controller.reservation and controller.reservation.ticksToEnd > 4900:
+            self.target_mind.untarget(self, target_remote_reserve)
 
         self.memory.stationary = True
         if not self.memory.action_start_time:
@@ -276,7 +287,8 @@ class RemoteReserve(RoleBase):
                 # claim this!
                 self.creep.claimController(controller)
                 controller.room.memory.sponsor = self.home.room_name
-            self.creep.reserveController(controller)
+            else:
+                self.creep.reserveController(controller)
             self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
