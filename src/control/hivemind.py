@@ -496,7 +496,8 @@ class RoomMind:
         unreachable_rooms = False
         if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
             paved = False  # no roads
-        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
+        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(self.find(FIND_STRUCTURES),
+                                                          {"structureType": STRUCTURE_ROAD}):
             paved = False  # still paving
         else:
             for flag in self.remote_mining_operations:
@@ -1077,7 +1078,8 @@ class RoomMind:
                     if flag.memory.remote_miner_targeting and room:
                         controller = room.controller
                         # TODO: hardcoded username here
-                        if controller and (not controller.reservation or controller.reservation.username == "daboross"):
+                        if controller and (not controller.reservation or (controller.reservation.username == "daboross"
+                                                                          and controller.reservation.ticksToEnd < 4000)):
                             if mining_op_count <= 0:
                                 break  # let's only process the right number of mining operations
                             mining_op_count -= 1

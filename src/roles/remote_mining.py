@@ -258,13 +258,13 @@ class RemoteReserve(RoleBase):
 
         if not claim_flag:
             self.log("Remote reserve couldn't find controller open!")
-            self.recycle_me()
+            self.go_to_depot()
             return
 
         if self.creep.pos.roomName != claim_flag.pos.roomName:
             self.move_to(claim_flag)
             self.report(speech.remote_reserve_moving)
-            return False
+            return
 
         controller = self.room.room.controller
         if not controller:
@@ -274,6 +274,10 @@ class RemoteReserve(RoleBase):
 
         if controller.reservation and controller.reservation.ticksToEnd > 4900:
             self.target_mind.untarget(self, target_remote_reserve)
+
+        if not self.creep.pos.isNearTo(controller.pos):
+            self.move_to(controller)
+            return
 
         self.memory.stationary = True
         if not self.memory.action_start_time:

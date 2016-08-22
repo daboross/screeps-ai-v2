@@ -579,21 +579,21 @@ class TargetMind:
                 if controller.my or (controller.reservation
                                      and controller.reservation.username != creep.creep.owner.username):
                     continue
-            if current_reservers >= max_reservable:
-                continue
-            # Dispatch logic is to send 2 reservers to controllers with ticksToEnd < 4000, and 1 reserver to all
-            # others.
-            if not room or not controller.reservation or controller.reservation.ticksToEnd < 4000 or current_reservers < 1:
-                # Ok, it's a controller we can reserve
-                controller_id = controller.id
-                distance = movement.distance_squared_room_pos(controller.pos, creep.creep.pos)
-                if not flag.memory.remote_miner_targeting:
-                    distance += 500  # Choose an already targeted mine if possible!
-                if not room:
-                    distance += 500  # Choose an already operating mine if possible!
-                if distance < closest_room:
-                    closest_room = distance
-                    best_id = flag_id
+            distance = movement.distance_squared_room_pos(controller.pos, creep.creep.pos)
+            if not flag.memory.remote_miner_targeting:
+                distance += 500  # Choose an already targeted mine if possible!
+            if not room:
+                distance += 500  # Choose an already operating mine if possible!
+            if current_reservers > 1:
+                distance += 4000
+                if current_reservers >= max_reservable:
+                    distance += 4000
+            if room and controller.reservation and controller.reservation.ticksToEnd >= 4000:
+                distance += 5000
+            # Ok, it's a controller we can reserve
+            if distance < closest_room:
+                closest_room = distance
+                best_id = flag_id
 
         return best_id
 
