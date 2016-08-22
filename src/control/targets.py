@@ -99,6 +99,9 @@ class TargetMind:
     targets_workforce = property(__get_targets_workforce, __set_targets_workforce)
     reverse_targets = property(__get_reverse_targets, __set_reverse_targets)
 
+    def workforce_of(self, ttype, target):
+        return (self.targets[ttype][target] and self.targets_workforce[ttype][target]) or 0
+
     def _register_new_targeter(self, ttype, targeter_id, target_id):
         if targeter_id not in self.targeters:
             self.targeters[targeter_id] = {
@@ -312,10 +315,7 @@ class TargetMind:
         for source in sources:
             energy = _.sum(creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
             # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
-            if source.id in self.targets_workforce[target_source]:
-                current_work_force = self.targets_workforce[target_source][source.id]
-            else:
-                current_work_force = 0
+            current_work_force = self.workforce_of(target_source, source.id)
             if current_work_force < smallest_work_force:
                 smallest_work_force = current_work_force
             if energy > biggest_energy_store:
@@ -375,7 +375,7 @@ class TargetMind:
                 structure_id = structure.id
             else:
                 structure_id = "flag-{}".format(structure.name)
-            current_carry = self.targets_workforce[target_spawn_deposit][structure_id]
+            current_carry = self.workforce_of(target_spawn_deposit, structure_id)
             # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
             distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
             if distance < closest_distance:
@@ -393,16 +393,21 @@ class TargetMind:
                         # TODO: remove this once we have all memory cleared so this will never be true
                         self.mem.last_clear = 0
                         continue
-                    for name in targeting:
-                        if not Game.creeps[name] or movement.distance_squared_room_pos(
-                                Game.creeps[name].pos, structure.pos) > distance * 2.25:
-                            # If we're at least 1.5x closer than them, let's steal their place.
-                            # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
-                            # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
-                            closest_distance = distance
-                            best_id = structure_id
-                            stealing_from = name
-                            break
+                    if len(targeting):
+                        for name in targeting:
+                            if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                    Game.creeps[name].pos, structure.pos) > distance * 2.25:
+                                # If we're at least 1.5x closer than them, let's steal their place.
+                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
+                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                                closest_distance = distance
+                                best_id = structure_id
+                                stealing_from = name
+                                break
+                    else:
+                        closest_distance = distance
+                        best_id = structure_id
+                        stealing_from = None
 
         if stealing_from is not None:
             self._unregister_targeter(target_spawn_deposit, stealing_from)
@@ -425,7 +430,7 @@ class TargetMind:
                     needs_refresh = True
                     continue
                 max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
-            current_work = self.targets_workforce[target_construction][site_id]
+            current_work = self.workforce_of(target_construction, site_id)
             # TODO: this 200 should be a decided factor based off of spawn extensions
             if not current_work or current_work < max_work:
                 best_id = site_id
@@ -445,7 +450,7 @@ class TargetMind:
         for struct_id in creep.home.building.next_priority_repair_targets():
             structure = Game.getObjectById(struct_id)
             if structure and structure.hits < min(max_hits, structure.hitsMax):
-                current_workforce = self.targets_workforce[target_repair][struct_id]
+                current_workforce = self.workforce_of(target_repair, struct_id)
                 if not current_workforce or current_workforce < min(
                         _MAX_REPAIR_WORKFORCE,
                         math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50)) \
@@ -480,7 +485,7 @@ class TargetMind:
             if tower.structureType != STRUCTURE_TOWER:
                 continue
             # 50 per carry part, but we don't know if it's full. this is a safe compromise
-            carry_targeting = (self.targets_workforce[target_tower_fill][tower.id] or 0) * 25
+            carry_targeting = self.workforce_of(target_tower_fill, tower.id) * 25
             tower_lacking = tower.energyCapacity - tower.energy - carry_targeting
             if tower_lacking > most_lacking:
                 most_lacking = tower_lacking
@@ -516,7 +521,7 @@ class TargetMind:
             if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
-            hauler_mass = self.targets_workforce[target_remote_mine_hauler][flag_id] or 0
+            hauler_mass = self.workforce_of(target_remote_mine_hauler, flag_id)
             hauler_percentage = float(hauler_mass) / get_carry_mass_for_remote_mine(creep.home, flag)
             too_long = creep.creep.ticksToLive < 2.2 * creep.home.distance_storage_to_mine(flag)
             if too_long:
