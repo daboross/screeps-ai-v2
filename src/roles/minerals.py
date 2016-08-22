@@ -158,7 +158,7 @@ class MineralHauler(RoleBase):
                 ideal = ideal_terminal_counts[resource]
             else:
                 ideal = 10000
-            if terminal and ((terminal.store[resource] or 0) < ideal) or state == "terminal_deposit_energy":
+            if terminal and ((terminal.store[resource] or 0) < ideal or state == "terminal_deposit_energy"):
                 target = terminal
             else:
                 target = storage
