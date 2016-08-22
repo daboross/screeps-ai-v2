@@ -15,6 +15,7 @@ class LinkingMind:
         self._links = None
         self._main_link = None
         self.link_creep = None
+        self.enabled_last_turn = room.get_cached_property("links_enabled") or False
 
     def _get_links(self):
         if self._links is None:
@@ -43,9 +44,15 @@ class LinkingMind:
     links = property(_get_links)
 
     def _enabled(self):
-        return not not self.room.room.storage and self.link_creep and self.main_link and len(self.links) >= 2
+        return self.enabled_last_turn
 
     enabled = property(_enabled)
+
+    def enabled_this_turn(self):
+        if not not self.room.room.storage and self.link_creep and self.main_link and len(self.links) >= 2:
+            self.room.store_cached_property("links_enabled", True, 2)
+            return True
+        return False
 
     def register_target_withdraw(self, target, targeter, capacity):
         if targeter.name:
@@ -75,7 +82,7 @@ class LinkingMind:
         self.link_creep = creep
 
     def tick_links(self):
-        if not self.enabled:
+        if not self.enabled_this_turn():
             # if len(self.links):
             #     print("[{}][links] Warning: not running due to not finding storage or link creep.".format(
             #         self.room.room_name))
