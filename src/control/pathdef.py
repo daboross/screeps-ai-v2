@@ -270,10 +270,24 @@ class HoneyTrails:
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
         # all of this to convert PathFinder results into a Room-compatible format.
         path = pathfinder_to_regular_path(origin, result.path)
-        if self.room.my:
-            self.room.store_cached_property(key, Room.serializePath(path), 20000, 200)
-        else:
-            self.room.store_cached_property(key, Room.serializePath(path), 40000, 4000)
+
+        all_paved = True
+        for pos in path:
+            if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y), lambda s: s.structureType == STRUCTURE_ROAD) \
+                    and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y),
+                                   lambda s: s.structureType == STRUCTURE_ROAD):
+                all_paved = False
+
+                break
+        expire_in = 20000
+        needs_use_every = 400
+        if all_paved:
+            expire_in *= 4
+            needs_use_every *= 20
+        if not self.room.my:
+            expire_in *= 2
+            needs_use_every *= 20
+        self.room.store_cached_property(key, Room.serializePath(path), expire_in, needs_use_every)
         return path
 
     def map_out_full_path(self, origin, destination):

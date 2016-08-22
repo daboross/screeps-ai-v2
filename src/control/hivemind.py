@@ -496,7 +496,7 @@ class RoomMind:
         unreachable_rooms = False
         if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
             paved = False  # no roads
-        elif len(self.find(PYFIND_BUILDABLE_ROADS)):
+        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
             paved = False  # still paving
         else:
             for flag in self.remote_mining_operations:
