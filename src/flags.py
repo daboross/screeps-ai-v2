@@ -29,6 +29,7 @@ SUB_TOWER = "tower"
 SUB_STORAGE = "storage"
 SUB_LINK = "link"
 SUB_EXTRACTOR = "extractor"
+SUB_TERMINAL = "terminal"
 SUB_ROAD = "road"
 TD_H_H_STOP = "tdhhs"
 TD_H_D_STOP = "tdhts"
@@ -87,6 +88,7 @@ sub_to_flag_secondary = {
     SUB_LINK: COLOR_ORANGE,
     SUB_EXTRACTOR: COLOR_BROWN,
     SUB_ROAD: COLOR_WHITE,
+    SUB_TERMINAL: COLOR_GREY,
 }
 flag_secondary_to_sub = {
     COLOR_RED: SUB_WALL,
@@ -97,6 +99,7 @@ flag_secondary_to_sub = {
     COLOR_YELLOW: SUB_STORAGE,
     COLOR_ORANGE: SUB_LINK,
     COLOR_BROWN: SUB_EXTRACTOR,
+    COLOR_GREY: SUB_TERMINAL,
     COLOR_WHITE: SUB_ROAD,
 }
 flag_sub_to_structure_type = {
@@ -108,6 +111,8 @@ flag_sub_to_structure_type = {
     SUB_TOWER: STRUCTURE_TOWER,
     SUB_LINK: STRUCTURE_LINK,
     SUB_EXTRACTOR: STRUCTURE_EXTRACTOR,
+    SUB_ROAD: STRUCTURE_ROAD,
+    SUB_TERMINAL: STRUCTURE_TERMINAL,
 }
 structure_type_to_flag_sub = {
     STRUCTURE_SPAWN: SUB_SPAWN,
@@ -119,6 +124,7 @@ structure_type_to_flag_sub = {
     STRUCTURE_LINK: SUB_LINK,
     STRUCTURE_EXTRACTOR: SUB_EXTRACTOR,
     STRUCTURE_ROAD: SUB_ROAD,
+    STRUCTURE_TERMINAL: SUB_TERMINAL
 }
 
 _last_flag_len = 0
