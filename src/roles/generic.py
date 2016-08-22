@@ -59,6 +59,7 @@ class ReplacingExpendedCreep(RoleBase):
         del self.memory._path
         del self.memory.work
         del self.memory.carry
+        del self.memory.last_checkpoint
         self.memory.replaced = True
 
         # TODO: Merge this code stolen from consistency back into it somehow?

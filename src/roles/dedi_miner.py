@@ -1,3 +1,5 @@
+import random
+
 import flags
 import speech
 from constants import target_big_source, target_source, role_dedi_miner, target_closest_energy_site, role_recycling, \
@@ -124,6 +126,9 @@ class LocalHauler(SpawnFill):
             self.memory.stationary = True
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
+            if not len(piles) or _.sum(piles, 'amount') < 20:
+                # TODO: make this also not move only move to a free space.
+                self.creep.move(random.randint(1, 9))
             if not len(piles):
                 # TODO: temporary hack...
                 miner_near = _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos),
