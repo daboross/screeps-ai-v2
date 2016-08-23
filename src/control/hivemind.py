@@ -1492,7 +1492,7 @@ class RoomMind:
             role_simple_claim:
                 lambda: 1,
             role_room_reserve:
-                lambda: min(5, spawning.max_sections_of(self, creep_base_reserving)),
+                lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
             role_builder:

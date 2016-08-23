@@ -46,8 +46,6 @@ class MineralMiner(RoleBase):
             if self.creep.carry[mtype] > 0:
                 self.creep.transfer(haulers[0], mtype)
                 break
-        else:
-            self.log("Not transfering from miner to hauler: no resources")
 
 
     def _calculate_time_to_replace(self):

@@ -1,4 +1,5 @@
 import math
+import random
 
 import autoactions
 import context
@@ -36,7 +37,7 @@ class RoleDefender(RoleBase):
                 target_id = best_id
                 self.memory.attack_target = best_id
             else:
-                self.recycle_me()
+                self.creep.move(random.randint(1, 9))
                 return False
 
         hostile_room = Memory.hostile_last_rooms[target_id]

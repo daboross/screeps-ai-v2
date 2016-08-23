@@ -51,9 +51,10 @@ class Upgrader(RoleBase):
                 self.memory.harvesting = True
                 return True
         elif result == OK:
-            if self.is_next_block_clear(target):
-                self.pick_up_available_energy()
-                self.move_to(self.creep.room.controller, True)
+            if not self.memory.harvesting:
+                if self.is_next_block_clear(target):
+                    self.pick_up_available_energy()
+                    self.move_to(self.creep.room.controller, True)
             self.report(speech.upgrading_ok)
         else:
             self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
