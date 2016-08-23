@@ -553,8 +553,9 @@ class TargetMind:
         # TODO: cache the closest deposit site to each mine site.
         if creep.home.links.enabled:
             target = creep.room.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,
-                                                      lambda s: s.structureType == STRUCTURE_LINK
-                                                                or s.structureType == STRUCTURE_STORAGE)
+                                                      lambda s: (s.structureType == STRUCTURE_LINK
+                                                                 or s.structureType == STRUCTURE_STORAGE)
+                                                                and s.id != creep.home.links.main_link.id)
             if target:
                 return target.id
             else:
