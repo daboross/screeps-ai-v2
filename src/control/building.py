@@ -171,8 +171,10 @@ class ConstructionMind:
         # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
         max_hits = min(350000, self.room.min_sane_wall_hits)
 
-        for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES), lambda s:
-                        (s.my or not s.owner) and s.hits < s.hitsMax * 0.9 and s.hits < max_hits),
+        for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES),
+                                           lambda s: (s.my or not s.owner)
+                                           and s.hits < s.hitsMax * 0.9 and s.hits < max_hits
+                                           and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)),
                                   lambda s: movement.distance_squared_room_pos(spawn_pos, s.pos)):
             structure_type = structure.type
 
@@ -212,7 +214,8 @@ class ConstructionMind:
         target_list = []
 
         for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES),
-                                           lambda s: (s.my or not s.owner) and s.hits < min(s.hitsMax, max_hits)),
+                                           lambda s: (s.my or not s.owner) and s.hits < min(s.hitsMax, max_hits)
+                                           and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)),
                                   lambda s: s.hits):
             if flags.look_for(self.room, structure, flags.MAIN_DESTRUCT,
                               flags.structure_type_to_flag_sub[structure.structureType]):
@@ -262,7 +265,7 @@ class ConstructionMind:
                 # If we were checking for anything but paths, we'd want to check if `value.ttl_after_use` is set, as
                 # that dictates whether `value.last_used` is set at all. But, for path caching, we always know
                 # `ttl_after_use` is used.
-                if value: # rhp will have checked if it's been used recently, no need to check this value.dead_at
+                if value:  # rhp will have checked if it's been used recently, no need to check this value.dead_at
                     try:
                         path = Room.deserializePath(value.value)
                     except:
