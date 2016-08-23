@@ -207,6 +207,7 @@ def run_away_check(creep):
             instinct_do_heal(creep)
         if creep.creep.getActiveBodyparts(ATTACK):
             instinct_do_attack(creep)
+        creep.last_checkpoint = None # we're moving manually here
         result = creep.creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
             # del creep.memory._away_path
