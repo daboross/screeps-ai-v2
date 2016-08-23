@@ -168,8 +168,9 @@ class LocalHauler(SpawnFill):
                 target = self.creep.room.storage  # This apparently has happened, I don't know why though?
             if target.energy >= target.energyCapacity and not self.home.links.enabled:
                 target = storage
-            if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
-                self.home.links.register_target_deposit(target, self, self.creep.carry.energy)
+            if target.structureType == STRUCTURE_LINK:
+                self.home.links.register_target_deposit(target, self, self.creep.carry.energy,
+                                                        self.creep.pos.getRangeTo(target.pos))
 
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)

@@ -225,8 +225,9 @@ class Cleanup(SpawnFill):
                     target = storage
             # if target.energy >= target.energyCapacity:
             #     target = storage
-            if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
-                self.home.links.register_target_deposit(target, self, self.creep.carry.energy)
+            if target.structureType == STRUCTURE_LINK:
+                self.home.links.register_target_deposit(target, self, self.creep.carry.energy,
+                                                        self.creep.pos.getRangeTo(target.pos))
 
             if not self.creep.pos.isNearTo(target.pos):
                 if self.creep.pos.isNearTo(storage):

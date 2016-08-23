@@ -334,9 +334,10 @@ class RoleBase:
                     target = storage
                 if target.energy <= 0 and not self.home.links.enabled:
                     target = storage
-                if target.structureType == STRUCTURE_LINK and self.creep.pos.inRangeTo(target, 2):
+                if target.structureType == STRUCTURE_LINK :
                     self.home.links.register_target_withdraw(target, self,
-                                                             self.creep.carryCapacity - self.creep.carry.energy)
+                                                             self.creep.carryCapacity - self.creep.carry.energy,
+                                                             self.creep.pos.getRangeTo(target))
             else:
                 target = storage
 

@@ -1130,14 +1130,14 @@ class RoomMind:
         :rtype: int
         """
         if self._target_link_managers is None:
-            # links = 0
-            # for s in self.find(FIND_STRUCTURES):
-            #     if s.structureType == STRUCTURE_LINK:
-            #         links += 1
-            # if links >= 2 and self.trying_to_get_full_storage_use:
-            #     self._target_link_managers = 1
-            # else:
-            self._target_link_managers = 0
+            links = 0
+            for s in self.find(FIND_STRUCTURES):
+                if s.structureType == STRUCTURE_LINK:
+                    links += 1
+            if links >= 2 and self.trying_to_get_full_storage_use:
+                self._target_link_managers = 1
+            else:
+                self._target_link_managers = 0
         return self._target_link_managers
 
     def get_target_cleanup_mass(self):

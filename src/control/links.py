@@ -54,20 +54,22 @@ class LinkingMind:
             return True
         return False
 
-    def register_target_withdraw(self, target, targeter, capacity):
+    def register_target_withdraw(self, target, targeter, needed, distance):
         if targeter.name:
             targeter = targeter.name
         self.link_mem(target)[targeter] = {
             'expire': Game.time + 2,
-            'cap': -capacity,
+            'cap': -needed,
+            'distance': distance
         }
 
-    def register_target_deposit(self, target, targeter, energy):
+    def register_target_deposit(self, target, targeter, depositing, distance):
         if targeter.name:
             targeter = targeter.name
         self.link_mem(target)[targeter] = {
             'expire': Game.time + 2,
-            'cap': +energy,
+            'cap': +depositing,
+            'distance': distance
         }
 
     def note_link_manager(self, creep):
@@ -83,129 +85,78 @@ class LinkingMind:
 
     def tick_links(self):
         if not self.enabled_this_turn():
-            # if len(self.links):
-            #     print("[{}][links] Warning: not running due to not finding storage or link creep.".format(
-            #         self.room.room_name))
-            return  # TODO: equalize at this point? I don't know
+            return
         time = Game.time
         main_link = self.get_main_link()
-        main_ready_to_send = main_link.cooldown <= 1
-        sending_to_main = 0
-        taking_from_main = 0
-        send_from_main = []
-        send_to_main = []
+        current_output_links = []
+        current_input_links = []
+        future_output_links = []
+        future_input_links = []
         for link in self.links:
             if link.id == main_link.id:
                 continue
             mem = self.link_mem(link)
-            # this variable tracks (current link energy) + (total deposit energy) + (total withdraw energy)
-            future_energy = link.energy
-            now_withdrawing = 0
+            # deposited_at_this_distance = 0
+            # for name in _.sortBy(mem, lambda obj: obj.distance):
+            # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
+            energy_change_now = 0
             for name in Object.keys(mem):
                 if time > mem[name].expire:
                     del mem[name]
-                    continue
-                if mem[name].cap < 0:
-                    now_withdrawing += -mem[name].cap
-                future_energy += mem[name].cap
-            if link.cooldown <= 0:
-                if future_energy > link.energyCapacity and link.energy > link.energyCapacity * 0.2:
-                    # we'll have too much soon, so send all energy - but only if we're at least a little bit full.
-                    send_to_main.append((link, link.energy))
-                    sending_to_main += link.energy
-                elif future_energy > link.energyCapacity * 0.75 and now_withdrawing < link.energy:
-                    # let's just send a bit of energy
-                    energy_sending = link.energy - now_withdrawing
-                    send_to_main.append((link, energy_sending))
-                    sending_to_main += energy_sending
-                elif future_energy < 0:
-                    needed = min(link.energyCapacity - link.energy)#, -future_energy)
-                    send_from_main.append((link, needed))
-                    taking_from_main += needed
-                elif future_energy > link.energyCapacity * 0.5 and now_withdrawing <= 0:
-                    new_energy = future_energy
-                    if future_energy > link.energyCapacity * 0.8:
-                        energy_sending = min(link.energy, new_energy - link.energyCapacity * 0.5)
-                        send_to_main.append((link, energy_sending))
-                        sending_to_main += energy_sending
-                    elif future_energy < link.energyCapacity * 0.2:
-                        energy_recv = link.energyCapacity * 0.5 - link.energy
-                        send_from_main.append((link, energy_recv))
-                        taking_from_main += energy_recv
-
-            if future_energy < 0 and link.energy < link.energyCapacity * 0.75:
-                # only send to if we're not mostly full already (for cooldown)
-                energy_needed = min(-future_energy, link.energyCapacity - link.energy)
-                send_from_main.append((link, energy_needed))
-                taking_from_main += energy_needed
-
-        # TODO: this code now assumes that the storage in roughly in the center of the room, and that it would be
-        # counterproductive to send energy directly between other links because of the cool down
-        if sending_to_main + main_link.energy > main_link.energyCapacity:
-            send_to_main.sort(lambda t: -t[1])  # sort from biggest to smallest
-            space_needed_in_main = main_link.energy + sending_to_main - main_link.energyCapacity
-        else:
-            space_needed_in_main = 0
-
-        # print("[links] Vars: sending_to_main: {}, taking_from_main: {}".format(sending_to_main, taking_from_main))
-
-        new_main_energy = main_link.energy
-        for link, energy in send_to_main:
-            # TODO: find out what this was meant to do, when awake again.
-            # if (main_link.energyCapacity - new_main_energy) / energy < 0.75:
-            #     continue
-            link.transferEnergy(main_link, energy)
-            new_main_energy += energy
-            if new_main_energy >= main_link.energyCapacity:
-                new_main_energy = main_link.energyCapacity
-                break
-        # TODO: This assumes that if a link sends and receives energy in the same tick, the received amount is still
-        # limited by the amount in before sending. Check out that assumption.
-        #
-        # we can only send energy to one link at a time... is this the best way to choose?
-
-        if taking_from_main and main_ready_to_send:
-            send_from_main.sort(lambda t: -t[1])
-            if send_from_main[0][1] > main_link.energy and main_link.energy < main_link.energyCapacity:
-                energy_needed_in_main = main_link.energyCapacity - main_link.energy
+                elif mem[name].distance <= 1:
+                    energy_change_now += mem[name].cap
+            if energy_change_now > 0:
+                if link.cooldown <= 0:
+                    current_input_links.append({'link': link, 'priority': energy_change_now})
+                else:
+                    future_input_links.append({'link': link, 'amount': -energy_change_now, 'priority': link.cooldown})
+            elif energy_change_now < 0:
+                current_output_links.append({'link': link, 'priority': -energy_change_now})
             else:
-                sending_this_tick = min(send_from_main[0][1], main_link.energy)
-            # TODO: is this the right thing to do?
-                energy_needed_in_main = min(taking_from_main - main_link.energy,
-                                            main_link.energyCapacity - main_link.energy)
-                new_main_energy -= sending_this_tick
-                main_link.transferEnergy(send_from_main[0][0], sending_this_tick)
-        else:
-            if taking_from_main and len(send_to_main) <= 1:
-                energy_needed_in_main = main_link.energyCapacity - main_link.energy
-            else:
-                energy_needed_in_main = 0
+                access_list = _.sortBy(_.filter(mem, lambda x: x.distance > 1), lambda x: x.distance)
+                if len(access_list):
+                    count = access_list[0].cap
+                    for x in access_list:
+                        if (x.cap > 0) == (count > 0):
+                            # only count one type of action
+                            count += x.cap
+                        else:
+                            break
+                    if count > 0:
+                        if count > link.energyCapacity - link.energy:
+                            future_input_links.append({'link': link, 'amount': -count,
+                                                       'priority': access_list[0].distance})
+                    else:
+                        if count < link.energy:
+                            future_output_links.append({'link': link, 'amount': count,
+                                                        'priority': access_list[0].distance})
 
-        # TODO: this is kind of thrown together late at night, with some guesswork as to what I originally intended
-        # Perhaps this should be changed, perhaps it is ideal!
-        ideal_diff = energy_needed_in_main - space_needed_in_main
-        # TODO: this code assumes the link creep only has energy in its hold. should we account for accidental mineral
-        # pickups?
-        # print("[{}][links] Ideal diff: {}".format(self.room.room_name, ideal_diff))
-        if ideal_diff < 0:
-            if energy_needed_in_main <= 0:
-                ideal_diff = -main_link.energy
-            # we should be emptying the main link
-            self.link_creep.send_from_link(-ideal_diff)
-        elif ideal_diff > 0:
-            if space_needed_in_main <= 0:
-                ideal_diff = main_link.energyCapacity - main_link.energy
-            self.link_creep.send_to_link(ideal_diff)
-        else:
-            if main_link.energy < main_link.energyCapacity / 2:
-                self.link_creep.send_to_link(main_link.energyCapacity / 2 - main_link.energy)
-            elif main_link.energy > main_link.energyCapacity / 2 and not (taking_from_main and not main_ready_to_send):
-                self.link_creep.send_from_link(main_link.energy - main_link.energyCapacity / 2)
-        pass
-        # TODO: do sending to main
-        # TODO: do creep actions?
-        # TODO: calculate if we need to deposit/withdraw to link?
-        # TODO: send from main last.
+        current_input_links.sort(None, key=lambda x: x.priority)
+        current_output_links.sort(None, key=lambda x: x.priority)
+        if len(current_output_links):
+            # Priority is output
+            if main_link.energy < main_link.energyCapacity:
+                self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
+            else:
+                self.main_link.transferEnergy(current_output_links[0].link)
+        elif len(current_input_links):
+            # Priority is input
+            if main_link.energy > 0:
+                self.link_creep.send_from_link(main_link.energy)
+            elif current_input_links[0].link.energy >= current_input_links[0].link.energyCapacity:
+                current_input_links[0].link.transferEnergy(main_link)
+        elif len(future_output_links):
+            if main_link.energy < future_output_links[0].amount - future_output_links[0].link.energy:
+                self.link_creep.send_to_link(future_output_links[0].amount - future_output_links[0].link.energy
+                                             - main_link.energy)
+            else:
+                self.main_link.transferEnergy(future_output_links[0].link)
+        elif len(future_input_links):
+            if main_link.energyCapacity - main_link.energy > future_input_links[0].link.energy:
+                self.link_creep.send_from_link(main_link.energy)
+            else:
+                future_input_links[0].link.transferEnergy(main_link)
+
 
 
 profiling.profile_whitelist(LinkingMind, ["tick_links"])
