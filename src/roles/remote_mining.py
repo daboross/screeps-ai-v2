@@ -1,7 +1,7 @@
 import flags
 import speech
-from constants import target_remote_mine_miner, target_remote_mine_hauler, target_remote_reserve, \
-    target_closest_energy_site, role_remote_hauler, role_recycling, creep_base_work_half_move_hauler
+from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
+    role_remote_hauler, role_recycling, creep_base_work_half_move_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -254,27 +254,60 @@ profiling.profile_whitelist(RemoteHauler, ["run"])
 
 
 class RemoteReserve(RoleBase):
-    def run(self):
-        claim_flag = self.target_mind.get_new_target(self, target_remote_reserve)
+    def find_claim_room(self):
+        claim_room = self.memory.claiming
+        if  claim_room:
+            return claim_room
+        if not Memory.reserving:
+            Memory.reserving = {}
 
-        if not claim_flag:
-            self.log("Remote reserve couldn't find controller open!")
+        second_best = None
+        for op_flag in self.home.remote_mining_operations:
+            if Game.creeps[Memory.reserving[op_flag.pos.roomName]]:
+                continue
+            if Memory.no_controller and Memory.no_controller[op_flag.pos.roomName]:
+                continue
+            if Game.rooms[op_flag.pos.roomName] and not Game.rooms[op_flag.pos.roomName].controller:
+                if Memory.no_controller:
+                    Memory.no_controller[op_flag.pos.roomName] = True
+                else:
+                    Memory.no_controller = {op_flag.pos.roomName: True}
+                continue
+            if op_flag.remote_miner_targeting:
+                Memory.reserving[op_flag.pos.roomName] = self.name
+                self.memory.claiming = op_flag.pos.roomName
+                return op_flag.pos.roomName
+            else:
+                second_best = op_flag.pos.roomName
+
+        if second_best:
+            Memory.reserving[second_best] = self.name
+        self.memory.claiming = second_best
+        return second_best
+
+    def run(self):
+        claim_room = self.find_claim_room()
+        if not claim_room:
             self.go_to_depot()
             return
 
-        if self.creep.pos.roomName != claim_flag.pos.roomName:
-            self.move_to(claim_flag)
+        if Game.rooms[claim_room] and not Game.rooms[claim_room].controller:
+            del self.memory.claiming
+            return True
+
+        if self.creep.pos.roomName != claim_room:
+            if Game.rooms[claim_room]:
+                self.move_to(Game.rooms[claim_room].controller)
+            else:
+                self.move_to(__new__(RoomPosition(25, 25, claim_room)))
             self.report(speech.remote_reserve_moving)
             return
 
         controller = self.room.room.controller
-        if not controller:
-            self.log("Remote reserve can't find controller in room {}!".format(self.room.room_name))
-            self.move_to(claim_flag)  # get out of the way
-            return
 
         if controller.reservation and controller.reservation.ticksToEnd > 4900:
-            self.target_mind.untarget(self, target_remote_reserve)
+            del self.memory.claiming
+            return True
 
         if not self.creep.pos.isNearTo(controller.pos):
             self.move_to(controller)
@@ -297,10 +330,13 @@ class RemoteReserve(RoleBase):
             self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
-        controller = self.target_mind.get_new_target(self, target_remote_reserve)
-        if not controller:
+        room = self.find_claim_room()
+        if not room:
             return -1
-        target_pos = controller.pos
+        if Game.rooms[room]:
+            target_pos = Game.rooms[room].controller.pos
+        else:
+            return -1
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return movement.path_distance(spawn_pos, target_pos) + RoleBase._calculate_time_to_replace(self)
