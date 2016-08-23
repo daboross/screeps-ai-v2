@@ -53,4 +53,9 @@ Some copy/paste commands:
 JSON.stringify(Game.market.outgoingTransactions, null, 4)
 Game.rooms.W47N26.terminal.send(RESOURCE_LEMERGIUM, 5000, "W43N52", "Trading")
 Game.market.calcTransactionCost(5000, "W47N26", "W43N52")
+JSON.stringify(_.countBy(Game.constructionSites, 'structureType'))
+for (let flag of py.flags.find_ms_flag("W49N25", py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) { let road = flag.pos.lookFor(LOOK_STRUCTURES); if (road.length && road[0].structureType == STRUCTURE_ROAD) { road[0].destroy()} else if (!road.length) { flag.remove() }}
+
+Game.profiler.background()
+Game.profiler.output(100);
 ```

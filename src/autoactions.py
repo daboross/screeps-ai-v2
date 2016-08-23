@@ -269,7 +269,7 @@ def instinct_check(creep):
     if run_away_check(creep):
         return True
     pickup_check(creep)
-    transfer_check(creep)
+    # transfer_check(creep)
     return False
 
 
