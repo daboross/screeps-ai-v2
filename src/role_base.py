@@ -513,7 +513,7 @@ class RoleBase:
             if len(depots):
                 self.move_to(depots[0], True, follow_defined_path)
             else:
-                self.move_to(Game.spawns[0], True, follow_defined_path)
+                self.move_to(self.home.spawn, True, follow_defined_path)
 
     def recycle_me(self):
         spawn = self.home.spawns[0]

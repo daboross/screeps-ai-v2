@@ -94,6 +94,8 @@ class HiveMind:
         Gets a visible room given its room name.
         :rtype: RoomMind
         """
+        if not self._all_rooms:
+            self.find_visible_rooms()
         return self._room_to_mind[room_name]
 
     def get_honey(self):
@@ -167,13 +169,13 @@ class HiveMind:
             if not room:
                 print("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(name, name))
                 if not Memory.meta.unowned_room_alerted:
-                    Game.alert("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(
+                    Game.notify("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(
                         name, name))
                     Memory.meta.unowned_room_alerted = True
             elif not room.my:
                 print("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
                 if not Memory.meta.unowned_room_alerted:
-                    Game.alert("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+                    Game.notify("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
                     Memory.meta.unowned_room_alerted = True
             else:
                 room._creeps = new_creep_lists[name]

@@ -28,7 +28,7 @@ def main():
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate teir
-    if bucket_tier != Memory.meta.last_bucket:
+    if bucket_tier != Memory.meta.last_bucket and bucket_tier: # and bucket_tier to avoid problems in simulation
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
             if bucket_tier >= 6:

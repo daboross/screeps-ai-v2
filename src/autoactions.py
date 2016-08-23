@@ -14,17 +14,18 @@ def pathfinder_enemy_array_for_room(room_name):
 
     enemy_positions = []
 
-    for hostile, hostile_room, pos, owner in Memory.hostiles:
-        dx, dy = movement.inter_room_difference(hostile_room, room_name)
-        if abs(dx) <= 1 and abs(dy) <= 1:
-            if owner == "Source Keeper":
-                enemy_range = 5
-            elif owner == "Invader":
-                enemy_range = 20
-            else:
-                enemy_range = 60
-            pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
-            enemy_positions.append({"pos": pos, "range": enemy_range})
+    if Memory.hostiles and len(Memory.hostiles):
+        for hostile, hostile_room, pos, owner in Memory.hostiles:
+            dx, dy = movement.inter_room_difference(hostile_room, room_name)
+            if abs(dx) <= 1 and abs(dy) <= 1:
+                if owner == "Source Keeper":
+                    enemy_range = 5
+                elif owner == "Invader":
+                    enemy_range = 20
+                else:
+                    enemy_range = 60
+                pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
+                enemy_positions.append({"pos": pos, "range": enemy_range})
 
     cache[room_name] = enemy_positions
     return enemy_positions
