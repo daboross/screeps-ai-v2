@@ -143,7 +143,6 @@ class RemoteHauler(SpawnFill):
                 self.target_mind.untarget(self, target_remote_mine_hauler)
                 return True
 
-            self.pick_up_available_energy()
             if not self.creep.pos.isNearTo(source_flag) and not self.creep.pos.isNearTo(target_pos):
                 if (miner and not miner.memory.stationary and target_pos.roomName == miner.pos.roomName) \
                         and source_flag.memory.energy_sitting < 200:

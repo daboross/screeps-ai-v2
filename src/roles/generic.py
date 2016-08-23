@@ -37,7 +37,6 @@ class ReplacingExpendedCreep(RoleBase):
             if self.creep.spawning:
                 return
             if not self.creep.pos.isNearTo(old_creep):
-                self.pick_up_available_energy()
                 self.move_to(old_creep)
                 return
 

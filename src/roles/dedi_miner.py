@@ -1,5 +1,3 @@
-import random
-
 import flags
 import speech
 from constants import target_big_source, target_source, role_dedi_miner, target_closest_energy_site, role_recycling, \

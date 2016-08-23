@@ -326,16 +326,16 @@ class RoleBase:
                     self.creep.moveTo(pos, {"reusePath": 0})
 
     def harvest_energy(self, follow_defined_path=False):
-        if context.room().full_storage_use:
+        if self.home.full_storage_use:
             # Full storage use enabled! Just do that.
-            storage = context.room().room.storage
+            storage = self.home.room.storage
             if _.sum(self.creep.carry) == self.creep.carry.energy:  # don't do this if we have minerals
                 target = self.target_mind.get_new_target(self, target_closest_energy_site)
                 if not target:
                     target = storage
                 if target.energy <= 0 and not self.home.links.enabled:
                     target = storage
-                if target.structureType == STRUCTURE_LINK :
+                if target.structureType == STRUCTURE_LINK:
                     self.home.links.register_target_withdraw(target, self,
                                                              self.creep.carryCapacity - self.creep.carry.energy,
                                                              self.creep.pos.getRangeTo(target))
@@ -349,7 +349,6 @@ class RoleBase:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.harvesting = False
-                self.pick_up_available_energy()
                 self.move_to(target, False, follow_defined_path)
                 self.report(speech.default_gather_moving_to_storage)
                 return False
@@ -369,7 +368,16 @@ class RoleBase:
                 else:
                     # in case there are remote miners waiting to deposit here
                     # TODO: make this also not move away from the target, and only move to a free space.
-                    self.creep.move(random.randint(1, 9))
+                    # TODO: make this a utility method
+                    direction = target.pos.getDirectionTo(self.creep.pos)
+                    if direction == TOP_LEFT or direction == TOP:
+                        self.creep.move(RIGHT)
+                    elif direction == TOP_RIGHT or direction == RIGHT:
+                        self.creep.move(BOTTOM)
+                    elif direction == BOTTOM_RIGHT or direction == BOTTOM:
+                        self.creep.move(LEFT)
+                    elif direction == BOTTOM_LEFT or direction == LEFT:
+                        self.creep.move(TOP)
             else:
                 self.log("Unknown result from creep.withdraw({}): {}", target, result)
                 self.report(speech.default_gather_unknown_result_withdraw)
@@ -479,13 +487,7 @@ class RoleBase:
     def finished_energy_harvest(self):
         del self.memory.action_start_time
         self.target_mind.untarget(self, target_source)
-
-    def pick_up_available_energy(self):
-        if self.creep.getActiveBodyparts(CARRY) <= 0:
-            return
-        resources = self.room.find_at(FIND_DROPPED_ENERGY, self.creep.pos)
-        if len(resources):
-            self.creep.pickup(resources[0])
+        self.target_mind.untarget(self, target_closest_energy_site)
 
     def repair_nearby_roads(self):
         if self.creep.getActiveBodyparts(WORK) <= 0:
@@ -506,7 +508,6 @@ class RoleBase:
 
     def go_to_depot(self, follow_defined_path=False):
         depots = flags.find_flags(self.home, flags.DEPOT)
-        self.pick_up_available_energy()
         if len(depots):
             self.move_to(depots[0], True, follow_defined_path)
         else:
@@ -522,7 +523,6 @@ class RoleBase:
             self.go_to_depot()
             return
         if not self.creep.pos.isNearTo(spawn.pos):
-            self.pick_up_available_energy()
             self.move_to(self.home.spawns[0])
         else:
             result = spawn.recycleCreep(self.creep)
@@ -653,6 +653,5 @@ profiling.profile_whitelist(RoleBase, [
     "_try_move_to",
     "move_to",
     "harvest_energy",
-    "pick_up_available_energy",
     "is_next_block_clear",
 ])
