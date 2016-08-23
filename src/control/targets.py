@@ -8,6 +8,7 @@ from control.hivemind import SLIGHTLY_SMALLER_THAN_MAX_INT
 from control.hivemind import get_carry_mass_for_remote_mine
 from tools import profiling
 from utilities import movement
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -375,6 +376,8 @@ class TargetMind:
                 structure_id = structure.id
             else:
                 structure_id = "flag-{}".format(structure.name)
+            if volatile_cache.mem("extensions_filled")[structure_id]:
+                continue
             current_carry = self.workforce_of(target_spawn_deposit, structure_id)
             # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
             distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
