@@ -178,9 +178,7 @@ class ConstructionMind:
                                   lambda s: movement.distance_squared_room_pos(spawn_pos, s.pos)):
             structure_type = structure.type
 
-            if _.find(self.room.room.lookForAt(LOOK_FLAGS, structure.pos),
-                      lambda f: f.color == flags.MAIN_DESTRUCT and
-                                      f.secondaryColor == flags.structure_type_to_flag_sub[structure_type]):
+            if flags.look_for(self.room, structure.pos, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type]):
                 continue
             if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION,
                                   STRUCTURE_TOWER, STRUCTURE_STORAGE, STRUCTURE_LINK):
@@ -234,7 +232,7 @@ class ConstructionMind:
         # if we start using HoneyTrails for more things, we might want to do that instead of this - or we could
         # just pave those paths too?
         last_run_version = self.room.get_cached_property("placed_mining_roads")
-        if last_run_version and last_run_version == 2:
+        if last_run_version and last_run_version == 3:
             return  # Don't do this every tick, even though this function is called every tick.
 
         if not self.room.paving():
@@ -287,14 +285,17 @@ class ConstructionMind:
                             checked_positions.add(pos_key)
 
         to_destruct = 0
-        # for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
-        #     if site.structureType == STRUCTURE_ROAD:
-        #         pos_key = site.pos.x * 64 + site.pos.y
-        #         if not checked_positions.has(pos_key):
-        #             to_destruct += 1
-        #             destruct_flag = flags.look_for(self.room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-        #             if not destruct_flag:
-        #                 flags.create_ms_flag(site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+        for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
+            if site.structureType == STRUCTURE_ROAD:
+                pos_key = site.pos.x * 64 + site.pos.y
+                if not checked_positions.has(pos_key):
+                    to_destruct += 1
+                    destruct_flag = flags.look_for(self.room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                    if destruct_flag:
+                        site.remove()
+                        destruct_flag.remove()
+                    elif site.progress / site.progressTotal < 0.2:
+                        site.remove()
         #
         # for road in self.room.find(FIND_STRUCTURES):
         #     if road.structureType == STRUCTURE_ROAD:
@@ -308,9 +309,8 @@ class ConstructionMind:
         # print("[{}][building] Found {} pos ({} new, {} due for removal) for remote roads, from {} paths.".format(
         #     self.room.room_name, checked_positions.size, placed_count, to_destruct, path_count))
 
-        # random to stagger redoing this, as this feature was implemented all at once.
-        # the key is the version of code we've ran - so we will re-run it if an update happens.
-        self.room.store_cached_property("placed_mining_roads", 2, random.randint(100, 300))
+        # stagger updates after a version change.
+        self.room.store_cached_property("placed_mining_roads", 3, random.randint(100, 300))
         # Done!
 
 

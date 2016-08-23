@@ -292,6 +292,47 @@ def find_flags_global(flag_type, reload=False):
     return flag_list
 
 
+def find_flags_ms_global(main_type, sub_type, reload=False):
+    type_name = "{}_{}".format(main_type, sub_type)
+    global _global_flag_refresh_time, _global_flag_cache
+    __check_new_flags()
+    if Game.time > _global_flag_refresh_time:
+        _global_flag_refresh_time = Game.time + 50
+        _global_flag_cache = new_map()
+    if _global_flag_cache[type_name] and not reload:
+        return _global_flag_cache[type_name]
+    primary = main_to_flag_primary[main_type]
+    secondary = sub_to_flag_secondary[sub_type]
+    flag_list = []
+    for name in Object.keys(Game.flags):
+        flag = Game.flags[name]
+        if flag.color == primary and flag.secondaryColor == secondary:
+            flag_list.append(flag)
+    _global_flag_cache[type_name] = flag_list
+    return flag_list
+
+
+def find_by_main_with_sub_global(main_type, reload=False):
+    global _global_flag_refresh_time, _global_flag_cache
+    __check_new_flags()
+    if Game.time > _global_flag_refresh_time:
+        _global_flag_refresh_time = Game.time + 50
+        _global_flag_cache = new_map()
+    # we're assuming that no MAIN type has the same identity as any full type
+    if _global_flag_cache[main_type] and not reload:
+        return _global_flag_cache[main_type]
+    primary = main_to_flag_primary[main_type]
+    flag_list = []
+    for name in Object.keys(Game.flags):
+        flag = Game.flags[name]
+        if flag.color == primary:
+            secondary = flag_secondary_to_sub[flag.secondaryColor]
+            if secondary:  # don't pick flags which don't match any of the secondary colors
+                flag_list.append([flag, secondary])
+    _global_flag_cache[main_type] = flag_list
+    return flag_list
+
+
 _closest_flag_cache = new_map()
 _closest_flag_refresh_time = Game.time + 50
 
@@ -348,11 +389,33 @@ def __create_flag(position, flag_type, primary, secondary):
 
 def create_flag(position, flag_type):
     flag_def = flag_definitions[flag_type]
-    __create_flag(position, flag_type, flag_def[0], flag_def[1])
+    return __create_flag(position, flag_type, flag_def[0], flag_def[1])
 
 
 def create_ms_flag(position, main, sub):
-    __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub])
+    return __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub])
+
+
+def rename_flags():
+    for name in flag_definitions.keys():
+        for flag in find_flags_global(name):
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or '_' not in flag.name):
+                new_name = create_flag(flag.pos, name)
+                if Memory.flags[flag.name]:
+                    if len(Memory.flags[flag.name]):
+                        Memory.flags[new_name] = Memory.flags[flag.name]
+                    del Memory.flags[flag.name]
+                flag.remove()
+    for main in main_to_flag_primary.keys():
+        for flag, sub in find_by_main_with_sub_global(main):
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or '_' not in flag.name) \
+                    and (not Memory.flags[flag.name] or not len(Memory.flags[flag.name])):
+                new_name = create_ms_flag(flag.pos, main, sub)
+                if Memory.flags[flag.name]:
+                    if len(Memory.flags[flag.name]):
+                        Memory.flags[new_name] = Memory.flags[flag.name]
+                    del Memory.flags[flag.name]
+                flag.remove()
 
 
 def look_for(room, position, main, sub=None):
