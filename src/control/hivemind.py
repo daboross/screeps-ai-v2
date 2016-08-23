@@ -1337,7 +1337,17 @@ class RoomMind:
 
     def get_target_mineral_hauler_count(self):
         if self.get_target_mineral_miner_count():
-            return self.role_count(role_mineral_miner) * 2
+            minerals = self.find(FIND_MINERALS)
+            if len(minerals) != 1:
+                print("[{}] ERROR: Unknown number of minerals in {}: {}!".format(self.room_name, self.room_name,
+                                                                                 len(minerals)))
+                return 0
+            if len(minerals):
+                if _.find(self.find_in_range(FIND_STRUCTURES, 2, minerals[0].pos),
+                          lambda s: s.structureType == STRUCTURE_CONTAINER):
+                    return 1
+                else:
+                    return 2 # without any containers, we need 2 so the miner can constantly deposit into one of them.
         elif self.get_target_terminal_energy():  # this method returns 0 once the terminal has reached it's target
             # this is really a hack, and should be changed soon!
             return 1
@@ -1411,12 +1421,12 @@ class RoomMind:
             [role_tower_fill, self.get_target_tower_fill_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
             [role_local_hauler, self.get_target_local_hauler_mass, True],
-            [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
             [role_simple_claim, self.get_target_simple_claim_count],
             [role_room_reserve, self.get_target_room_reserve_count],
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
             [role_colonist, self.get_target_colonist_work_mass],
+            [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_mineral_miner, self.get_target_mineral_miner_count],
             [role_builder, lambda: self.get_target_builder_work_mass(True), False, True]
         ]

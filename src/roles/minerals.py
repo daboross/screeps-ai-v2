@@ -42,11 +42,20 @@ class MineralMiner(RoleBase):
         haulers = _.sortBy(_.filter(self.room.find_in_range(FIND_MY_CREEPS, 1, self.creep.pos),
                                     {"memory": {"role": role_mineral_hauler}}), lambda c: -_.sum(c.carry))
 
+        if len(haulers):
+            transfer_target = haulers[0]
+        else:
+            containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 1, self.creep.pos),
+                                  {"structureType": STRUCTURE_CONTAINER})
+            if len(containers):
+                transfer_target = containers[0]
+            else:
+                return
+
         for mtype in Object.keys(self.creep.carry):
             if self.creep.carry[mtype] > 0:
-                self.creep.transfer(haulers[0], mtype)
+                self.creep.transfer(transfer_target, mtype)
                 break
-
 
     def _calculate_time_to_replace(self):
         minerals = self.home.find(FIND_MINERALS)
@@ -105,6 +114,21 @@ class MineralHauler(RoleBase):
             if not extractor:
                 self.log("MineralHauler's mineral at {} does not have an extractor. D:".format(mineral.pos))
                 self.go_to_depot()
+                return False
+
+            containers = _.filter(_.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
+                                       lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > 0),
+                              lambda s: _.sum(s.store))
+
+            if len(containers):
+                if self.creep.pos.isNearTo(containers[0].pos):
+                    for mtype in Object.keys(containers[0].store):
+                        if containers[0].store[mtype] > 0:
+                            self.creep.withdraw(containers[0], mtype)
+                            break
+                else:
+                    self.move_to(containers[0].pos)
+
                 return False
 
             # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
