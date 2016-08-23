@@ -63,10 +63,6 @@ def clear_memory(room):
                 if flag and flag.memory and flag.memory.remote_miner_targeting == name:
                     del flag.memory.remote_miner_targeting
                     del flag.memory.remote_miner_death_tick
-            elif role == role_remote_mining_reserve:
-                controller = target_mind._get_existing_target_from_name(name, target_remote_reserve)
-                if controller and controller.room.memory.controller_remote_reserve_set == name:
-                    del controller.room.memory.controller_remote_reserve_set
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]
