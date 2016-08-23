@@ -1211,28 +1211,31 @@ class RoomMind:
 
     def get_target_spawn_fill_mass(self):
         if self._target_spawn_fill_count is None:
-            spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
-            tower_fill = self.carry_mass_of(role_tower_fill)
-            if self.room_name == "W46N28":
-                # TODO: Make it possible to scale things based off of "input energy" or hauler count of mined sources.
-                # more are needed because there are no links and storage is a long way from spawn.
-                total_needed = 3 + len(self.sources) + len(_.filter(
-                    self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
-                # print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
-                max_mass_per_creep = spawning.max_sections_of(self, creep_base_hauler)
-                total_mass = min(5, max_mass_per_creep) * total_needed
+            if self.get_target_local_miner_count():
+                spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
+                tower_fill = self.carry_mass_of(role_tower_fill)
+                if self.room_name == "W46N28":
+                    # TODO: Make it possible to scale things based off of "input energy" or hauler count of mined sources.
+                    # more are needed because there are no links and storage is a long way from spawn.
+                    total_needed = 3 + len(self.sources) + len(_.filter(
+                        self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
+                    # print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
+                    max_mass_per_creep = spawning.max_sections_of(self, creep_base_hauler)
+                    total_mass = min(5, max_mass_per_creep) * total_needed
+                else:
+                    total_mass = min(5 * spawning.max_sections_of(self, creep_base_hauler),
+                                     3 * self.room.controller.level * len(self.sources))
+                regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
+                if self.trying_to_get_full_storage_use:
+                    self._target_spawn_fill_count = regular_count
+                else:
+                    extra_count = 0
+                    for source in self.sources:
+                        energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                        extra_count += energy / 200.0
+                    self._target_spawn_fill_count = regular_count + extra_count
             else:
-                total_mass = min(5 * spawning.max_sections_of(self, creep_base_hauler),
-                                 3 * self.room.controller.level * len(self.sources))
-            regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
-            if self.trying_to_get_full_storage_use:
-                self._target_spawn_fill_count = regular_count
-            else:
-                extra_count = 0
-                for source in self.sources:
-                    energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
-                    extra_count += energy / 200.0
-                self._target_spawn_fill_count = regular_count + extra_count
+                self._target_spawn_fill_count = 0
         return self._target_spawn_fill_count
 
     def get_target_builder_work_mass(self, first=False, last=False):
