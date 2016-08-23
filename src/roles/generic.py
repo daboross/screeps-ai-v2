@@ -19,9 +19,9 @@ class ReplacingExpendedCreep(RoleBase):
         old_creep = Game.creeps[old_name]
 
         if not old_creep or not Memory.creeps[old_name] or Memory.creeps[old_name].role == role_recycling:
-            self.log("Now switching to role {}, to replace past-dead {}.".format(
-                self.memory.replacing_role, self.memory.replacing
-            ))
+            # self.log("Now switching to role {}, to replace past-dead {}.".format(
+            #     self.memory.replacing_role, self.memory.replacing
+            # ))
             # He isn't alive anymore, we're too late.
             role = self.memory.replacing_role
             base = self.memory.base
@@ -41,9 +41,9 @@ class ReplacingExpendedCreep(RoleBase):
                 self.move_to(old_creep)
                 return
 
-        self.log("Sending {} to recycling, and taking over as a {}.".format(
-            old_name, self.memory.replacing_role,
-        ))
+        # self.log("Sending {} to recycling, and taking over as a {}.".format(
+        #     old_name, self.memory.replacing_role,
+        # ))
         Memory.creeps[self.name] = {}
         _.assign(Memory.creeps[self.name], Memory.creeps[old_name])
         # TODO: this works because memory isn't a property, but set during construction. However, memory should probably

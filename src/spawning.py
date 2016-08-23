@@ -76,8 +76,9 @@ def run(room, spawn):
             energy = spawn.room.energyCapacityAvailable - (
                 (spawn.room.energyCapacityAvailable - initial_section_cost(base)) % energy_per_section(base))
         else:
-            print("[{}][spawning] Base {} has neither maximum energy nor scalable section energy!".format(
-                room.room_name, base))
+            if base not in known_no_energy_limit:
+                print("[{}][spawning] Base {} has neither maximum energy nor scalable section energy!".format(
+                    room.room_name, base))
             energy = spawn.room.energyCapacityAvailable
     if filled < energy:
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
