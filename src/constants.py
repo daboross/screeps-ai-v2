@@ -9,6 +9,7 @@ creep_base_full_miner = "fast_big_miner"
 creep_base_hauler = "med_hauler"
 creep_base_work_full_move_hauler = "fw_fm_hauler"
 creep_base_work_half_move_hauler = "fw_hm_hauler"
+creep_base_full_upgrader = "min_carry_worker"
 creep_base_reserving = "remote_reserve"
 creep_base_defender = "simple_defender"
 creep_base_mammoth_miner = "mammoth_miner"
@@ -59,7 +60,7 @@ role_td_goad = "tower_drain_goader"
 role_simple_dismantle = "simple_dismantler"
 
 role_bases = {
-    role_upgrader: creep_base_worker,
+    role_upgrader: "ask",
     role_spawn_fill_backup: creep_base_worker,
     role_spawn_fill: creep_base_hauler,
     role_dedi_miner: creep_base_local_miner,
@@ -95,6 +96,7 @@ default_roles = {
     creep_base_goader: role_td_goad,
     creep_base_half_move_healer: role_td_healer,
     creep_base_dismantler: role_simple_dismantle,
+    creep_base_full_upgrader: role_upgrader,
 }
 
 PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"

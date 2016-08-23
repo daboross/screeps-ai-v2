@@ -18,6 +18,7 @@ initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],
     creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
     creep_base_goader: [ATTACK, MOVE, TOUGH],
+    creep_base_full_upgrader: [MOVE, CARRY, WORK],
 }
 
 # TODO: limit goader and healer in RoomMind
@@ -31,7 +32,8 @@ scalable_sections = {
     creep_base_full_miner: [WORK, MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
-    creep_base_dismantler: [WORK, MOVE]
+    creep_base_dismantler: [WORK, MOVE],
+    creep_base_full_upgrader: [MOVE, WORK, WORK],
 }
 
 known_no_energy_limit = [creep_base_mammoth_miner]
@@ -250,6 +252,15 @@ def run(room, spawn):
         parts = []
         num_sections = room.get_max_sections_for_role(role)
         for i in range(0, num_sections):
+            parts.append(WORK)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+    elif base is creep_base_full_upgrader:
+        parts = []
+        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
+        for part in initial_section[base]:
+            parts.append(part)
+        for i in range(0, num_sections * 2):
             parts.append(WORK)
         for i in range(0, num_sections):
             parts.append(MOVE)

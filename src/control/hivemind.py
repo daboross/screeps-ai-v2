@@ -1530,6 +1530,12 @@ class RoomMind:
                     return creep_base_work_full_move_hauler
             else:
                 return creep_base_hauler
+        elif role == role_upgrader:
+            if _.find(self.find_in_range(FIND_MY_STRUCTURES, 4, self.room.controller.pos),
+                      lambda s: s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE):
+                return creep_base_full_upgrader
+            else:
+                return creep_base_worker
         else:
             return role_bases[role]
 
