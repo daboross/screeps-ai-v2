@@ -231,6 +231,7 @@ class HoneyTrails:
         if destination.pos:
             destination = destination.pos
         if origin.roomName != self.room.room_name or destination.roomName != self.room.room_name:
+            print("Tried to pathfind between rooms: {} to {}".format(origin.roomName, destination.roomName))
             return None
         key = "path_{}_{}_{}_{}".format(origin.x, origin.y, destination.x, destination.y)
         serialized_path = self.room.get_cached_property(key)

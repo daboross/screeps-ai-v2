@@ -1,3 +1,5 @@
+import math
+
 from tools import profiling
 from utilities.screeps_constants import *
 
@@ -101,17 +103,30 @@ class LinkingMind:
             # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
             energy_change_now = 0
             for name in Object.keys(mem):
+                if not mem[name].expire:
+                    continue  # an actual memory key
                 if time > mem[name].expire:
+                    if mem[name].cap > 0:
+                        mem.last_deposit = mem[name].expire
+                    elif mem[name].cap < 0:
+                        mem.last_withdraw = mem[name].expire
                     del mem[name]
                 elif mem[name].distance <= 1:
                     energy_change_now += mem[name].cap
+            if Memory.links_debug == self.room.room_name:
+                print("[{}] Energy change: {}".format(link.id[-5:], energy_change_now))
             if energy_change_now > 0:
-                if link.cooldown <= 0:
-                    current_input_links.append({'link': link, 'priority': energy_change_now})
+                if energy_change_now * 2 > link.energyCapacity - link.energy and link.cooldown <= 0:
+                    current_input_links.append({'link': link, 'priority': -energy_change_now})
                 else:
-                    future_input_links.append({'link': link, 'amount': -energy_change_now, 'priority': link.cooldown})
+                    future_input_links.append({'link': link, 'amount': energy_change_now, 'priority': link.cooldown})
             elif energy_change_now < 0:
-                current_output_links.append({'link': link, 'priority': -energy_change_now})
+                if -energy_change_now * 2 > link.energy:
+                    current_output_links.append({'link': link, 'priority': energy_change_now})
+                else:
+                    future_output_links.append(
+                        {'link': link, 'amount': -energy_change_now - link.energy,
+                         'priority': math.floor(link.energy / energy_change_now)})
             else:
                 access_list = _.sortBy(_.filter(mem, lambda x: x.distance > 1), lambda x: x.distance)
                 if len(access_list):
@@ -130,33 +145,56 @@ class LinkingMind:
                         if count < link.energy:
                             future_output_links.append({'link': link, 'amount': count,
                                                         'priority': access_list[0].distance})
+                else:
+                    if mem.last_deposit and (not mem.last_withdraw or mem.last_deposit > mem.last_withdraw):
+                        future_input_links.append({'link': link, 'amount': link.energy, 'priority': 10})
+                    elif mem.last_withdraw and (not mem.last_deposit or mem.last_withdraw > mem.last_deposit):
+                        future_output_links.append({'link': link, 'amount': link.energy, 'priority': 10})
 
         current_input_links.sort(None, key=lambda x: x.priority)
         current_output_links.sort(None, key=lambda x: x.priority)
-        if len(current_output_links):
+        if Memory.links_debug == self.room.room_name:
+            if len(current_input_links):
+                print("Current Input: {}".format(
+                    ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in current_input_links]))
+            if len(current_output_links):
+                print("Current Output: {}".format(
+                    ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in current_output_links]))
+            if len(future_input_links):
+                print("Future Input: {}".format(
+                    ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in future_input_links]))
+            if len(future_output_links):
+                print("Future Output: {}".format(
+                    ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in future_output_links]))
+        if len(current_output_links) and (
+            not len(current_input_links) or Game.time % 12 >= 6):  # switch ever 5 seconds?
             # Priority is output
             if main_link.energy < main_link.energyCapacity:
                 self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
-            else:
-                self.main_link.transferEnergy(current_output_links[0].link)
+            if main_link.cooldown == 0:
+                if main_link.energy >= current_output_links[0].link.energyCapacity - current_output_links[0].link.energy:
+                    self.main_link.transferEnergy(current_output_links[0].link)
+            elif len(current_input_links):
+                current_input_links[0].link.transferEnergy(current_output_links[0].link)
+            elif len(future_input_links):
+                future_input_links[0].link.transferEnergy(current_output_links[0].link)
         elif len(current_input_links):
             # Priority is input
             if main_link.energy > 0:
                 self.link_creep.send_from_link(main_link.energy)
-            elif current_input_links[0].link.energy >= current_input_links[0].link.energyCapacity:
+            elif current_input_links[0].link.energy >= current_input_links[0].link.energyCapacity * 0.85:
                 current_input_links[0].link.transferEnergy(main_link)
+        elif len(future_input_links):
+            if main_link.energyCapacity - main_link.energy > future_input_links[0].link.energy:
+                self.link_creep.send_from_link(main_link.energy)
+            else:
+                future_input_links[0].link.transferEnergy(main_link)
         elif len(future_output_links):
             if main_link.energy < future_output_links[0].amount - future_output_links[0].link.energy:
                 self.link_creep.send_to_link(future_output_links[0].amount - future_output_links[0].link.energy
                                              - main_link.energy)
             else:
                 self.main_link.transferEnergy(future_output_links[0].link)
-        elif len(future_input_links):
-            if main_link.energyCapacity - main_link.energy > future_input_links[0].link.energy:
-                self.link_creep.send_from_link(main_link.energy)
-            else:
-                future_input_links[0].link.transferEnergy(main_link)
-
 
 
 profiling.profile_whitelist(LinkingMind, ["tick_links"])

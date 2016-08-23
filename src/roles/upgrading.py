@@ -19,8 +19,9 @@ class Upgrader(RoleBase):
             self.finished_energy_harvest()
         elif not self.memory.harvesting and self.creep.carry.energy <= 0:
             self.memory.harvesting = True
+            self.finished_energy_harvest()
 
-        if not self.creep.room.controller.my or (self.home.upgrading_paused()
+        if not self.home.room.controller.my or (self.home.upgrading_paused()
                                                  and self.creep.room.controller.ticksToDowngrade >= 5000):
             self.report(speech.upgrading_upgrading_paused)
             self.memory.emptying = True  # flag for spawn fillers to not refill me.
@@ -33,12 +34,11 @@ class Upgrader(RoleBase):
             if self.harvest_energy():
                 return True
 
-        target = self.creep.room.controller
+        target = self.home.room.controller
         if not self.creep.pos.inRangeTo(target.pos, 3):
             if self.memory.harvesting:
                 # Let's upgrade if we're in range while we're harvesting, but otherwise we can just harvest.
                 return False
-            self.pick_up_available_energy()
             self.move_to(target)
             self.memory.stationary = False
             self.report(speech.upgrading_moving_to_controller)
@@ -51,13 +51,15 @@ class Upgrader(RoleBase):
                 self.memory.harvesting = True
                 return True
         elif result == OK:
-            # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering from.
-            # Otherwise, move towards the controller to leave room for other upgraders
-            if not self.memory.harvesting and self.is_next_block_clear(target) and \
-                    (self.creep.carryCapacity > 50 or _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.creep.pos),
-                                                             lambda c: c.memory.role == role_upgrader)):
-                self.pick_up_available_energy()
-                self.move_to(self.creep.room.controller, True)
+            # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering
+            # from. Otherwise, move towards the controller to leave room for other upgraders
+
+            if self.creep.carryCapacity > 100:
+                if not self.memory.harvesting and self.is_next_block_clear(target):
+                    self.move_to(target, True)
+            else:
+                if not self.memory.harvesting and self.creep.carry.energy < self.creep.carryCapacity:
+                    self.harvest_energy()
             self.report(speech.upgrading_ok)
         else:
             self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)

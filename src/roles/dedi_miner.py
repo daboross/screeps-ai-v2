@@ -118,21 +118,23 @@ class LocalHauler(SpawnFill):
                 return False
 
             if not self.creep.pos.isNearTo(target_pos):
-                self.move_to_with_queue(target_pos, flags.SOURCE_QUEUE_START)
-                self.pick_up_available_energy()
+                if miner and not miner.pos.isNearTo(source.pos):
+                    self.move_to(miner)
+                else:
+                    self.move_to_with_queue(target_pos, flags.SOURCE_QUEUE_START)
                 self.report(speech.local_hauler_moving_to_miner)
                 return False
 
             self.memory.stationary = True
 
             piles = target_pos.lookFor(LOOK_RESOURCES, {"filter": {"resourceType": RESOURCE_ENERGY}})
-            if not len(piles) or _.sum(piles, 'amount') < 20:
-                # TODO: make this also not move only move to a free space.
-                self.creep.move(random.randint(1, 9))
+            # if not len(piles) or _.sum(piles, 'amount') < 20:
+            #     # TODO: make this also not move only move to a free space.
+            #     self.creep.move(random.randint(1, 9))
             if not len(piles):
                 # TODO: temporary hack...
                 miner_near = _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos),
-                          {"memory": {"role": role_dedi_miner}})
+                                    {"memory": {"role": role_dedi_miner}})
                 if miner_near and not miner_near.pos.isNearTo(source.pos):
                     self.go_to_depot()
                     return False
@@ -162,7 +164,7 @@ class LocalHauler(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
-            self.memory.emptying = True
+            # self.memory.emptying = True
             target = self.target_mind.get_new_target(self, target_closest_energy_site)
             if not target:
                 target = self.creep.room.storage  # This apparently has happened, I don't know why though?

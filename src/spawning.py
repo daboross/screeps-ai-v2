@@ -18,7 +18,7 @@ initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],
     creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
     creep_base_goader: [ATTACK, MOVE, TOUGH],
-    creep_base_full_upgrader: [MOVE, CARRY, WORK],
+    creep_base_full_upgrader: [MOVE, CARRY, CARRY],
 }
 
 # TODO: limit goader and healer in RoomMind
