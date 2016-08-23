@@ -1352,6 +1352,8 @@ class RoomMind:
         else:
             biggest_mass = spawning.max_sections_of(self, creep_base_hauler)
         needed = self.get_target_remote_hauler_mass() / self.get_target_remote_hauler_count()
+        if self.all_paved():
+            needed = math.ceil(needed / 2)  # each section has twice the carry.
         if needed > biggest_mass:
             if math.ceil(needed / 2) > biggest_mass:
                 if math.ceil(needed / 3) > biggest_mass:
