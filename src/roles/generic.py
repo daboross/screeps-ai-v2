@@ -1,6 +1,6 @@
 import speech
 from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
-    role_remote_mining_reserve, target_remote_reserve, role_recycling
+    role_remote_mining_reserve, role_recycling
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
@@ -74,9 +74,9 @@ class ReplacingExpendedCreep(RoleBase):
                 flag.memory.remote_miner_targeting = self.creep.name
                 flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
         elif role == role_remote_mining_reserve:
-            controller = self.target_mind.get_existing_target(self, target_remote_reserve)
-            if controller and controller.room.memory.controller_remote_reserve_set == old_name:
-                controller.room.memory.controller_remote_reserve_set = self.creep.name
+            room = self.memory.claiming
+            if room:
+                Memory.reserving[room] = self.name
         # TODO: instead of doing this, just somehow get hivemind to re-gen the replacement-time to include this creep
 
         self.home.mem.meta.clear_next = 0  # clear next tick
