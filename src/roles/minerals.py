@@ -134,7 +134,7 @@ class MineralHauler(RoleBase):
             # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
             miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos))
             if not miner:
-                if mineral.mineralAmount > 0:
+                if self.home.get_target_mineral_miner_count():
                     self.go_to_depot()
                     return False
                 else:
