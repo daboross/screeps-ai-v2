@@ -146,7 +146,8 @@ class MineralHauler(RoleBase):
                 self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
         elif state == "storage_harvest_energy":
             terminal = self.home.room.terminal
-            if not terminal or terminal.store.energy > self.home.get_target_terminal_energy():
+            if not terminal or terminal.store.energy > max(ideal_terminal_counts[RESOURCE_ENERGY],
+                                                           self.home.get_target_terminal_energy()):
                 if self.home.role_count(role_mineral_miner):
                     self.memory.state = "miner_harvesting"
                     return True
@@ -175,7 +176,7 @@ class MineralHauler(RoleBase):
                 return False
 
             if resource == RESOURCE_ENERGY:
-                ideal = self.home.get_target_terminal_energy()
+                ideal = max(ideal_terminal_counts[resource], self.home.get_target_terminal_energy())
             elif resource in ideal_terminal_counts:
                 ideal = ideal_terminal_counts[resource]
             else:

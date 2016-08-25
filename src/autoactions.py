@@ -198,7 +198,12 @@ def run_away_check(creep):
             break
     else:
         # No targets in range, no need to do anything
-        return True  # Still cancel creep actions, so as not to do back-and-forth.
+        for obj in hostile_path_targets:
+            target = obj.pos
+            target_range = obj.range
+            if not movement.squared_distance(target, creep.creep.pos) > (target_range + 2) * (target_range + 2):
+                return True  # Still cancel creep actions if we're semi-close, so as not to do back-and-forth.
+        return False
 
     path = get_cached_away_path(creep, hostile_path_targets)
 
@@ -207,7 +212,7 @@ def run_away_check(creep):
             instinct_do_heal(creep)
         if creep.creep.getActiveBodyparts(ATTACK):
             instinct_do_attack(creep)
-        creep.last_checkpoint = None # we're moving manually here
+        creep.last_checkpoint = None  # we're moving manually here
         result = creep.creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
             # del creep.memory._away_path
