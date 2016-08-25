@@ -174,11 +174,12 @@ class ConstructionMind:
         for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES),
                                            lambda s: (s.my or not s.owner)
                                            and s.hits < s.hitsMax * 0.9 and s.hits < max_hits
-                                           and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)),
+                                           and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.4)),
                                   lambda s: movement.distance_squared_room_pos(spawn_pos, s.pos)):
             structure_type = structure.type
 
-            if flags.look_for(self.room, structure.pos, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type]):
+            if flags.look_for(self.room, structure.pos, flags.MAIN_DESTRUCT,
+                              flags.structure_type_to_flag_sub[structure_type]):
                 continue
             if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION,
                                   STRUCTURE_TOWER, STRUCTURE_STORAGE, STRUCTURE_LINK):

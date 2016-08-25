@@ -1242,7 +1242,7 @@ class RoomMind:
         def is_relatively_decayed(id):
             thing = Game.getObjectById(id)
             return thing is not None and thing.structureType != STRUCTURE_ROAD \
-                   and thing.hits > min(thing.hitsMax, self.max_sane_wall_hits) * 0.85
+                   and thing.hits < min(thing.hitsMax, self.max_sane_wall_hits) * 0.6
 
         # TODO: this is a hack to get correct workmasses (this is called twice)
         if self._builder_use_first_only:
@@ -1330,7 +1330,8 @@ class RoomMind:
         # TODO: this should also depend on work mass
         minerals = self.find(FIND_MINERALS)
         if _.sum(minerals, 'mineralAmount') > 0 and _.find(self.find(FIND_MY_STRUCTURES),
-                                                           {'structureType': STRUCTURE_EXTRACTOR}):
+                                                           {'structureType': STRUCTURE_EXTRACTOR}) \
+                and (self.room.storage.store[minerals[0].mineralType] < 80000):  # TODO: customizable threshold.
             return 1
         else:
             return 0
@@ -1347,7 +1348,7 @@ class RoomMind:
                           lambda s: s.structureType == STRUCTURE_CONTAINER):
                     return 1
                 else:
-                    return 2 # without any containers, we need 2 so the miner can constantly deposit into one of them.
+                    return 2  # without any containers, we need 2 so the miner can constantly deposit into one of them.
         elif self.get_target_terminal_energy():  # this method returns 0 once the terminal has reached it's target
             # this is really a hack, and should be changed soon!
             return 1
@@ -1533,11 +1534,10 @@ class RoomMind:
 
     def get_variable_base(self, role):
         if role == role_remote_hauler:
-            if self.paving():
-                if self.all_paved():
-                    return creep_base_work_half_move_hauler
-                else:
-                    return creep_base_work_full_move_hauler
+            if self.all_paved():
+                return creep_base_work_half_move_hauler
+            elif self.paving():
+                return creep_base_work_full_move_hauler
             else:
                 return creep_base_hauler
         elif role == role_upgrader:

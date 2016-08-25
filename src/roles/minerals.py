@@ -45,11 +45,20 @@ class MineralMiner(RoleBase):
         if len(haulers):
             transfer_target = haulers[0]
         else:
-            containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 1, self.creep.pos),
-                                  {"structureType": STRUCTURE_CONTAINER})
+            containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 1, mineral.pos),
+                                  lambda c: c.structureType == STRUCTURE_CONTAINER and _.sum(c.store) < c.storeCapacity)
+
             if len(containers):
                 transfer_target = containers[0]
+                if not self.creep.pos.isNearTo(transfer_target):
+                    self.move_to(transfer_target)
+                    return
             else:
+                if not _.find(self.room.find_in_range(FIND_STRUCTURES, 1, mineral.pos),
+                              {'structureType':STRUCTURE_CONTAINER}) \
+                    and not _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 1, mineral.pos),
+                                   {"structureType":STRUCTURE_CONTAINER}):
+                    self.creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
                 return
 
         for mtype in Object.keys(self.creep.carry):
@@ -117,8 +126,8 @@ class MineralHauler(RoleBase):
                 return False
 
             containers = _.filter(_.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
-                                       lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > 0),
-                              lambda s: _.sum(s.store))
+                                           lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > 0),
+                                  lambda s: _.sum(s.store))
 
             if len(containers):
                 if self.creep.pos.isNearTo(containers[0].pos):
