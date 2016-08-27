@@ -48,6 +48,9 @@ class ConstructionMind:
                 else:
                     i += 1
 
+    def refresh_destruction_targets(self):
+        del self.room.mem.cache.destruct_targets
+
     def next_priority_construction_targets(self):
         priority_list = self.room.get_cached_property("building_targets")
         if priority_list is not None:
@@ -58,9 +61,9 @@ class ConstructionMind:
         high_priority = []
 
         for site in self.room.find(FIND_CONSTRUCTION_SITES):
-            if site.structureType in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER):
+            if site.structureType in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TOWER):
                 high_priority.append(site.id)
-            elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_LINK):
+            elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE):
                 med_priority.append(site.id)
             # elif site.structureType == STRUCTURE_ROAD:
             #     # let's only have haulers repairing roads, that way we won't build too many where we don't need them,
@@ -121,9 +124,9 @@ class ConstructionMind:
                         or len(_.filter(flag.pos.lookFor(LOOK_CONSTRUCTION_SITES), {"structureType": structure_type})):
                     continue  # already built.
                 flag.pos.createConstructionSite(structure_type)
-                if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_TOWER):
+                if structure_type in (STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_LINK):
                     high_priority.append("flag-{}".format(flag.name))
-                elif structure_type in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_LINK):
+                elif structure_type in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_EXTENSION):
                     med_priority.append("flag-{}".format(flag.name))
                 else:
                     low_priority.append("flag-{}".format(flag.name))
@@ -224,6 +227,38 @@ class ConstructionMind:
         self.room.store_cached_property("big_repair_targets", target_list, 200)
         return target_list
 
+    def next_priority_destruct_targets(self):
+        target_list = self.room.get_cached_property("destruct_targets")
+        if target_list is not None:
+            return target_list
+
+        target_list = []
+
+        if self.room.spawn:
+            spawn_pos = self.room.spawn.pos
+        else:
+            spawn_flag = flags.find_ms_flag(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
+            if len(spawn_flag):
+                spawn_pos = spawn_flag[0].pos
+            else:
+                print("[{}][building] Warning: Finding destruct targets for room {},"
+                      " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
+                spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
+
+        for flag, secondary in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT),
+                                        lambda t: -movement.distance_squared_room_pos(t[0].pos, spawn_pos)):
+            structure_type = flags.flag_sub_to_structure_type[secondary]
+            structures = _.filter(self.room.find_at(FIND_STRUCTURES, flag.pos),
+                                  lambda s: s.structureType == structure_type)
+            if len(structures):
+                for s in structures:
+                    target_list.append(s.id)
+            else:
+                flag.remove()
+
+        self.room.store_cached_property("destruct_targets", target_list, 200)
+        return target_list
+
     def retest_mining_roads(self):
         # TODO: Make a "trigger" function which runs when a controller upgrades which runs things like this.
         del self.room.mem.cache.placed_mining_roads
@@ -315,4 +350,10 @@ class ConstructionMind:
         # Done!
 
 
-profiling.profile_whitelist(ConstructionMind, "refresh_targets")
+profiling.profile_whitelist(ConstructionMind, [
+    "next_priority_construction_targets",
+    "next_priority_repair_targets",
+    "next_priority_big_repair_targets",
+    "next_priority_destruct_targets",
+    "place_remote_mining_roads",
+])

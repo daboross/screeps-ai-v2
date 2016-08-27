@@ -39,6 +39,14 @@ scalable_sections = {
 known_no_energy_limit = [creep_base_mammoth_miner]
 
 
+def emergency_conditions(room):
+    return room.carry_mass_of(role_spawn_fill) < room.get_target_spawn_fill_mass() / 2 \
+           and (room.room.energyAvailable >= max(100 * room.work_mass, 250)
+                or (room.carry_mass_of(role_spawn_fill)
+                    + room.carry_mass_of(role_spawn_fill_backup)
+                    + room.carry_mass_of(role_tower_fill)) <= 0)
+
+
 def run(room, spawn):
     """
     Activates the spawner, spawning what's needed, as determined by the RoomManager.
@@ -67,7 +75,8 @@ def run(room, spawn):
     # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
     # too bad. We *can* assume that all work_mass at this point is in harvesters, since consistency.reassign_roles()
     # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
-    if room.role_count(role_spawn_fill) < 3 and filled >= max(150 * room.work_mass, 250):
+    if emergency_conditions(room):
+        print("[{}] WARNING: Bootstrapping room!".format(room.room_name))
         energy = filled
     else:
         if base in bases_max_energy:
@@ -93,24 +102,24 @@ def run(room, spawn):
             print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
             return
         if energy < 600 and energy % 100 != 0:
-            work_energy = 50
+            move_energy = 50
             parts = [MOVE]
         else:
-            work_energy = 100
+            move_energy = 100
             parts = [MOVE, MOVE]
 
-        num_sections = min(int(floor((energy - work_energy) / 100)), 5)
+        num_sections = min(int(floor((energy - move_energy) / 100)), 5)
         for i in range(0, num_sections):
             parts.append(WORK)
         if num_sections < 5:
-            if work_energy == 50:
+            if move_energy == 50:
                 descriptive_level = "slow-med-{}".format(num_sections)
             else:
                 descriptive_level = "med-{}".format(num_sections)
-        elif energy >= 650:  # we can fit an extra work
+        elif energy >= 650:  # we can fit an extra move
             parts.append(MOVE)
             descriptive_level = "full-8"
-        elif work_energy == 50:
+        elif move_energy == 50:
             descriptive_level = "slow-6"
         else:
             descriptive_level = "full-7"
@@ -131,11 +140,10 @@ def run(room, spawn):
     elif base is creep_base_reserving:
         parts = []
         num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
-        for i in range(0, num_sections - 1):
-            parts.append(MOVE)
         for i in range(0, num_sections):
             parts.append(CLAIM)
-        parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_hauler:
         parts = []
@@ -169,12 +177,11 @@ def run(room, spawn):
         if energy >= 500:
             parts = []
             num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
-            for i in range(0, num_sections * 2 - 1):
-                parts.append(MOVE)
             for i in range(0, num_sections):
                 parts.append(CARRY)
                 parts.append(WORK)
-            parts.append(MOVE)
+            for i in range(0, num_sections * 2):
+                parts.append(MOVE)
             descriptive_level = "full-{}".format(num_sections)
         elif energy >= 400:
             parts = [MOVE, MOVE, MOVE, CARRY, WORK, WORK]
@@ -192,11 +199,9 @@ def run(room, spawn):
         num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
-        for i in range(0, num_sections - 1):
-            parts.append(MOVE)
         for i in range(0, num_sections):
             parts.append(ATTACK)
-        parts.append(MOVE)
+            parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_mammoth_miner:
         parts = [MOVE]
@@ -369,8 +374,7 @@ def initial_section_cost(base):
 
 
 def max_sections_of(room, base):
-    # TODO: this is duplicated in run()
-    if room.role_count(role_spawn_fill) < 3 and room.room.energyAvailable >= max(150 * room.work_mass, 250):
+    if emergency_conditions(room):
         energy = room.room.energyAvailable
     else:
         energy = room.room.energyCapacityAvailable

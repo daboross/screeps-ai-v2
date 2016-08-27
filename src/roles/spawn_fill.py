@@ -69,7 +69,7 @@ class SpawnFill(building.Builder):
                             self.target_mind.untarget(self, target_spawn_deposit)
                             return True
                         else:
-                            self.log("Unknown result from creep.transfer({}): {}", target, result)
+                            self.log("Unknown result from spawn_fill-creep.transfer({}): {}", target, result)
                             self.target_mind.untarget(self, target_spawn_deposit)
                             self.report(speech.spawn_fill_unknown_result)
                             return True

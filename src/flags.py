@@ -31,6 +31,7 @@ SUB_LINK = "link"
 SUB_EXTRACTOR = "extractor"
 SUB_TERMINAL = "terminal"
 SUB_ROAD = "road"
+SUB_CONTAINER = "container_destructonly"
 TD_H_H_STOP = "tdhhs"
 TD_H_D_STOP = "tdhts"
 TD_D_GOAD = "tddg"
@@ -87,6 +88,7 @@ sub_to_flag_secondary = {
     SUB_STORAGE: COLOR_YELLOW,
     SUB_LINK: COLOR_ORANGE,
     SUB_EXTRACTOR: COLOR_BROWN,
+    SUB_CONTAINER: COLOR_BROWN, # Dual flags, but container can only be used for destruct.
     SUB_ROAD: COLOR_WHITE,
     SUB_TERMINAL: COLOR_GREY,
 }
@@ -357,7 +359,7 @@ def find_closest_in_room(pos, flag_type):
     key = "{}_{}_{}_{}".format(pos.roomName, pos.x, pos.y, flag_type)
     if key in _closest_flag_cache:
         return _closest_flag_cache[key]
-    closest_distance = math.pow(2, 30)
+    closest_distance = Infinity
     closest_flag = None
     for flag in find_flags(pos.roomName, flag_type):
         distance = squared_distance(pos.x, pos.y, flag.pos.x, flag.pos.y)

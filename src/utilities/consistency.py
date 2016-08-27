@@ -1,5 +1,6 @@
 from constants import *
 from tools import profiling
+from utilities import global_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -90,6 +91,7 @@ def clear_cache():
                 del mem.cache
         if len(mem) <= 0:
             del Memory.rooms[mem]
+    global_cache.cleanup()
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")

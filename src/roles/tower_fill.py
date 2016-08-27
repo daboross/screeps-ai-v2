@@ -36,7 +36,7 @@ class TowerFill(spawn_fill.SpawnFill):
                     self.target_mind.untarget(self, target_tower_fill)
                     return True
                 else:
-                    self.log("Unknown result from creep.transfer({}): {}", target, result)
+                    self.log("Unknown result from tower_fill-creep.transfer({}): {}", target, result)
                     self.target_mind.untarget(self, target_tower_fill)
                     self.report(speech.tower_fill_unknown_result)
             else:

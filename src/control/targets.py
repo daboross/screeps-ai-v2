@@ -4,7 +4,6 @@ import context
 import flags
 import spawning
 from constants import *
-from control.hivemind import SLIGHTLY_SMALLER_THAN_MAX_INT
 from control.hivemind import get_carry_mass_for_remote_mine
 from tools import profiling
 from utilities import movement
@@ -61,6 +60,7 @@ class TargetMind:
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
+            target_destruction_site: self._find_new_destruction_site,
             target_spawn_deposit: self._find_new_spawn_fill_site,
             target_tower_fill: self._find_new_tower,
             target_remote_mine_miner: self._find_new_remote_miner_mine,
@@ -308,7 +308,7 @@ class TargetMind:
         """
         has_work = not not creep.creep.getActiveBodyparts(WORK)
         biggest_energy_store = 0
-        smallest_work_force = SLIGHTLY_SMALLER_THAN_MAX_INT
+        smallest_work_force = Infinity
         best_id_1 = None
         best_id_2 = None
         sources = creep.home.find(FIND_SOURCES)
@@ -359,7 +359,7 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_distance = Infinity
         best_id = None
         stealing_from = None
         structures = _.filter(creep.room.find(FIND_MY_STRUCTURES),
@@ -446,8 +446,8 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         # TODO: update big repair target to also use room building.
-        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
-        smallest_num_builders = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_distance = Infinity
+        smallest_num_builders = Infinity
         best_id = None
         for struct_id in creep.home.building.next_priority_repair_targets():
             structure = Game.getObjectById(struct_id)
@@ -477,6 +477,24 @@ class TargetMind:
                     # List is already in priority.
                     return struct_id
 
+    def _find_new_destruction_site(self, creep):
+        """
+        :type creep: role_base.RoleBase
+        """
+        construct_count = {}
+        for struct_id in creep.home.building.next_priority_destruct_targets():
+            struct = Game.getObjectById(struct_id)
+            if struct:
+                current_num = self.targets[target_destruction_site][struct_id]
+                if not current_num or current_num < _MAX_BUILDERS:
+                    # List is already in priority.
+                    if struct.structureType not in construct_count:
+                        construct_count[struct.structureType] = len(
+                            _.filter(creep.home.find(FIND_MY_CONSTRUCTION_SITES),
+                                     lambda s: s.structureType == struct.structureType))
+                    if construct_count[struct.structureType] < 2:
+                        return struct_id
+
     def _find_new_tower(self, creep):
         """
         :type creep: role_base.RoleBase
@@ -500,7 +518,7 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         best_id = None
-        closest_flag = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_flag = Infinity
         for flag in creep.home.remote_mining_operations:
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
@@ -537,7 +555,7 @@ class TargetMind:
 
         return best_id
 
-    def _find_closest_deposit_site(self, creep):
+    def _find_closest_deposit_site(self, creep, pos):
         """
         :type creep: role_base.RoleBase
         """
@@ -549,9 +567,12 @@ class TargetMind:
         #                             or s.structureType == STRUCTURE_STORAGE
         #     })
 
+        if not pos:
+            pos = creep.pos
+
         # TODO: cache the closest deposit site to each mine site.
         if creep.home.links.enabled:
-            target = creep.home.find_closest_by_range(FIND_STRUCTURES, creep.creep.pos,
+            target = creep.home.find_closest_by_range(FIND_STRUCTURES, pos,
                                                       lambda s: (s.structureType == STRUCTURE_LINK
                                                                  or s.structureType == STRUCTURE_STORAGE)
                                                                 and s.id != creep.home.links.main_link.id)
@@ -564,13 +585,12 @@ class TargetMind:
         else:
             return None
 
-
     def _find_top_priority_reservable_room(self, creep):
         """
         :type creep: role_base.RoleBase
         """
         closest_flag = None
-        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_distance = Infinity
         for flag in flags.find_flags_global(flags.RESERVE_NOW):
             room_name = flag.pos.roomName
             room = Game.rooms[room_name]
@@ -589,7 +609,7 @@ class TargetMind:
 
     def _find_closest_flag(self, creep, flag_type):
         closest_flag = None
-        closest_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
             flag_id = "flag-{}".format(flag.name)
             current = self.targets[target_single_flag][flag_id]

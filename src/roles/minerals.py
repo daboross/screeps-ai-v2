@@ -73,7 +73,7 @@ class MineralMiner(RoleBase):
             return -1
         mineral_pos = minerals[0].pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
-        time = movement.path_distance(spawn_pos, mineral_pos, True) * 2 + RoleBase._calculate_time_to_replace(self)
+        time = movement.path_distance(spawn_pos, mineral_pos, True) * 2 + _.size(self.creep.body) * 3 + 15
         return time
 
 
@@ -227,7 +227,7 @@ class MineralHauler(RoleBase):
 
             result = self.creep.transfer(storage, resource)
             if result != OK:
-                self.log("Unknown result from creep.transfer({}, {}): {}".format(storage, resource, result))
+                self.log("Unknown result from mineral-creep.transfer({}, {}): {}".format(storage, resource, result))
         elif state == "empty_terminal_withdraw":
             terminal = self.home.room.terminal
             if _.sum(terminal.store) < terminal.storeCapacity * 0.75 \
@@ -257,3 +257,6 @@ class MineralHauler(RoleBase):
                 self.log("Unknown result from creep.withdraw({}, {}): {}".format(terminal, resource, result))
 
         return False
+
+    def _calculate_time_to_replace(self):
+        return _.size(self.creep.body) * 3 # Don't live replace mineral haulers

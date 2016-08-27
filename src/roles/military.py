@@ -27,7 +27,7 @@ class RoleDefender(RoleBase):
         target_id = self.memory.attack_target
         if not target_id:
             best_id = None
-            closest_distance = math.pow(2, 30)
+            closest_distance = Infinity
             for target_id, room_name, pos, target_owner in Memory.hostiles:
                 distance = movement.distance_squared_room_pos(self.creep.pos, pos)
                 if distance < closest_distance:
@@ -43,7 +43,7 @@ class RoleDefender(RoleBase):
         hostile_room = Memory.hostile_last_rooms[target_id]
         if self.creep.pos.roomName != hostile_room:
             if hostile_room:
-                self.move_to(__new__(RoomPosition(25, 25, hostile_room)))
+                self.creep.moveTo(__new__(RoomPosition(25, 25, hostile_room)))
                 return False
             else:
                 self.memory.attack_target = None
@@ -59,6 +59,8 @@ class RoleDefender(RoleBase):
 
         self.move_to(target)
 
+    def _calculate_time_to_replace(self):
+        return 0 # never live-replace a defender.
 
 profiling.profile_whitelist(RoleDefender, ["run"])
 
@@ -112,8 +114,13 @@ class TowerDrainer(RoleBase):
                 return
             if not self.creep.pos.isEqualTo(target.pos):
                 if self.creep.pos.isNearTo(target.pos):
-                    self.creep.move(pathdef.get_direction(target.pos.x - self.creep.pos.x,
-                                                          target.pos.y - self.creep.pos.y))
+                    direction = pathdef.get_direction(target.pos.x - self.creep.pos.x,
+                                                          target.pos.y - self.creep.pos.y)
+                    if direction is None:
+                        self.log("Unknown result from pathdef.get_direction({} - {}, {} - {})".format(
+                            target.pos.x, self.creep.pos.x, target.pos.y, self.creep.pos.y
+                        ))
+                    self.creep.move(direction)
                 else:
                     self.creep.moveTo(target.pos)
         else:

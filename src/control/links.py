@@ -27,8 +27,11 @@ class LinkingMind:
 
     def get_main_link(self):
         if self._main_link is None:
-            self._main_link = self.room.find_closest_by_range(FIND_MY_STRUCTURES, self.room.room.storage.pos,
-                                                              {"structureType": STRUCTURE_LINK})
+            if self.room.my and self.room.room.storage and len(self.links) >= 2:
+                self._main_link = self.room.find_closest_by_range(FIND_MY_STRUCTURES, self.room.room.storage.pos,
+                                                                  {"structureType": STRUCTURE_LINK})
+            else:
+                self._main_link = None
         return self._main_link
 
     main_link = property(get_main_link)
@@ -80,9 +83,29 @@ class LinkingMind:
         to both the main link and storage, and then LinkingMind will give the creep the needed action at the end of the
         tick.
 
-        :type creep: role_base.RoleBase
+        :type creep: roles.utility.LinkManager
         :param creep: Link manager
         """
+        if self.link_creep is not None:
+            creep1 = self.link_creep
+            creep2 = creep
+
+            def send_to_link(amount):
+                creep1.send_to_link(amount)
+                if amount > creep1.creep.carryCapacity / 2:
+                    creep2.send_to_link(amount - creep1.creep.carryCapacity / 2)
+
+            def send_from_link(amount):
+                creep1.send_from_link(amount)
+                if amount > creep1.creep.carryCapacity / 2:
+                    creep2.send_to_link(amount - creep1.creep.carryCapacity / 2)
+
+            self.link_creep = {
+                "send_to_link": send_to_link,
+                "send_from_link": send_from_link,
+                # Support doing this multiple times.
+                "creep": {"carryCapacity": creep1.creep.carryCapacity + creep2.creep.carryCapacity}
+            }
         self.link_creep = creep
 
     def tick_links(self):
@@ -167,12 +190,13 @@ class LinkingMind:
                 print("Future Output: {}".format(
                     ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in future_output_links]))
         if len(current_output_links) and (
-            not len(current_input_links) or Game.time % 12 >= 6):  # switch ever 5 seconds?
+                    not len(current_input_links) or Game.time % 12 >= 6):  # switch ever 5 seconds?
             # Priority is output
             if main_link.energy < main_link.energyCapacity:
                 self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
             if main_link.cooldown == 0:
-                if main_link.energy >= current_output_links[0].link.energyCapacity - current_output_links[0].link.energy:
+                if main_link.energy >= current_output_links[0].link.energyCapacity - current_output_links[
+                    0].link.energy:
                     self.main_link.transferEnergy(current_output_links[0].link)
             elif len(current_input_links):
                 current_input_links[0].link.transferEnergy(current_output_links[0].link)
@@ -182,8 +206,11 @@ class LinkingMind:
             # Priority is input
             if main_link.energy > 0:
                 self.link_creep.send_from_link(main_link.energy)
-            elif current_input_links[0].link.energy >= current_input_links[0].link.energyCapacity * 0.85:
-                current_input_links[0].link.transferEnergy(main_link)
+            else:
+                for obj in current_input_links:
+                    if obj.link.energy >= obj.link.energyCapacity * 0.85:
+                        obj.link.transferEnergy(main_link)
+                        break
         elif len(future_input_links):
             if main_link.energyCapacity - main_link.energy > future_input_links[0].link.energy:
                 self.link_creep.send_from_link(main_link.energy)

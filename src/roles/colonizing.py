@@ -15,7 +15,7 @@ __pragma__('noalias', 'name')
 class Colonist(RoleBase):
     def run(self):
         if not self.memory.colonizing:
-            closest_distance = math.pow(2, 30)
+            closest_distance = Infinity
             closest_room_name = None
             for room in context.hive().my_rooms:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
@@ -45,6 +45,9 @@ class Colonist(RoleBase):
         else:
             self.move_to(__new__(RoomPosition(25, 25, colony)))
 
+    def _calculate_time_to_replace(self):
+        return 0
+
 
 profiling.profile_whitelist(Colonist, ["run"])
 
@@ -53,7 +56,7 @@ class Claim(RoleBase):
     def run(self):
         if not self.memory.claiming:
             # TODO: turn this into a target for TargetMind
-            closest_distance = math.pow(2, 30)
+            closest_distance = Infinity
             closest_room = None
             for flag in flags.find_flags_global(flags.CLAIM_LATER):
                 room = context.hive().get_room(flag.pos.roomName)
@@ -96,6 +99,9 @@ class Claim(RoleBase):
 
         self.creep.claimController(target)
         target.room.memory.sponsor = self.home.room_name
+
+    def _calculate_time_to_replace(self):
+        return 0
 
 
 class ReserveNow(RoleBase):
@@ -142,4 +148,4 @@ class ReserveNow(RoleBase):
         target_pos = controller.pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
-        return movement.path_distance(spawn_pos, target_pos) + RoleBase._calculate_time_to_replace(self)
+        return movement.path_distance(spawn_pos, target_pos) + _.size(self.creep.body) * 3 + 15

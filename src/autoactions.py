@@ -107,17 +107,22 @@ def get_path_away(origin, targets):
     path = []
 
     last_x, last_y = origin.x, origin.y
-    for origin in result.path:
-        dx = origin.x - last_x
-        dy = origin.y - last_y
-        last_x = origin.x
-        last_y = origin.y
+    for pos in result.path:
+        dx = pos.x - last_x
+        dy = pos.y - last_y
+        last_x = pos.x
+        last_y = pos.y
+        direction = pathdef.get_direction(dx, dy)
+        if direction is None:
+            print("[autoactions][get_path_away] Unknown direction for pos: {},{}, last: {},{}".format(
+                pos.x, pos.y, last_x, last_y))
+            return None
         path.append({
-            'x': origin.x,
-            'y': origin.y,
+            'x': pos.x,
+            'y': pos.y,
             'dx': dx,
             'dy': dy,
-            'direction': pathdef.get_direction(dx, dy)
+            'direction': direction
         })
 
     return path
@@ -213,6 +218,7 @@ def run_away_check(creep):
         if creep.creep.getActiveBodyparts(ATTACK):
             instinct_do_attack(creep)
         creep.last_checkpoint = None  # we're moving manually here
+        del creep.memory.was_on_the_path
         result = creep.creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
             # del creep.memory._away_path
@@ -243,7 +249,8 @@ def transfer_check(creep):
                     and _.sum(other.carry) < other.carryCapacity:
                 result = creep.creep.transfer(other, RESOURCE_ENERGY)
                 if result != OK:
-                    creep.log("Unknown result from creep.transfer({}, {}): {}", other, RESOURCE_ENERGY, result)
+                    creep.log("Unknown result from autoaction-creep.transfer({}, {}): {}", other, RESOURCE_ENERGY,
+                              result)
                 return True
 
 
@@ -259,6 +266,15 @@ def pickup_check(creep):
             creep.creep.pickup(energy[0])
 
 
+def mercy_check(creep):
+    """
+    :type creep: role_base.RoleBase
+    """
+    if len(creep.creep.body) <= 1:
+        creep.creep.suicide()
+        return True
+
+
 transfer_check = profiling.profiled(transfer_check, "autoactions.transfer_check")
 
 
@@ -272,6 +288,8 @@ def instinct_check(creep):
     if creep.creep.spawning:
         return False
     if run_away_check(creep):
+        return True
+    if mercy_check(creep):
         return True
     pickup_check(creep)
     # transfer_check(creep)

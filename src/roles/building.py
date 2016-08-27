@@ -1,7 +1,6 @@
-import random
-
 import speech
-from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, role_builder
+from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, role_builder, \
+    target_destruction_site
 from roles import upgrading
 from tools import profiling
 from utilities.screeps_constants import *
@@ -28,6 +27,14 @@ class Builder(upgrading.Upgrader):
             return True
         return False
 
+    def any_destruct_targets(self):
+        if self.target_mind.get_existing_target(self, target_destruction_site):
+            return True
+        if self.target_mind.get_new_target(self, target_destruction_site):
+            self.target_mind.untarget(self, target_destruction_site)
+            return True
+        return False
+
     def run(self):
         del self.memory.emptying
         if self.creep.ticksToLive < recycle_time:
@@ -43,6 +50,13 @@ class Builder(upgrading.Upgrader):
             self.memory.harvesting = True
 
         if not self.any_building_targets():
+            destruct = self.target_mind.get_new_target(self, target_destruction_site)
+            if destruct:
+                self.memory.emptying = True  # flag for spawn fillers to not refill me.
+                if self.memory.harvesting:
+                    return self.execute_destruction_target(destruct)
+                else:
+                    return self.empty_to_storage()
             if not self.home.upgrading_paused():
                 return upgrading.Upgrader.run(self)
             else:
@@ -52,7 +66,12 @@ class Builder(upgrading.Upgrader):
                 return False
 
         if self.memory.harvesting:
-            return self.harvest_energy()
+            destruct = self.target_mind.get_new_target(self, target_destruction_site)
+            if destruct:
+                self.memory.emptying = True  # flag for spawn fillers to not refill me.
+                self.execute_destruction_target(destruct)
+            else:
+                return self.harvest_energy()
         else:
             target = self.target_mind.get_existing_target(self, target_repair)
             if target:
@@ -120,8 +139,7 @@ class Builder(upgrading.Upgrader):
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
             else:
-                # TODO: make this also not move away from the target, and only move to a free space.
-                self.creep.move(random.randint(1, 9))
+                self.move_around(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
@@ -152,8 +170,7 @@ class Builder(upgrading.Upgrader):
             if self.is_next_block_clear(target):
                 self.move_to(target, True)
             else:
-                # TODO: make this also not move away from the target, and only move to a free space.
-                self.creep.move(random.randint(1, 9))
+                self.move_around(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, target_construction)
         else:
@@ -161,6 +178,49 @@ class Builder(upgrading.Upgrader):
             return True
 
         return False
+
+    def execute_destruction_target(self, target):
+        if not self.pos.isNearTo(target.pos):
+            self.move_to(target)
+            return False
+
+        self.memory.stationary = True
+        result = self.creep.dismantle(target)
+        if result == OK:
+            self.move_around(target)
+            if target.hits < self.creep.getActiveBodyparts(WORK) * 50: # we've fully destroyed it
+                # check to see if we've opened up any new spots for construction sites with our destroyed structure.
+                self.home.building.refresh_building_targets()
+        else:
+            self.log("Unknown result from creep.dismantle({}): {}", target, result)
+
+    def move_around(self, target):
+        if Game.time % 2:
+            self.move_around_clockwise(target)
+        else:
+            self.move_around_counter_clockwise(target)
+
+    def move_around_clockwise(self, target):
+        direction = target.pos.getDirectionTo(self.creep.pos)
+        if direction == TOP_LEFT or direction == TOP:
+            self.creep.move(RIGHT)
+        elif direction == TOP_RIGHT or direction == RIGHT:
+            self.creep.move(BOTTOM)
+        elif direction == BOTTOM_RIGHT or direction == BOTTOM:
+            self.creep.move(LEFT)
+        elif direction == BOTTOM_LEFT or direction == LEFT:
+            self.creep.move(TOP)
+
+    def move_around_counter_clockwise(self, target):
+        direction = target.pos.getDirectionTo(self.creep.pos)
+        if direction == TOP_RIGHT or direction == TOP:
+            self.creep.move(LEFT)
+        elif direction == BOTTOM_RIGHT or direction == RIGHT:
+            self.creep.move(TOP)
+        elif direction == BOTTOM_LEFT or direction == BOTTOM:
+            self.creep.move(RIGHT)
+        elif direction == TOP_LEFT or direction == LEFT:
+            self.creep.move(BOTTOM)
 
 
 profiling.profile_whitelist(Builder, [

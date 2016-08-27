@@ -19,8 +19,6 @@ __pragma__('noalias', 'name')
 
 _MAX_BUILDERS = 3
 
-SLIGHTLY_SMALLER_THAN_MAX_INT = math.pow(2, 30)
-
 
 # TODO: MiningMind
 def get_carry_mass_for_remote_mine(home, flag):
@@ -43,6 +41,18 @@ def get_carry_mass_for_remote_mine(home, flag):
         target_mass = extra_small_hauler_mass * 5
 
     return target_mass
+
+
+def fit_num_sections(needed, maximum, extra_initial=0):
+    if maximum <= 1:
+        return maximum
+
+    num = 0
+    trying = Infinity
+    while trying > maximum:
+        num += 1
+        trying = math.ceil(needed / num - extra_initial)
+    return trying
 
 
 class HiveMind:
@@ -136,7 +146,7 @@ class HiveMind:
         if not current_pos:
             print("[{}] Couldn't parse room name!".format(current_room_name))
             return None
-        closest_squared_distance = SLIGHTLY_SMALLER_THAN_MAX_INT
+        closest_squared_distance = Infinity
         closest_room = None
         for room in self.my_rooms:
             if not room.my:
@@ -270,16 +280,22 @@ class RoomMind:
         self._target_colonist_count = None
         self._target_simple_claim_count = None
         self._target_room_reserve_count = None
-        self._target_spawn_fill_count = None
+        self._target_spawn_fill_mass = None
         self._target_td_healer_count = None
         self._target_td_goader_count = None
         self._target_simple_dismantler_count = None
         self._target_remote_hauler_count = None
+        self._total_needed_spawn_fill_mass = None
         self._max_sane_wall_hits = None
         self._spawns = None
         self.my = room.controller and room.controller.my
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
+        if room.controller and room.controller.owner and not room.controller.my:
+            if not Memory.enemy_rooms:
+                Memory.enemy_rooms = []
+            if room.name not in Memory.enemy_rooms:
+                Memory.enemy_rooms.push(room.name)
         self.spawn = self.spawns[0] if self.spawns and len(self.spawns) else None
         if self.mem.sponsor:
             self.sponsor_name = self.mem.sponsor
@@ -326,12 +342,23 @@ class RoomMind:
                 })
             elif parameter == PYFIND_REPAIRABLE_ROADS:
                 result = _.filter(self.find(FIND_STRUCTURES),
-                                  lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax
-                                            and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD))
+                                  lambda s:
+                                  (
+                                      (s.structureType == STRUCTURE_ROAD
+                                       and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD))
+                                      or (s.structureType == STRUCTURE_CONTAINER and
+                                          not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))
+                                  ) and s.hits < s.hitsMax)
             elif parameter == PYFIND_BUILDABLE_ROADS:
                 result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES),
-                                  lambda s: s.structureType == STRUCTURE_ROAD
-                                            and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD))
+                                  lambda s:
+                                  (
+                                      s.structureType == STRUCTURE_ROAD
+                                      and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                                  ) or (
+                                      s.structureType == STRUCTURE_CONTAINER
+                                      and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))
+                                  )
             else:
                 result = self.room.find(parameter)
             cache[parameter] = result
@@ -347,16 +374,22 @@ class RoomMind:
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
         :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
-        :type optional_y: int
+        :type optional_y: int | None
         :return: A list of results
         :rtype: list[RoomObject]
         """
-        if optional_y:
+        if optional_y is not None and optional_y is not undefined:
             x = pos
             y = optional_y
         else:
             x = pos.x
             y = pos.y
+            if pos.roomName and pos.roomName != self.room_name:
+                room = self.hive_mind.get_room(pos.roomName)
+                if room:
+                    return room.find_at(find_type, pos, optional_y)
+                else:
+                    return []
         raw_find_results = self.find(find_type)
         found = []
         if len(raw_find_results):
@@ -382,11 +415,11 @@ class RoomMind:
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
         :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
-        :type optional_y: int
+        :type optional_y: int | None
         :return: A list of results
         :rtype: list[RoomObject]
         """
-        if optional_y:
+        if optional_y is not None and optional_y is not undefined:
             x = pos
             y = optional_y
         else:
@@ -415,12 +448,14 @@ class RoomMind:
         :return: A single result
         :rtype: RoomObject
         """
+        if pos.pos:
+            pos = pos.pos
         raw_find_results = self.find(find_type)
         if lodash_filter:
             raw_find_results = _.filter(raw_find_results, lodash_filter)
         if not len(raw_find_results):
             return None
-        closest_distance = math.pow(2, 30)
+        closest_distance = Infinity
         closest_element = None
         for element in raw_find_results:
             distance = movement.distance_squared_room_pos(pos, element.pos)
@@ -498,8 +533,8 @@ class RoomMind:
         unreachable_rooms = False
         if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
             paved = False  # no roads
-        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(self.find(FIND_STRUCTURES),
-                                                          {"structureType": STRUCTURE_ROAD}):
+        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(_.filter(self.find(FIND_STRUCTURES),
+                                                                   {"structureType": STRUCTURE_ROAD})):
             paved = False  # still paving
         else:
             for flag in self.remote_mining_operations:
@@ -886,10 +921,12 @@ class RoomMind:
         :rtype: bool
         """
         if self._trying_to_get_full_storage_use is None:
-            self._trying_to_get_full_storage_use = self.work_mass >= _min_work_mass_per_source_for_full_storage_use \
-                                                                     * len(self.sources) \
-                                                   and self.are_all_big_miners_placed \
-                                                   and self.room.storage
+            self._trying_to_get_full_storage_use = self.are_all_big_miners_placed and self.room.storage \
+                                                   and (self.work_mass >=
+                                                        _min_work_mass_per_source_for_full_storage_use
+                                                        * len(self.sources)
+                                                        or self.room.storage.store[RESOURCE_ENERGY]
+                                                        >= _min_stored_energy_to_draw_from_before_refilling)
         return self._trying_to_get_full_storage_use
 
     def get_full_storage_use(self):
@@ -930,6 +967,8 @@ class RoomMind:
             return False
         if self.get_target_td_healer_count() > 0:
             return True  # Don't upgrade while we're taking someone down.
+        if not self.room.storage:
+            return False
         if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
             self.mem.upgrading_paused = False
         if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
@@ -984,7 +1023,9 @@ class RoomMind:
             min_wm = 15
             extra_wm = 10
 
-        if self.work_mass < min_wm:
+        if self.full_storage_use:  # Just make them anyways, it'll be fine - we have stored energy.
+            max_via_wm = Infinity
+        elif self.work_mass < min_wm:
             max_via_wm = 0
         else:
             max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
@@ -1068,7 +1109,7 @@ class RoomMind:
         """
         if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
             mining_op_count = self.get_target_remote_miner_count()
-            if mining_op_count:
+            if mining_op_count and self.room.energyCapacityAvailable >= 650:
                 rooms_mining_in = set()
                 rooms_under_1000 = set()
                 rooms_under_4000 = set()
@@ -1210,33 +1251,32 @@ class RoomMind:
             return (2 + len(self.sources)) * work_max_5
 
     def get_target_spawn_fill_mass(self):
-        if self._target_spawn_fill_count is None:
+        if self._target_spawn_fill_mass is None:
             if self.get_target_local_miner_count():
                 spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
                 tower_fill = self.carry_mass_of(role_tower_fill)
-                if self.room_name == "W46N28":
-                    # TODO: Make it possible to scale things based off of "input energy" or hauler count of mined sources.
-                    # more are needed because there are no links and storage is a long way from spawn.
-                    total_needed = 3 + len(self.sources) + len(_.filter(
-                        self.remote_mining_operations, lambda flag: not not flag.memory.remote_miner_targeting))
-                    # print("[{}] Activating special spawn fill target count. TODO: remove".format(self.room_name))
-                    max_mass_per_creep = spawning.max_sections_of(self, creep_base_hauler)
-                    total_mass = min(5, max_mass_per_creep) * total_needed
-                else:
-                    total_mass = min(5 * spawning.max_sections_of(self, creep_base_hauler),
-                                     3 * self.room.controller.level * len(self.sources))
+                # Enough so that it takes only 4 trips for each creep to fill all extensions.
+                total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
                 regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
                 if self.trying_to_get_full_storage_use:
-                    self._target_spawn_fill_count = regular_count
+                    self._target_spawn_fill_mass = regular_count
                 else:
                     extra_count = 0
                     for source in self.sources:
                         energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                         extra_count += energy / 200.0
-                    self._target_spawn_fill_count = regular_count + extra_count
+                    self._target_spawn_fill_mass = regular_count + extra_count
             else:
-                self._target_spawn_fill_count = 0
-        return self._target_spawn_fill_count
+                self._target_spawn_fill_mass = 0
+        return self._target_spawn_fill_mass
+
+    def get_target_total_spawn_fill_mass(self):
+        if self._total_needed_spawn_fill_mass is None:
+            if self.get_target_local_miner_count():
+                self._total_needed_spawn_fill_mass = math.pow(self.room.energyCapacityAvailable / 50.0 * 200, 0.3)
+            else:
+                self._total_needed_spawn_fill_mass = 0
+        return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self, first=False, last=False):
         def is_relatively_decayed(id):
@@ -1259,7 +1299,8 @@ class RoomMind:
             # 5 work per creep.
             return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self, creep_base_worker))
         elif first:
-            if len(self.building.next_priority_construction_targets()):
+            if _.find(self.building.next_priority_construction_targets(),
+                      lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD):
                 if len(self.sources) >= 2:
                     return 1.5 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
                 else:
@@ -1267,6 +1308,8 @@ class RoomMind:
             elif _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
                     or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
                 return len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+            elif len(self.building.next_priority_destruct_targets()):
+                return min(10, spawning.max_sections_of(self, creep_base_worker))
             else:
                 return 0
         else:
@@ -1311,16 +1354,17 @@ class RoomMind:
     def get_target_room_reserve_count(self):
         if self._target_room_reserve_count is None:
             count = 0
-            for flag in flags.find_flags_global(flags.RESERVE_NOW):
-                room_name = flag.pos.roomName
-                room = Game.rooms[room_name]
-                if not room or (room.controller and not room.controller.my and not room.controller.owner):
-                    # TODO: save in memory and predict the time length this room is reserved, and only send out a
-                    # reserve creep for <3000 ticks reserved.
-                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
-                        # there's a closer room, let's not claim here.
-                        continue
-                    count += 1
+            if self.room.energyCapacityAvailable >= 650:
+                for flag in flags.find_flags_global(flags.RESERVE_NOW):
+                    room_name = flag.pos.roomName
+                    room = Game.rooms[room_name]
+                    if not room or (room.controller and not room.controller.my and not room.controller.owner):
+                        # TODO: save in memory and predict the time length this room is reserved, and only send out a
+                        # reserve creep for <3000 ticks reserved.
+                        if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
+                            # there's a closer room, let's not claim here.
+                            continue
+                        count += 1
             self._target_room_reserve_count = count
             # claimable!
         return self._target_room_reserve_count
@@ -1355,29 +1399,24 @@ class RoomMind:
         else:
             return 0
 
-    def get_new_remote_hauler_num_sections(self):
+    def get_next_remote_hauler_num_sections(self):
         if self.all_paved():
-            biggest_mass = spawning.max_sections_of(self, creep_base_work_half_move_hauler)
+            maximum = spawning.max_sections_of(self, creep_base_work_half_move_hauler)
         elif self.paving():
-            biggest_mass = spawning.max_sections_of(self, creep_base_work_full_move_hauler)
+            maximum = spawning.max_sections_of(self, creep_base_work_full_move_hauler)
         else:
-            biggest_mass = spawning.max_sections_of(self, creep_base_hauler)
+            maximum = spawning.max_sections_of(self, creep_base_hauler)
         needed = self.get_target_remote_hauler_mass() / self.get_target_remote_hauler_count()
         if self.all_paved():
-            needed = math.ceil(needed / 2)  # each section has twice the carry.
-        if needed > biggest_mass:
-            if math.ceil(needed / 2) > biggest_mass:
-                if math.ceil(needed / 3) > biggest_mass:
-                    if math.ceil(needed / 4) > biggest_mass:
-                        return biggest_mass
-                    else:
-                        return math.ceil(needed / 4)
-                else:
-                    return math.ceil(needed / 3)
-            else:
-                return math.ceil(needed / 2)
+            # Each section has twice the carry, and the initial section has half the carry of one regular section.
+            return fit_num_sections(needed / 2, maximum, 0.5)
         else:
-            return needed
+            return fit_num_sections(needed, maximum)
+
+    def get_next_spawn_fill_body_size(self):
+        # Enough so that it takes only 2 trips for each creep to fill all extensions.
+        total_mass = self.room.energyCapacityAvailable / 50 / 2
+        return fit_num_sections(total_mass, spawning.max_sections_of(self, creep_base_hauler))
 
     def get_target_td_healer_count(self):
         if self._target_td_healer_count is None:
@@ -1490,10 +1529,12 @@ class RoomMind:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self, creep_base_hauler)))),
             role_spawn_fill:
-                lambda: math.ceil(self.get_target_spawn_fill_mass() / 2),
+                lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
+                                         spawning.max_sections_of(self, creep_base_hauler)),
             role_tower_fill:
             # Tower fillers are basically specialized spawn fillers.
-                lambda: max(self.get_target_tower_fill_mass(), math.ceil(self.get_target_spawn_fill_mass() / 2)),
+                lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
+                                         spawning.max_sections_of(self, creep_base_hauler)),
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
@@ -1502,7 +1543,7 @@ class RoomMind:
                 lambda: self.get_target_simple_defender_count() * min(6, spawning.max_sections_of(self,
                                                                                                   creep_base_defender)),
             role_remote_hauler:
-                self.get_new_remote_hauler_num_sections,
+                self.get_next_remote_hauler_num_sections,
             role_remote_miner:
                 lambda: min(5, spawning.max_sections_of(self, creep_base_full_miner)),
             role_remote_mining_reserve:
@@ -1514,7 +1555,7 @@ class RoomMind:
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
             role_builder:
-                lambda: self.get_target_builder_work_mass(),
+                self.get_target_builder_work_mass,
             role_mineral_miner:
                 lambda: None,  # fully dynamic
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral

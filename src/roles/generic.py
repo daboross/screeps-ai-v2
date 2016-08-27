@@ -1,11 +1,25 @@
 import speech
-from constants import role_dedi_miner, target_big_source, role_remote_miner, target_remote_mine_miner, \
-    role_remote_mining_reserve, role_recycling
+from constants import *
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+
+immediately_replace_roles = [
+    role_remote_hauler,
+    role_local_hauler,
+    role_mineral_hauler,
+]
+let_live_roles = [
+    role_spawn_fill_backup,
+    role_spawn_fill,
+    role_upgrader,
+    role_tower_fill,
+    role_builder,
+    role_cleanup,
+    role_colonist,
+]
 
 
 class ReplacingExpendedCreep(RoleBase):
@@ -16,14 +30,16 @@ class ReplacingExpendedCreep(RoleBase):
             self.go_to_depot()
             return
 
+        role = self.memory.replacing_role
+
         old_creep = Game.creeps[old_name]
 
-        if not old_creep or not Memory.creeps[old_name] or Memory.creeps[old_name].role == role_recycling:
+        if not old_creep or not Memory.creeps[old_name] or Memory.creeps[old_name].role == role_recycling \
+                or role in let_live_roles:
             # self.log("Now switching to role {}, to replace past-dead {}.".format(
             #     self.memory.replacing_role, self.memory.replacing
             # ))
             # He isn't alive anymore, we're too late.
-            role = self.memory.replacing_role
             base = self.memory.base
             home = self.memory.home
             self.memory = Memory.creeps[self.name]
@@ -32,6 +48,21 @@ class ReplacingExpendedCreep(RoleBase):
             }
             self.home.register_to_role(self)
             return
+
+        if role in immediately_replace_roles and not self.creep.spawning:
+            Memory.creeps[old_creep.name] = {"role": role_recycling, "home": self.memory.home, "base": self.memory.base,
+                                       "last_role": "replaced-{}".format(self.memory.role)}
+            self.target_mind.untarget_all(old_creep)
+            base = self.memory.base
+            home = self.memory.home
+            self.memory = Memory.creeps[self.name]
+            Memory.creeps[self.name] = {
+                "role": role, "base": base, "home": home
+            }
+            self.home.register_to_role(self)
+            self.home.mem.meta.clear_next = 0  # clear next tick
+            return
+
 
         if old_creep.ticksToLive > 1:
             if self.creep.spawning:
@@ -81,6 +112,8 @@ class ReplacingExpendedCreep(RoleBase):
 
         self.home.mem.meta.clear_next = 0  # clear next tick
 
+    def _calculate_time_to_replace(self):
+        return 0
 
 profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
@@ -100,7 +133,7 @@ class Recycling(RoleBase):
                             if result == OK:
                                 break
                             else:
-                                self.log("Unknown result from creep.transfer({}, {}): {}".format(
+                                self.log("Unknown result from recycling-creep.transfer({}, {}): {}".format(
                                     storage, rtype, result))
                 else:
                     self.move_to(storage)
@@ -108,3 +141,6 @@ class Recycling(RoleBase):
 
         self.report(speech.recycling)
         self.recycle_me()
+
+    def _calculate_time_to_replace(self):
+        return 0

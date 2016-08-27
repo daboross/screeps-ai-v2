@@ -104,7 +104,7 @@ class LinkManager(RoleBase):
         link_pos = link.pos
         spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, link_pos)
-        return movement.path_distance(spawn_pos, link_pos) + RoleBase._calculate_time_to_replace(self)
+        return movement.path_distance(spawn_pos, link_pos) + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
@@ -130,7 +130,7 @@ class Cleanup(SpawnFill):
             resources = self.room.find(FIND_DROPPED_RESOURCES)
             if len(resources):
                 closest = None
-                closest_distance = math.pow(2, 30)
+                closest_distance = Infinity
                 for resource in resources:
                     if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
                         creeps = self.room.find_at(FIND_MY_CREEPS, resource.pos)
@@ -255,6 +255,9 @@ class Cleanup(SpawnFill):
             else:
                 self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)
                 self.report(speech.link_manager_unknown_result)
+
+    def _calculate_time_to_replace(self):
+        return 0 # Don't live-replace
 
 
 profiling.profile_whitelist(Cleanup, ["run"])
