@@ -14,8 +14,9 @@ from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling
-from utilities import consistency
+from utilities import consistency, global_cache
 from utilities import movement
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -179,7 +180,9 @@ __pragma__('js', 'global').py = {
     "flags": flags,
     "constants": constants,
     "spawning": spawning,
-    "get_room": lambda name: context.hive().get_room(name)
+    "get_room": lambda name: context.hive().get_room(name),
+    "volatile": volatile_cache,
+    "cache": global_cache,
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)

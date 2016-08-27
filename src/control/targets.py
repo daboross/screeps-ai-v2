@@ -375,7 +375,7 @@ class TargetMind:
                 structure_id = structure.id
             else:
                 structure_id = "flag-{}".format(structure.name)
-            if volatile_cache.mem("extensions_filled")[structure_id]:
+            if volatile_cache.mem("extensions_filled").has(structure_id):
                 continue
             current_carry = self.workforce_of(target_spawn_deposit, structure_id)
             # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.

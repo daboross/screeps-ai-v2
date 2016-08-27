@@ -1,4 +1,3 @@
-import math
 import random
 
 import autoactions
@@ -60,7 +59,8 @@ class RoleDefender(RoleBase):
         self.move_to(target)
 
     def _calculate_time_to_replace(self):
-        return 0 # never live-replace a defender.
+        return 0  # never live-replace a defender.
+
 
 profiling.profile_whitelist(RoleDefender, ["run"])
 

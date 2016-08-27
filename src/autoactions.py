@@ -9,8 +9,8 @@ __pragma__('noalias', 'name')
 
 def pathfinder_enemy_array_for_room(room_name):
     cache = volatile_cache.mem("enemy_lists")
-    if room_name in cache:
-        return cache[room_name]
+    if cache.has(room_name):
+        return cache.get(room_name)
 
     enemy_positions = []
 
@@ -27,14 +27,14 @@ def pathfinder_enemy_array_for_room(room_name):
                 pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
                 enemy_positions.append({"pos": pos, "range": enemy_range})
 
-    cache[room_name] = enemy_positions
+    cache.set(room_name, enemy_positions)
     return enemy_positions
 
 
 def room_hostile(room_name):
     cache = volatile_cache.mem("rua")
-    if room_name in cache:
-        return cache[room_name]
+    if cache.has(room_name):
+        return cache.get(room_name)
 
     room_under_attack = False
 
@@ -43,14 +43,14 @@ def room_hostile(room_name):
             room_under_attack = True
             break
 
-    cache[room_name] = room_under_attack
+    cache.set(room_name, room_under_attack)
     return room_under_attack
 
 
 def simple_cost_matrix(room_name, new_to_use_as_base=False):
     cache = volatile_cache.mem("enemy_cost_matrix")
-    if room_name in cache and not new_to_use_as_base:
-        return cache[room_name]
+    if not new_to_use_as_base and cache.has(room_name):
+        return cache.get(room_name)
     # TODO: some of this is duplicated in pathdef.HoneyTrails
 
     room = context.hive().get_room(room_name)
@@ -89,7 +89,7 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
         cost_matrix.set(creep.pos.x, creep.pos.y, 255)
 
     if not new_to_use_as_base:
-        cache[room_name] = cost_matrix
+        cache.set(room_name, cost_matrix)
     return cost_matrix
 
 

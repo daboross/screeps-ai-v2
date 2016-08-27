@@ -21,6 +21,7 @@ def set(key, value, ttl):
     r = root()
     r[key] = {'v': value, 'd': Game.time + ttl}
 
+
 def cleanup():
     r = root()
     for key in Object.keys(r):

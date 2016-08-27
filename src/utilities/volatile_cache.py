@@ -9,24 +9,29 @@ _tick_stored_for = 0
 def volatile():
     global _tick_stored_for
     global _volatile_memory
-    if _tick_stored_for < Game.time:
+    if _volatile_memory is None or _tick_stored_for < Game.time:
         _tick_stored_for = Game.time
         _volatile_memory = new_map()
     return _volatile_memory
 
 
 def mem(key):
+    """
+    :rtype: utilities.screeps_constants.JSMap
+    """
     v = volatile()
-    if key not in v:
-        v[key] = new_map()
-    return v[key]
+    if not v.has(key):
+        v.set(key, new_map())
+    return v.get(key)
 
 
 def submem(key1, key2):
+    """
+    :rtype: utilities.screeps_constants.JSMap
+    """
     v = volatile()
-    if key1 not in v:
-        v[key1] = new_map([[key2, new_map()]])
-        v[key1][key2] = new_map()
-    elif key2 not in v[key1]:
-        v[key1][key2] = new_map()
-    return v[key1][key2]
+    if not v.has(key1):
+        v.set(key1, new_map([[key2, new_map()]]))
+    elif not v.get(key1).has(key2):
+        v.get(key1).set(key2, new_map())
+    return v.get(key1).get(key2)

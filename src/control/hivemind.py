@@ -332,8 +332,8 @@ class RoomMind:
 
     def find(self, parameter):
         cache = volatile_cache.mem(self.room_name)
-        if parameter in cache:
-            return cache[parameter]
+        if cache.has(parameter):
+            return cache.get(parameter)
         else:
             # this is patched in here because we pretty much never want to find hostile creeps besides like this:
             if parameter == FIND_HOSTILE_CREEPS and len(Memory.meta.friends):
@@ -361,7 +361,7 @@ class RoomMind:
                                   )
             else:
                 result = self.room.find(parameter)
-            cache[parameter] = result
+            cache.set(parameter, result)
             return result
 
     def find_at(self, find_type, pos, optional_y=None):

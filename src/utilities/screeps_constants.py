@@ -120,8 +120,49 @@ __all__ = [
     "__except__",
     "new_map",
 ]
+
+
+class JSMap:
+    def has(self, key):
+        """
+        :type key: Any
+        :rtype: bool
+        """
+
+    def get(self, key):
+        """
+        :type key: Any
+        :rtype: Any
+        """
+
+    def set(self, key, value):
+        """
+        :type key: Any
+        :type value: Any
+        :rtype: None
+        """
+
+    def entries(self):
+        """
+        :rtype: list[(Any, Any)]
+        """
+
+    def keys(self):
+        """
+        :rtype: list[Any]
+        """
+
+    def values(self):
+        """
+        :rtype: list[Any]
+        """
+
+
 __pragma__('noskip')
 
 
-def new_map(iterable=None):
+def new_map(iterable=undefined):
+    """
+    :rtype: JSMap
+    """
     return __new__(Map(iterable))

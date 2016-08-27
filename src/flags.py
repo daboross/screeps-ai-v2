@@ -1,5 +1,3 @@
-import math
-
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -88,7 +86,7 @@ sub_to_flag_secondary = {
     SUB_STORAGE: COLOR_YELLOW,
     SUB_LINK: COLOR_ORANGE,
     SUB_EXTRACTOR: COLOR_BROWN,
-    SUB_CONTAINER: COLOR_BROWN, # Dual flags, but container can only be used for destruct.
+    SUB_CONTAINER: COLOR_BROWN,  # Dual flags, but container can only be used for destruct.
     SUB_ROAD: COLOR_WHITE,
     SUB_TERMINAL: COLOR_GREY,
 }
@@ -186,8 +184,9 @@ def __get_cache(room_name, flag_type):
     if Game.time > _room_flag_refresh_time:
         _room_flag_refresh_time = Game.time + 50
         _room_flag_cache = new_map()
-    if room_name in _room_flag_cache and flag_type in _room_flag_cache[room_name]:
-        return _room_flag_cache[room_name][flag_type]
+
+    if _room_flag_cache.has(room_name) and _room_flag_cache.get(room_name).has(flag_type):
+        return _room_flag_cache.get(room_name).get(flag_type)
     else:
         return None
 
@@ -209,10 +208,10 @@ def find_flags(room, flag_type):
             if flag.pos.roomName == room_name and flag.color == flag_def[0] \
                     and flag.secondaryColor == flag_def[1]:
                 flag_list.append(flag)
-    if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][flag_type] = flag_list
+    if _room_flag_cache.has(room_name):
+        _room_flag_cache.get(room_name).set(flag_type, flag_list)
     else:
-        _room_flag_cache[room_name] = {flag_type: flag_list}
+        _room_flag_cache.set(room_name, new_map([[flag_type, flag_list]]))
     return flag_list
 
 
@@ -238,11 +237,10 @@ def find_by_main_with_sub(room, main_type):
                 if secondary:  # don't pick flags which don't match any of the secondary colors
                     flag_list.append([flag, secondary])
 
-    if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][main_type] = flag_list
+    if _room_flag_cache.has(room_name):
+        _room_flag_cache.get(room_name).set(main_type, flag_list)
     else:
-        _room_flag_cache[room_name] = {main_type: flag_list}
-
+        _room_flag_cache.set(room_name, new_map([[main_type, flag_list]]))
     return flag_list
 
 
@@ -265,10 +263,10 @@ def find_ms_flag(room, main_type, sub_type):
             if flag.pos.roomName == room_name and flag.color == primary \
                     and flag.secondaryColor == secondary:
                 flag_list.append(flag)
-    if room_name in _room_flag_cache:
-        _room_flag_cache[room_name][type_name] = flag_list
+    if _room_flag_cache.has(room_name):
+        _room_flag_cache.get(room_name).set(type_name, flag_list)
     else:
-        _room_flag_cache[room_name] = {type_name: flag_list}
+        _room_flag_cache.set(room_name, new_map([[type_name, flag_list]]))
     return flag_list
 
 
@@ -282,15 +280,15 @@ def find_flags_global(flag_type, reload=False):
     if Game.time > _global_flag_refresh_time:
         _global_flag_refresh_time = Game.time + 50
         _global_flag_cache = new_map()
-    if _global_flag_cache[flag_type] and not reload:
-        return _global_flag_cache[flag_type]
+    if _global_flag_cache.has(flag_type) and not reload:
+        return _global_flag_cache.get(flag_type)
     flag_def = flag_definitions[flag_type]
     flag_list = []
     for name in Object.keys(Game.flags):
         flag = Game.flags[name]
         if flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]:
             flag_list.append(flag)
-    _global_flag_cache[flag_type] = flag_list
+    _global_flag_cache.set(flag_type, flag_list)
     return flag_list
 
 
@@ -301,8 +299,8 @@ def find_flags_ms_global(main_type, sub_type, reload=False):
     if Game.time > _global_flag_refresh_time:
         _global_flag_refresh_time = Game.time + 50
         _global_flag_cache = new_map()
-    if _global_flag_cache[type_name] and not reload:
-        return _global_flag_cache[type_name]
+    if _global_flag_cache.has(type_name) and not reload:
+        return _global_flag_cache.get(type_name)
     primary = main_to_flag_primary[main_type]
     secondary = sub_to_flag_secondary[sub_type]
     flag_list = []
@@ -310,7 +308,7 @@ def find_flags_ms_global(main_type, sub_type, reload=False):
         flag = Game.flags[name]
         if flag.color == primary and flag.secondaryColor == secondary:
             flag_list.append(flag)
-    _global_flag_cache[type_name] = flag_list
+    _global_flag_cache.set(type_name, flag_list)
     return flag_list
 
 
@@ -321,8 +319,8 @@ def find_by_main_with_sub_global(main_type, reload=False):
         _global_flag_refresh_time = Game.time + 50
         _global_flag_cache = new_map()
     # we're assuming that no MAIN type has the same identity as any full type
-    if _global_flag_cache[main_type] and not reload:
-        return _global_flag_cache[main_type]
+    if _global_flag_cache.has(main_type) and not reload:
+        return _global_flag_cache.get(main_type)
     primary = main_to_flag_primary[main_type]
     flag_list = []
     for name in Object.keys(Game.flags):
@@ -331,7 +329,7 @@ def find_by_main_with_sub_global(main_type, reload=False):
             secondary = flag_secondary_to_sub[flag.secondaryColor]
             if secondary:  # don't pick flags which don't match any of the secondary colors
                 flag_list.append([flag, secondary])
-    _global_flag_cache[main_type] = flag_list
+    _global_flag_cache.set(main_type, flag_list)
     return flag_list
 
 
@@ -357,8 +355,8 @@ def find_closest_in_room(pos, flag_type):
         _closest_flag_refresh_time = Game.time + 50
         _closest_flag_cache = new_map()
     key = "{}_{}_{}_{}".format(pos.roomName, pos.x, pos.y, flag_type)
-    if key in _closest_flag_cache:
-        return _closest_flag_cache[key]
+    if _closest_flag_cache.has(key):
+        return _closest_flag_cache.get(key)
     closest_distance = Infinity
     closest_flag = None
     for flag in find_flags(pos.roomName, flag_type):
@@ -366,7 +364,7 @@ def find_closest_in_room(pos, flag_type):
         if distance < closest_distance:
             closest_distance = distance
             closest_flag = flag
-    _closest_flag_cache[key] = closest_flag
+    _closest_flag_cache.set(key, closest_flag)
 
     return closest_flag
 

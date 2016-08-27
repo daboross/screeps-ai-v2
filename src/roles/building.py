@@ -1,6 +1,6 @@
 import speech
-from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, role_builder, \
-    target_destruction_site
+from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
+    role_builder, target_destruction_site
 from roles import upgrading
 from tools import profiling
 from utilities.screeps_constants import *
