@@ -115,7 +115,7 @@ class TowerDrainer(RoleBase):
             if not self.creep.pos.isEqualTo(target.pos):
                 if self.creep.pos.isNearTo(target.pos):
                     direction = pathdef.get_direction(target.pos.x - self.creep.pos.x,
-                                                          target.pos.y - self.creep.pos.y)
+                                                      target.pos.y - self.creep.pos.y)
                     if direction is None:
                         self.log("Unknown result from pathdef.get_direction({} - {}, {} - {})".format(
                             target.pos.x, self.creep.pos.x, target.pos.y, self.creep.pos.y

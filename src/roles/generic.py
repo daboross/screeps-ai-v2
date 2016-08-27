@@ -51,7 +51,7 @@ class ReplacingExpendedCreep(RoleBase):
 
         if role in immediately_replace_roles and not self.creep.spawning:
             Memory.creeps[old_creep.name] = {"role": role_recycling, "home": self.memory.home, "base": self.memory.base,
-                                       "last_role": "replaced-{}".format(self.memory.role)}
+                                             "last_role": "replaced-{}".format(self.memory.role)}
             self.target_mind.untarget_all(old_creep)
             base = self.memory.base
             home = self.memory.home
@@ -62,7 +62,6 @@ class ReplacingExpendedCreep(RoleBase):
             self.home.register_to_role(self)
             self.home.mem.meta.clear_next = 0  # clear next tick
             return
-
 
         if old_creep.ticksToLive > 1:
             if self.creep.spawning:
@@ -114,6 +113,7 @@ class ReplacingExpendedCreep(RoleBase):
 
     def _calculate_time_to_replace(self):
         return 0
+
 
 profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 

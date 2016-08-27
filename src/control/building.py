@@ -250,9 +250,15 @@ class ConstructionMind:
             structure_type = flags.flag_sub_to_structure_type[secondary]
             structures = _.filter(self.room.find_at(FIND_STRUCTURES, flag.pos),
                                   lambda s: s.structureType == structure_type)
+            if structure_type != STRUCTURE_RAMPART and _.find(self.room.find_at(FIND_STRUCTURES, flag.pos),
+                                                              {"structureType": STRUCTURE_RAMPART}):
+                for struct in structures:
+                    print("[{}][building] Not dismantling {}, as it is under a rampart.".format(
+                        self.room.room_name, struct))
+                continue
             if len(structures):
-                for s in structures:
-                    target_list.append(s.id)
+                for struct in structures:
+                    target_list.append(struct.id)
             else:
                 flag.remove()
 

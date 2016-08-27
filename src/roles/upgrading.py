@@ -22,7 +22,7 @@ class Upgrader(RoleBase):
             self.finished_energy_harvest()
 
         if not self.home.room.controller.my or (self.home.upgrading_paused()
-                                                 and self.creep.room.controller.ticksToDowngrade >= 5000):
+                                                and self.creep.room.controller.ticksToDowngrade >= 5000):
             self.report(speech.upgrading_upgrading_paused)
             self.memory.emptying = True  # flag for spawn fillers to not refill me.
             if not self.empty_to_storage():

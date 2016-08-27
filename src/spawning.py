@@ -58,17 +58,24 @@ def run(room, spawn):
     """
     if spawn.spawning:
         return
-    role = room.get_next_role()
-    if not role:
+    role_obj = room.get_next_role()
+    # This is what is represented by "role_obj"
+    # return {
+    #     "role": role_needed,
+    #     "base": self.get_variable_base(role_needed),
+    #     "replacing": self.get_next_replacement_name(role_needed),
+    #     "num_sections": self.get_max_sections_for_role(role_needed),
+    # }
+    if not role_obj:
         # TODO: at this point, figure out how long until the next replacement is needed!
         # if not room.mem.spawning_already_reported_no_next_role:
         #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
         #     room.mem.spawning_already_reported_no_next_role = True
         return
-    base = role_bases[role]
-
-    if base == "ask":
-        base = room.get_variable_base(role)
+    role = role_obj.role
+    base = role_obj.base
+    num_sections = role_obj.num_sections
+    replacing = role_obj.replacing
 
     filled = spawn.room.energyAvailable
     # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
@@ -78,19 +85,21 @@ def run(room, spawn):
     if emergency_conditions(room):
         print("[{}] WARNING: Bootstrapping room!".format(room.room_name))
         energy = filled
+    elif num_sections is not None:
+        cost = initial_section_cost(base) + role_obj.num_sections * energy_per_section(base)
+        if cost > spawn.room.energyCapacityAvailable:
+            # This is just a double check, for as we move into the new role_obj-based system
+            new_size = max_sections_of(room, base)
+            print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
+                  .format(room.room_name, role_obj.num_sections, new_size))
+            # Since the literal memory object is returned, this mutation will stick for until this creep has been spawned,
+            # or the target creep has been refreshed
+            role_obj.num_sections = new_size
+            cost = initial_section_cost(base) + new_size * energy_per_section(base)
+        energy = cost
     else:
-        if base in bases_max_energy:
-            # Minimum of actual capacity, and (maximum of needed and how much actual energy we have)
-            energy = min(spawn.room.energyCapacityAvailable, max(bases_max_energy[base], filled))
-        elif base in scalable_sections:
-            # If we are spawning a scalable creep, wait until we're filled the maximum we are going to be filled.
-            energy = spawn.room.energyCapacityAvailable - (
-                (spawn.room.energyCapacityAvailable - initial_section_cost(base)) % energy_per_section(base))
-        else:
-            if base not in known_no_energy_limit:
-                print("[{}][spawning] Base {} has neither maximum energy nor scalable section energy!".format(
-                    room.room_name, base))
-            energy = spawn.room.energyCapacityAvailable
+        energy = spawn.room.energyCapacityAvailable
+
     if filled < energy:
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
         return
@@ -139,7 +148,6 @@ def run(room, spawn):
             descriptive_level = num_move
     elif base is creep_base_reserving:
         parts = []
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CLAIM)
         for i in range(0, num_sections):
@@ -147,7 +155,6 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_hauler:
         parts = []
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections):
@@ -155,7 +162,6 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_full_move_hauler:
         parts = []
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections):
@@ -165,7 +171,6 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_half_move_hauler:
         parts = []
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections * 2):
@@ -176,7 +181,6 @@ def run(room, spawn):
     elif base is creep_base_worker:
         if energy >= 500:
             parts = []
-            num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
             for i in range(0, num_sections):
                 parts.append(CARRY)
                 parts.append(WORK)
@@ -196,7 +200,6 @@ def run(room, spawn):
         parts = []
         # # MOVE, MOVE, ATTACK, TOUCH = one section = 190
         # MOVE, ATTACK, CARRY = one section = 180
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for i in range(0, num_sections):
             parts.append(CARRY)
         for i in range(0, num_sections):
@@ -208,7 +211,8 @@ def run(room, spawn):
         energy_counter = 50
         part_counter = 1
         move_counter = 0
-        # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like this for now.
+        # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like
+        # this for now.
         for i in range(0, 2):
             if part_counter >= 50:
                 break
@@ -218,7 +222,7 @@ def run(room, spawn):
             energy_counter += 50
             part_counter += 1
             move_counter += 0.25
-            for i in range(0, 25):
+            for j in range(0, 25):
                 if move_counter >= 1:
                     if part_counter >= 50:
                         break
@@ -238,7 +242,6 @@ def run(room, spawn):
                 move_counter += 0.25
     elif base is creep_base_goader:
         parts = []
-        num_sections = room.get_max_sections_for_role(role)
         for i in range(0, num_sections * 2 + 1):  # extra tough in initial section
             parts.append(TOUGH)
         parts.append(ATTACK)
@@ -246,7 +249,6 @@ def run(room, spawn):
             parts.append(MOVE)
     elif base is creep_base_half_move_healer:
         parts = []
-        num_sections = room.get_max_sections_for_role(role)
         for i in range(0, num_sections):
             parts.append(HEAL)
         for i in range(0, num_sections):
@@ -255,14 +257,12 @@ def run(room, spawn):
             parts.append(HEAL)
     elif base is creep_base_dismantler:
         parts = []
-        num_sections = room.get_max_sections_for_role(role)
         for i in range(0, num_sections):
             parts.append(WORK)
         for i in range(0, num_sections):
             parts.append(MOVE)
     elif base is creep_base_full_upgrader:
         parts = []
-        num_sections = min(max_sections_of(room, base), room.get_max_sections_for_role(role))
         for part in initial_section[base]:
             parts.append(part)
         for i in range(0, num_sections * 2):
@@ -270,7 +270,8 @@ def run(room, spawn):
         for i in range(0, num_sections):
             parts.append(MOVE)
     else:
-        print("[{}][spawning] Unknown creep base {} (for role {})!".format(room.room_name, base, role))
+        print("[{}][spawning] Unknown creep base {}! Role object: {}".format(room.room_name, base,
+                                                                             JSON.stringify(role_obj)))
         room.reset_planned_role()
         return
 
@@ -285,8 +286,6 @@ def run(room, spawn):
     name = random_four_digits()
     home = room.room_name
 
-    replacing = room.get_next_replacement_name(role)
-
     if replacing:
         memory = {
             "role": role_temporary_replacing, "base": base, "home": home,
@@ -294,6 +293,10 @@ def run(room, spawn):
         }
     else:
         memory = {"role": role, "base": base, "home": home, "carry": carry, "work": work}
+
+    if role_obj.memory:
+        # Add whatever memory seems to be necessary
+        _.extend(memory, role_obj.memory)
 
     if descriptive_level:
         if replacing:
@@ -319,6 +322,9 @@ def run(room, spawn):
         else:
             room.register_to_role(Game.creeps[result])
         room.reset_planned_role()
+        if role_obj.targets:
+            for target_type, target_id in role_obj.targets:
+                room.hive_mind.target_mind._register_new_targeter(target_type, name, target_id)
 
 
 def random_four_digits():

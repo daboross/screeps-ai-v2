@@ -70,6 +70,12 @@ class Builder(upgrading.Upgrader):
             if destruct:
                 self.memory.emptying = True  # flag for spawn fillers to not refill me.
                 self.execute_destruction_target(destruct)
+            elif self.home.building_paused():
+                self.memory.emptying = True
+                if self.creep.carry.energy > 0:
+                    self.memory.harvesting = False
+                    return True
+                self.go_to_depot()
             else:
                 return self.harvest_energy()
         else:
@@ -188,7 +194,7 @@ class Builder(upgrading.Upgrader):
         result = self.creep.dismantle(target)
         if result == OK:
             self.move_around(target)
-            if target.hits < self.creep.getActiveBodyparts(WORK) * 50: # we've fully destroyed it
+            if target.hits < self.creep.getActiveBodyparts(WORK) * 50:  # we've fully destroyed it
                 # check to see if we've opened up any new spots for construction sites with our destroyed structure.
                 self.home.building.refresh_building_targets()
         else:

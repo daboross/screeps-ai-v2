@@ -29,15 +29,17 @@ def main():
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate teir
-    if bucket_tier != Memory.meta.last_bucket and bucket_tier: # and bucket_tier to avoid problems in simulation
+    if bucket_tier != Memory.meta.last_bucket and bucket_tier:  # and bucket_tier to avoid problems in simulation
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
             if bucket_tier >= 6:
                 Memory.meta.enable_profiling = False
         else:
             print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
-            if bucket_tier < 4:
+            if bucket_tier <= 4:
                 Memory.meta.enable_profiling = True
+            if bucket_tier <= 2:
+                Memory.meta.pause = True
     Memory.meta.last_bucket = bucket_tier
 
     if Memory.meta.pause:

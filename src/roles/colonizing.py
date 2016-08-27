@@ -22,6 +22,14 @@ class Colonist(RoleBase):
                     if distance < closest_distance:
                         closest_room_name = room.room_name
 
+            if not closest_room_name:
+                for room in context.hive().my_rooms:
+                    if not len(room.spawns):
+                        distance = movement.distance_squared_room_pos(self.creep.pos,
+                                                                      __new__(RoomPosition(25, 25, room.room_name)))
+                        if distance < closest_distance:
+                            closest_room_name = room.room_name
+
             # Colonize!
             self.memory.colonizing = closest_room_name
 
@@ -33,7 +41,7 @@ class Colonist(RoleBase):
             room = context.hive().get_room(colony)
             if room.role_count(role_builder) < 2:
                 self.memory.role = role_builder
-            elif room.role_count(role_upgrader) < 1:
+            elif room.role_count(role_upgrader) < 1 and not room.upgrading_paused():
                 self.memory.role = role_upgrader
             else:
                 self.memory.role = role_builder

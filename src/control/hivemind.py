@@ -57,7 +57,7 @@ def fit_num_sections(needed, maximum, extra_initial=0):
 
 class HiveMind:
     """
-    :type target_mind: TargetMind
+    :type target_mind: control.targets.TargetMind
     :type my_rooms: list[RoomMind]
     :type visible_rooms: list[RoomMind]
     """
@@ -87,9 +87,10 @@ class HiveMind:
                             sponsoring[room_mind.sponsor_name] = [room_mind]
                 self._room_to_mind[name] = room_mind
             for sponsor_name in sponsoring.keys():
-                sponsor = self.get_room(sponsor_name)
-                for subsidiary in sponsoring[sponsor_name]:
-                    sponsor.subsidiaries.push(subsidiary)
+                sponsor = self._room_to_mind[sponsor_name]
+                if sponsor:
+                    for subsidiary in sponsoring[sponsor_name]:
+                        sponsor.subsidiaries.push(subsidiary)
             self._my_rooms = my_rooms
             self._all_rooms = _.sortBy(all_rooms, 'room_name')
         return self._my_rooms
@@ -215,6 +216,8 @@ _min_energy_enable_full_storage_use = 10000
 _max_energy_disable_full_storage_use = 5000
 _energy_to_resume_upgrading = 14000
 _energy_to_pause_upgrading = 8000
+_energy_to_pause_building = 14000
+_energy_to_resume_building = 28000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
 # 0 is rcl 1
@@ -373,7 +376,8 @@ class RoomMind:
         :type find_type: str
         :param pos: The position to look for at, or the x value of a position
         :type pos: int | RoomPosition
-        :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a whole position
+        :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a
+                           whole position
         :type optional_y: int | None
         :return: A list of results
         :rtype: list[RoomObject]
@@ -975,6 +979,30 @@ class RoomMind:
             self.mem.upgrading_paused = True
         return not not self.mem.upgrading_paused
 
+    def building_paused(self):
+        if self.room.controller.level < 4:
+            return False
+        if self.get_target_td_healer_count() > 0:
+            return True  # Don't upgrade while we're taking someone down.
+        if not self.room.storage:
+            return False
+        if self.mem.building_paused and self.room.storage.store.energy > _energy_to_resume_building:
+            self.mem.building_paused = False
+        if not self.mem.building_paused and self.room.storage.store.energy < _energy_to_pause_building:
+            self.mem.building_paused = True
+        if self.mem.building_paused:
+            # this is somewhat expensive, so do this calculation last
+            # If building is paused and we have fewer spawns/extensions than spawn/extension build sites, don't pause
+            # building!
+            return self.spawn and (len(_.filter(self.find(FIND_MY_STRUCTURES),
+                                                lambda s: s.structureType == STRUCTURE_SPAWN or
+                                                          s.structureType == STRUCTURE_EXTENSION))
+                                   > len(_.filter(self.find(FIND_MY_CONSTRUCTION_SITES),
+                                                  lambda s: s.structureType == STRUCTURE_SPAWN or
+                                                            s.structureType == STRUCTURE_EXTENSION)))
+        else:
+            return False
+
     def get_max_mining_op_count(self):
         spawning_energy = self.room.energyCapacityAvailable
         sources = len(self.sources)
@@ -1292,7 +1320,7 @@ class RoomMind:
                 first = True
         elif first:
             self._builder_use_first_only = True
-        if self.upgrading_paused() and not len(self.building.next_priority_construction_targets()):
+        if self.building_paused():
             return 0
         elif self.mining_ops_paused():
             # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
@@ -1470,16 +1498,32 @@ class RoomMind:
             [role_mineral_miner, self.get_target_mineral_miner_count],
             [role_builder, lambda: self.get_target_builder_work_mass(True), False, True]
         ]
+        role_needed = None
         for role, get_ideal, count_carry, count_work in requirements:
             if count_carry:
                 if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
             elif count_work:
                 if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
             else:
                 if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
+
+        if role_needed:
+            # TODO: this is all mostly a conversion of the old system to the new.
+            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
+            return {
+                "role": role_needed,
+                "base": self.get_variable_base(role_needed),
+                "replacing": self.get_next_replacement_name(role_needed),
+                "num_sections": self.get_max_sections_for_role(role_needed),
+            }
+        else:
+            return None
 
     def _next_probably_local_role(self):
         roles = [
@@ -1487,10 +1531,24 @@ class RoomMind:
             # get_max_sections_for_role() when we only want the first builder work mass.
             [role_builder, lambda: self.get_target_builder_work_mass(False, True)],
         ]
+        role_needed = None
         for role, ideal in roles:
             # TODO: this code is a mess!
             if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < ideal():
-                return role
+                role_needed = role
+                break
+
+        if role_needed:
+            # TODO: this is all mostly a conversion of the old system to the new.
+            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
+            return {
+                "role": role_needed,
+                "base": self.get_variable_base(role_needed),
+                "replacing": self.get_next_replacement_name(role_needed),
+                "num_sections": self.get_max_sections_for_role(role_needed),
+            }
+        else:
+            return None
 
     def _next_remote_mining_role(self):
         remote_operation_reqs = [
@@ -1505,16 +1563,32 @@ class RoomMind:
             [role_remote_hauler, self.get_target_remote_hauler_mass, True],
             [role_remote_mining_reserve, self.get_target_remote_reserve_count],
         ]
+        role_needed = None
         for role, get_ideal, count_carry, count_work in remote_operation_reqs:
             if count_carry:
                 if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
             elif count_work:
                 if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
             else:
                 if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                    return role
+                    role_needed = role
+                    break
+
+        if role_needed:
+            # TODO: this is all mostly a conversion of the old system to the new.
+            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
+            return {
+                "role": role_needed,
+                "base": self.get_variable_base(role_needed),
+                "replacing": self.get_next_replacement_name(role_needed),
+                "num_sections": self.get_max_sections_for_role(role_needed),
+            }
+        else:
+            return None
 
     def get_max_sections_for_role(self, role):
         max_mass = {
@@ -1594,7 +1668,23 @@ class RoomMind:
         del self.mem.next_role
 
     def plan_next_role(self):
-        next_role = self._next_needed_local_role()
+        funcs_to_try = [
+            self._next_needed_local_role,
+            self._next_remote_mining_role,
+            self._next_probably_local_role,
+        ]
+        next_role = None
+        for func in funcs_to_try:
+            next_role = func()
+            if next_role:
+                maximum = spawning.max_sections_of(self, next_role.base)
+                if next_role.num_sections is not None and next_role.num_sections > maximum:
+                    print("[{}] Function {} decided on {} sections for {}, which is more than the allowed {}."
+                          .format(self.room_name, func.__name__, next_role.num_sections, next_role.base, maximum))
+                    next_role.num_sections = maximum
+                break
+        if next_role:
+            next_role = self._next_needed_local_role()
         if not next_role:
             next_role = self._next_remote_mining_role()
             if not next_role:

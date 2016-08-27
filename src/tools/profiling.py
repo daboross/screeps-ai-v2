@@ -6,7 +6,7 @@ __pragma__('noalias', 'name')
 module_profiler = None
 enabled = False
 initialized = False
-custom = True
+custom = False
 
 if Memory.meta and Memory.meta.enable_profiling:
     enabled = True

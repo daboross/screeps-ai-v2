@@ -84,8 +84,8 @@ def clear_cache():
         if mem.cache:
             for key in Object.keys(mem.cache):
                 cache = mem.cache[key]
-                if Game.time > cache.dead_at or (
-                    cache.ttl_after_use and Game.time > cache.last_used + cache.ttl_after_use):
+                if Game.time > cache.dead_at or (cache.ttl_after_use
+                                                 and Game.time > cache.last_used + cache.ttl_after_use):
                     del mem.cache[key]
             if len(mem.cache) <= 0:
                 del mem.cache

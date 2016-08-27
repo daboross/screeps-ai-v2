@@ -1,5 +1,3 @@
-import math
-
 import spawning
 import speech
 from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling, \
@@ -257,7 +255,7 @@ class Cleanup(SpawnFill):
                 self.report(speech.link_manager_unknown_result)
 
     def _calculate_time_to_replace(self):
-        return 0 # Don't live-replace
+        return 0  # Don't live-replace
 
 
 profiling.profile_whitelist(Cleanup, ["run"])
