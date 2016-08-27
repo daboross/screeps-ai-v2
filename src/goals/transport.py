@@ -75,11 +75,11 @@ class TransportPickup(RoleBase):
                     self.follow_energy_path(fill, pickup)
         else:
             target = fill
-            if fill.structureType == STRUCTURE_LINK and self.pos.roomName == target.roomName:
-                self.room.links.register_target_deposit(fill, self, self.creep.carry.energy,
-                                                        self.creep.pos.getRangeTo(target.pos))
             if target.pos:
                 target = target.pos
+            if fill.structureType == STRUCTURE_LINK and self.pos.roomName == target.roomName:
+                self.room.links.register_target_deposit(fill, self, self.creep.carry.energy,
+                                                        self.creep.pos.getRangeTo(target))
 
             if self.pos.roomName != target.roomName or not self.pos.isNearTo(target):
                 self.follow_energy_path(pickup, fill)

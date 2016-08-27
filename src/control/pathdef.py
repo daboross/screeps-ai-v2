@@ -246,6 +246,11 @@ class HoneyTrails:
                     return True
             return False
 
+        def road_at(x, y):
+            for s in self.room.room.lookForAt(LOOK_STRUCTURES, x, y):
+                if s.structureType == STRUCTURE_ROAD:
+                    return True
+            return False
         def set_matrix(stype, pos):
             if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
                 if stype == STRUCTURE_ROAD and use_roads \
@@ -265,13 +270,13 @@ class HoneyTrails:
                     or ((stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK) and not going_to_storage):
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
-                        if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_mutiplier:
-                            cost_matrix.set(x, y, 20 * if_roads_mutiplier)
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 10 * if_roads_mutiplier:
+                            cost_matrix.set(x, y, 10 * if_roads_mutiplier)
             elif (stype == STRUCTURE_CONTROLLER and not going_to_controller) or \
                     (stype == "this_is_a_source" and not going_to_source):
                 for x in range(pos.x - 3, pos.x + 4):
                     for y in range(pos.y - 3, pos.y + 4):
-                        if not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_mutiplier:
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_mutiplier:
                             cost_matrix.set(x, y, 5 * if_roads_mutiplier)
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
