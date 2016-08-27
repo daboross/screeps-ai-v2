@@ -43,15 +43,15 @@ def get_carry_mass_for_remote_mine(home, flag):
     return target_mass
 
 
-def fit_num_sections(needed, maximum, extra_initial=0):
+def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
     if maximum <= 1:
         return maximum
 
-    num = 0
+    num = min_split
     trying = Infinity
     while trying > maximum:
-        num += 1
         trying = math.ceil(needed / num - extra_initial)
+        num += 1
     return trying
 
 
@@ -1288,14 +1288,14 @@ class RoomMind:
                 # Enough so that it takes only 4 trips for each creep to fill all extensions.
                 total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
                 regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
-                if self.trying_to_get_full_storage_use:
+                if self.trying_to_get_full_storage_use or self.full_storage_use:
                     self._target_spawn_fill_mass = regular_count
                 else:
                     extra_count = 0
                     for source in self.sources:
                         energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                         extra_count += energy / 200.0
-                    self._target_spawn_fill_mass = regular_count + extra_count
+                    self._target_spawn_fill_mass = math.ceil(regular_count + extra_count)
             else:
                 self._target_spawn_fill_mass = 0
         return self._target_spawn_fill_mass
@@ -1606,11 +1606,11 @@ class RoomMind:
                                       min(10, spawning.max_sections_of(self, creep_base_hauler)))),
             role_spawn_fill:
                 lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
-                                         spawning.max_sections_of(self, creep_base_hauler)),
+                                         spawning.max_sections_of(self, creep_base_hauler), 0, 2),
             role_tower_fill:
             # Tower fillers are basically specialized spawn fillers.
                 lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
-                                         spawning.max_sections_of(self, creep_base_hauler)),
+                                         spawning.max_sections_of(self, creep_base_hauler), 0, 2),
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
