@@ -61,10 +61,13 @@ class SpawnFill(building.Builder):
                             self.report(speech.spawn_fill_ok)
                             if self.creep.carry.energy > target.energyCapacity - target.energy:
                                 volatile_cache.mem("extensions_filled").set(target.id, True)
-                                self.target_mind.untarget(self, target_spawn_deposit)
-                                new_target = self.target_mind.get_new_target(self, target_spawn_deposit)
-                                if new_target and not self.creep.pos.isNearTo(new_target.pos):
-                                    self.move_to(new_target)
+                                if self.creep.carry.energy + target.energy - target.energyCapacity > 0:
+                                    self.target_mind.untarget(self, target_spawn_deposit)
+                                    new_target = self.target_mind.get_new_target(self, target_spawn_deposit)
+                                    if new_target and not self.creep.pos.isNearTo(new_target.pos):
+                                        self.move_to(new_target)
+                                else:
+                                    self.harvest_energy() # Get a head start on this too!
                         elif result == ERR_FULL:
                             self.target_mind.untarget(self, target_spawn_deposit)
                             return True

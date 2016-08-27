@@ -1,6 +1,6 @@
 import flags
 import speech
-from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site
+from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, role_remote_miner
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
@@ -16,7 +16,10 @@ class RemoteMiner(RoleBase):
         source_flag = self.target_mind.get_new_target(self, target_remote_mine_miner)
         if not source_flag:
             self.log("Remote miner can't find any sources!")
-            self.recycle_me()
+            if self.home.role_count(role_remote_miner) > self.home.get_target_remote_miner_count():
+                self.recycle_me()
+            else:
+                self.go_to_depot()
             self.report(speech.remote_miner_no_flag)
             return False
         if source_flag.memory.sponsor != self.home.room_name:

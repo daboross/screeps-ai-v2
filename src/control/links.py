@@ -195,8 +195,8 @@ class LinkingMind:
             if main_link.energy < main_link.energyCapacity:
                 self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
             if main_link.cooldown == 0:
-                if main_link.energy >= current_output_links[0].link.energyCapacity - current_output_links[
-                    0].link.energy:
+                if main_link.energy >= current_output_links[0].link.energyCapacity - \
+                        current_output_links[0].link.energy:
                     self.main_link.transferEnergy(current_output_links[0].link)
             elif len(current_input_links):
                 current_input_links[0].link.transferEnergy(current_output_links[0].link)
@@ -212,7 +212,7 @@ class LinkingMind:
                         obj.link.transferEnergy(main_link)
                         break
         elif len(future_input_links):
-            if main_link.energyCapacity - main_link.energy > future_input_links[0].link.energy:
+            if main_link.energyCapacity - main_link.energy < future_input_links[0].link.energy:
                 self.link_creep.send_from_link(main_link.energy)
             else:
                 future_input_links[0].link.transferEnergy(main_link)
