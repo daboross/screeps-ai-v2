@@ -1,6 +1,7 @@
 import math
 
 from tools import profiling
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -46,6 +47,12 @@ class LinkingMind:
             self.room.mem.links[link] = {}
         return self.room.mem.links[link]
 
+    def volatile_link_mem(self, link):
+        if link.id:
+            link = link.id
+
+        return volatile_cache.submem('links', link)
+
     links = property(_get_links)
 
     def _enabled(self):
@@ -62,20 +69,20 @@ class LinkingMind:
     def register_target_withdraw(self, target, targeter, needed, distance):
         if targeter.name:
             targeter = targeter.name
-        self.link_mem(target)[targeter] = {
-            'expire': Game.time + 2,
+        self.volatile_link_mem(target).set(targeter, {
             'cap': -needed,
             'distance': distance
-        }
+        })
+        self.link_mem(target).last_withdraw = Game.time
 
     def register_target_deposit(self, target, targeter, depositing, distance):
         if targeter.name:
             targeter = targeter.name
-        self.link_mem(target)[targeter] = {
-            'expire': Game.time + 2,
+        self.volatile_link_mem(target).set(targeter, {
             'cap': +depositing,
             'distance': distance
-        }
+        })
+        self.link_mem(target).last_deposit = Game.time
 
     def note_link_manager(self, creep):
         """
@@ -121,10 +128,7 @@ class LinkingMind:
             if link.id == main_link.id:
                 continue
             mem = self.link_mem(link)
-            # deposited_at_this_distance = 0
-            # for name in _.sortBy(mem, lambda obj: obj.distance):
-            # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
-            energy_change_now = 0
+            # TODO: This is basically cleaning up the remnants of the old memory system (not using volatile_cache)
             for name in Object.keys(mem):
                 if not mem[name].expire:
                     continue  # an actual memory key
@@ -134,8 +138,14 @@ class LinkingMind:
                     elif mem[name].cap < 0:
                         mem.last_withdraw = mem[name].expire
                     del mem[name]
-                elif mem[name].distance <= 1:
-                    energy_change_now += mem[name].cap
+            vmem = self.volatile_link_mem(link)
+            # deposited_at_this_distance = 0
+            # for name in _.sortBy(mem, lambda obj: obj.distance):
+            # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
+            energy_change_now = 0
+            for obj in vmem.values():
+                if obj.distance <= 1:
+                    energy_change_now += obj.cap
             if Memory.links_debug == self.room.room_name:
                 print("[{}] Energy change: {}".format(link.id[-5:], energy_change_now))
             if energy_change_now > 0:
@@ -151,7 +161,7 @@ class LinkingMind:
                         {'link': link, 'amount': -energy_change_now - link.energy,
                          'priority': math.floor(link.energy / energy_change_now)})
             else:
-                access_list = _.sortBy(_.filter(mem, lambda x: x.distance > 1), lambda x: x.distance)
+                access_list = _.sortBy(_.filter(vmem.values(), lambda x: x.distance > 1), lambda x: x.distance)
                 if len(access_list):
                     count = access_list[0].cap
                     for x in access_list:

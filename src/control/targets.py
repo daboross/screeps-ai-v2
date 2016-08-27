@@ -502,7 +502,7 @@ class TargetMind:
         most_lacking = 0
         best_id = None
         for tower in creep.room.find(FIND_MY_STRUCTURES):
-            if tower.structureType != STRUCTURE_TOWER:
+            if tower.structureType != STRUCTURE_TOWER or tower.energy >= tower.energyCapacity * 0.9:
                 continue
             # 50 per carry part, but we don't know if it's full. this is a safe compromise
             carry_targeting = self.workforce_of(target_tower_fill, tower.id) * 25

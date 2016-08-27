@@ -9,11 +9,11 @@ __pragma__("noalias", "name")
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
         self.repair_nearby_roads()
+        total_carried_now = _.sum(self.creep.carry)
         if self.memory.pickup:
             target = pickup
             if target.pos:
                 target = target.pos
-            total_carried_now = _.sum(self.creep.carry)
             if total_carried_now >= self.creep.carryCapacity:
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
@@ -74,6 +74,12 @@ class TransportPickup(RoleBase):
                 else:
                     self.follow_energy_path(fill, pickup)
         else:
+            if total_carried_now > self.creep.carry.energy and self.creep.home.room.storage:
+                fill = self.creep.home.room.storage
+            elif self.creep.carry.energy <= 0:
+                self.creep.pickup = True
+                self.follow_energy_path(fill, pickup)
+
             target = fill
             if target.pos:
                 target = target.pos
@@ -99,7 +105,7 @@ class TransportPickup(RoleBase):
                     self.creep.suicide()
                     return
                 self.memory.pickup = True
-                self.follow_energy_path(pickup, fill)
+                self.follow_energy_path(fill, pickup)
                 return
 
             if is_link:
@@ -108,7 +114,7 @@ class TransportPickup(RoleBase):
                 empty = fill.storeCapacity - _.sum(fill.store)
 
             if min(amount, empty) >= _.sum(self.creep.carry):
-                self.memory.pickup = True
+                # self.memory.pickup = True
                 self.follow_energy_path(fill, pickup)
 
     def path_length(self, origin, target):
@@ -132,10 +138,10 @@ class TransportPickup(RoleBase):
         if result == ERR_NOT_FOUND:
             # if over_debug:
             #     self.log("Not on path!")
-            first = __new__(RoomPosition(path[1].x, path[1].y, origin.roomName))
+            first = __new__(RoomPosition(path[2].x, path[2].y, origin.roomName))
             # TODO: Why doesn't transcrypt let this work? this is like one of the most awesome python things...
             # last = __new__(RoomPosition(path[-2].x, path[-2].y, target.roomName))
-            last = __new__(RoomPosition(path[path.length - 3].x, path[path.length - 3].y, target.roomName))
+            last = __new__(RoomPosition(path[path.length - 4].x, path[path.length - 4].y, target.roomName))
             if movement.distance_squared_room_pos(self.pos, first) > \
                     movement.distance_squared_room_pos(self.pos, last):
                 new_target = last
