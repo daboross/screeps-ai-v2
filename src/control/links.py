@@ -128,22 +128,14 @@ class LinkingMind:
             if link.id == main_link.id:
                 continue
             mem = self.link_mem(link)
-            # TODO: This is basically cleaning up the remnants of the old memory system (not using volatile_cache)
-            for name in Object.keys(mem):
-                if not mem[name].expire:
-                    continue  # an actual memory key
-                if time > mem[name].expire:
-                    if mem[name].cap > 0:
-                        mem.last_deposit = mem[name].expire
-                    elif mem[name].cap < 0:
-                        mem.last_withdraw = mem[name].expire
-                    del mem[name]
             vmem = self.volatile_link_mem(link)
             # deposited_at_this_distance = 0
             # for name in _.sortBy(mem, lambda obj: obj.distance):
             # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
             energy_change_now = 0
-            for obj in vmem.values():
+            # TODO: Switch over to ES6 code generation so this isn't needed!
+            vmem_values =  __pragma__('js', 'Array.from(vmem.values())')
+            for obj in vmem_values:
                 if obj.distance <= 1:
                     energy_change_now += obj.cap
             if Memory.links_debug == self.room.room_name:
@@ -161,7 +153,7 @@ class LinkingMind:
                         {'link': link, 'amount': -energy_change_now - link.energy,
                          'priority': math.floor(link.energy / energy_change_now)})
             else:
-                access_list = _.sortBy(_.filter(vmem.values(), lambda x: x.distance > 1), lambda x: x.distance)
+                access_list = _.sortBy(_.filter(vmem_values, lambda x: x.distance > 1), lambda x: x.distance)
                 if len(access_list):
                     count = access_list[0].cap
                     for x in access_list:
