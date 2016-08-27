@@ -61,4 +61,5 @@ Game.profiler.output(100);
 delete Memory.cache.path_W47N27_15_6_W47N26_21_2
 py.get_room("W47N27").honey.find_path(new RoomPosition(15, 6, "W47N27"), new RoomPosition(21, 2, "W47N26"))
 JSON.stringify(PathFinder.search(new RoomPosition(15, 6, "W47N27"), {pos: new RoomPosition(21, 2, "W47N26"), range: 1}), 4, 4)
+JSON.stringify(Memory.hostiles, 3, 3)
 ```

@@ -837,8 +837,9 @@ class RoomMind:
             return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
 
         remove = None
-        for hostile_id, hostile_room, pos, owner in Memory.hostiles:
-            if hostile_room == self.room_name and not Game.getObjectById(hostile_id):
+        for hostile_id, hostile_room, pos, owner, dead_at in Memory.hostiles:
+            if (hostile_room == self.room_name and not Game.getObjectById(hostile_id)) \
+                    or (not dead_at or Game.time > dead_at):
                 if remove:
                     remove.append(hostile_id)
                 else:
@@ -853,7 +854,8 @@ class RoomMind:
             if hostile_list:
                 hostile_list[2] = hostile.pos  # this is the only thing which would update
             else:
-                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, hostile.owner.username])
+                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, hostile.owner.username,
+                                      Game.time + hostile.ticksToLive + 1])
                 Memory.hostile_last_rooms[hostile.id] = self.room_name
             Memory.hostile_last_positions[hostile.id] = hostile.pos
 
