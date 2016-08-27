@@ -200,34 +200,6 @@ class Builder(upgrading.Upgrader):
         else:
             self.log("Unknown result from creep.dismantle({}): {}", target, result)
 
-    def move_around(self, target):
-        if Game.time % 2:
-            self.move_around_clockwise(target)
-        else:
-            self.move_around_counter_clockwise(target)
-
-    def move_around_clockwise(self, target):
-        direction = target.pos.getDirectionTo(self.creep.pos)
-        if direction == TOP_LEFT or direction == TOP:
-            self.creep.move(RIGHT)
-        elif direction == TOP_RIGHT or direction == RIGHT:
-            self.creep.move(BOTTOM)
-        elif direction == BOTTOM_RIGHT or direction == BOTTOM:
-            self.creep.move(LEFT)
-        elif direction == BOTTOM_LEFT or direction == LEFT:
-            self.creep.move(TOP)
-
-    def move_around_counter_clockwise(self, target):
-        direction = target.pos.getDirectionTo(self.creep.pos)
-        if direction == TOP_RIGHT or direction == TOP:
-            self.creep.move(LEFT)
-        elif direction == BOTTOM_RIGHT or direction == RIGHT:
-            self.creep.move(TOP)
-        elif direction == BOTTOM_LEFT or direction == BOTTOM:
-            self.creep.move(RIGHT)
-        elif direction == TOP_LEFT or direction == LEFT:
-            self.creep.move(BOTTOM)
-
 
 profiling.profile_whitelist(Builder, [
     "run",

@@ -369,17 +369,7 @@ class RoleBase:
                     self.log("Storage empty in {}!".format(target.pos.roomName))
                 else:
                     # in case there are remote miners waiting to deposit here
-                    # TODO: make this also not move away from the target, and only move to a free space.
-                    # TODO: make this a utility method
-                    direction = target.pos.getDirectionTo(self.creep.pos)
-                    if direction == TOP_LEFT or direction == TOP:
-                        self.creep.move(RIGHT)
-                    elif direction == TOP_RIGHT or direction == RIGHT:
-                        self.creep.move(BOTTOM)
-                    elif direction == BOTTOM_RIGHT or direction == BOTTOM:
-                        self.creep.move(LEFT)
-                    elif direction == BOTTOM_LEFT or direction == LEFT:
-                        self.creep.move(TOP)
+                    self.move_around(target)
             else:
                 self.log("Unknown result from creep.withdraw({}): {}", target, result)
             return False
@@ -550,6 +540,34 @@ class RoleBase:
     # def renew_me(self):
     #     spawn = self.home.spawns[0]
     #     if self.home.room.energyAvailable < min(self.home.room.energyCapacityAvailable / 2.0, )
+
+    def move_around(self, target):
+        if Game.time % 4:
+            self.move_around_clockwise(target)
+        else:
+            self.move_around_counter_clockwise(target)
+
+    def move_around_clockwise(self, target):
+        direction = target.pos.getDirectionTo(self.creep.pos)
+        if direction == TOP_LEFT or direction == TOP:
+            self.creep.move(RIGHT)
+        elif direction == TOP_RIGHT or direction == RIGHT:
+            self.creep.move(BOTTOM)
+        elif direction == BOTTOM_RIGHT or direction == BOTTOM:
+            self.creep.move(LEFT)
+        elif direction == BOTTOM_LEFT or direction == LEFT:
+            self.creep.move(TOP)
+
+    def move_around_counter_clockwise(self, target):
+        direction = target.pos.getDirectionTo(self.creep.pos)
+        if direction == TOP_RIGHT or direction == TOP:
+            self.creep.move(LEFT)
+        elif direction == BOTTOM_RIGHT or direction == RIGHT:
+            self.creep.move(TOP)
+        elif direction == BOTTOM_LEFT or direction == BOTTOM:
+            self.creep.move(RIGHT)
+        elif direction == TOP_LEFT or direction == LEFT:
+            self.creep.move(BOTTOM)
 
     def is_next_block_clear(self, target):
         next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
