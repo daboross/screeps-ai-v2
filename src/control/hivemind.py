@@ -1016,12 +1016,20 @@ class RoomMind:
             min_energy = 550  # rcl 2, fully built
             min_rcl = 2
             extra_rcl = 0
+            if rcl < 7:
+                max_via_rcl2 = 3
+            else:
+                max_via_rcl2 = 4
         else:
             min_wm = 40  # Around all roles built needed for an rcl 3 room!
             extra_wm = 30
             min_energy = 800  # rcl 3, fully built
             min_rcl = 3
             extra_rcl = 1
+            if rcl < 7:
+                max_via_rcl2 = 2
+            else:
+                max_via_rcl2 = 3
 
         if self.work_mass < min_wm:
             max_via_wm = 0
@@ -1035,7 +1043,8 @@ class RoomMind:
             max_via_rcl = 0
         else:
             max_via_rcl = math.floor((rcl - min_rcl) / extra_rcl) + 1
-        return min(max_via_wm, max_via_energy, max_via_rcl)
+
+        return min(max_via_wm, max_via_energy, max_via_rcl, max_via_rcl2)
 
     def get_max_local_miner_count(self):
         if self.room.storage:
@@ -1630,8 +1639,8 @@ class RoomMind:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
-            role_builder:
-                self.get_target_builder_work_mass,
+            role_builder: lambda: min(self.get_target_builder_work_mass(),
+                                      spawning.max_sections_of(self, creep_base_worker)),
             role_mineral_miner:
                 lambda: None,  # fully dynamic
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral
@@ -1682,15 +1691,9 @@ class RoomMind:
                 maximum = spawning.max_sections_of(self, next_role.base)
                 if next_role.num_sections is not None and next_role.num_sections > maximum:
                     print("[{}] Function {} decided on {} sections for {}, which is more than the allowed {}."
-                          .format(self.room_name, func.__name__, next_role.num_sections, next_role.base, maximum))
+                          .format(self.room_name, func.name, next_role.num_sections, next_role.base, maximum))
                     next_role.num_sections = maximum
                 break
-        if next_role:
-            next_role = self._next_needed_local_role()
-        if not next_role:
-            next_role = self._next_remote_mining_role()
-            if not next_role:
-                next_role = self._next_probably_local_role()
         if next_role:
             self.mem.next_role = next_role
         else:
@@ -1727,4 +1730,8 @@ profiling.profile_whitelist(RoomMind, [
     "precreep_tick_actions",
     "poll_hostiles",
     "plan_next_role",
+    "find",
+    "find_at",
+    "find_in_range",
+    "find_closest_by_range",
 ])
