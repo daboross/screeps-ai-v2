@@ -138,13 +138,13 @@ class TransportPickup(RoleBase):
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
             if not self.memory.next_ppos or self.memory.off_path_for > 100:
-                self.memory.off_path_for = 0 # Recalculate next_ppos if we're off path for a long time
+                self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
                 all_positions = self.room.honey.list_of_room_positions_in_path(origin, target)
                 closest = None
                 closest_distance = Infinity
                 for pos in all_positions:
                     if movement.distance_squared_room_pos(pos, origin) < min(3, len(path) - 2):
-                        continue # Don't try and target where the miner is right now!
+                        continue  # Don't try and target where the miner is right now!
                     distance = movement.distance_squared_room_pos(self.pos, pos)
                     if distance < closest_distance:
                         closest_distance = distance

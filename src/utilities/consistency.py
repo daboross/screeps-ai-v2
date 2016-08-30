@@ -26,7 +26,6 @@ def reassign_room_roles(room):
                 break
         room.recalculate_roles_alive()
 
-
     # Don't make all local haulers suicide if we have stopped making more because of economy failure!
     # We should be keeping them alive if that's the case!
     if room.get_target_local_hauler_mass():

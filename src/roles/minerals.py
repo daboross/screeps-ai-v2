@@ -55,9 +55,9 @@ class MineralMiner(RoleBase):
                     return
             else:
                 if not _.find(self.room.find_in_range(FIND_STRUCTURES, 1, mineral.pos),
-                              {'structureType':STRUCTURE_CONTAINER}) \
-                    and not _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 1, mineral.pos),
-                                   {"structureType":STRUCTURE_CONTAINER}):
+                              {'structureType': STRUCTURE_CONTAINER}) \
+                        and not _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 1, mineral.pos),
+                                       {"structureType": STRUCTURE_CONTAINER}):
                     self.creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
                 return
 
@@ -259,4 +259,4 @@ class MineralHauler(RoleBase):
         return False
 
     def _calculate_time_to_replace(self):
-        return _.size(self.creep.body) * 3 # Don't live replace mineral haulers
+        return _.size(self.creep.body) * 3  # Don't live replace mineral haulers

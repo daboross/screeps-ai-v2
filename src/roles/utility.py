@@ -1,6 +1,6 @@
 import spawning
 import speech
-from constants import role_cleanup, role_local_hauler, role_remote_hauler, recycle_time, role_recycling, \
+from constants import role_cleanup, role_local_hauler, recycle_time, role_recycling, \
     target_closest_energy_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill

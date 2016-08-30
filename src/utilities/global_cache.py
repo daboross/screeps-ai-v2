@@ -21,9 +21,11 @@ def set(key, value, ttl):
     r = root()
     r[key] = {'v': value, 'd': Game.time + ttl}
 
+
 def rem(key):
     r = root()
     del r[key]
+
 
 def cleanup():
     r = root()

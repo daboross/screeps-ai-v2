@@ -813,6 +813,7 @@ class RoomMind:
         if remove:
             for hostile_id in remove:
                 military.delete_target(hostile_id)
+        new_hostiles = False
         targets = self.find(FIND_HOSTILE_CREEPS)
         for hostile in targets:
             # TODO: overhaul hostile info storage
@@ -823,7 +824,17 @@ class RoomMind:
                 Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, hostile.owner.username,
                                       Game.time + hostile.ticksToLive + 1])
                 Memory.hostile_last_rooms[hostile.id] = self.room_name
+                new_hostiles = True
             Memory.hostile_last_positions[hostile.id] = hostile.pos
+        if new_hostiles:
+            if self.my:
+                self.reset_planned_role()
+            else:
+                mining_flags = flags.find_flags(self, flags.REMOTE_MINE)
+                for flag in mining_flags:
+                    room = self.hive_mind.get_room(flag.memory.sponsor)
+                    if room:
+                        room.reset_planned_role()
 
     def get_name(self):
         return self.room.name

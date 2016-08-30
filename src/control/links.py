@@ -134,7 +134,7 @@ class LinkingMind:
             # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
             energy_change_now = 0
             # TODO: Switch over to ES6 code generation so this isn't needed!
-            vmem_values =  __pragma__('js', 'Array.from(vmem.values())')
+            vmem_values = __pragma__('js', 'Array.from(vmem.values())')
             for obj in vmem_values:
                 if obj.distance <= 1:
                     energy_change_now += obj.cap

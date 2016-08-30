@@ -55,7 +55,7 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
 
     room = context.hive().get_room(room_name)
     if not room:
-        if room_hostile(room_name):
+        if room_hostile(room_name) or (Memory.enemy_rooms and room_name in Memory.enemy_rooms):
             return False
         else:
             return __new__(PathFinder.CostMatrix())
@@ -183,6 +183,7 @@ def run_away_check(creep):
     hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
     if not len(hostile_path_targets):
         del creep.memory._away_path
+        del creep.memory.running_now
         return False
     if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK):
         return False  # we're a defender, defenders don't run away!
@@ -195,17 +196,20 @@ def run_away_check(creep):
     for obj in hostile_path_targets:
         target = obj.pos
         target_range = obj.range
-        if not movement.squared_distance(target, creep.creep.pos) > target_range * target_range:
+        if not movement.distance_squared_room_pos(target, creep.creep.pos) > target_range * target_range:
             break
     else:
         # No targets in range, no need to do anything
         for obj in hostile_path_targets:
             target = obj.pos
             target_range = obj.range
-            if not movement.squared_distance(target, creep.creep.pos) > (target_range + 2) * (target_range + 2):
+            if creep.memory.running_now:
+                target_range *= 1.2
+            if not movement.distance_squared_room_pos(target, creep.creep.pos) > (target_range) * (target_range):
                 return True  # Still cancel creep actions if we're semi-close, so as not to do back-and-forth.
         return False
 
+    creep.memory.running_now = True
     path = get_cached_away_path(creep, hostile_path_targets)
 
     if len(path):
@@ -259,7 +263,10 @@ def pickup_check(creep):
         if len(energy) > 0:
             if len(energy) > 1:
                 energy = _.sortBy(energy, lambda e: e.amount)
-            creep.creep.pickup(energy[0])
+            for e in energy:
+                if e.resourceType == RESOURCE_ENERGY:
+                    creep.creep.pickup(e)
+                    break
 
 
 def mercy_check(creep):

@@ -1,3 +1,4 @@
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -437,6 +438,9 @@ def look_for(room, position, main, sub=None):
             return []
         return _.find(room.lookForAt(LOOK_FLAGS, position.x, position.y),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
+
+
+look_for = profiling.profiled(look_for, "flags.look_for")
 
 
 def random_digits():
