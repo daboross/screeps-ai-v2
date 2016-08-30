@@ -59,6 +59,19 @@ def parse_room_to_xy(room_name):
     return x, y
 
 
+def room_xy_to_name(room_x, room_y):
+    return "{}{}{}{}".format(
+        "E" if room_x > 0 else "W",
+        abs(room_x),
+        "S" if room_y > 0 else "N",
+        abs(room_y),
+    )
+
+
+def center_pos(room_name):
+    return __new__(RoomPosition(25, 25, room_name))
+
+
 def distance_squared_room_pos(room_position_1, room_position_2):
     """
     Gets the squared distance between two RoomPositions, taking into account room difference by parsing room names to
@@ -67,6 +80,8 @@ def distance_squared_room_pos(room_position_1, room_position_2):
     :param room_position_2: The second RoomPosition
     :return: The squared distance as an int
     """
+    if room_position_1.pos: room_position_1 = room_position_1.pos
+    if room_position_2.pos: room_position_2 = room_position_2.pos
     if room_position_1.roomName == room_position_2.roomName:
         return squared_distance((room_position_1.x, room_position_1.y), (room_position_2.x, room_position_2.y))
     room_1_pos = parse_room_to_xy(room_position_1.roomName)
@@ -80,6 +95,17 @@ def distance_squared_room_pos(room_position_1, room_position_2):
         room_2_pos[1] * 50 + room_position_2.y
     )
     return squared_distance(full_pos_1, full_pos_2)
+
+
+def distance_room_pos(room_pos_1, room_pos_2):
+    """
+    Gets the distance between two RoomPositions, taking into account room difference by parsing room names into x, y
+    coords. This method is equivalent to `math.sqrt(distance_squared_room_pos(pos1, pos2))`
+    :param room_pos_1:
+    :param room_pos_2:
+    :return:
+    """
+    return math.sqrt(distance_squared_room_pos(room_pos_1, room_pos_2))
 
 
 def get_exit_flag_and_direction(room_name, to_room, difference):
@@ -301,12 +327,7 @@ def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
             JSON.stringify(exit_pos)
         ))
         return -1
-    entrance_pos.roomName = "{}{}{}{}".format(
-        "E" if room_x > 0 else "W",
-        abs(room_x),
-        "S" if room_y > 0 else "N",
-        abs(room_y),
-    )
+    entrance_pos.roomName = room_xy_to_name(room_x, room_y)
     return entrance_pos
 
 
