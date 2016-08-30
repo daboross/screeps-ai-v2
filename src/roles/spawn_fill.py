@@ -1,6 +1,7 @@
 import flags
 import speech
-from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill
+from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill, role_tower_fill, \
+    role_spawn_fill_backup, role_builder
 from roles import building
 from tools import profiling
 from utilities import volatile_cache
@@ -28,13 +29,16 @@ class SpawnFill(building.Builder):
             target = self.target_mind.get_new_target(self, target_spawn_deposit)
             if target:
                 if target.color:  # it's a spawn fill wait flag
-                    if _.find(self.room.find(FIND_MY_STRUCTURES),
-                              lambda s: (s.structureType == STRUCTURE_EXTENSION
-                                         or s.structureType == STRUCTURE_SPAWN)
-                              and s.energy < s.energyCapacity):
+                    rwc_cache = volatile_cache.mem("sfrwc")
+                    if not rwc_cache.has(self.pos.roomName):
+                        rwc_cache.set(self.pos.roomName, not not _.find(
+                            self.room.find(FIND_MY_STRUCTURES),
+                            lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
+                                      and s.energy < s.energyCapacity))
+                    if rwc_cache.get(self.pos.roomName):
                         self.target_mind.untarget(self, target_spawn_deposit)
                         return True
-                    if self.__name__ == SpawnFill.__name__:
+                    if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
                         del self.memory.filling_now
                         if self.creep.carry.energy < self.creep.carryCapacity:
                             self.memory.harvesting = True
@@ -79,12 +83,13 @@ class SpawnFill(building.Builder):
                             return True
                         return False
 
-            if self.creep.getActiveBodyparts(WORK) and (self.any_building_targets()
-                                                        or not self.home.upgrading_paused()):
+            if self.memory.role == role_spawn_fill_backup and self.home.carry_mass_of(role_tower_fill) \
+                    + self.home.carry_mass_of(role_spawn_fill) >= self.home.get_target_spawn_fill_mass():
+                self.memory.role = role_builder
                 return building.Builder.run(self)
 
-            if self.home.room.controller.level > 4:
-                # We have links, let's not do this manually
+            if self.home.room.controller.level > 4 and self.home.spawn:
+                # We have links, let's not do this manually - unless we're rebuilding a spawn!
                 if self.creep.carry.energy < self.creep.carryCapacity * 0.8:
                     self.memory.harvesting = True
                     return True

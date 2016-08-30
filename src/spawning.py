@@ -3,6 +3,7 @@ from math import floor
 import context
 from constants import *
 from tools import profiling
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -78,8 +79,12 @@ def run(room, spawn):
     num_sections = role_obj.num_sections
     replacing = role_obj.replacing
 
-    filled = spawn.room.energyAvailable
-    # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
+    ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
+    if ubos_cache.has(room.room_name):
+        filled = spawn.room.energyAvailable - ubos_cache.get(room.room_name)
+    else:
+        filled = spawn.room.energyAvailable
+        # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
     # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
     # too bad. We *can* assume that all work_mass at this point is in harvesters, since consistency.reassign_roles()
     # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
@@ -318,6 +323,7 @@ def run(room, spawn):
         if result == ERR_NOT_ENOUGH_RESOURCES:
             print("[{}][spawning] Couldn't create body {} with energy {}!".format(room.room_name, parts, energy))
     else:
+        ubos_cache.set(room.room_name, postspawn_calculate_cost_of(parts))
         room.reset_planned_role()
         if role_obj.targets:
             for target_type, target_id in role_obj.targets:
@@ -354,6 +360,9 @@ def find_base_type(creep):
         base = creep_base_reserving
     elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE] == total / 3:
         base = creep_base_defender
+    elif part_counts[MOVE] == total / 3 and part_counts[CARRY] == 2 and \
+                                    part_counts[WORK] + part_counts[MOVE] + part_counts[CARRY] == total:
+        base = creep_base_full_upgrader
     else:
         print("[{}][{}] Creep has unknown body! {}".format(
             context.room().room_name, creep.name, JSON.stringify(part_counts)))
@@ -361,6 +370,13 @@ def find_base_type(creep):
     print("[{}][{}] Re-assigned unknown body creep as {}.".format(
         context.room().room_name, creep.name, base))
     return base
+
+
+def postspawn_calculate_cost_of(parts):
+    cost = 0
+    for part in parts:
+        cost += BODYPART_COST[part]
+    return cost
 
 
 def energy_per_section(base):

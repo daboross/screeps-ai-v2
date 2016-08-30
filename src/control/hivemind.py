@@ -1185,7 +1185,8 @@ class RoomMind:
                 tower_fill = self.carry_mass_of(role_tower_fill)
                 # Enough so that it takes only 4 trips for each creep to fill all extensions.
                 total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
-                regular_count = max(0, total_mass - tower_fill - spawn_fill_backup)
+                # Spawn fill backup used to be here, but they now completely shift to builders once all spawn fill have been created.
+                regular_count = max(0, total_mass - tower_fill)
                 if self.trying_to_get_full_storage_use or self.full_storage_use:
                     self._target_spawn_fill_mass = regular_count
                 else:
@@ -1222,10 +1223,6 @@ class RoomMind:
             self._builder_use_first_only = True
         if self.building_paused():
             return 0
-        elif self.mining_ops_paused():
-            # TODO: this is emulating pre-dynamic-creep-body generation behavior of capping work mass per creep to
-            # 5 work per creep.
-            return 4 + 2 * len(self.sources) * min(5, spawning.max_sections_of(self, creep_base_worker))
         elif first:
             if _.find(self.building.next_priority_construction_targets(),
                       lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD):
