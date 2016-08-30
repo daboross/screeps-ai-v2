@@ -165,13 +165,6 @@ class Cleanup(SpawnFill):
                         self.home.carry_mass_map[role_local_hauler] += spawning.carry_count(self)
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
-                    if self.home.carry_mass_of(role_remote_hauler) < self.home.get_target_remote_hauler_mass():
-                        self.memory.role = role_remote_hauler
-                        # in case we have multiple cleanup looking at this.
-                        # TODO: utility method for this in RoomMind
-                        self.home.carry_mass_map[role_remote_hauler] += spawning.carry_count(self)
-                        self.home.mem.meta.clear_next = 0  # clear next tick
-                        return False
                     self.memory.role = role_recycling
                     self.memory.last_role = role_cleanup
                     # TODO: utility method for this kind of thing.

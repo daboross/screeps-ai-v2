@@ -37,7 +37,7 @@ class TransportPickup(RoleBase):
                         self.log("Unknown result from creep.pickup({}): {}".format(energy, result))
                 else:
                     if self.pos.isNearTo(target):
-                        self.creep.move(pathdef.direction_to(self.pos, energy))
+                        self.basic_move_to(energy)
                     else:
                         self.follow_energy_path(fill, pickup)
                 return
@@ -74,11 +74,12 @@ class TransportPickup(RoleBase):
                 else:
                     self.follow_energy_path(fill, pickup)
         else:
-            if total_carried_now > self.creep.carry.energy and self.creep.home.room.storage:
-                fill = self.creep.home.room.storage
+            if total_carried_now > self.creep.carry.energy and self.home.room.storage:
+                fill = self.home.room.storage
             elif self.creep.carry.energy <= 0:
-                self.creep.pickup = True
+                self.creep.memory.pickup = True
                 self.follow_energy_path(fill, pickup)
+                return
 
             target = fill
             if target.pos:
@@ -132,21 +133,28 @@ class TransportPickup(RoleBase):
             return
         # if over_debug:
         #     self.log("Following path from {} to {}!".format(origin, target))
-        path = self.room.honey.find_path(origin, target)
+        path = self.room.honey.find_path(origin, target, {'current_room': self.pos.roomName})
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
-            # if over_debug:
-            #     self.log("Not on path!")
-            first = __new__(RoomPosition(path[2].x, path[2].y, origin.roomName))
-            # TODO: Why doesn't transcrypt let this work? this is like one of the most awesome python things...
-            # last = __new__(RoomPosition(path[-2].x, path[-2].y, target.roomName))
-            last = __new__(RoomPosition(path[path.length - 4].x, path[path.length - 4].y, target.roomName))
-            if movement.distance_squared_room_pos(self.pos, first) > \
-                    movement.distance_squared_room_pos(self.pos, last):
-                new_target = last
-            else:
-                new_target = first
+            if not self.memory.next_ppos or self.memory.off_path_for > 100:
+                self.memory.off_path_for = 0 # Recalculate next_ppos if we're off path for a long time
+                all_positions = self.room.honey.list_of_room_positions_in_path(origin, target)
+                closest = None
+                closest_distance = Infinity
+                for pos in all_positions:
+                    if movement.distance_squared_room_pos(pos, origin) < min(3, len(path) - 2):
+                        continue # Don't try and target where the miner is right now!
+                    distance = movement.distance_squared_room_pos(self.pos, pos)
+                    if distance < closest_distance:
+                        closest_distance = distance
+                        closest = pos
+                if not closest:
+                    self.log("WARNING: Couldn't find closest position to return too! all positions: {}!".format(
+                        all_positions))
+                self.memory.next_ppos = closest
+            mtarget = self.memory.next_ppos
+            new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
             self.creep.moveTo(new_target)
             if not self.memory.off_path_for:
                 self.memory.off_path_for = 1
@@ -158,4 +166,11 @@ class TransportPickup(RoleBase):
         elif result != OK:
             self.log("Unknown result from follow_energy_path: {}".format(result))
         else:
-            del self.memory.off_path_for
+            if self.memory.off_path_for:
+                self.memory.on_path_for = 1
+                del self.memory.off_path_for
+            elif self.memory.on_path_for:
+                self.memory.on_path_for += 1
+                if self.memory.on_path_for > 10:
+                    del self.memory.next_ppos
+                    del self.memory.on_path_for

@@ -64,13 +64,13 @@ def main():
     context.set_targets(target_mind)
     context.set_hive(hive_mind)
 
-    if Game.time % 300 == 50:
+    if Game.time % 320 == 53:
         consistency.clear_cache()
 
     hive_mind.poll_all_creeps()
     hive_mind.poll_hostiles()
 
-    if Game.time % 20 == 7:
+    if Game.time % 16 == 7:
         for room in hive_mind.visible_rooms:
             room.building.place_remote_mining_roads()
 
@@ -147,6 +147,7 @@ def main():
                     continue
                 run_creep(creeps_skipped, room, Game.creeps[creep_name])
             room.links.tick_links()
+            room.mining.poll_flag_energy_sitting()
         del Memory.skipped_last_turn
     else:
         for room in hive_mind.my_rooms:
@@ -156,6 +157,7 @@ def main():
             for creep in room.creeps:
                 run_creep(creeps_skipped, room, creep)
             room.links.tick_links()
+            room.mining.poll_flag_energy_sitting()
     skipped_count = 0
     for room_name in creeps_skipped.keys():
         skipped_count += len(creeps_skipped[room_name])

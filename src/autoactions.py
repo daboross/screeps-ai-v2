@@ -63,11 +63,7 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
     cost_matrix = __new__(PathFinder.CostMatrix())
 
     def wall_at(x, y):
-        for t in room.room.lookForAt(LOOK_TERRAIN, x, y):
-            # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
-            if t == 'wall':
-                return True
-        return False
+        return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
     def set_in_range(pos, drange, value, increase_by_center):
         for x in range(pos.x - drange, pos.x + drange + 1):

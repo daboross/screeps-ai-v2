@@ -18,7 +18,7 @@ _we_are_miners = (
         "and", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", None,
         "Yes,", "I", "feel", "like", "I'm", "dying", "from", "mining", "for", "gold", None, None, None,
     ],
-    False
+    True
 )
 
 base_no_role = (["No role", "!!!"], True)

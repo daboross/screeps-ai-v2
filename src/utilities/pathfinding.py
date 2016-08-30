@@ -81,12 +81,6 @@ def _get_matrix(room, game_defined_matrix, use_roads, ignore_all_creeps, avoid_a
             else:
                 matrix.set(creep.pos.x, creep.pos.y, 1)  # just slightly avoid - not too much?
 
-    # for x in range(0, 50):
-    #     for y in range(0, 50):
-    #         for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
-    #             if terrain.type | TERRAIN_MASK_WALL == TERRAIN_MASK_WALL:
-    #                 matrix.set(x, y, 0xff)
-
     _cost_cache[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] = matrix
     _last_refreshed[use_roads][ignore_all_creeps][avoid_all_creeps][room_name] = time
 

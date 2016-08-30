@@ -53,10 +53,9 @@ class Upgrader(RoleBase):
         elif result == OK:
             # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering
             # from. Otherwise, move towards the controller to leave room for other upgraders
-
             if self.creep.carryCapacity > 100:
-                if not self.memory.harvesting and self.is_next_block_clear(target):
-                    self.move_to(target, True)
+                if not self.memory.harvesting:
+                    self.basic_move_to(target)
             else:
                 if not self.memory.harvesting and self.creep.carry.energy < self.creep.carryCapacity:
                     self.harvest_energy()

@@ -62,4 +62,7 @@ delete Memory.cache.path_W47N27_15_6_W47N26_21_2
 py.get_room("W47N27").honey.find_path(new RoomPosition(15, 6, "W47N27"), new RoomPosition(21, 2, "W47N26"))
 JSON.stringify(PathFinder.search(new RoomPosition(15, 6, "W47N27"), {pos: new RoomPosition(21, 2, "W47N26"), range: 1}), 4, 4)
 JSON.stringify(Memory.hostiles, 3, 3)
+for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() * 50 }
+for (let key in Memory.cache) { if (key.indexOf("W46N28") != -1) { delete Memory.cache[key] } }
+for (let room of py.context.hive().visible_rooms) { delete room.mem.cache.paving_here }
 ```

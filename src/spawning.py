@@ -19,6 +19,7 @@ initial_section = {
     creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
     creep_base_goader: [ATTACK, MOVE, TOUGH],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
+    creep_base_full_miner: [WORK, WORK, WORK, WORK, WORK]
 }
 
 # TODO: limit goader and healer in RoomMind
@@ -29,7 +30,7 @@ scalable_sections = {
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [CARRY, MOVE, ATTACK],
-    creep_base_full_miner: [WORK, MOVE],
+    creep_base_full_miner: [MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
     creep_base_dismantler: [WORK, MOVE],
@@ -86,15 +87,15 @@ def run(room, spawn):
         print("[{}] WARNING: Bootstrapping room!".format(room.room_name))
         energy = filled
     elif num_sections is not None:
-        cost = initial_section_cost(base) + role_obj.num_sections * energy_per_section(base)
+        cost = initial_section_cost(base) + num_sections * energy_per_section(base)
         if cost > spawn.room.energyCapacityAvailable:
             # This is just a double check, for as we move into the new role_obj-based system
             new_size = max_sections_of(room, base)
             print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
-                  .format(room.room_name, role_obj.num_sections, new_size))
+                  .format(room.room_name, num_sections, new_size))
             # Since the literal memory object is returned, this mutation will stick for until this creep has been spawned,
             # or the target creep has been refreshed
-            role_obj.num_sections = new_size
+            num_sections = role_obj.num_sections = new_size
             cost = initial_section_cost(base) + new_size * energy_per_section(base)
         energy = cost
     else:
@@ -137,7 +138,7 @@ def run(room, spawn):
             print("[{}][spawning] Too few extensions to build a remote miner!".format(room.room_name))
             return
         parts = []
-        num_move = min(int(floor((energy - 500) / 50)), 5)
+        num_move = num_sections
         num_work = 5
         for i in range(0, num_move - 1):
             parts.append(MOVE)
@@ -300,31 +301,33 @@ def run(room, spawn):
 
     if descriptive_level:
         if replacing:
-            print("[{}][spawning] Choose role {} with body {} level {}, live-replacing {}.".format(
-                room.room_name, role, base, descriptive_level, replacing))
+            print("[{}][spawning] Spawning {}, a {} with body {} level {}, live-replacing {}.".format(
+                room.room_name, name, role, base, descriptive_level, replacing))
         else:
-            print("[{}][spawning] Choose role {} with body {} level {}.".format(
-                room.room_name, role, base, descriptive_level))
+            print("[{}][spawning] Spawning {}, a {} with body {} level {}.".format(
+                room.room_name, name, role, base, descriptive_level))
     else:
         if replacing:
-            print("[{}][spawning] Choose role {} with body {}, live-replacing {}.".format(
-                room.room_name, role, base, replacing))
+            print("[{}][spawning] Spawning {}, a {} with body {}, live-replacing {}.".format(
+                room.room_name, name, role, base, replacing))
         else:
-            print("[{}][spawning] Choose role {} with body {}.".format(room.room_name, role, base))
+            print("[{}][spawning] Spawning {}, a {} with body {}.".format(room.room_name, name, role, base))
     result = spawn.createCreep(parts, name, memory)
     if result not in Game.creeps:
         print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
         if result == ERR_NOT_ENOUGH_RESOURCES:
             print("[{}][spawning] Couldn't create body {} with energy {}!".format(room.room_name, parts, energy))
     else:
-        if replacing:
-            room.register_new_replacing_creep(role, replacing, result)
-        else:
-            room.register_to_role(Game.creeps[result])
         room.reset_planned_role()
         if role_obj.targets:
             for target_type, target_id in role_obj.targets:
                 room.hive_mind.target_mind._register_new_targeter(target_type, name, target_id)
+        if role_obj.run_after:
+            role_obj.run_after(name)
+        if replacing:
+            room.register_new_replacing_creep(role, replacing, result)
+        else:
+            room.register_to_role(Game.creeps[result])
 
 
 def random_four_digits():

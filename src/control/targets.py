@@ -4,7 +4,6 @@ import context
 import flags
 import spawning
 from constants import *
-from control.hivemind import get_carry_mass_for_remote_mine
 from tools import profiling
 from utilities import movement
 from utilities import volatile_cache
@@ -29,9 +28,6 @@ def _mass_count(name):
         return 1
     # TODO: do we, instead of doing this, want to count two different mass targeting variables in memory?
     return max(work, carry)
-
-
-work_stealing_targets = [target_spawn_deposit]
 
 
 class TargetMind:
@@ -102,6 +98,9 @@ class TargetMind:
     def workforce_of(self, ttype, target):
         return (self.targets[ttype][target] and self.targets_workforce[ttype][target]) or 0
 
+    def creeps_now_targeting(self, ttype, target_id):
+        return (ttype in self.reverse_targets and self.reverse_targets[ttype][target_id]) or []
+
     def _register_new_targeter(self, ttype, targeter_id, target_id):
         if targeter_id not in self.targeters:
             self.targeters[targeter_id] = {
@@ -134,14 +133,12 @@ class TargetMind:
             self.targets_workforce[ttype][target_id] = _mass_count(targeter_id)
         else:
             self.targets_workforce[ttype][target_id] += _mass_count(targeter_id)
-        if ttype in work_stealing_targets:
-            # this target can be stolen, mark the targeter:
-            if ttype not in self.reverse_targets:
-                self.reverse_targets[ttype] = {target_id: [targeter_id]}
-            elif target_id not in self.reverse_targets:
-                self.reverse_targets[ttype][target_id] = [targeter_id]
-            else:
-                self.reverse_targets[ttype][target_id].append(targeter_id)
+        if ttype not in self.reverse_targets:
+            self.reverse_targets[ttype] = {target_id: [targeter_id]}
+        elif target_id not in self.reverse_targets[ttype]:
+            self.reverse_targets[ttype][target_id] = [targeter_id]
+        else:
+            self.reverse_targets[ttype][target_id].push(targeter_id)
 
     def _reregister_all(self):
         new_targets = {}
@@ -165,15 +162,14 @@ class TargetMind:
                         new_workforce[ttype][target_id] = mass
                 else:
                     new_workforce[ttype] = {target_id: mass}
-                if ttype in work_stealing_targets:
-                    # this target can be stolen, mark the targeter:
-                    if ttype in new_reverse:
-                        if target_id in new_reverse:
-                            new_reverse[ttype][target_id].append(targeter_id)
-                        else:
-                            new_reverse[ttype][target_id] = [targeter_id]
+                # this target can be stolen, mark the targeter:
+                if ttype in new_reverse:
+                    if target_id in new_reverse[ttype]:
+                        new_reverse[ttype][target_id].push(targeter_id)
                     else:
-                        new_reverse[ttype] = {target_id: [targeter_id]}
+                        new_reverse[ttype][target_id] = [targeter_id]
+                else:
+                    new_reverse[ttype] = {target_id: [targeter_id]}
 
         self.targets = new_targets
         self.targets_workforce = new_workforce
@@ -186,11 +182,10 @@ class TargetMind:
                 self.targets[ttype][existing_target] -= 1
             if ttype in self.targets_workforce and existing_target in self.targets_workforce[ttype]:
                 self.targets_workforce[ttype][existing_target] -= _mass_count(targeter_id)
-            if ttype in work_stealing_targets:
-                if ttype in self.reverse_targets and existing_target in self.reverse_targets[ttype]:
-                    index = self.reverse_targets[ttype][existing_target].indexOf(targeter_id)
-                    if index > -1:
-                        self.reverse_targets[ttype][existing_target].splice(index, 1)
+            if ttype in self.reverse_targets and existing_target in self.reverse_targets[ttype]:
+                index = self.reverse_targets[ttype][existing_target].indexOf(targeter_id)
+                if index > -1:
+                    self.reverse_targets[ttype][existing_target].splice(index, 1)
             del self.targeters[targeter_id][ttype]
 
     def _unregister_all(self, targeter_id):
@@ -202,11 +197,10 @@ class TargetMind:
                     self.targets[ttype][target] -= 1
                 if ttype in self.targets_workforce and target in self.targets_workforce[ttype]:
                     self.targets_workforce[ttype][target] -= mass
-                if ttype in work_stealing_targets:
-                    if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
-                        index = self.reverse_targets[ttype][target].indexOf(targeter_id)
-                        if index > -1:
-                            self.reverse_targets[ttype][target].splice(index, 1)
+                if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
+                    index = self.reverse_targets[ttype][target].indexOf(targeter_id)
+                    if index > -1:
+                        self.reverse_targets[ttype][target].splice(index, 1)
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
@@ -223,11 +217,10 @@ class TargetMind:
                         self.targets_workforce[ttype][target] = new_mass
                 else:
                     self.targets_workforce[ttype] = {target: new_mass}
-                if ttype in work_stealing_targets:
-                    if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
-                        index = self.reverse_targets[ttype][target].indexOf(old_targeter_id)
-                        if index > -1:
-                            self.reverse_targets[ttype][target].splice(index, 1, new_targeter_id)
+                if ttype in self.reverse_targets and target in self.reverse_targets[ttype]:
+                    index = self.reverse_targets[ttype][target].indexOf(old_targeter_id)
+                    if index > -1:
+                        self.reverse_targets[ttype][target].splice(index, 1, new_targeter_id)
             del self.targeters[old_targeter_id]
 
     def _find_new_target(self, ttype, creep, extra_var):
@@ -240,7 +233,7 @@ class TargetMind:
             self.targets[ttype] = {}
         if not self.targets_workforce[ttype]:
             self.targets_workforce[ttype] = {}
-        if ttype in work_stealing_targets and ttype not in self.reverse_targets:
+        if ttype not in self.reverse_targets:
             self.reverse_targets[ttype] = {}
         func = self.find_functions[ttype]
         if func:
@@ -391,10 +384,6 @@ class TargetMind:
                     stealing_from = None
                 else:
                     targeting = self.reverse_targets[target_spawn_deposit][structure_id]
-                    if not targeting:
-                        # TODO: remove this once we have all memory cleared so this will never be true
-                        self.mem.last_clear = 0
-                        continue
                     if len(targeting):
                         for name in targeting:
                             if not Game.creeps[name] or movement.distance_squared_room_pos(
@@ -519,7 +508,7 @@ class TargetMind:
         """
         best_id = None
         closest_flag = Infinity
-        for flag in creep.home.remote_mining_operations:
+        for flag in creep.home.mining.available_mines:
             flag_id = "flag-{}".format(flag.name)
             miners = self.targets[target_remote_mine_miner][flag_id]
             if not miners or miners < 1:
@@ -537,13 +526,13 @@ class TargetMind:
         best_id = None
         # don't go to any rooms with 100% haulers in use.
         smallest_percentage = 1
-        for flag in creep.home.remote_mining_operations:
+        for flag in creep.home.mining.available_mines:
             if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
                 continue  # only target mines with active miners
             flag_id = "flag-{}".format(flag.name)
             hauler_mass = self.workforce_of(target_remote_mine_hauler, flag_id)
-            hauler_percentage = float(hauler_mass) / get_carry_mass_for_remote_mine(creep.home, flag)
-            too_long = creep.creep.ticksToLive < 2.2 * creep.home.distance_storage_to_mine(flag)
+            hauler_percentage = float(hauler_mass) / creep.home.mining.calculate_current_target_mass_for_mine(flag)
+            too_long = creep.creep.ticksToLive < 2.2 * creep.home.mining.distance_to_mine(flag)
             if too_long:
                 if hauler_percentage < 0.5:
                     hauler_percentage *= 2

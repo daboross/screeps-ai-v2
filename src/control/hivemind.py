@@ -6,6 +6,7 @@ import spawning
 from constants import *
 from control.building import ConstructionMind
 from control.links import LinkingMind
+from control.mining import MiningMind
 from control.pathdef import HoneyTrails, CachedTrails
 from role_base import RoleBase
 from roles import military
@@ -16,31 +17,6 @@ from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
-
-_MAX_BUILDERS = 3
-
-
-# TODO: MiningMind
-def get_carry_mass_for_remote_mine(home, flag):
-    sitting = flag.memory.sitting if flag.memory.sitting else 0
-    # each carry can carry 50 energy.
-    carry_per_tick = 50.0 / (home.distance_storage_to_mine(flag) * 2.1)
-    room = Game.rooms[flag.pos.roomName]
-    if room and (not room.controller or room.controller.reservation):
-        mining_per_tick = 10.0
-    else:
-        mining_per_tick = 5.0
-    produce_per_tick = mining_per_tick + round(sitting / 200.0)
-    extra_small_hauler_mass = min(5, spawning.max_sections_of(home, creep_base_hauler))
-    target_mass = math.ceil(produce_per_tick / carry_per_tick) + extra_small_hauler_mass
-    if not isFinite(target_mass):
-        print("[{}][mining_carry_mass] ERROR: Non-finite number of haulers determined for remote mine {}!"
-              " sitting: {}, cpt: {}, mpt: {}, ppt: {}, extra: {}, tm: {}".format(
-            home.room_name, flag.name, sitting, carry_per_tick, mining_per_tick, produce_per_tick,
-            extra_small_hauler_mass, target_mass))
-        target_mass = extra_small_hauler_mass * 5
-
-    return target_mass
 
 
 def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
@@ -243,6 +219,7 @@ class RoomMind:
     :type building: ConstructionMind
     :type honey: HoneyTrails
     :type links: LinkingMind
+    :type mining: MiningMind
     :type subsidiaries: list[RoomMind]
     :type sources: list[Source]
     :type creeps: list[Creep]
@@ -260,6 +237,7 @@ class RoomMind:
         self.building = ConstructionMind(self)
         self.honey = HoneyTrails(self)
         self.links = LinkingMind(self)
+        self.mining = MiningMind(self)
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None
@@ -494,27 +472,15 @@ class RoomMind:
             self.hive_mind.poll_remote_mining_flags()
         return self._remote_mining_operations
 
-    remote_mining_operations = property(_get_remote_mining_operations)
-
-    def distance_storage_to_mine(self, flag):
-        cache_name = "storage_distance_to_{}".format(flag.name)
-        cached = self.get_cached_property(cache_name)
-        if cached:
-            return cached
-        if self.room.storage:
-            distance = movement.path_distance(self.room.storage.pos, flag.pos)
-            self.store_cached_property(cache_name, distance, 150)
-        else:
-            distance = movement.path_distance(self.spawn.pos, flag.pos)
-            self.store_cached_property(cache_name, distance, 75)
-        return distance
+    possible_remote_mining_operations = property(_get_remote_mining_operations)
 
     def paving(self):
         paving = self.get_cached_property("paving_here")
         if paving is None:
             if self.my:
                 # TODO: 2 maybe should be a constant?
-                paving = self.full_storage_use and len(self.remote_mining_operations) > 2
+                paving = self.full_storage_use and self.get_max_mining_op_count() >= 2 \
+                         and len(self.mining.available_mines) >= 2
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
@@ -541,7 +507,7 @@ class RoomMind:
                                                                    {"structureType": STRUCTURE_ROAD})):
             paved = False  # still paving
         else:
-            for flag in self.remote_mining_operations:
+            for flag in self.mining.active_mines:
                 room = self.hive_mind.get_room(flag.pos.roomName)
                 if room:
                     if not room.all_paved():
@@ -1022,7 +988,7 @@ class RoomMind:
                 max_via_rcl2 = 4
         else:
             min_wm = 40  # Around all roles built needed for an rcl 3 room!
-            extra_wm = 30
+            extra_wm = 10
             min_energy = 800  # rcl 3, fully built
             min_rcl = 3
             extra_rcl = 1
@@ -1096,94 +1062,6 @@ class RoomMind:
             else:
                 self._ideal_big_miner_count = 0
         return self._ideal_big_miner_count
-
-    def get_target_remote_miner_count(self):
-        """
-        :rtype: int
-        """
-        if self._target_remote_mining_operation_count is None:
-            max_via_state = self.get_max_mining_op_count()
-            if max_via_state > 0 and not self.mining_ops_paused():
-                max_via_plan = len(self.remote_mining_operations)
-
-                if self.carry_mass_of(role_remote_hauler) >= self.get_target_remote_hauler_mass():
-                    max_via_haulers = self.role_count(role_remote_miner) + 2
-                else:
-                    max_via_haulers = self.role_count(role_remote_miner)
-
-                self._target_remote_mining_operation_count = min(max_via_state, max_via_plan, max_via_haulers)
-            else:
-                self._target_remote_mining_operation_count = 0
-        return self._target_remote_mining_operation_count
-
-    def get_target_remote_hauler_mass(self):
-        """
-        :rtype: int
-        """
-        if self._target_remote_hauler_carry_mass is None:
-            needed_ops = 0
-            biggest_op_mass_needed = 0  # TODO: this should be eventually replaced with spawning hauler specific to the mine.
-            if self.get_max_mining_op_count():
-                for flag in self.remote_mining_operations:
-                    if flag.memory.remote_miner_targeting or flag.memory.sitting > 500:
-                        needed_ops += 1
-                    mass_for_op = get_carry_mass_for_remote_mine(self, flag)
-                    if mass_for_op > biggest_op_mass_needed:
-                        biggest_op_mass_needed = mass_for_op
-            self._target_remote_hauler_carry_mass = needed_ops * biggest_op_mass_needed
-            self._target_remote_hauler_count = needed_ops
-        return self._target_remote_hauler_carry_mass
-
-    def get_target_remote_hauler_count(self):
-        """
-        :rtype int
-        """
-        if self._target_remote_hauler_count is None:
-            self.get_target_remote_hauler_mass()
-        return self._target_remote_hauler_count
-
-    def get_target_remote_reserve_count(self, first):
-        """
-        :rtype: int
-        """
-        if (self._first_target_remote_reserve_count if first else self._target_remote_reserve_count) is None:
-            mining_op_count = self.get_target_remote_miner_count()
-            if mining_op_count and self.room.energyCapacityAvailable >= 650:
-                rooms_mining_in = set()
-                rooms_under_1000 = set()
-                rooms_under_4000 = set()
-                for flag in self.remote_mining_operations:
-                    # TODO: Should we really be using *existing* miners to determine *target* reservers?
-                    # We might want to instead calculate the exact planned operations, but that would require range
-                    # calculations.
-                    room = Game.rooms[flag.pos.roomName]
-                    if flag.memory.remote_miner_targeting and room:
-                        controller = room.controller
-                        # TODO: hardcoded username here
-                        if controller and (not controller.reservation or (controller.reservation.username == "daboross"
-                                                                          and controller.reservation.ticksToEnd < 4000)):
-                            if mining_op_count <= 0:
-                                break  # let's only process the right number of mining operations
-                            mining_op_count -= 1
-                            rooms_mining_in.add(flag.pos.roomName)
-                            if not controller.reservation or controller.reservation.ticksToEnd < 1000:
-                                rooms_under_1000.add(flag.pos.roomName)
-                            if not controller.reservation or controller.reservation.ticksToEnd < 4000:
-                                if self.room.energyCapacityAvailable < 1300:
-                                    # if energy capacity is at least 1300, the reserve creeps we're making are going to have
-                                    # 2 reserve already!
-                                    # TODO: this class and spawning logic really need to be merged a bit.
-                                    rooms_under_4000.add(flag.pos.roomName)
-
-                if first:
-                    self._first_target_remote_reserve_count = len(rooms_under_1000) + len(rooms_under_4000)
-                else:
-                    # Send 2 per room for rooms < 4000, 1 per room otherwise.
-                    self._target_remote_reserve_count = len(rooms_mining_in) + len(rooms_under_4000)
-            else:
-                self._first_target_remote_reserve_count = 0
-                self._target_remote_reserve_count = 0
-        return self._first_target_remote_reserve_count if first else self._target_remote_reserve_count
 
     def get_target_local_hauler_mass(self):
         """
@@ -1438,20 +1316,6 @@ class RoomMind:
         else:
             return 0
 
-    def get_next_remote_hauler_num_sections(self):
-        if self.all_paved():
-            maximum = spawning.max_sections_of(self, creep_base_work_half_move_hauler)
-        elif self.paving():
-            maximum = spawning.max_sections_of(self, creep_base_work_full_move_hauler)
-        else:
-            maximum = spawning.max_sections_of(self, creep_base_hauler)
-        needed = self.get_target_remote_hauler_mass() / self.get_target_remote_hauler_count()
-        if self.all_paved():
-            # Each section has twice the carry, and the initial section has half the carry of one regular section.
-            return fit_num_sections(needed / 2, maximum, 0.5)
-        else:
-            return fit_num_sections(needed, maximum)
-
     def get_next_spawn_fill_body_size(self):
         # Enough so that it takes only 2 trips for each creep to fill all extensions.
         total_mass = self.room.energyCapacityAvailable / 50 / 2
@@ -1490,7 +1354,7 @@ class RoomMind:
             self._target_simple_dismantler_count = count
         return self._target_simple_dismantler_count
 
-    def _next_needed_local_role(self):
+    def _next_needed_local_mining_role(self):
         requirements = [
             [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
             [role_defender, lambda: self.get_target_simple_defender_count(True)],
@@ -1500,6 +1364,36 @@ class RoomMind:
             [role_tower_fill, self.get_target_tower_fill_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
             [role_local_hauler, self.get_target_local_hauler_mass, True],
+        ]
+        role_needed = None
+        for role, get_ideal, count_carry, count_work in requirements:
+            if count_carry:
+                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    role_needed = role
+                    break
+            elif count_work:
+                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                    role_needed = role
+                    break
+            else:
+                if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
+                    role_needed = role
+                    break
+
+        if role_needed:
+            # TODO: this is all mostly a conversion of the old system to the new.
+            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
+            return {
+                "role": role_needed,
+                "base": self.get_variable_base(role_needed),
+                "replacing": self.get_next_replacement_name(role_needed),
+                "num_sections": self.get_max_sections_for_role(role_needed),
+            }
+        else:
+            return None
+
+    def _next_needed_local_role(self):
+        requirements = [
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
             [role_simple_claim, self.get_target_simple_claim_count],
             [role_room_reserve, self.get_target_room_reserve_count],
@@ -1507,7 +1401,8 @@ class RoomMind:
             [role_colonist, self.get_target_colonist_work_mass],
             [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_mineral_miner, self.get_target_mineral_miner_count],
-            [role_builder, lambda: self.get_target_builder_work_mass(True), False, True]
+            [role_builder, lambda: self.get_target_builder_work_mass(True), False, True],
+            [role_defender, self.get_target_simple_defender_count],
         ]
         role_needed = None
         for role, get_ideal, count_carry, count_work in requirements:
@@ -1537,66 +1432,14 @@ class RoomMind:
             return None
 
     def _next_probably_local_role(self):
-        roles = [
-            # Extra args as a hack to ensure that the correct workmass is returned from
-            # get_max_sections_for_role() when we only want the first builder work mass.
-            [role_builder, lambda: self.get_target_builder_work_mass(False, True)],
-        ]
-        role_needed = None
-        for role, ideal in roles:
-            # TODO: this code is a mess!
-            if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < ideal():
-                role_needed = role
-                break
-
-        if role_needed:
-            # TODO: this is all mostly a conversion of the old system to the new.
-            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
+        target_builder_mass = self.get_target_builder_work_mass(False, True)
+        if self.work_mass_of(role_builder) - self.work_mass_of_replacements_currently_needed_for(role_builder) \
+                < target_builder_mass and target_builder_mass > 0:
             return {
-                "role": role_needed,
-                "base": self.get_variable_base(role_needed),
-                "replacing": self.get_next_replacement_name(role_needed),
-                "num_sections": self.get_max_sections_for_role(role_needed),
-            }
-        else:
-            return None
-
-    def _next_remote_mining_role(self):
-        remote_operation_reqs = [
-            [role_defender, self.get_target_simple_defender_count],
-            [role_td_healer, self.get_target_td_healer_count],
-            [role_td_goad, self.get_target_td_goader_count],
-            [role_simple_dismantle, self.get_target_simple_dismantler_count],
-            # Be sure we're reserving all the current rooms we're mining before we start mining a new room!
-            # get_target_remote_reserve_count takes into account only rooms with miners *currently* mining them.
-            [role_remote_mining_reserve, lambda: self.get_target_remote_reserve_count(True)],
-            [role_remote_miner, self.get_target_remote_miner_count],
-            [role_remote_hauler, self.get_target_remote_hauler_mass, True],
-            [role_remote_mining_reserve, self.get_target_remote_reserve_count],
-        ]
-        role_needed = None
-        for role, get_ideal, count_carry, count_work in remote_operation_reqs:
-            if count_carry:
-                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-            elif count_work:
-                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-            else:
-                if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-
-        if role_needed:
-            # TODO: this is all mostly a conversion of the old system to the new.
-            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
-            return {
-                "role": role_needed,
-                "base": self.get_variable_base(role_needed),
-                "replacing": self.get_next_replacement_name(role_needed),
-                "num_sections": self.get_max_sections_for_role(role_needed),
+                "role": role_builder,
+                "base": self.get_variable_base(role_builder),
+                "replacing": self.get_next_replacement_name(role_builder),
+                "num_sections": self.get_max_sections_for_role(role_builder),
             }
         else:
             return None
@@ -1625,10 +1468,8 @@ class RoomMind:
             role_upgrader:
                 self.get_target_upgrader_work_mass,
             role_defender:
-                lambda: self.get_target_simple_defender_count() * min(6, spawning.max_sections_of(self,
-                                                                                                  creep_base_defender)),
-            role_remote_hauler:
-                self.get_next_remote_hauler_num_sections,
+                lambda: self.get_target_simple_defender_count() *
+                        min(6, spawning.max_sections_of(self, creep_base_defender)),
             role_remote_miner:
                 lambda: min(5, spawning.max_sections_of(self, creep_base_full_miner)),
             role_remote_mining_reserve:
@@ -1680,8 +1521,10 @@ class RoomMind:
 
     def plan_next_role(self):
         funcs_to_try = [
+            self._next_needed_local_mining_role,
+            lambda: self.mining.next_remote_mining_role(2 - len(self.sources)),
             self._next_needed_local_role,
-            self._next_remote_mining_role,
+            lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
             self._next_probably_local_role,
         ]
         next_role = None
@@ -1690,8 +1533,9 @@ class RoomMind:
             if next_role:
                 maximum = spawning.max_sections_of(self, next_role.base)
                 if next_role.num_sections is not None and next_role.num_sections > maximum:
-                    print("[{}] Function {} decided on {} sections for {}, which is more than the allowed {}."
-                          .format(self.room_name, func.name, next_role.num_sections, next_role.base, maximum))
+                    print("[{}] Function decided on {} sections for {} (a {}), which is more than the allowed {}."
+                          .format(self.room_name, func.name, next_role.num_sections, next_role.base, next_role.role,
+                                  maximum))
                     next_role.num_sections = maximum
                 break
         if next_role:

@@ -4,6 +4,7 @@ import context
 import flags
 from constants import target_source, role_dedi_miner, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
     PYFIND_BUILDABLE_ROADS, target_closest_energy_site
+from control import pathdef
 from tools import profiling
 from utilities import movement, global_cache
 from utilities.screeps_constants import *
@@ -569,59 +570,21 @@ class RoleBase:
         elif direction == TOP_LEFT or direction == LEFT:
             self.creep.move(BOTTOM)
 
-    def is_next_block_clear(self, target):
-        next_pos = __new__(RoomPosition(target.pos.x, target.pos.y, target.pos.roomName))
-        creep_pos = self.creep.pos
-        if creep_pos.roomName != next_pos.roomName:
-            return True
-        # Apparently, I thought it would be best if we start at the target position, and continue looking for open
-        # spaces until we get to the origin position. Thus, if we encounter an obstacle, we use "continue", and if the
-        # result is that we've reached the creep position, we return false.
-        while True:
-            if next_pos.x == creep_pos.x and next_pos.y == creep_pos.y:
-                return False
-            elif next_pos.x < 0 or next_pos.y < 0 or next_pos.x > 50 or next_pos.y > 50:
-                return False
-
-            direction = next_pos.getDirectionTo(creep_pos)
-
-            if direction == TOP:
-                next_pos.y -= 1
-            elif direction == TOP_RIGHT:
-                next_pos.x += 1
-                next_pos.y -= 1
-            elif direction == RIGHT:
-                next_pos.x += 1
-            elif direction == BOTTOM_RIGHT:
-                next_pos.x += 1
-                next_pos.y += 1
-            elif direction == BOTTOM:
-                next_pos.y += 1
-            elif direction == BOTTOM_LEFT:
-                next_pos.x -= 1
-                next_pos.y += 1
-            elif direction == LEFT:
-                next_pos.x -= 1
-            elif direction == TOP_LEFT:
-                next_pos.y -= 1
-                next_pos.x -= 1
-            else:
-                self.log("Unknown result from pos.getDirectionTo(): {}", direction)
-                return False
-
-            creeps = next_pos.lookFor(LOOK_CREEPS)
-            if len(creeps):
-                continue
-            for terrain in next_pos.lookFor(LOOK_TERRAIN):
-                # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
-                if terrain == 'wall':
-                    continue
-
-            structures = next_pos.lookFor(LOOK_STRUCTURES)
-            if len(structures):
-                continue
-
-            return True
+    def basic_move_to(self, target):
+        if target.pos: target = target.pos
+        dx = target.x - self.pos.x
+        dy = target.y - self.pos.y
+        # Don't divide by zero
+        if dx:
+            dx /= abs(dx)
+        if dy:
+            dy /= abs(dy)
+        if dx and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
+            self.creep.move(pathdef.get_direction(dx, 0))
+        elif dy and movement.is_block_clear(self.room, self.pos.y + dy, self.pos.x):
+            self.creep.move(pathdef.get_direction(0, dy))
+        elif dx and dy and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + dy):
+            self.creep.move(pathdef.get_direction(dx, dy))
 
     def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:

@@ -142,10 +142,10 @@ class Builder(upgrading.Upgrader):
         self.memory.stationary = True
         result = self.creep.repair(target)
         if result == OK:
-            if self.is_next_block_clear(target):
-                self.move_to(target, True)
-            else:
+            if self.pos.isNearTo(target):
                 self.move_around(target)
+            else:
+                self.basic_move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
@@ -173,10 +173,10 @@ class Builder(upgrading.Upgrader):
         self.memory.stationary = True
         result = self.creep.build(target)
         if result == OK:
-            if self.is_next_block_clear(target):
-                self.move_to(target, True)
-            else:
+            if self.pos.isNearTo(target):
                 self.move_around(target)
+            else:
+                self.basic_move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, target_construction)
         else:

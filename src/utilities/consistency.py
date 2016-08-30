@@ -1,4 +1,5 @@
 from constants import *
+from control import live_creep_utils
 from tools import profiling
 from utilities import global_cache
 from utilities.screeps_constants import *
@@ -25,13 +26,17 @@ def reassign_room_roles(room):
                 break
         room.recalculate_roles_alive()
 
-    extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
-                                                               room.get_target_local_hauler_mass())
-    if len(extra_local_haulers):
-        for name in extra_local_haulers:
-            if name in Memory.creeps:
-                Memory.creeps[name].role = role_cleanup
-        room.recalculate_roles_alive()
+
+    # Don't make all local haulers suicide if we have stopped making more because of economy failure!
+    # We should be keeping them alive if that's the case!
+    if room.get_target_local_hauler_mass():
+        extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
+                                                                   room.get_target_local_hauler_mass())
+        if len(extra_local_haulers):
+            for name in extra_local_haulers:
+                if name in Memory.creeps:
+                    Memory.creeps[name].role = role_cleanup
+            room.recalculate_roles_alive()
 
 
 def clear_memory(room):
@@ -70,9 +75,9 @@ def clear_memory(room):
         else:
             if creep.ticksToLive < smallest_ticks_to_live:
                 smallest_ticks_to_live = creep.ticksToLive
-            replacement_time = creep.memory.calculated_replacement_time
-            if replacement_time and Game.time < replacement_time < closest_replacement_time:
-                closest_replacement_time = creep.memory.calculated_replacement_time
+            replacement_time = live_creep_utils.replacement_time(creep)
+            if Game.time < replacement_time < closest_replacement_time:
+                closest_replacement_time = replacement_time
     dead_next = Game.time + smallest_ticks_to_live
     room.mem.meta.clear_next = dead_next + 1
     room.mem.meta.reset_spawn_on = closest_replacement_time + 1

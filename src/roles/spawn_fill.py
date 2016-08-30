@@ -3,7 +3,7 @@ import speech
 from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill
 from roles import building
 from tools import profiling
-from utilities import movement, volatile_cache
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -39,10 +39,11 @@ class SpawnFill(building.Builder):
                         if self.creep.carry.energy < self.creep.carryCapacity:
                             self.memory.harvesting = True
                             return True
-                        if not self.creep.pos.isNearTo(target.pos) or \
-                                (not self.creep.pos.isEqualTo(target.pos)
-                                 and movement.is_block_clear(self.room.room, target.pos.x, target.pos.y)):
-                            self.move_to(target)
+                        if not self.creep.pos.isEqualTo(target.pos):
+                            if self.creep.pos.isNearTo(target.pos):
+                                self.basic_move_to(target)
+                            else:
+                                self.move_to(target)
                         return False
                 else:
                     del self.memory.filling_now
@@ -67,7 +68,7 @@ class SpawnFill(building.Builder):
                                     if new_target and not self.creep.pos.isNearTo(new_target.pos):
                                         self.move_to(new_target)
                                 else:
-                                    self.harvest_energy() # Get a head start on this too!
+                                    self.harvest_energy()  # Get a head start on this too!
                         elif result == ERR_FULL:
                             self.target_mind.untarget(self, target_spawn_deposit)
                             return True

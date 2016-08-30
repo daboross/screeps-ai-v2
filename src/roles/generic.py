@@ -7,7 +7,6 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 immediately_replace_roles = [
-    role_remote_hauler,
     role_local_hauler,
     role_mineral_hauler,
 ]
@@ -19,6 +18,7 @@ let_live_roles = [
     role_builder,
     role_cleanup,
     role_colonist,
+    role_remote_hauler,
 ]
 
 

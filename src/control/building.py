@@ -256,7 +256,7 @@ class ConstructionMind:
                     print("[{}][building] Not dismantling {}, as it is under a rampart.".format(
                         self.room.room_name, struct))
                 continue
-            if len(structures):
+            if len(structures) and not flags.look_for(self.room, flag.pos, flags.MAIN_BUILD, secondary):
                 for struct in structures:
                     target_list.append(struct.id)
             else:
@@ -273,64 +273,72 @@ class ConstructionMind:
         # TODO: I'm not sure if this or iterating over all mining flags and the paths to them would be better:
         # if we start using HoneyTrails for more things, we might want to do that instead of this - or we could
         # just pave those paths too?
+        current_method_version = 14
         last_run_version = self.room.get_cached_property("placed_mining_roads")
-        if last_run_version and last_run_version == 3:
+        if last_run_version and last_run_version == current_method_version:
+            # print("[{}][building] Not paving: already ran".format(self.room.room_name))
             return  # Don't do this every tick, even though this function is called every tick.
 
         if not self.room.paving():
-            self.room.store_cached_property("placed_mining_roads", True, 100)
+            print("[{}][building] Not paving.".format(self.room.room_name))
+            self.room.store_cached_property("placed_mining_roads", current_method_version, 100)
             return
 
-        room_cache = self.room.mem.cache
+        if self.room.my:
+            sponsoring_rooms = [self.room]
+        else:
+            sponsoring_rooms = []
+            for flag in flags.find_flags(self.room, flags.REMOTE_MINE):
+                if flag.memory.sponsor:
+                    room = self.hive.get_room(flag.memory.sponsor)
+                    for r2 in sponsoring_rooms:
+                        if r2.room_name == room.room_name:
+                            break
+                    else:
+                        sponsoring_rooms.append(room)
+
         checked_positions = __pragma__('js', 'new Set()')
         placed_count = 0
         path_count = 0
-        if room_cache:
-            for rhp_key in Object.keys(room_cache):
-                # This rhp key is a slight hack to ensure we only count paths remote miners are taking, not other paths
-                # cached for calculation.
-                if not rhp_key.startswith("rhp_"):
-                    continue
-                rhp_value = room_cache[rhp_key]
 
-                if rhp_value.dead_at < Game.time:
-                    continue
+        # print("Found sponsoring rooms: {}".format(sponsoring_rooms))
 
-                sx, sy, ex, ey = rhp_value.value
+        for room in sponsoring_rooms:
+            for mine in room.mining.active_mines:
+                home_pos = room.mining.closest_deposit_point_to_mine(mine)
+                positions = room.honey.list_of_room_positions_in_path(home_pos, mine)
+                path_count += 1
+                # print("Found position list {} for mine {} from sponsoring room {} (path used: {} to {})"
+                #       .format(positions, mine, room, home_pos, mine))
+                for pos in positions:
+                    # TODO: this is a hacky inefficient way to do this - we should refactor to only have this function
+                    # performed once per owned room, and just do all of the subsidiary rooms there.
+                    if pos.roomName != self.room.room_name:
+                        # print("Skipping {} ({} != {}).".format(pos, pos.roomName, self.room.room_name))
+                        continue
+                    # print("Checking pos {}.".format(pos))
 
-                path_key = "path_{}_{}_{}_{}".format(sx, sy, ex, ey)
-
-                value = room_cache[path_key]
-
-                # If we were checking for anything but paths, we'd want to check if `value.ttl_after_use` is set, as
-                # that dictates whether `value.last_used` is set at all. But, for path caching, we always know
-                # `ttl_after_use` is used.
-                if value:  # rhp will have checked if it's been used recently, no need to check this value.dead_at
-                    try:
-                        path = Room.deserializePath(value.value)
-                    except:
-                        continue  # not a path, apparently
-                    path_count += 1
-                    for pos in path:
-                        # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
-                        # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                        pos_key = pos.x * 64 + pos.y
-                        if not checked_positions.has(pos_key):
-                            destruct_flag = flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                            if destruct_flag:
-                                destruct_flag.remove()
-                            if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                                          {"structureType": STRUCTURE_ROAD}) \
-                                    and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
-                                self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
-                                placed_count += 1
-                            checked_positions.add(pos_key)
+                    # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
+                    # equals, and thus wouldn't be unique in the set - but this *is* unique.
+                    pos_key = pos.x * 64 + pos.y
+                    if not checked_positions.has(pos_key):
+                        destruct_flag = flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                        if destruct_flag:
+                            destruct_flag.remove()
+                        if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                                      {"structureType": STRUCTURE_ROAD}) \
+                                and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                            self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
+                            placed_count += 1
+                        checked_positions.add(pos_key)
 
         to_destruct = 0
         for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
             if site.structureType == STRUCTURE_ROAD:
                 pos_key = site.pos.x * 64 + site.pos.y
                 if not checked_positions.has(pos_key):
+                    if flags.look_for(self.room, site.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
+                        continue
                     to_destruct += 1
                     destruct_flag = flags.look_for(self.room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
                     if destruct_flag:
@@ -338,21 +346,24 @@ class ConstructionMind:
                         destruct_flag.remove()
                     elif site.progress / site.progressTotal < 0.2:
                         site.remove()
-        #
-        # for road in self.room.find(FIND_STRUCTURES):
-        #     if road.structureType == STRUCTURE_ROAD:
-        #         pos_key = road.pos.x * 64 + road.pos.y
-        #         if not checked_positions.has(pos_key):
-        #             to_destruct += 1
-        #             destruct_flag = flags.look_for(self.room, road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-        #             if not destruct_flag:
-        #                 flags.create_ms_flag(road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+
+        # if not self.room.my:
+        for road in self.room.find(FIND_STRUCTURES):
+            if road.structureType == STRUCTURE_ROAD:
+                pos_key = road.pos.x * 64 + road.pos.y
+                if not checked_positions.has(pos_key):
+                    if flags.look_for(self.room, road.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
+                        continue
+                    to_destruct += 1
+                    destruct_flag = flags.look_for(self.room, road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                    if not destruct_flag:
+                        flags.create_ms_flag(road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
 
         # print("[{}][building] Found {} pos ({} new, {} due for removal) for remote roads, from {} paths.".format(
         #     self.room.room_name, checked_positions.size, placed_count, to_destruct, path_count))
 
         # stagger updates after a version change.
-        self.room.store_cached_property("placed_mining_roads", 3, random.randint(100, 300))
+        self.room.store_cached_property("placed_mining_roads", current_method_version, random.randint(200, 300))
         # Done!
 
 

@@ -66,6 +66,9 @@ class LocalHauler(SpawnFill, TransportPickup):
     def run(self):
         pickup = self.target_mind.get_new_target(self, target_source)
 
+        if not pickup:
+            return SpawnFill.run(self)
+
         if _.sum(self.creep.carry) > self.creep.carry.energy:
             fill = self.home.room.storage
         else:

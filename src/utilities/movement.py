@@ -260,15 +260,14 @@ def path_distance(here, target, non_roads_two_movement=False):
 
 
 def is_block_clear(room, x, y):
+    if room.room: room = room.room
+    if Game.map.getTerrainAt(x, y, room.name) == 'wall':
+        return False
     if len(room.lookForAt(LOOK_CREEPS, x, y)) != 0:
         return False
     for struct in room.lookForAt(LOOK_STRUCTURES, x, y):
         if struct.structureType != STRUCTURE_RAMPART and struct.structureType != STRUCTURE_EXTENSION \
-                and struct.structureType != STRUCTURE_CONTAINER:
-            return False
-    for terrain in room.lookForAt(LOOK_TERRAIN, x, y):
-        # TODO: there are no constants for this value, and TERRAIN_MASK_* constants seem to be useless...
-        if terrain == 'wall':
+                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
     return True
 
