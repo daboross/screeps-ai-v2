@@ -40,6 +40,7 @@ role_classes = {
     role_td_healer: military.TowerDrainHealer,
     role_td_goad: military.TowerDrainer,
     role_simple_dismantle: military.Dismantler,
+    role_scout: military.Scout,
 }
 
 

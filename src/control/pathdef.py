@@ -357,11 +357,13 @@ class HoneyTrails:
             else:
                 current_room = None
             roads_better = opts["use_roads"] if "use_roads" in opts else True
+            ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
             range = opts["range"] if "range" in opts else 1
             max_ops = opts["max_ops"] if "max_ops" in opts else 10000
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
         else:
             roads_better = True
+            ignore_swamp = False
             range = 1
             max_ops = 2000
             max_rooms = 16
@@ -371,8 +373,13 @@ class HoneyTrails:
             origin = origin.pos
         if destination.pos:
             destination = destination.pos
-        key = "path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
-                                              destination.roomName, destination.x, destination.y)
+        if ignore_swamp:
+            key = "path_{}_{}_{}_{}_{}_{}_swl".format(origin.roomName, origin.x, origin.y,
+                                                      destination.roomName, destination.x, destination.y)
+        else:
+            key = "path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
+                                                  destination.roomName, destination.x, destination.y)
+
         serialized_path = global_cache.get(key)
         if serialized_path is not None:
             path = None
@@ -445,11 +452,12 @@ class HoneyTrails:
         self.used_basic_matrix = False
         result = PathFinder.search(origin, {"pos": destination, "range": range}, {
             "plainCost": 2 if roads_better else 1,
-            "swampCost": 10 if roads_better else 5,
+            "swampCost": (2 if roads_better else 1) if ignore_swamp else (10 if roads_better else 5),
             "roomCallback": self._get_callback(origin, destination, {"roads": roads_better}),
             "maxRooms": max_rooms,
             "maxOps": max_ops,
         })
+
         print("[honey] Calculated new path from {} to {} in {} ops.".format(
             origin, destination, result.ops))
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
@@ -501,6 +509,24 @@ class HoneyTrails:
                 return []  # No rooms match, we don't have a valid path!
         return path
 
+    def clear_cached_path(self, origin, destination, opts=None):
+        if opts:
+            ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
+        else:
+            ignore_swamp = False
+
+        if origin.pos:
+            origin = origin.pos
+        if destination.pos:
+            destination = destination.pos
+        if ignore_swamp:
+            key = "path_{}_{}_{}_{}_{}_{}_swl".format(origin.roomName, origin.x, origin.y,
+                                                      destination.roomName, destination.x, destination.y)
+        else:
+            key = "path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
+                                                  destination.roomName, destination.x, destination.y)
+        global_cache.rem(key)
+
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
         if opts and "current_room" in opts:
             opts = Object.create(opts)
@@ -518,8 +544,7 @@ class HoneyTrails:
         rsp = global_cache.get(rsp_key)
         if not rsp or not rsp.length:
             # The old format was an object! Let's recalculate if that's the case!
-            global_cache.rem("path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
-                                                             destination.roomName, destination.x, destination.y))
+            self.clear_cached_path(origin, destination, opts)
             path_list = self.find_path(origin, destination, opts)
             rsp = global_cache.get(rsp_key)
 

@@ -34,6 +34,7 @@ target_remote_mine_hauler = "remote_mine_hauler"
 target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
+creep_base_scout = "scout"
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -58,6 +59,7 @@ role_mineral_hauler = "local_mineral_hauler"
 role_td_healer = "tower_drain_healer"
 role_td_goad = "tower_drain_goader"
 role_simple_dismantle = "simple_dismantler"
+role_scout = "scout"
 
 role_bases = {
     role_upgrader: "ask",
@@ -81,6 +83,7 @@ role_bases = {
     role_td_goad: creep_base_goader,
     role_td_healer: creep_base_half_move_healer,
     role_simple_dismantle: creep_base_dismantler,
+    role_scout: creep_base_scout,
 }
 
 default_roles = {
@@ -97,6 +100,7 @@ default_roles = {
     creep_base_half_move_healer: role_td_healer,
     creep_base_dismantler: role_simple_dismantle,
     creep_base_full_upgrader: role_upgrader,
+    creep_base_scout: role_recycling,
 }
 
 PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"

@@ -29,6 +29,7 @@ scalable_sections = {
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
     creep_base_dismantler: [WORK, MOVE],
     creep_base_full_upgrader: [MOVE, WORK, WORK],
+    creep_base_scout: [MOVE],
 }
 
 low_energy_sections = {
@@ -273,6 +274,8 @@ def run(room, spawn):
             parts.append(WORK)
         for i in range(0, num_sections):
             parts.append(MOVE)
+    elif base is creep_base_scout:
+        parts = [MOVE]
     else:
         print("[{}][spawning] Unknown creep base {}! Role object: {}".format(room.room_name, base,
                                                                              JSON.stringify(role_obj)))
@@ -361,6 +364,8 @@ def find_base_type(creep):
     elif part_counts[MOVE] == total / 3 and part_counts[CARRY] == 2 and \
                                     part_counts[WORK] + part_counts[MOVE] + part_counts[CARRY] == total:
         base = creep_base_full_upgrader
+    elif part_counts[MOVE] == total == 1:
+        base = creep_base_scout
     else:
         print("[{}][{}] Creep has unknown body! {}".format(
             context.room().room_name, creep.name, JSON.stringify(part_counts)))

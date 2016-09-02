@@ -3,6 +3,7 @@ import flags
 import speech
 from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_simple_claim
 from role_base import RoleBase
+from roles.military import MilitaryBase
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
@@ -10,8 +11,8 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
-class Colonist(RoleBase):
-    def run(self):
+class Colonist(RoleBase, MilitaryBase):
+    def get_colony(self):
         if not self.memory.colonizing:
             closest_distance = Infinity
             closest_room_name = None
@@ -32,8 +33,10 @@ class Colonist(RoleBase):
 
             # Colonize!
             self.memory.colonizing = closest_room_name
+        return self.memory.colonizing
 
-        colony = self.memory.colonizing
+    def run(self):
+        colony = self.get_colony()
 
         if self.creep.room.name == colony:
             del self.memory.colonizing
@@ -49,16 +52,22 @@ class Colonist(RoleBase):
             if meta:
                 meta.clear_next = 0  # clear next tick
         else:
-            self.move_to(__new__(RoomPosition(25, 25, colony)))
+            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
 
     def _calculate_time_to_replace(self):
-        return 0
+        colony = self.get_colony()
+        path = self.get_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
+        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+            path_len = len(path)
+        else:
+            path_len = len(path) * 2
+        return path_len + _.size(self.creep.body) * 3 + 10
 
 
 profiling.profile_whitelist(Colonist, ["run"])
 
 
-class Claim(RoleBase):
+class Claim(RoleBase, MilitaryBase):
     def run(self):
         if not self.memory.claiming:
             # TODO: turn this into a target for TargetMind
@@ -82,8 +91,8 @@ class Claim(RoleBase):
                 return False
 
         if self.creep.pos.roomName != self.memory.claiming:
-            # TODO: multiroom path caching!
-            self.move_to(__new__(RoomPosition(25, 25, self.memory.claiming)))
+            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, self.memory.claiming)),
+                                      {'range': 15})
             return False
 
         target = self.creep.room.controller
@@ -110,7 +119,7 @@ class Claim(RoleBase):
         return 0
 
 
-class ReserveNow(RoleBase):
+class ReserveNow(RoleBase, MilitaryBase):
     def run(self):
         reserve_flag = self.target_mind.get_new_target(self, target_reserve_now)
 
@@ -120,9 +129,7 @@ class ReserveNow(RoleBase):
             return False
 
         if self.creep.pos.roomName != reserve_flag.pos.roomName:
-            self.move_to(reserve_flag)
-            # TODO: unique speech
-            self.report(speech.remote_reserve_moving)
+            self.follow_military_path(self.home.spawn, reserve_flag)
             return False
 
         controller = self.creep.room.controller
@@ -148,10 +155,12 @@ class ReserveNow(RoleBase):
             self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
-        controller = self.target_mind.get_new_target(self, target_reserve_now)
-        if not controller:
+        target = self.target_mind.get_new_target(self, target_reserve_now)
+        if not target:
             return -1
-        target_pos = controller.pos
-        spawn_pos = movement.average_pos_same_room(self.home.spawns)
-        # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
-        return movement.path_distance(spawn_pos, target_pos) + _.size(self.creep.body) * 3 + 15
+        path = self.get_military_path(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+            path_len = len(path)
+        else:
+            path_len = len(path) * 2
+        return path_len + _.size(self.creep.body) * 3 + 10

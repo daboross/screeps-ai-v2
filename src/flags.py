@@ -34,6 +34,7 @@ SUB_CONTAINER = "container_destructonly"
 TD_H_H_STOP = "tdhhs"
 TD_H_D_STOP = "tdhts"
 TD_D_GOAD = "tddg"
+SCOUT = "scout_pit"
 ATTACK_DISMANTLE = "tdad"
 RAID_OVER = "raid_over"
 
@@ -60,6 +61,7 @@ flag_definitions = {
     TD_D_GOAD: (COLOR_CYAN, COLOR_BLUE),
     ATTACK_DISMANTLE: (COLOR_CYAN, COLOR_GREEN),
     RAID_OVER: (COLOR_CYAN, COLOR_YELLOW),
+    SCOUT: (COLOR_CYAN, COLOR_BROWN),
     REMOTE_MINE: (COLOR_GREEN, COLOR_CYAN),
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
     RESERVE_NOW: (COLOR_GREEN, COLOR_RED),

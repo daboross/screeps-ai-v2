@@ -1,4 +1,5 @@
 import context
+from constants import creep_base_scout
 from control import pathdef
 from tools import profiling
 from utilities import volatile_cache, movement
@@ -273,7 +274,7 @@ def mercy_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if len(creep.creep.body) <= 1:
+    if len(creep.creep.body) <= 1 and creep.memory.base != creep_base_scout:
         creep.creep.suicide()
         return True
 

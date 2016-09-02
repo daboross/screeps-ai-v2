@@ -97,6 +97,24 @@ def distance_squared_room_pos(room_position_1, room_position_2):
     return squared_distance(full_pos_1, full_pos_2)
 
 
+def chebyshev_distance_room_pos(pos1, pos2):
+    if pos1.pos: pos1 = pos1.pos
+    if pos2.pos: pos2 = pos2.pos
+    if pos1.roomName == pos2.roomName:
+        return max(abs(pos1.x - pos2.x), abs(pos1.y - pos2.y))
+    room_1_pos = parse_room_to_xy(pos1.roomName)
+    room_2_pos = parse_room_to_xy(pos2.roomName)
+    world_pos_1 = (
+        room_1_pos[0] * 50 + pos1.x,
+        room_1_pos[1] * 50 + pos1.y
+    )
+    world_pos_2 = (
+        room_2_pos[0] * 50 + pos2.x,
+        room_2_pos[1] * 50 + pos2.y
+    )
+    return max(abs(world_pos_1[0] - world_pos_2[0]), abs(world_pos_1[1] - world_pos_2[1]))
+
+
 def distance_room_pos(room_pos_1, room_pos_2):
     """
     Gets the distance between two RoomPositions, taking into account room difference by parsing room names into x, y
