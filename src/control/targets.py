@@ -409,6 +409,7 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
+        smallest_work_force = Infinity
         best_id = None
         needs_refresh = False
         for site_id in creep.home.building.next_priority_construction_targets():
@@ -423,14 +424,18 @@ class TargetMind:
                 max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
             current_work = self.workforce_of(target_construction, site_id)
             # TODO: this 200 should be a decided factor based off of spawn extensions
+
             if not current_work or current_work < max_work:
                 best_id = site_id
                 break
+            elif current_work < smallest_work_force:
+                best_id = site_id
+                smallest_work_force = current_work
         if needs_refresh:
             context.room().building.refresh_building_targets()
         return best_id
 
-    def _find_new_repair_site(self, creep, max_hits):
+    def _find_new_repair_site(self, creep, max_hits, max_work=None):
         """
         :type creep: role_base.RoleBase
         """
@@ -438,20 +443,29 @@ class TargetMind:
         closest_distance = Infinity
         smallest_num_builders = Infinity
         best_id = None
-        for struct_id in creep.home.building.next_priority_repair_targets():
+        repair_targets = creep.home.building.next_priority_repair_targets()
+        if len(repair_targets) <= 1:
+            max_work = Infinity
+        for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
             if structure and structure.hits < min(max_hits, structure.hitsMax):
+                if max_work:
+                    current_max = min(max_work,
+                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
+                else:
+                    current_max = min(_MAX_REPAIR_WORKFORCE,
+                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
                 current_workforce = self.workforce_of(target_repair, struct_id)
-                if not current_workforce or current_workforce < min(
-                        _MAX_REPAIR_WORKFORCE,
-                        math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50)) \
+                if not current_workforce or current_workforce < current_max \
                         or current_workforce < smallest_num_builders + 1:
                     distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                     if distance < closest_distance:
                         smallest_num_builders = current_workforce
                         closest_distance = distance
                         best_id = struct_id
-
+        if not best_id and max_work is None and len(repair_targets):
+            # TODO: do this through multiple best_id variables in the above loop, not like this.
+            return self._find_new_repair_site(creep, max_hits, Infinity)
         return best_id
 
     def _find_new_big_repair_site(self, creep, max_hits):

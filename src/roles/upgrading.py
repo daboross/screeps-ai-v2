@@ -1,5 +1,5 @@
 import speech
-from constants import recycle_time, role_recycling, role_upgrader, target_closest_energy_site
+from constants import recycle_time, role_recycling, role_upgrader, target_closest_energy_site, creep_base_full_upgrader
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement
@@ -25,14 +25,7 @@ class Upgrader(RoleBase):
 
     def run_dedicated_upgrading(self, link):
         controller = self.home.room.controller
-        if not self.pos.isNearTo(link):
-            self.move_to(link)
-            return
 
-        if not self.pos.inRangeTo(controller, 3):
-            self.move_to(controller)
-            self.harvest_from(link)
-            return
         if not self.home.upgrading_paused() or self.creep.room.controller.ticksToDowngrade < 5000:
             self.upgrade(controller)
         self.harvest_from(link)
@@ -48,31 +41,62 @@ class Upgrader(RoleBase):
                             available_positions.append("{},{}".format(x, y))
             self.memory.controller_positions = available_positions
 
-        if not self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos):
+        if self.memory.get_near_controller:
+            if self.creep.carry.energy > self.creep.carryCapacity * 0.5:
+                if self.pos.isNearTo(link):
+                    if not self.basic_move_to(controller):
+                        self.move_to(controller)
+                return
+            else:
+                del self.memory.get_near_controller
+
+        if not self.pos.inRangeTo(controller, 3) or not self.pos.isNearTo(link):
+            a_creep_with_energy = None
+            for pos in available_positions:
+                x, y = split_pos_str(pos)
+                that_creep = _.find(self.home.room.lookForAt(LOOK_CREEPS, x, y))
+                if not that_creep:
+                    self.move_to(__new__(RoomPosition(x, y, self.home.room_name)))
+                    break
+                elif that_creep.carry.energy >= that_creep.carryCapacity * 0.5 \
+                        and that_creep.memory.role == role_upgrader and not that_creep.memory.get_near_controller:
+                    a_creep_with_energy = that_creep
+            else:
+                if self.creep.carry.energy < self.creep.carryCapacity * 0.25:
+                    closest_full = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                                          lambda c: c.memory.role == role_upgrader
+                                                    and c.carry.energy >= c.carryCapacity * 0.75
+                                                    and c.pos.inRangeTo(link.pos, 1))
+                    if closest_full:
+                        closest_full.move(closest_full.pos.getDirectionTo(self.pos))
+                        self.creep.move(self.pos.getDirectionTo(closest_full.pos))
+                    elif a_creep_with_energy:
+                        a_creep_with_energy.memory.get_near_controller = True
+                        self.creep.move(self.pos.getDirectionTo(link.pos))
+                elif not self.pos.inRangeTo(controller, 3):
+                    self.move_to(controller)
+            return
+
+        if not _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                      lambda c: c.memory.role != role_upgrader):
             return  # No need to shuffle around if there's no one to move around for
 
-        for i in range(0, len(available_positions)):
-            x, y = split_pos_str(available_positions[i])
-            if x == self.pos.x and y == self.pos.y:
-                new_x, new_y = split_pos_str(available_positions[(i + 1) % len(available_positions)])
-                self.basic_move_to({'x': new_x, 'y': new_y})
-                break
-        else:
-            if len(available_positions):
-                self.move_to(available_positions[0])
+        if len(available_positions):
+            target_x, target_y = split_pos_str(available_positions[(Game.time + 2) % len(available_positions)])
+            self.basic_move_to({'x': target_x, 'y': target_y})
 
     def upgrade(self, controller):
         if self.creep.carry.energy <= 0:
             return
         result = self.creep.upgradeController(controller)
-        if result != OK:
+        if result != OK and result != ERR_NOT_IN_RANGE:
             self.log("Unknown result from creep.upgradeController({}): {}", self.creep.room.controller, result)
 
     def harvest_from(self, link):
         self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
                                                  self.creep.pos.getRangeTo(link))
         if self.creep.carry.energy >= self.creep.carryCapacity \
-                or link.energy <= 0:
+                or link.energy <= 0 or not self.pos.isNearTo(link):
             return
         result = self.creep.withdraw(link, RESOURCE_ENERGY)
         if result != OK:
@@ -127,7 +151,8 @@ class Upgrader(RoleBase):
                 if not self.memory.harvesting:
                     self.basic_move_to(target)
             else:
-                if not self.memory.harvesting and self.creep.carry.energy < self.creep.carryCapacity:
+                if self.memory.base == creep_base_full_upgrader and not self.memory.harvesting and \
+                                self.creep.carry.energy < self.creep.carryCapacity:
                     self.harvest_energy()
             self.report(speech.upgrading_ok)
         else:

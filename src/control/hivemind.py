@@ -1234,14 +1234,21 @@ class RoomMind:
                     or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
                 return len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
             elif len(self.building.next_priority_destruct_targets()):
-                return min(10, spawning.max_sections_of(self, creep_base_worker))
+                return min(8, spawning.max_sections_of(self, creep_base_worker))
             else:
                 return 0
         else:
-            if len(self.building.next_priority_construction_targets()) \
-                    or _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
-                    or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
-                return 2 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+            total = _.sum(self.building.next_priority_construction_targets(),
+                          lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD) \
+                    + _.sum(self.building.next_priority_repair_targets(), is_relatively_decayed) \
+                    + _.sum((self.building.next_priority_big_repair_targets(), is_relatively_decayed))
+            if total > 0:
+                if total < 4:
+                    return min(8, spawning.max_sections_of(self, creep_base_worker))
+                elif total < 12:
+                    return 2 * min(8, spawning.max_sections_of(self, creep_base_worker))
+                else:
+                    return 3 * min(8, spawning.max_sections_of(self, creep_base_worker))
 
     def get_target_upgrader_work_mass(self):
         if self.upgrading_paused():
@@ -1252,7 +1259,15 @@ class RoomMind:
             wm = min(2 + self.room.controller.level, spawning.max_sections_of(self, creep_base_worker))
         if self.full_storage_use and self.room.storage.store.energy > 700000:
             wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
-        return wm
+        if Memory.hyper_upgrade and self.room.storage.store.energy > 100000:
+            wm += math.ceil((self.room.storage.store.energy - 100000) / 5000)
+
+        base = self.get_variable_base(role_upgrader)
+        if base is creep_base_full_upgrader:
+            max_per_upgrader = spawning.max_sections_of(self, base) / 2
+        else:
+            max_per_upgrader = spawning.max_sections_of(self, base)
+        return min(wm, max_per_upgrader * 6)
 
     def get_target_tower_fill_mass(self):
         mass = 0
@@ -1474,7 +1489,8 @@ class RoomMind:
             role_local_hauler:
                 lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
             role_upgrader:
-                self.get_target_upgrader_work_mass,
+                lambda: min(self.get_target_upgrader_work_mass(),
+                            spawning.max_sections_of(self, self.get_variable_base(role_upgrader))),
             role_defender:
                 lambda: self.get_target_simple_defender_count() *
                         min(6, spawning.max_sections_of(self, creep_base_defender)),

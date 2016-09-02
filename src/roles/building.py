@@ -143,7 +143,8 @@ class Builder(upgrading.Upgrader):
         result = self.creep.repair(target)
         if result == OK:
             if self.pos.isNearTo(target):
-                self.move_around(target)
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name) > 1:
+                    self.move_around(target)
             else:
                 self.basic_move_to(target)
         elif result == ERR_INVALID_TARGET:
@@ -174,7 +175,8 @@ class Builder(upgrading.Upgrader):
         result = self.creep.build(target)
         if result == OK:
             if self.pos.isNearTo(target):
-                self.move_around(target)
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name) > 1:
+                    self.move_around(target)
             else:
                 self.basic_move_to(target)
         elif result == ERR_INVALID_TARGET:

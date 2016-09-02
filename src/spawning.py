@@ -18,7 +18,7 @@ initial_section = {
 
 # TODO: limit goader and healer in RoomMind
 scalable_sections = {
-    creep_base_worker: [MOVE, MOVE, CARRY, WORK],
+    creep_base_worker: [MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, WORK],
     creep_base_hauler: [MOVE, CARRY],
     creep_base_work_full_move_hauler: [MOVE, CARRY],
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
@@ -31,6 +31,9 @@ scalable_sections = {
     creep_base_full_upgrader: [MOVE, WORK, WORK],
 }
 
+low_energy_sections = {
+    creep_base_worker: [MOVE, MOVE, CARRY, WORK],
+}
 known_no_energy_limit = [creep_base_mammoth_miner]
 
 
@@ -176,22 +179,24 @@ def run(room, spawn):
             parts.append(CARRY)
         for i in range(0, num_sections):
             parts.append(MOVE)
-        descriptive_level = num_sections
+        descriptive_level = num_sections * 2 + 1
     elif base is creep_base_worker:
-        if energy >= 500:
+        if energy >= 450:
             parts = []
             for i in range(0, num_sections):
                 parts.append(CARRY)
+                parts.append(CARRY)
                 parts.append(WORK)
-            for i in range(0, num_sections * 2):
+                parts.append(CARRY)
+            for i in range(0, num_sections * 4):
                 parts.append(MOVE)
-            descriptive_level = "full-{}".format(num_sections)
+            descriptive_level = "carry:{}-work:{}".format(num_sections * 3, num_sections)
         elif energy >= 400:
-            parts = [MOVE, MOVE, MOVE, CARRY, WORK, WORK]
-            descriptive_level = "basic-2"
+            parts = [MOVE, MOVE, MOVE, CARRY, CARRY, WORK]
+            descriptive_level = "carry:2-work:1"
         elif energy >= 250:
             parts = [MOVE, MOVE, CARRY, WORK]
-            descriptive_level = "basic-1"
+            descriptive_level = "carry:1-work:1"
         else:
             print("[{}][spawning] Too few extensions to build a worker!".format(room.room_name))
             return
@@ -383,6 +388,16 @@ def energy_per_section(base):
         return None
 
 
+def lower_energy_per_section(base):
+    if base in low_energy_sections:
+        cost = 0
+        for part in scalable_sections[base]:
+            cost += BODYPART_COST[part]
+        return cost
+    else:
+        return energy_per_section(base)
+
+
 def initial_section_cost(base):
     cost = 0
     if base in initial_section:
@@ -397,6 +412,8 @@ def max_sections_of(room, base):
     else:
         energy = room.room.energyCapacityAvailable
     max_by_cost = floor((energy - initial_section_cost(base)) / energy_per_section(base))
+    if max_by_cost == 0:
+        max_by_cost = floor((energy - initial_section_cost(base)) / lower_energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
     max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
     return min(max_by_cost, max_by_parts)

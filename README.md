@@ -65,4 +65,5 @@ JSON.stringify(Memory.hostiles, 3, 3)
 for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() * 50 }
 for (let key in Memory.cache) { if (key.indexOf("W46N28") != -1) { delete Memory.cache[key] } }
 for (let room of py.context.hive().visible_rooms) { delete room.mem.cache.paving_here }
+Memory.hyper_upgrade = true; for (let room of py.context.hive().my_rooms) { room.reset_planned_role() }
 ```

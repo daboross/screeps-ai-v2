@@ -337,7 +337,12 @@ class RoleBase:
                 target = self.target_mind.get_new_target(self, target_closest_energy_site)
                 if not target:
                     target = storage
-                if target.energy <= 0 and not self.home.links.enabled:
+                elif target.energy <= 0 and not self.home.links.enabled:
+                    target = storage
+                # TODO: this is a special case mostly for W47N26
+                elif target.pos.inRangeTo(self.home.room.controller, 4):
+                    target = storage
+                elif self.pos.getRangeTo(target) > self.pos.getRangeTo(storage):
                     target = storage
                 if target.structureType == STRUCTURE_LINK:
                     self.home.links.register_target_withdraw(target, self,
@@ -543,7 +548,7 @@ class RoleBase:
     #     if self.home.room.energyAvailable < min(self.home.room.energyCapacityAvailable / 2.0, )
 
     def move_around(self, target):
-        if Game.time % 4:
+        if Game.time % 5 < 3:
             self.move_around_clockwise(target)
         else:
             self.move_around_counter_clockwise(target)
@@ -572,6 +577,8 @@ class RoleBase:
 
     def basic_move_to(self, target):
         if target.pos: target = target.pos
+        if self.pos.isEqualTo(target):
+            return True
         dx = target.x - self.pos.x
         dy = target.y - self.pos.y
         # Don't divide by zero
@@ -581,10 +588,15 @@ class RoleBase:
             dy /= abs(dy)
         if dx and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
             self.creep.move(pathdef.get_direction(dx, 0))
+            return True
         elif dy and movement.is_block_clear(self.room, self.pos.y + dy, self.pos.x):
             self.creep.move(pathdef.get_direction(0, dy))
+            return True
         elif dx and dy and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + dy):
             self.creep.move(pathdef.get_direction(dx, dy))
+            return True
+        else:
+            return False
 
     def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:
