@@ -267,10 +267,10 @@ class HoneyTrails:
         going_to_extension = STRUCTURE_EXTENSION in structures_ignore or STRUCTURE_SPAWN in structures_ignore
         going_to_storage = STRUCTURE_STORAGE in structures_ignore or STRUCTURE_LINK in structures_ignore
         going_to_controller = STRUCTURE_CONTROLLER in structures_ignore
-        # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual room.
-        # that allows this to work correctly for multi-room paths.
-        going_to_source = len(self.room.find_at(FIND_SOURCES, origin)) or len(
-            self.room.find_at(FIND_SOURCES, destination))
+        # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual
+        # room. that allows this to work correctly for multi-room paths.
+        going_to_source = (origin.roomName == room_name and len(self.room.find_at(FIND_SOURCES, origin))) \
+                          or (destination.roomName == room_name and len(self.room.find_at(FIND_SOURCES, destination)))
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
@@ -280,6 +280,9 @@ class HoneyTrails:
 
         def road_at(x, y):
             for s in self.room.room.lookForAt(LOOK_STRUCTURES, x, y):
+                if s.structureType == STRUCTURE_ROAD:
+                    return True
+            for s in self.room.room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
             return False
@@ -311,6 +314,10 @@ class HoneyTrails:
                     for y in range(pos.y - 3, pos.y + 4):
                         if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_mutiplier:
                             cost_matrix.set(x, y, 5 * if_roads_mutiplier)
+                for x in range(pos.x - 2, pos.x + 3):
+                    for y in range(pos.y - 2, pos.y + 3):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_mutiplier:
+                            cost_matrix.set(x, y, 7 * if_roads_mutiplier)
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
                         if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_mutiplier:
@@ -351,7 +358,7 @@ class HoneyTrails:
                 current_room = None
             roads_better = opts["use_roads"] if "use_roads" in opts else True
             range = opts["range"] if "range" in opts else 1
-            max_ops = opts["max_ops"] if "max_ops" in opts else 2000
+            max_ops = opts["max_ops"] if "max_ops" in opts else 10000
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
         else:
             roads_better = True
