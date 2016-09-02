@@ -106,7 +106,8 @@ class RemoteHauler(SpawnFill, TransportPickup):
         if not source:
             return -1
         path = self.home.honey.find_path(self.home.spawn, source)
-        return len(path) + _.size(self.creep.body) * 3 + 15  # Don't live-replace as often.
+        # TODO: find a good time in a better way!
+        return len(path) * 1.7 + _.size(self.creep.body) * 3 + 15  # Don't live-replace as often.
 
 
 profiling.profile_whitelist(RemoteHauler, ["run"])

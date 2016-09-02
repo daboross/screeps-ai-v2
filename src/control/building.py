@@ -273,14 +273,14 @@ class ConstructionMind:
         # TODO: I'm not sure if this or iterating over all mining flags and the paths to them would be better:
         # if we start using HoneyTrails for more things, we might want to do that instead of this - or we could
         # just pave those paths too?
-        current_method_version = 14
+        current_method_version = 15
         last_run_version = self.room.get_cached_property("placed_mining_roads")
         if last_run_version and last_run_version == current_method_version:
             # print("[{}][building] Not paving: already ran".format(self.room.room_name))
             return  # Don't do this every tick, even though this function is called every tick.
 
         if not self.room.paving():
-            print("[{}][building] Not paving.".format(self.room.room_name))
+            # print("[{}][building] Not paving.".format(self.room.room_name))
             self.room.store_cached_property("placed_mining_roads", current_method_version, 100)
             return
 
@@ -305,32 +305,36 @@ class ConstructionMind:
 
         for room in sponsoring_rooms:
             for mine in room.mining.active_mines:
-                home_pos = room.mining.closest_deposit_point_to_mine(mine)
-                positions = room.honey.list_of_room_positions_in_path(home_pos, mine)
-                path_count += 1
-                # print("Found position list {} for mine {} from sponsoring room {} (path used: {} to {})"
-                #       .format(positions, mine, room, home_pos, mine))
-                for pos in positions:
-                    # TODO: this is a hacky inefficient way to do this - we should refactor to only have this function
-                    # performed once per owned room, and just do all of the subsidiary rooms there.
-                    if pos.roomName != self.room.room_name:
-                        # print("Skipping {} ({} != {}).".format(pos, pos.roomName, self.room.room_name))
-                        continue
-                    # print("Checking pos {}.".format(pos))
+                deposit_point = room.mining.closest_deposit_point_to_mine(mine)
+                route_positions = [room.honey.list_of_room_positions_in_path(deposit_point, mine)]
+                if room.my:
+                    for spawn in room.spawns:
+                        route_positions.append(room.honey.list_of_room_positions_in_path(mine, spawn, {'range': 3}))
+                for positions in route_positions:
+                    path_count += 1
+                    # print("Found position list {} for mine {} from sponsoring room {} (path used: {} to {})"
+                    #       .format(positions, mine, room, home_pos, mine))
+                    for pos in positions:
+                        # TODO: this is a hacky inefficient way to do this - we should refactor to only have this
+                        # function performed once per owned room, and just do all of the subsidiary rooms there.
+                        if pos.roomName != self.room.room_name:
+                            # print("Skipping {} ({} != {}).".format(pos, pos.roomName, self.room.room_name))
+                            continue
+                        # print("Checking pos {}.".format(pos))
 
-                    # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
-                    # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                    pos_key = pos.x * 64 + pos.y
-                    if not checked_positions.has(pos_key):
-                        destruct_flag = flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                        if destruct_flag:
-                            destruct_flag.remove()
-                        if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                                      {"structureType": STRUCTURE_ROAD}) \
-                                and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
-                            self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
-                            placed_count += 1
-                        checked_positions.add(pos_key)
+                        # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
+                        # equals, and thus wouldn't be unique in the set - but this *is* unique.
+                        pos_key = pos.x * 64 + pos.y
+                        if not checked_positions.has(pos_key):
+                            destruct_flag = flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                            if destruct_flag:
+                                destruct_flag.remove()
+                            if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                                          {"structureType": STRUCTURE_ROAD}) \
+                                    and not len(self.room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                                self.room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
+                                placed_count += 1
+                            checked_positions.add(pos_key)
 
         to_destruct = 0
         for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):

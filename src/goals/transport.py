@@ -11,9 +11,7 @@ class TransportPickup(RoleBase):
         self.repair_nearby_roads()
         total_carried_now = _.sum(self.creep.carry)
         if self.memory.pickup:
-            target = pickup
-            if target.pos:
-                target = target.pos
+            target = pickup.pos
             if total_carried_now >= self.creep.carryCapacity:
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
@@ -137,6 +135,9 @@ class TransportPickup(RoleBase):
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
+            if self.pos.isNearTo(target):
+                self.basic_move_to(target)
+                return
             if not self.memory.next_ppos or self.memory.off_path_for > 100:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
                 all_positions = self.room.honey.list_of_room_positions_in_path(origin, target)
@@ -152,9 +153,21 @@ class TransportPickup(RoleBase):
                 if not closest:
                     self.log("WARNING: Couldn't find closest position to return too! all positions: {}!".format(
                         all_positions))
+                    return
                 self.memory.next_ppos = closest
             mtarget = self.memory.next_ppos
             new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
+            if self.pos.isEqualTo(new_target):
+                del self.memory.next_ppos
+                if not self.memory.tried_new_next_ppos:
+                    self.memory.tried_new_next_ppos = True
+                else:
+                    # the path is incorrect!
+                    self.log("WARNING: Path from {} to {} found to be cached incorrectly - it should contain {}, but"
+                             " it doesn't.".format(origin, target, new_target))
+                    self.log("Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}".format(
+                        self.pos.roomName, JSON.stringify(path, 0, 4)))
+                    self.room.honey.clear_cached_path(origin, target)
             self.creep.moveTo(new_target)
             if not self.memory.off_path_for:
                 self.memory.off_path_for = 1
@@ -166,11 +179,12 @@ class TransportPickup(RoleBase):
         elif result != OK:
             self.log("Unknown result from follow_energy_path: {}".format(result))
         else:
+            del self.memory.tried_new_next_ppos
             if self.memory.off_path_for:
                 self.memory.on_path_for = 1
                 del self.memory.off_path_for
             elif self.memory.on_path_for:
                 self.memory.on_path_for += 1
-                if self.memory.on_path_for > 10:
+                if self.memory.on_path_for >= 2:
                     del self.memory.next_ppos
                     del self.memory.on_path_for

@@ -8,19 +8,12 @@ from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 
-bases_max_energy = {
-    creep_base_local_miner: 100 + 100 * 5,
-    creep_base_full_miner: 150 * 5,
-    creep_base_reserving: 650 * 2,
-    creep_base_defender: 180 * 6,
-}
-
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],
     creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
     creep_base_goader: [ATTACK, MOVE, TOUGH],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
-    creep_base_full_miner: [WORK, WORK, WORK, WORK, WORK]
+    creep_base_full_miner: [WORK, WORK, WORK, WORK, WORK],
 }
 
 # TODO: limit goader and healer in RoomMind

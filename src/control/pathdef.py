@@ -473,7 +473,7 @@ class HoneyTrails:
         global_cache.set(key, Room.serializePath(path), expire_in)
         global_cache.set("{}_rsp".format(key), room_start_pos, expire_in)
 
-        if current_room:
+        if current_room and origin.roomName != destination.roomName:
             # TODO: this little snippet is duplicated in the deserialization section above
             for rsp_index, (room_name, path_index) in enumerate(room_start_pos):
                 if room_name == current_room:

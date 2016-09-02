@@ -75,18 +75,18 @@ class MiningMind:
         carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
         room = Game.rooms[flag.pos.roomName]
         if room and (not room.controller or room.controller.reservation):
-            mining_per_tick = 10.0
+            mining_per_tick = 12.0 # With 2 added just too have some leeway
         else:
-            mining_per_tick = 5.0
+            mining_per_tick = 6.0 # With 1 added just too have some leeway
         produce_per_tick = mining_per_tick
-        target_mass = math.ceil(produce_per_tick / carry_per_tick) + 3
+        target_mass = math.ceil(produce_per_tick / carry_per_tick) + 2
         self.room.store_cached_property(key, target_mass, 50)
         return target_mass
 
     def calculate_current_target_mass_for_mine(self, flag):
         ideal_mass = self.calculate_ideal_mass_for_mine(flag)
         sitting = flag.memory.sitting if flag.memory.sitting else 0
-        if sitting > 600:
+        if sitting > 1000:
             carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
             # Count every 200 already there as an extra 1 production per turn
             return ideal_mass + min(math.ceil(sitting / 500 / carry_per_tick), ideal_mass)
@@ -118,13 +118,8 @@ class MiningMind:
 
     def get_active_mining_flags(self):
         if self._active_mining_flags is None:
-            active = []
             max_count = self.room.get_max_mining_op_count()
-            for flag in self.available_mines[:max_count]:
-                miners = self.targets.creeps_now_targeting(target_remote_mine_miner, "flag-{}".format(flag.name))
-                if len(miners):
-                    active.append(flag)
-            self._active_mining_flags = active
+            self._active_mining_flags = self.available_mines[:max_count]
         return self._active_mining_flags
 
     active_mines = property(get_active_mining_flags)
@@ -217,31 +212,38 @@ class MiningMind:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
             else:
                 eol_mass += spawning.carry_count(creep)
+        # All lines from here to the print() statement would be inside the `if current... < self.calc...` statement, if
+        # they weren't also being used in the print() statement.
+        if self.room.all_paved():
+            base = creep_base_work_half_move_hauler
+        elif self.room.paving():
+            base = creep_base_work_full_move_hauler
+        else:
+            base = creep_base_hauler
+        new_hauler_num_sections = self.calculate_creep_num_sections_for_mine(flag)
+        if base == creep_base_work_half_move_hauler:
+            new_hauler_mass = new_hauler_num_sections * 2 + 1
+        else:
+            new_hauler_mass = new_hauler_num_sections
         print('[{}][mining] Hauler stats for {}: ideal_mass: {}, current_target: {}, current_hauler_mass: {},'
-              ' eol_hauler_mass: {}, hauler_size: {}'.format(self.room.room_name, flag.name,
-                                                             self.calculate_ideal_mass_for_mine(flag),
-                                                             self.calculate_current_target_mass_for_mine(flag),
-                                                             current_noneol_hauler_mass,
-                                                             eol_mass,
-                                                             self.calculate_creep_num_sections_for_mine(flag)))
+              ' eol_hauler_mass: {}, hauler_size: {} ({} sections)'
+              .format(self.room.room_name, flag.name, self.calculate_ideal_mass_for_mine(flag),
+                      self.calculate_current_target_mass_for_mine(flag), current_noneol_hauler_mass, eol_mass,
+                      new_hauler_mass, new_hauler_num_sections))
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
-            if self.room.all_paved():
-                base = creep_base_work_half_move_hauler
-            elif self.room.paving():
-                base = creep_base_work_full_move_hauler
-            else:
-                base = creep_base_hauler
             return {
                 'role': role_remote_hauler,
                 'base': base,
-                'num_sections': self.calculate_creep_num_sections_for_mine(flag),
+                # note that this is just an above referenced variable because it was already calculated for the debug
+                # print - new_hauler_num_sections should be again inlined if above debug is removed!
+                'num_sections': new_hauler_num_sections,
                 'targets': [
                     [target_remote_mine_hauler, flag_id],
                     [target_closest_energy_site, self.closest_deposit_point_to_mine(flag).id],
                 ]
             }
 
-        print("[{}][mining] All roles reached for {}!".format(self.room.room_name, flag.name))
+        # print("[{}][mining] All roles reached for {}!".format(self.room.room_name, flag.name))
         return None
 
     def next_remote_mining_role(self, max_to_check):
