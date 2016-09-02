@@ -14,8 +14,11 @@ creep_base_reserving = "remote_reserve"
 creep_base_defender = "simple_defender"
 creep_base_mammoth_miner = "mammoth_miner"
 creep_base_half_move_healer = "hm_healer"
+creep_base_full_move_healer = "fm_healer"
 creep_base_goader = "med_goader"
+creep_base_full_move_goader = "fm_goader"
 creep_base_dismantler = "med_dismantle"
+creep_base_full_move_dismantler = "fm_dismantle"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room, and
 # away from enemies.
@@ -97,8 +100,11 @@ default_roles = {
     creep_base_defender: role_defender,
     creep_base_mammoth_miner: role_mineral_miner,
     creep_base_goader: role_td_goad,
+    creep_base_full_move_goader: role_td_goad,
     creep_base_half_move_healer: role_td_healer,
+    creep_base_full_move_healer: role_td_healer,
     creep_base_dismantler: role_simple_dismantle,
+    creep_base_full_move_dismantler: role_simple_dismantle,
     creep_base_full_upgrader: role_upgrader,
     creep_base_scout: role_recycling,
 }
