@@ -48,6 +48,9 @@ class HiveMind:
         self._room_to_mind = {}
 
     def find_my_rooms(self):
+        """
+        :rtype: list[RoomMind]
+        """
         if not self._my_rooms:
             my_rooms = []
             all_rooms = []
@@ -1654,8 +1657,7 @@ class RoomMind:
                 maximum = spawning.max_sections_of(self, next_role.base)
                 if next_role.num_sections is not None and next_role.num_sections > maximum:
                     print("[{}] Function decided on {} sections for {} (a {}), which is more than the allowed {}."
-                          .format(self.room_name, func.name, next_role.num_sections, next_role.base, next_role.role,
-                                  maximum))
+                          .format(self.room_name, next_role.num_sections, next_role.base, next_role.role, maximum))
                     next_role.num_sections = maximum
                 break
         if next_role:

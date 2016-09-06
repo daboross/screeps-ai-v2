@@ -80,7 +80,7 @@ def main():
             Memory.creeps[name] = {}
 
     def run_creep(creeps_skipped, room, creep):
-        if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
+        if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 5000:
             if creeps_skipped[room.room_name]:
                 creeps_skipped[room.room_name].append(creep.name)
             else:
@@ -150,7 +150,12 @@ def main():
             room.mining.poll_flag_energy_sitting()
         del Memory.skipped_last_turn
     else:
-        for room in hive_mind.my_rooms:
+        rooms = hive_mind.my_rooms
+        if Game.cpu.bucket <= 5000:
+            rooms = sorted(rooms, lambda r: -r.room.controller.level)
+            if Game.cpu.bucket <= 4000:
+                rooms = rooms[:len(rooms) - 1]
+        for room in rooms:
             context.set_room(room)
             room.precreep_tick_actions()
             total_creeps += len(room.creeps)
