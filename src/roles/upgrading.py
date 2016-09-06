@@ -17,8 +17,8 @@ def split_pos_str(pos_str):
 
 class Upgrader(RoleBase):
     def run(self):
-        link = self.target_mind.get_new_target(self, target_closest_energy_site)
-        if movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
+        link = self.target_mind.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
+        if link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
             return self.run_dedicated_upgrading(link)
         else:
             return self.run_individual_upgrading()

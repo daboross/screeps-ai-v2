@@ -484,8 +484,8 @@ class RoomMind:
         if paving is None:
             if self.my:
                 # TODO: 2 maybe should be a constant?
-                paving = self.full_storage_use and self.get_max_mining_op_count() >= 2 \
-                         and len(self.mining.available_mines) >= 2
+                paving = self.full_storage_use and self.get_max_mining_op_count() >= 1 \
+                         and len(self.mining.available_mines) >= 1
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
@@ -964,9 +964,9 @@ class RoomMind:
     def mining_ops_paused(self):
         if not self.full_storage_use:
             return False
-        if self.mem.focusing_home and self.room.storage.store.energy < _max_energy_resume_remote_mining:
+        if self.mem.focusing_home and _.sum(self.room.storage.store) < _max_energy_resume_remote_mining:
             self.mem.focusing_home = False
-        if not self.mem.focusing_home and self.room.storage.store.energy > _min_energy_pause_remote_mining:
+        if not self.mem.focusing_home and _.sum(self.room.storage.store) > _min_energy_pause_remote_mining:
             self.mem.focusing_home = True
         return not not self.mem.focusing_home
 
@@ -1126,7 +1126,7 @@ class RoomMind:
                 # Previously, we grew bodies dynamically and maxed out at 5 carry per creep.
                 # TODO: this should be replaced with a calculation taking in path distance from each source to
                 # the storage and hauler capacity.
-                carry_max_5 = min(5, spawning.max_sections_of(self, creep_base_hauler))
+                carry_max_5 = max(3, min(5, spawning.max_sections_of(self, creep_base_hauler)))
                 total_mass = math.ceil(self.get_target_local_miner_count() * 1.5 * carry_max_5)
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
@@ -1208,7 +1208,7 @@ class RoomMind:
         return self._target_colonist_count
 
     def get_target_spawn_fill_backup_work_mass(self):
-        work_max_5 = min(5, spawning.max_sections_of(self, creep_base_worker))
+        work_max_5 = max(3, min(5, spawning.max_sections_of(self, creep_base_worker)))
         # TODO: 7 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed or self.work_mass > 8:
             if self.full_storage_use and (self.are_all_big_miners_placed or self.work_mass > 25):
@@ -1261,9 +1261,11 @@ class RoomMind:
                 first = True
         elif first:
             self._builder_use_first_only = True
+        worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
         if self.building_paused():
             return 0
         elif first:
+            worker_size = max(1, min(8, spawning.max_sections_of(self, creep_base_worker)))
             if _.find(self.building.next_priority_construction_targets(),
                       lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD):
                 if len(self.sources) >= 2:
@@ -1272,9 +1274,9 @@ class RoomMind:
                     return min(8, spawning.max_sections_of(self, creep_base_worker))
             elif _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
                     or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
-                return len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
+                return len(self.sources) * worker_size
             elif len(self.building.next_priority_destruct_targets()):
-                return min(8, spawning.max_sections_of(self, creep_base_worker))
+                return worker_size
             else:
                 return 0
         else:
@@ -1284,29 +1286,30 @@ class RoomMind:
                     + _.sum((self.building.next_priority_big_repair_targets(), is_relatively_decayed))
             if total > 0:
                 if total < 4:
-                    return min(8, spawning.max_sections_of(self, creep_base_worker))
+                    return worker_size
                 elif total < 12:
-                    return 2 * min(8, spawning.max_sections_of(self, creep_base_worker))
+                    return 2 * worker_size
                 else:
-                    return 3 * min(8, spawning.max_sections_of(self, creep_base_worker))
+                    return 3 * worker_size
 
     def get_target_upgrader_work_mass(self):
+        worker_size = max(1, spawning.max_sections_of(self, creep_base_worker))
         if self.upgrading_paused():
             wm = 1
         elif self.mining_ops_paused():
             wm = spawning.max_sections_of(self, creep_base_worker) * 4
         else:
-            wm = min(2 + self.room.controller.level, spawning.max_sections_of(self, creep_base_worker))
-        if self.full_storage_use and self.room.storage.store.energy > 700000:
-            wm += math.floor((self.room.storage.store.energy - 700000) / 2000)
-        if Memory.hyper_upgrade and self.room.storage.store.energy > 100000:
-            wm += math.ceil((self.room.storage.store.energy - 100000) / 5000)
+            wm = min(self.room.controller.level, worker_size)
+        if self.full_storage_use and _.sum(self.room.storage.store) > 700000:
+            wm += math.floor((_.sum(self.room.storage.store) - 700000) / 2000)
+        if Memory.hyper_upgrade and self.room.storage and _.sum(self.room.storage.store) > 100000:
+            wm += math.ceil((_.sum(self.room.storage.store) - 100000) / 5000)
 
         base = self.get_variable_base(role_upgrader)
         if base is creep_base_full_upgrader:
-            max_per_upgrader = spawning.max_sections_of(self, base) / 2
+            max_per_upgrader = worker_size / 2
         else:
-            max_per_upgrader = spawning.max_sections_of(self, base)
+            max_per_upgrader = worker_size
         return min(wm, max_per_upgrader * 6)
 
     def get_target_tower_fill_mass(self):
@@ -1315,7 +1318,7 @@ class RoomMind:
             if s.structureType == STRUCTURE_TOWER:
                 # TODO: cache max_parts_on? called a ton in this method and other get_target_*_mass methods.
                 # but we probably shouldn't since it's mostly a hack to emulate spawning 5-section creeps anyways?
-                mass += min(5, spawning.max_sections_of(self, creep_base_hauler)) * 0.75
+                mass += max(1, min(5, spawning.max_sections_of(self, creep_base_hauler))) * 0.75
         return math.ceil(mass)
 
     def get_target_simple_claim_count(self):

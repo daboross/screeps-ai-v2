@@ -1,6 +1,6 @@
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
-    role_builder, target_destruction_site
+    role_builder, target_destruction_site, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS
 from roles import upgrading
 from tools import profiling
 from utilities.screeps_constants import *
@@ -37,7 +37,7 @@ class Builder(upgrading.Upgrader):
 
     def run(self):
         del self.memory.emptying
-        if self.creep.ticksToLive < recycle_time:
+        if self.creep.ticksToLive < recycle_time and self.home.spawn:
             self.memory.role = role_recycling
             self.memory.last_role = role_builder
             return False
@@ -48,6 +48,10 @@ class Builder(upgrading.Upgrader):
             # don't do this if we don't have targets
             self.target_mind.untarget_all(self)
             self.memory.harvesting = True
+
+        # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
+        # source faster!
+        self.build_swamp_roads()
 
         if not self.any_building_targets():
             destruct = self.target_mind.get_new_target(self, target_destruction_site)
@@ -66,7 +70,10 @@ class Builder(upgrading.Upgrader):
                 return False
 
         if self.memory.harvesting:
-            destruct = self.target_mind.get_new_target(self, target_destruction_site)
+            if self.creep.getActiveBodyparts(WORK) >= 4:
+                destruct = self.target_mind.get_new_target(self, target_destruction_site)
+            else:
+                destruct = None
             if destruct:
                 self.memory.emptying = True  # flag for spawn fillers to not refill me.
                 self.execute_destruction_target(destruct)
@@ -85,6 +92,15 @@ class Builder(upgrading.Upgrader):
             target = self.target_mind.get_existing_target(self, target_construction)
             if target:
                 return self.execute_construction_target(target)
+
+            if self.memory.building_walls_at:
+                walls = self.room.find_at(FIND_STRUCTURES, self.memory.building_walls_at & 0x3F,
+                                          (self.memory.building_walls_at >> 6) & 0x3F)
+                if len(walls):
+                    self.target_mind._register_new_targeter(target_repair, self.name, walls[0].id)
+                    return self.execute_repair_target(walls[0], min(350000, self.home.min_sane_wall_hits),
+                                                      target_repair)
+                del self.memory.building_walls
 
             target = self.get_new_repair_target(min(350000, self.home.min_sane_wall_hits), target_repair)
             if target:
@@ -121,6 +137,22 @@ class Builder(upgrading.Upgrader):
                 if not self.empty_to_storage():
                     self.go_to_depot()
                 return False
+
+    def build_swamp_roads(self):
+        if self.creep.carry.energy > 0:
+            repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
+                            lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
+            if repair:
+                result = self.creep.repair(repair)
+                if result != OK:
+                    self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
+            else:
+                build = _.find(self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos),
+                               lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
+                if build:
+                    result = self.creep.build(build)
+                    if result != OK:
+                        self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
 
     def get_new_repair_target(self, max_hits, ttype):
         return self.target_mind.get_new_target(self, ttype, max_hits)
@@ -179,6 +211,8 @@ class Builder(upgrading.Upgrader):
                     self.move_around(target)
             else:
                 self.basic_move_to(target)
+            if target.structureType == STRUCTURE_WALL or target.structureType == STRUCTURE_RAMPART:
+                self.memory.building_walls_at = target.pos.x | (target.pos.y << 6)
         elif result == ERR_INVALID_TARGET:
             self.target_mind.untarget(self, target_construction)
         else:

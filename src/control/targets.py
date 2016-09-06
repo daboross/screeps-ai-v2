@@ -357,7 +357,7 @@ class TargetMind:
         stealing_from = None
         structures = _.filter(creep.room.find(FIND_MY_STRUCTURES),
                               lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN) \
-                                        and s.energy < s.energyCapacity)
+                                        and s.energy < s.energyCapacity and s.isActive())
         if not len(structures):
             # waiting flag instead:
             structures = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)

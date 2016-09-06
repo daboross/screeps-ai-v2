@@ -42,11 +42,17 @@ known_no_energy_limit = [creep_base_mammoth_miner]
 
 
 def emergency_conditions(room):
-    return room.carry_mass_of(role_spawn_fill) < room.get_target_spawn_fill_mass() / 2 \
-           and (room.room.energyAvailable >= max(100 * room.work_mass, 250)
-                or (room.carry_mass_of(role_spawn_fill)
-                    + room.carry_mass_of(role_spawn_fill_backup)
-                    + room.carry_mass_of(role_tower_fill)) <= 0)
+    if volatile_cache.mem(room.room_name).has("running_emergency_conditions"):
+        return False
+    volatile_cache.mem(room.room_name).set("running_emergency_conditions", True)
+    result = room.carry_mass_of(role_spawn_fill) + room.work_mass_of(role_spawn_fill_backup) < \
+             room.get_target_spawn_fill_mass() + room.get_target_spawn_fill_backup_work_mass() \
+             and (room.room.energyAvailable >= max(100 * room.work_mass, 250)
+                  or (room.carry_mass_of(role_spawn_fill)
+                      + room.carry_mass_of(role_spawn_fill_backup)
+                      + room.carry_mass_of(role_tower_fill)) <= 0)
+    volatile_cache.mem(room.room_name).delete("running_emergency_conditions")
+    return result
 
 
 def run(room, spawn):
@@ -93,6 +99,8 @@ def run(room, spawn):
         energy = filled
     elif num_sections is not None:
         cost = initial_section_cost(base) + num_sections * energy_per_section(base)
+        if cost > spawn.room.energyCapacityAvailable and base in low_energy_sections:
+            cost = initial_section_cost(base) + num_sections * lower_energy_per_section(base)
         if cost > spawn.room.energyCapacityAvailable:
             # This is just a double check, for as we move into the new role_obj-based system
             new_size = max_sections_of(room, base)
@@ -337,6 +345,13 @@ def run(room, spawn):
         print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
         if result == ERR_NOT_ENOUGH_RESOURCES:
             print("[{}][spawning] Couldn't create body {} with energy {}!".format(room.room_name, parts, energy))
+        elif result == ERR_INVALID_ARGS:
+            if descriptive_level:
+                print("[{}][spawning] Produced invalid body array for creep type {} level {}: {}"
+                      .format(room.room_name, base, descriptive_level, JSON.stringify(parts)))
+            else:
+                print("[{}][spawning] Produced invalid body array for creep type {}: {}"
+                      .format(room.room_name, base, JSON.stringify(parts)))
     else:
         ubos_cache.set(room.room_name, postspawn_calculate_cost_of(parts))
         room.reset_planned_role()
@@ -410,7 +425,7 @@ def energy_per_section(base):
 def lower_energy_per_section(base):
     if base in low_energy_sections:
         cost = 0
-        for part in scalable_sections[base]:
+        for part in low_energy_sections[base]:
             cost += BODYPART_COST[part]
         return cost
     else:

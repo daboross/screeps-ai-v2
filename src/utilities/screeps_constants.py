@@ -142,6 +142,11 @@ class JSMap:
         :rtype: None
         """
 
+    def delete(self, key):
+        """
+        :type key: Any
+        """
+
     def entries(self):
         """
         :rtype: list[(Any, Any)]
