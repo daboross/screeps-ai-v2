@@ -33,11 +33,11 @@ def main():
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
             if bucket_tier >= 6:
-                Memory.meta.enable_profiling = False
+                Memory.meta.auto_enable_profiling = False
         else:
             print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
             if bucket_tier <= 4:
-                Memory.meta.enable_profiling = True
+                Memory.meta.auto_enable_profiling = True
             if bucket_tier <= 2:
                 Memory.meta.pause = True
     Memory.meta.last_bucket = bucket_tier
