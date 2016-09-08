@@ -17,11 +17,18 @@ def split_pos_str(pos_str):
 
 class Upgrader(RoleBase):
     def run(self):
-        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
-        if link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
+        link = self.get_dedicated_upgrading_link()
+        if link:
             return self.run_dedicated_upgrading(link)
         else:
             return self.run_individual_upgrading()
+
+    def get_dedicated_upgrading_link(self):
+        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
+        if link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
+            return link
+        else:
+            return None
 
     def run_dedicated_upgrading(self, link):
         controller = self.home.room.controller
@@ -93,6 +100,8 @@ class Upgrader(RoleBase):
             self.log("Unknown result from creep.upgradeController({}): {}", self.creep.room.controller, result)
 
     def harvest_from(self, link):
+        if self.creep.ticksToLive < 20:
+            return # Don't get more energy at this point, just upgrade with what we have left and idle.
         self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
                                                  self.creep.pos.getRangeTo(link))
         if self.creep.carry.energy >= self.creep.carryCapacity \
@@ -105,9 +114,7 @@ class Upgrader(RoleBase):
     def should_pickup(self, resource_type=None):
         if not RoleBase.should_pickup(self, resource_type):
             return False
-        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
-        return not self.home.upgrading_paused() and not \
-            (link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4)
+        return not self.get_dedicated_upgrading_link() and not self.home.upgrading_paused()
 
     def run_individual_upgrading(self):
         if self.creep.ticksToLive < recycle_time:
@@ -155,6 +162,12 @@ class Upgrader(RoleBase):
                 else:
                     self.go_to_depot()
                     self.report(speech.upgrading_unknown_result)
+
+    def _calculate_time_to_replace(self):
+        path = self.home.honey.find_path(self.home.spawn, self.home.room.controller)
+        # No leeway because we're assuming that we A: won't need to go all the way to the controller and B: the road
+        # will be somewhat paved
+        return len(path) * 2 + _.size(self.creep.body) * 3
 
 
 profiling.profile_whitelist(Upgrader, ["run"])
