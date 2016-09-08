@@ -422,12 +422,15 @@ def rename_flags():
 
 
 def look_for(room, position, main, sub=None):
-    if room.room:
-        room = room.room
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    if not room.find_at:
+        raise ValueError("Invalid room argument")
     if position.pos:
         position = position.pos
     if sub:
-        return _.find(room.lookForAt(LOOK_FLAGS, position.x, position.y),
+        return _.find(room.find_at(FIND_FLAGS, position),
                       lambda f: f.color == main_to_flag_primary[main] and
                                 f.secondaryColor == sub_to_flag_secondary[sub])
     else:
@@ -438,7 +441,7 @@ def look_for(room, position, main, sub=None):
             # if there is no flag for a given structure, sub will be undefined, and thus this side will be called
             # and not the above branch.
             return []
-        return _.find(room.lookForAt(LOOK_FLAGS, position.x, position.y),
+        return _.find(room.find_at(FIND_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
 
 

@@ -1,5 +1,5 @@
 import context
-from constants import creep_base_scout
+from constants import role_scout
 from control import pathdef
 from tools import profiling
 from utilities import volatile_cache, movement
@@ -239,33 +239,17 @@ def run_away_check(creep):
 run_away_check = profiling.profiled(run_away_check, "autoactions.run_away_check")
 
 
-def transfer_check(creep):
-    """
-    :type creep: role_base.RoleBase
-    """
-    if creep.memory.emptying and creep.creep.carry.energy > 0:
-        others = creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos)
-        for other in others:
-            if other.memory.harvesting and not other.memory.emptying \
-                    and _.sum(other.carry) < other.carryCapacity:
-                result = creep.creep.transfer(other, RESOURCE_ENERGY)
-                if result != OK:
-                    creep.log("Unknown result from autoaction-creep.transfer({}, {}): {}", other, RESOURCE_ENERGY,
-                              result)
-                return True
-
-
 def pickup_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if not creep.memory.emptying and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
-        energy = creep.room.find_in_range(FIND_DROPPED_ENERGY, 1, creep.creep.pos)
+    if creep.should_pickup() and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
+        energy = creep.room.find_in_range(FIND_DROPPED_RESOURCES, 1, creep.creep.pos)
         if len(energy) > 0:
             if len(energy) > 1:
                 energy = _.sortBy(energy, lambda e: e.amount)
             for e in energy:
-                if e.resourceType == RESOURCE_ENERGY:
+                if creep.should_pickup(e.resourceType):
                     creep.creep.pickup(e)
                     break
 
@@ -274,12 +258,9 @@ def mercy_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if len(creep.creep.body) <= 1 and creep.memory.base != creep_base_scout:
+    if creep.memory.role != role_scout and len(creep.creep.body) <= 1:
         creep.creep.suicide()
         return True
-
-
-transfer_check = profiling.profiled(transfer_check, "autoactions.transfer_check")
 
 
 def instinct_check(creep):

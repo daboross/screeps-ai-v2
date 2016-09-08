@@ -1,3 +1,4 @@
+import spawning
 from constants import *
 from control import live_creep_utils
 from tools import profiling
@@ -11,31 +12,32 @@ def reassign_room_roles(room):
     """
     :type room: control.hivemind.RoomMind
     """
-    if room.spawn and room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) < 4 \
+    if room.spawn and room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) \
+            + room.role_count(role_tower_fill) < 1 \
             and room.role_count(role_dedi_miner) < room.get_target_local_miner_count():
-        num = 0
         for creep in room.creeps:
             memory = creep.memory
-            if memory.base == creep_base_worker:
+            base = spawning.find_base_type(creep)
+            if base == creep_base_worker:
                 memory.role = role_spawn_fill_backup
-                num += 1
-            elif memory.base == creep_base_hauler:
+                break
+            elif base == creep_base_hauler:
                 memory.role = role_spawn_fill
-                num += 1
-            if num >= 5:
                 break
         room.recalculate_roles_alive()
 
-    # Don't make all local haulers suicide if we have stopped making more because of economy failure!
-    # We should be keeping them alive if that's the case!
-    if room.get_target_local_hauler_mass():
-        extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
-                                                                   room.get_target_local_hauler_mass())
-        if len(extra_local_haulers):
-            for name in extra_local_haulers:
-                if name in Memory.creeps:
-                    Memory.creeps[name].role = role_cleanup
-            room.recalculate_roles_alive()
+    # # Don't make all local haulers suicide if we have stopped making more because of economy failure!
+    # # We should be keeping them alive if that's the case!
+    # if room.get_target_local_hauler_mass() and room.carry_mass_of(role_local_hauler) \
+    #         > room.get_target_local_hauler_mass():
+    #     extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
+    #                                                                room.get_target_local_hauler_mass())
+    #     if len(extra_local_haulers):
+    #         for name in extra_local_haulers:
+    #             if name in Memory.creeps:
+    #                 room.hive_mind.target_mind.untarget_all({"name": name})
+    #                 Memory.creeps[name].role = role_cleanup
+    #         room.recalculate_roles_alive()
 
 
 def clear_memory(room):
@@ -67,7 +69,6 @@ def clear_memory(room):
                 flag = target_mind._get_existing_target_from_name(name, target_remote_mine_miner)
                 if flag and flag.memory and flag.memory.remote_miner_targeting == name:
                     del flag.memory.remote_miner_targeting
-                    del flag.memory.remote_miner_death_tick
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]
@@ -91,9 +92,9 @@ def clear_cache():
                 if Game.time > cache.dead_at or (cache.ttl_after_use
                                                  and Game.time > cache.last_used + cache.ttl_after_use):
                     del mem.cache[key]
-            if len(mem.cache) <= 0:
+            if len(Object.keys(mem.cache)) <= 0:
                 del mem.cache
-        if len(mem) <= 0:
+        if len(Object.keys(mem)) <= 0:
             del Memory.rooms[mem]
     global_cache.cleanup()
 

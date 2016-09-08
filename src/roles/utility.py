@@ -1,7 +1,7 @@
 import spawning
 import speech
-from constants import role_cleanup, role_local_hauler, recycle_time, role_recycling, \
-    target_closest_energy_site
+from constants import role_cleanup, recycle_time, role_recycling, \
+    target_closest_energy_site, role_local_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -29,8 +29,6 @@ class LinkManager(RoleBase):
             self.move_to(storage)
             self.report(speech.link_manager_moving)
             return False
-
-        self.memory.stationary = True
 
         if self.ensure_no_minerals():
             return False
@@ -117,13 +115,13 @@ class Cleanup(SpawnFill):
             return False
         storage = self.creep.room.storage
 
-        if self.memory.gathering and _.sum(self.creep.carry) >= self.creep.carryCapacity:
-            self.memory.gathering = False
+        if self.memory.filling and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+            self.memory.filling = False
 
-        if not self.memory.gathering and _.sum(self.creep.carry) <= 0:
-            self.memory.gathering = True
+        if not self.memory.filling and _.sum(self.creep.carry) <= 0:
+            self.memory.filling = True
 
-        if self.memory.gathering:
+        if self.memory.filling:
             # TODO: Make some cached memory map of all hostile creeps, and use it to avoid.
             resources = self.room.find(FIND_DROPPED_RESOURCES)
             if len(resources):
@@ -131,13 +129,15 @@ class Cleanup(SpawnFill):
                 closest_distance = Infinity
                 for resource in resources:
                     if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
-                        creeps = self.room.find_at(FIND_MY_CREEPS, resource.pos)
-                        any_stationary = False
-                        for creep in creeps:
-                            if creep.memory and creep.memory.stationary:
-                                any_stationary = True
+
+                        if self.memory.last_energy_target:
+                            compressed_pos = resource.pos.x | (resource.pos.y << 6)
+                            if compressed_pos == self.memory.last_energy_target:
+                                closest = resource
                                 break
-                        if not any_stationary:
+                        if (resource.amount > 50 or
+                                    len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0):
+
                             # we've confirmed now that this is a valid target! congrats.
                             distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
                             if distance < closest_distance:
@@ -146,15 +146,9 @@ class Cleanup(SpawnFill):
                 pile = closest
             else:
                 pile = None
-            # This is the old code which is completely equivalent to the above, but much less optimized, and does not do
-            # any caching of "find" results like the RoomMind.find_* functions do.
-            # pile = self.creep.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
-            #     "filter": lambda s: len(
-            #         _.filter(s.pos.lookFor(LOOK_CREEPS), lambda c: c.memory and c.memory.stationary is True)
-            #     ) == 0 and len(s.pos.findInRange(FIND_HOSTILE_CREEPS, 3)) == 0
-            # })
 
             if not pile:
+                del self.memory.last_energy_target
                 extra_cleanup = self.home.extra_creeps_with_carry_in_role(role_cleanup,
                                                                           self.home.get_target_cleanup_mass())
                 if len(extra_cleanup) and self.name in extra_cleanup:
@@ -176,9 +170,11 @@ class Cleanup(SpawnFill):
                         self.home.carry_mass_map[role_recycling] += spawning.carry_count(self)
                     return
                 if _.sum(self.creep.carry) >= 0:
-                    self.memory.gathering = False
+                    self.memory.filling = False
                 self.go_to_depot()  # wait
                 return
+
+            self.memory.last_energy_target = pile.pos.x | (pile.pos.y << 6)
 
             if not self.creep.pos.isNearTo(pile.pos):
                 self.move_to(pile)
@@ -190,7 +186,7 @@ class Cleanup(SpawnFill):
             if result == OK:
                 self.report(speech.link_manager_ok)
             elif result == ERR_FULL:
-                self.memory.gathering = False
+                self.memory.filling = False
                 return True
             else:
                 self.log("Unknown result from cleanup-creep.pickup({}): {}", pile, result)
@@ -211,7 +207,7 @@ class Cleanup(SpawnFill):
             if _.sum(self.creep.carry) > self.creep.carry.energy:
                 target = storage
             else:
-                target = self.target_mind.get_new_target(self, target_closest_energy_site)
+                target = self.targets.get_new_target(self, target_closest_energy_site)
                 if not target:
                     target = storage
             # if target.energy >= target.energyCapacity:
@@ -230,14 +226,12 @@ class Cleanup(SpawnFill):
                     self.report(speech.remote_hauler_moving_to_storage, target.structureType)
                     return False
 
-            self.memory.stationary = True
-
-            resource_type = Object.keys(self.creep.carry)[0]
+            resource_type = _.find(Object.keys(self.creep.carry), lambda r: self.creep.carry[r] > 0)
             result = self.creep.transfer(target, resource_type)
             if result == OK:
                 self.report(speech.link_manager_ok)
             elif result == ERR_NOT_ENOUGH_RESOURCES:
-                self.memory.gathering = True
+                self.memory.filling = True
                 return True
             elif result == ERR_FULL:
                 if target == storage:

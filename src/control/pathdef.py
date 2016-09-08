@@ -7,14 +7,18 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
-def pathfinder_to_regular_path(origin, input):
-    path = []
-    room_start_positions = []
+def pathfinder_path_to_room_to_path_obj(origin, input):
+    result_obj = {}
+    full_path = []
+    result_obj["full"] = full_path
     last_room = None
+    current_path = None
     last_x, last_y = origin.x, origin.y
     for pos in input:
         if last_room != pos.roomName:
-            room_start_positions.append([pos.roomName, len(path)])
+            current_path = []
+            # this is passed by reference, so we just set it here
+            result_obj[pos.roomName] = current_path
             last_room = pos.roomName
         dx = pos.x - last_x
         dy = pos.y - last_y
@@ -41,14 +45,16 @@ def pathfinder_to_regular_path(origin, input):
             print("[honey][pathfinder_to_regular_path] Unknown direction for pos: {},{}, last: {},{}".format(
                 pos.x, pos.y, last_x, last_y))
             return None
-        path.append({
+        item = {
             'x': pos.x,
             'y': pos.y,
             'dx': dx,
             'dy': dy,
             'direction': direction
-        })
-    return path, room_start_positions
+        }
+        current_path.append(item)
+        full_path.append(item)
+    return result_obj
 
 
 # def serialize_pathfinder_path(path):
@@ -124,50 +130,6 @@ def direction_to(origin, destination):
     return direction
 
 
-def reverse_path(input_path, new_origin):
-    """
-    :type input_path: list[Any]
-    :type new_origin: RoomPosition
-    """
-    output_path = []
-    last_x, last_y = new_origin.x, new_origin.y
-    for pos in reversed(input_path):
-        dx = pos.x - last_x
-        dy = pos.y - last_y
-        if dx == -49:
-            dx = 1
-        elif dx == 49:
-            dx = -1
-        if dy == -49:
-            dy = 1
-        elif dy == 49:
-            dy = -1
-        direction = get_direction(dx, dy)
-        if direction is None:
-            print("[honey][reverse_path] Unknown direction for pos: {},{}, last: {},{}".format(
-                pos.x, pos.y, last_x, last_y))
-            return None
-        last_x = pos.x
-        last_y = pos.y
-        output_path.append({
-            'x': pos.x,
-            'y': pos.y,
-            'dx': dx,
-            'dy': dy,
-            'direction': direction
-        })
-    # This function takes in a freshly-deserialized path, so we do need to do normalizing
-    # TODO: do our own serialization format so this isn't neccessary
-    for pos in output_path:
-        while pos.x < 0:
-            pos.x += 50
-        pos.x %= 50
-        while pos.y < 0:
-            pos.y += 50
-        pos.y %= 50
-    return output_path
-
-
 class CachedTrails:
     def __init__(self, hive):
         self.hive = hive
@@ -234,7 +196,14 @@ class HoneyTrails:
 
     def _new_cost_matrix(self, room_name, origin, destination, opts):
         use_roads = opts['roads']
-        if_roads_mutiplier = 2 if use_roads else 1
+        future_chosen = opts['future_chosen']
+
+        if future_chosen:
+            if_roads_mutiplier = 5
+            this_room_future_roads = future_chosen[room_name] or []
+        else:
+            if_roads_mutiplier = 2 if use_roads else 1
+            this_room_future_roads = None
         if self.room.room_name != room_name:
 
             room = self.hive.get_room(room_name)
@@ -279,19 +248,38 @@ class HoneyTrails:
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
         def road_at(x, y):
-            for s in self.room.room.lookForAt(LOOK_STRUCTURES, x, y):
+            for s in self.room.find_at(FIND_STRUCTURES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
-            for s in self.room.room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y):
+            for s in self.room.find_at(FIND_CONSTRUCTION_SITES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
             return False
 
-        def set_matrix(stype, pos):
+        def set_matrix(stype, pos, planned):
             if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
                 if stype == STRUCTURE_ROAD and use_roads \
                         and not flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
-                    cost_matrix.set(pos.x, pos.y, 1)
+                    # TODO: this should really just be a method on top of this method to do this
+                    if cost_matrix.get(pos.x, pos.y) > 2:
+                        if this_room_future_roads:
+                            # Base is 4 for when planning with future road places
+                            if planned:
+                                cost_matrix.set(pos.x, pos.y, cost_matrix.get(pos.x, pos.y) - 1)
+                            else:
+                                cost_matrix.set(pos.x, pos.y, cost_matrix.get(pos.x, pos.y) - 2)
+                        else:
+                            cost_matrix.set(pos.x, pos.y, cost_matrix.get(pos.x, pos.y) - 2)
+
+                        return  # Don't set roads to low-cost if they're already set to high-cost
+                    if this_room_future_roads:
+                        # Base is 4 for when planning with future road places
+                        if planned:
+                            cost_matrix.set(pos.x, pos.y, 4)
+                        else:
+                            cost_matrix.set(pos.x, pos.y, 3)
+                    else:
+                        cost_matrix.set(pos.x, pos.y, 1)
                 return
             if pos.x == destination.x and pos.y == destination.y:
                 return
@@ -325,13 +313,17 @@ class HoneyTrails:
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in self.room.find(FIND_STRUCTURES):
-            set_matrix(struct.structureType, struct.pos)
+            set_matrix(struct.structureType, struct.pos, False)
         for site in self.room.find(FIND_CONSTRUCTION_SITES):
-            set_matrix(site.structureType, site.pos)
+            set_matrix(site.structureType, site.pos, True)
         for flag, stype in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
-            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos)
+            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True)
         for source in self.room.find(FIND_SOURCES):
-            set_matrix("this_is_a_source", source.pos)
+            set_matrix("this_is_a_source", source.pos, False)
+
+        if this_room_future_roads:
+            for pos in this_room_future_roads:
+                cost_matrix.set(pos.x, pos.y, 2)
 
         # Make room for the link manager creep! This can cause problems if not included.
         if self.room.my and self.room.room.storage and self.room.links.main_link:
@@ -347,27 +339,21 @@ class HoneyTrails:
     def _get_callback(self, origin, destination, opts):
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
-    def find_path(self, origin, destination, opts=None):
+    def get_serialized_path_obj(self, origin, destination, opts=None):
         if opts:
-            if "current_room" in opts:
-                current_room = opts["current_room"]
-                if current_room:
-                    if current_room.room: current_room = current_room.room
-                    if current_room.name: current_room = current_room.name
-            else:
-                current_room = None
             roads_better = opts["use_roads"] if "use_roads" in opts else True
             ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
             range = opts["range"] if "range" in opts else 1
             max_ops = opts["max_ops"] if "max_ops" in opts else 10000
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
+            decided_future_roads = opts["decided_future_roads"] if "decided_future_roads" in opts else None
         else:
             roads_better = True
             ignore_swamp = False
             range = 1
-            max_ops = 2000
+            max_ops = 10000
             max_rooms = 16
-            current_room = None
+            decided_future_roads = None
 
         if origin.pos:
             origin = origin.pos
@@ -380,57 +366,9 @@ class HoneyTrails:
             key = "path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
                                                   destination.roomName, destination.x, destination.y)
 
-        serialized_path = global_cache.get(key)
-        if serialized_path is not None:
-            path = None
-            try:
-                path = Room.deserializePath(serialized_path)
-            except:
-                print("[{}][honey] Serialized path from {} to {} was invalid.".format(
-                    self.room.room_name, origin, destination))
-                global_cache.rem(key)
-            if path:
-                # TODO: do our own serialization format so this isn't neccessary
-                for pos in path:
-                    while pos.x < 0:
-                        pos.x += 50
-                    pos.x %= 50
-                    while pos.y < 0:
-                        pos.y += 50
-                    pos.y %= 50
-                # TODO: this is another hack-y workaround for not having our own multi-room serialization format!
-                if current_room is not None and origin.roomName != destination.roomName:
-                    # TODO: list() here is needed since the array returned by Room.deserializePath() isn't
-                    # instanceof Array. Our own serialization would fix this!
-                    room_start_pos = global_cache.get("{}_rsp".format(key))
-                    # The old format was an object! Let's recalculate if that's the case!
-                    if room_start_pos is not None and room_start_pos.length != undefined:
-                        room_start_pos = list(room_start_pos)
-                        for rsp_index, (room_name, path_index) in enumerate(room_start_pos):
-                            if room_name == current_room:
-                                if rsp_index + 1 < len(room_start_pos):
-                                    end_index = room_start_pos[rsp_index + 1][1]
-                                    path = list(path)[path_index:end_index]
-                                else:
-                                    end_index = "none"
-                                    path = list(path)[path_index:]
-                                if not len(path):
-                                    print("WARNING: Current room {} on path from {} to {} produced empty path!"
-                                          " start index: {}, end index: {}".format(current_room, origin, destination,
-                                                                                   path_index, end_index))
-                                break
-                        else:
-                            print("WARNING: current room {} wasn't found on path from {} to {}!".format(
-                                current_room, origin, destination))
-                            return []  # No rooms matched, we don't have a valid path!
-                        # do an extra return here so we can calculate a path as normal if roomstartpos.length is undef.
-                        if Memory.path_debug:
-                            print("Used section {} to {} of path from {} to {} (length: {})".format(
-                                path_index, end_index, origin, destination, len(path)
-                            ))
-                        return path
-                else:
-                    return path
+        serialized_path_obj = global_cache.get(key)
+        if serialized_path_obj is not None:
+            return serialized_path_obj
 
         # reverse_key = "path_{}_{}_{}_{}_{}_{}".format(destination.roomName, destination.x, destination.y,
         #                                               origin.roomName, origin.x, origin.y)
@@ -451,9 +389,12 @@ class HoneyTrails:
 
         self.used_basic_matrix = False
         result = PathFinder.search(origin, {"pos": destination, "range": range}, {
-            "plainCost": 2 if roads_better else 1,
+            "plainCost": 5 if decided_future_roads else (2 if roads_better else 1),
             "swampCost": (2 if roads_better else 1) if ignore_swamp else (10 if roads_better else 5),
-            "roomCallback": self._get_callback(origin, destination, {"roads": roads_better}),
+            "roomCallback": self._get_callback(origin, destination, {
+                "roads": roads_better,
+                "future_chosen": decided_future_roads,
+            }),
             "maxRooms": max_rooms,
             "maxOps": max_ops,
         })
@@ -462,18 +403,16 @@ class HoneyTrails:
             origin, destination, result.ops))
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
         # all of this to convert PathFinder results into a Room-compatible format.
-        rpresult = pathfinder_to_regular_path(origin, result.path)
-        if rpresult is None:
+        room_to_path_obj = pathfinder_path_to_room_to_path_obj(origin, result.path)
+        if room_to_path_obj is None:
             return None
-        path, room_start_pos = rpresult
         all_paved = True
-        for pos in path:
+        for pos in result.path:
             if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
                           lambda s: s.structureType == STRUCTURE_ROAD) \
                     and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y),
                                    lambda s: s.structureType == STRUCTURE_ROAD):
                 all_paved = False
-
                 break
 
         expire_in = 20000
@@ -483,30 +422,45 @@ class HoneyTrails:
             expire_in *= 2
         if self.used_basic_matrix:
             # Don't constantly re-calculate super-long paths that we can't view the rooms for.
-            if len(room_start_pos) < 4:
-                expire_in /= 10
-        global_cache.set(key, Room.serializePath(path), expire_in)
-        global_cache.set("{}_rsp".format(key), room_start_pos, expire_in)
+            if len(Object.keys(room_to_path_obj)) < 4:
+                expire_in /= 4
+        serialized_path_obj = {key: Room.serializePath(value) for key, value in room_to_path_obj.items()}
+        global_cache.set(key, serialized_path_obj, expire_in)
+        return serialized_path_obj
 
-        if current_room and origin.roomName != destination.roomName:
-            # TODO: this little snippet is duplicated in the deserialization section above
-            for rsp_index, (room_name, path_index) in enumerate(room_start_pos):
-                if room_name == current_room:
-                    if rsp_index + 1 < len(room_start_pos):
-                        end_index = room_start_pos[rsp_index + 1][1]
-                        path = path[path_index:end_index]
-                    else:
-                        end_index = "none"
-                        path = path[path_index:]
-                    if not len(path):
-                        print("Current room {} on path from {} to {} produced empty path!"
-                              " start index: {}, end index: {}".format(current_room, origin, destination,
-                                                                       path_index, end_index))
-                    break
+    def find_path(self, origin, destination, opts=None):
+        if opts and "current_room" in opts:
+            current_room = opts["current_room"]
+            if current_room:
+                if current_room.room: current_room = current_room.room
+                if current_room.name: current_room = current_room.name
+        else:
+            current_room = "full"
+
+        serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
+
+        if current_room not in serialized_path_obj:
+            return []
+        try:
+            path = Room.deserializePath(serialized_path_obj[current_room])
+        except:
+            print("[{}][honey] Serialized path from {} to {} with current-room {} was invalid.".format(
+                self.room.room_name, origin, destination, current_room))
+            self.clear_cached_path(origin, destination, opts)
+            new_path_obj = self.get_serialized_path_obj(origin, destination, opts)
+            if current_room in new_path_obj:
+                path = Room.deserializePath(new_path_obj[current_room])
             else:
-                print("Huh, current room {} wasn't found on path from {} to {}!".format(current_room, origin,
-                                                                                        destination))
-                return []  # No rooms match, we don't have a valid path!
+                return []
+
+        # TODO: do our own serialization format so this isn't neccessary
+        for pos in path:
+            while pos.x < 0:
+                pos.x += 50
+            pos.x %= 50
+            while pos.y < 0:
+                pos.y += 50
+            pos.y %= 50
         return path
 
     def clear_cached_path(self, origin, destination, opts=None):
@@ -528,40 +482,20 @@ class HoneyTrails:
         global_cache.rem(key)
 
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
-        if opts and "current_room" in opts:
-            opts = Object.create(opts)
-            opts["current_room"] = None
-
         if origin.pos:
             origin = origin.pos
         if destination.pos:
             destination = destination.pos
 
-        path_list = self.find_path(origin, destination, opts)
-
-        rsp_key = "path_{}_{}_{}_{}_{}_{}_rsp".format(origin.roomName, origin.x, origin.y,
-                                                      destination.roomName, destination.x, destination.y)
-        rsp = global_cache.get(rsp_key)
-        if not rsp or not rsp.length:
-            # The old format was an object! Let's recalculate if that's the case!
-            self.clear_cached_path(origin, destination, opts)
-            path_list = self.find_path(origin, destination, opts)
-            rsp = global_cache.get(rsp_key)
-
-        if not len(rsp):
-            rsp = {origin.roomName: 0}
+        path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
         final_list = []
 
-        for rsp_index, (room_name, path_index) in enumerate(list(rsp)):
-            if rsp_index + 1 >= len(rsp):
-                this_room_path_list = path_list
-            else:
-                next_index = rsp[rsp_index + 1][1]
-                new_path_list = path_list.splice(next_index, Infinity)
-                this_room_path_list = path_list
-                path_list = new_path_list
-            for pos in this_room_path_list:
+        for room_name, serialized_path in _.pairs(path_obj):
+            if room_name == "full":
+                continue
+            path = Room.deserializePath(serialized_path)
+            for pos in path:
                 final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
 

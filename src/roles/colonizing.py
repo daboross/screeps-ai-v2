@@ -11,12 +11,12 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 
 
-class Colonist(RoleBase, MilitaryBase):
+class Colonist(MilitaryBase):
     def get_colony(self):
         if not self.memory.colonizing:
             closest_distance = Infinity
             closest_room_name = None
-            for room in context.hive().my_rooms:
+            for room in self.hive.my_rooms:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
                     distance = movement.distance_squared_room_pos(self.creep.pos,
                                                                   __new__(RoomPosition(25, 25, room.room_name)))
@@ -24,7 +24,7 @@ class Colonist(RoleBase, MilitaryBase):
                         closest_room_name = room.room_name
 
             if not closest_room_name:
-                for room in context.hive().my_rooms:
+                for room in self.hive.my_rooms:
                     if not len(room.spawns):
                         distance = movement.distance_squared_room_pos(self.creep.pos,
                                                                       __new__(RoomPosition(25, 25, room.room_name)))
@@ -41,14 +41,14 @@ class Colonist(RoleBase, MilitaryBase):
         if self.creep.room.name == colony:
             del self.memory.colonizing
             self.memory.home = colony
-            room = context.hive().get_room(colony)
+            room = self.hive.get_room(colony)
             if room.role_count(role_builder) < 2:
                 self.memory.role = role_builder
             elif room.role_count(role_upgrader) < 1 and not room.upgrading_paused():
                 self.memory.role = role_upgrader
             else:
                 self.memory.role = role_builder
-            meta = context.hive().get_room(colony).mem.meta
+            meta = self.hive.get_room(colony).mem.meta
             if meta:
                 meta.clear_next = 0  # clear next tick
         else:
@@ -121,7 +121,7 @@ class Claim(RoleBase, MilitaryBase):
 
 class ReserveNow(RoleBase, MilitaryBase):
     def run(self):
-        reserve_flag = self.target_mind.get_new_target(self, target_reserve_now)
+        reserve_flag = self.targets.get_new_target(self, target_reserve_now)
 
         if not reserve_flag:
             self.log("ReserveNow couldn't find controller to reserve.")
@@ -139,14 +139,10 @@ class ReserveNow(RoleBase, MilitaryBase):
             self.report(speech.remote_reserve_moving)
             return False
 
-        self.memory.stationary = True
-        if not self.memory.action_start_time:
-            self.memory.action_start_time = Game.time
-
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
             self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",
                      controller.reservation.username)
-        if not controller.reservation or controller.reservation.ticksToEnd < 5000:
+        if not controller.reservation or controller.reservation.ticksToEnd < 4998:
             if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
                 # claim this!
                 self.creep.claimController(controller)
@@ -155,7 +151,7 @@ class ReserveNow(RoleBase, MilitaryBase):
             self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
-        target = self.target_mind.get_new_target(self, target_reserve_now)
+        target = self.targets.get_new_target(self, target_reserve_now)
         if not target:
             return -1
         path = self.get_military_path(self.home.spawn, target)

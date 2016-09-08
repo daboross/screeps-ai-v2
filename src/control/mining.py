@@ -75,9 +75,9 @@ class MiningMind:
         carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
         room = Game.rooms[flag.pos.roomName]
         if room and (not room.controller or room.controller.reservation):
-            mining_per_tick = 12.0 # With 2 added just too have some leeway
+            mining_per_tick = 12.0  # With 2 added just too have some leeway
         else:
-            mining_per_tick = 6.0 # With 1 added just too have some leeway
+            mining_per_tick = 6.0  # With 1 added just too have some leeway
         produce_per_tick = mining_per_tick
         target_mass = math.ceil(produce_per_tick / carry_per_tick) + 2
         self.room.store_cached_property(key, target_mass, 50)

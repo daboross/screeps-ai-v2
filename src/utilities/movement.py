@@ -228,7 +228,7 @@ def path_distance(here, target, non_roads_two_movement=False):
     while current.roomName != target.roomName and x < 6:
         rooms_looked_at.append(current.roomName)
         x += 1
-        room = Game.rooms[current.roomName]
+        room_mind = context.hive().get_room(current.roomName)
         current_room_xy = parse_room_to_xy(current.roomName)
         difference = (target_room_xy[0] - current_room_xy[0], target_room_xy[1] - current_room_xy[1])
         exit_pos, exit_direction = get_exit_flag_and_direction(current.roomName, target.roomName, difference)
@@ -242,9 +242,9 @@ def path_distance(here, target, non_roads_two_movement=False):
         if path:
             if not non_roads_two_movement:
                 path_len += len(path) + 1  # one to accommodate moving to the other room.
-            elif room:
+            elif room_mind:
                 for pos in path:
-                    if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
+                    if _.find(room_mind.find_at(FIND_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
                         path_len += 1
                     else:
                         path_len += 2
@@ -253,7 +253,7 @@ def path_distance(here, target, non_roads_two_movement=False):
                 # we can't see room but we have a cached path, so let's just assume path is no-roads
                 path_len += len(path) * 2 + 1
         else:
-            if room:
+            if room_mind:
                 if not path:
                     print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(
                         exit_direction, current.roomName))
@@ -272,15 +272,15 @@ def path_distance(here, target, non_roads_two_movement=False):
         rooms_looked_at.append(current.roomName)
         print("[path_distance] Looked at 6 rooms when pathfinding from {} to {}: {}".format(
             here, target, JSON.stringify(rooms_looked_at)))
-    room = Game.rooms[current.roomName]
+    room_mind = context.hive().get_room(current.roomName)
 
     path = context.hive().honey.find_path(current, target)
     if path:
         if not non_roads_two_movement:
             path_len += len(path)
-        elif room:
+        elif room_mind:
             for pos in path:
-                if _.find(room.lookForAt(pos, LOOK_STRUCTURES), lambda s: s.structureType == STRUCTURE_ROAD):
+                if _.find(room_mind.find_at(FIND_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
                     path_len += 1
                 else:
                     path_len += 2
@@ -289,7 +289,7 @@ def path_distance(here, target, non_roads_two_movement=False):
             # we can't see room but we have a cached path, so let's just assume path is no-roads
             path_len += len(path) * 2 + 1
     else:
-        if room:
+        if room_mind:
             if not path:
                 print("[path_distance] pathfinding couldn't find path to {} from {}!".format(target, current))
                 return -1
@@ -304,12 +304,16 @@ def path_distance(here, target, non_roads_two_movement=False):
 
 
 def is_block_clear(room, x, y):
-    if room.room: room = room.room
-    if Game.map.getTerrainAt(x, y, room.name) == 'wall':
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    if not room.room:
+        raise ValueError("Wrong argument")
+    if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
         return False
-    if len(room.lookForAt(LOOK_CREEPS, x, y)) != 0:
+    if len(room.find_at(FIND_CREEPS, x, y)) != 0:
         return False
-    for struct in room.lookForAt(LOOK_STRUCTURES, x, y):
+    for struct in room.find_at(FIND_STRUCTURES, x, y):
         if struct.structureType != STRUCTURE_RAMPART and struct.structureType != STRUCTURE_EXTENSION \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False

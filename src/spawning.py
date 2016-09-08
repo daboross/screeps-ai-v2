@@ -15,6 +15,7 @@ initial_section = {
     creep_base_full_move_goader: [ATTACK, MOVE],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
     creep_base_full_miner: [WORK, WORK, WORK, WORK, WORK],
+    creep_base_mammoth_miner: [MOVE, CARRY, WORK, WORK, WORK],
 }
 
 # TODO: limit goader and healer in RoomMind
@@ -33,26 +34,33 @@ scalable_sections = {
     creep_base_dismantler: [WORK, MOVE],
     creep_base_full_upgrader: [MOVE, WORK, WORK],
     creep_base_scout: [MOVE],
+    creep_base_mammoth_miner: [MOVE, WORK, WORK, WORK, WORK],
 }
 
 low_energy_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
 }
-known_no_energy_limit = [creep_base_mammoth_miner]
 
 
 def emergency_conditions(room):
-    if volatile_cache.mem(room.room_name).has("running_emergency_conditions"):
-        return False
-    volatile_cache.mem(room.room_name).set("running_emergency_conditions", True)
-    result = room.carry_mass_of(role_spawn_fill) + room.work_mass_of(role_spawn_fill_backup) < \
-             room.get_target_spawn_fill_mass() + room.get_target_spawn_fill_backup_work_mass() \
-             and (room.room.energyAvailable >= max(100 * room.work_mass, 250)
-                  or (room.carry_mass_of(role_spawn_fill)
-                      + room.carry_mass_of(role_spawn_fill_backup)
-                      + room.carry_mass_of(role_tower_fill)) <= 0)
+    if volatile_cache.mem(room.room_name).has("emergency_conditions"):
+        return volatile_cache.mem(room.room_name).get("emergency_conditions")
+    # The functions we run to determine target mass will in turn call emergency_conditions itself
+    # This prevents an infinite loop (we set the actual value at the end of the function)
+    volatile_cache.mem(room.room_name).set("emergency_conditions", False)
+    if room.room.energyAvailable >= 300:
+        spawn_mass = room.carry_mass_of(role_spawn_fill) \
+                     + room.work_mass_of(role_spawn_fill_backup) \
+                     + room.carry_mass_of(role_tower_fill)
+        emergency = spawn_mass <= 0 or (
+            spawn_mass < room.get_target_spawn_fill_mass() / 2
+            and room.room.energyAvailable >= 100 * spawn_mass
+        )
+    else:
+        emergency = False
     volatile_cache.mem(room.room_name).delete("running_emergency_conditions")
-    return result
+    volatile_cache.mem(room.room_name).set("emergency_conditions", emergency)
+    return emergency
 
 
 def run(room, spawn):
@@ -82,7 +90,7 @@ def run(room, spawn):
         return
     role = role_obj.role
     base = role_obj.base
-    num_sections = role_obj.num_sections
+    num_sections = role_obj.num_sections or Infinity
     replacing = role_obj.replacing
 
     ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
@@ -90,29 +98,38 @@ def run(room, spawn):
         filled = spawn.room.energyAvailable - ubos_cache.get(room.room_name)
     else:
         filled = spawn.room.energyAvailable
-        # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
+    # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
     # harvester. 150 * work_mass will make a new harvester somewhat smaller than the existing one, but it shouldn't be
     # too bad. We *can* assume that all work_mass at this point is in harvesters, since consistency.reassign_roles()
     # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
     if emergency_conditions(room):
         print("[{}] WARNING: Bootstrapping room!".format(room.room_name))
         energy = filled
-    elif num_sections is not None:
+    else:
+        energy = spawn.room.energyCapacityAvailable
+    if num_sections is not None and base in scalable_sections:
+        if num_sections == 0:
+            print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!")
+            num_sections = 1
+            role_obj.num_sections = 1
         cost = initial_section_cost(base) + num_sections * energy_per_section(base)
-        if cost > spawn.room.energyCapacityAvailable and base in low_energy_sections:
+        if cost > energy and base in low_energy_sections:
             cost = initial_section_cost(base) + num_sections * lower_energy_per_section(base)
-        if cost > spawn.room.energyCapacityAvailable:
+        if cost > energy:
             # This is just a double check, for as we move into the new role_obj-based system
             new_size = max_sections_of(room, base)
-            print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
-                  .format(room.room_name, num_sections, new_size))
+            if new_size <= 0:
+                print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1 section"
+                      "of!".format(room.room_name, base))
+                return
+            else:
+                print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
+                      .format(room.room_name, num_sections, new_size))
             # Since the literal memory object is returned, this mutation will stick for until this creep has been spawned,
             # or the target creep has been refreshed
             num_sections = role_obj.num_sections = new_size
             cost = initial_section_cost(base) + new_size * energy_per_section(base)
         energy = cost
-    else:
-        energy = spawn.room.energyCapacityAvailable
 
     if filled < energy:
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
@@ -120,38 +137,12 @@ def run(room, spawn):
 
     descriptive_level = None
 
-    if base is creep_base_local_miner:
-        if energy < 200:
-            print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
-            return
-        if energy < 600 and energy % 100 != 0:
-            move_energy = 50
-            parts = [MOVE]
-        else:
-            move_energy = 100
-            parts = [MOVE, MOVE]
-
-        num_sections = min(int(floor((energy - move_energy) / 100)), 5)
-        for i in range(0, num_sections):
-            parts.append(WORK)
-        if num_sections < 5:
-            if move_energy == 50:
-                descriptive_level = "slow-med-{}".format(num_sections)
-            else:
-                descriptive_level = "med-{}".format(num_sections)
-        elif energy >= 650:  # we can fit an extra move
-            parts.append(MOVE)
-            descriptive_level = "full-8"
-        elif move_energy == 50:
-            descriptive_level = "slow-6"
-        else:
-            descriptive_level = "full-7"
-    elif base is creep_base_full_miner:
+    if base is creep_base_full_miner:
         if energy < 550:
             print("[{}][spawning] Too few extensions to build a remote miner!".format(room.room_name))
             return
         parts = []
-        num_move = num_sections
+        num_move = num_sections or 5
         num_work = 5
         for i in range(0, num_move - 1):
             parts.append(MOVE)
@@ -313,15 +304,15 @@ def run(room, spawn):
             work += 1
 
     name = random_four_digits()
+    if Game.creeps[name]:
+        name = random_four_digits()
     home = room.room_name
 
     if replacing:
-        memory = {
-            "role": role_temporary_replacing, "base": base, "home": home,
-            "replacing": replacing, "replacing_role": role, "carry": carry, "work": work,
-        }
+        memory = {"home": home, "role": role_temporary_replacing,
+                  "replacing": replacing, "replacing_role": role}
     else:
-        memory = {"role": role, "base": base, "home": home, "carry": carry, "work": work}
+        memory = {"home": home, "role": role}
 
     if role_obj.memory:
         # Add whatever memory seems to be necessary
@@ -376,9 +367,9 @@ def find_base_type(creep):
     total = _.sum(part_counts)
     if part_counts[WORK] == part_counts[CARRY] == part_counts[MOVE] / 2 == total / 4:
         base = creep_base_worker
-    elif not part_counts[CARRY] and part_counts[MOVE] < part_counts[WORK] <= 5:
-        base = creep_base_local_miner
-    elif part_counts[WORK] == part_counts[MOVE] == total / 2 <= 5:
+    elif part_counts[WORK] == part_counts[CARRY] / 3 == part_counts[MOVE] / 4 == total / 8:
+        base = creep_base_worker
+    elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 5:
         base = creep_base_full_miner
     elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
@@ -399,8 +390,6 @@ def find_base_type(creep):
         print("[{}][{}] Creep has unknown body! {}".format(
             context.room().room_name, creep.name, JSON.stringify(part_counts)))
         return None
-    print("[{}][{}] Re-assigned unknown body creep as {}.".format(
-        context.room().room_name, creep.name, base))
     return base
 
 
@@ -456,8 +445,6 @@ def max_sections_of(room, base):
 def work_count(creep):
     if creep.creep:  # support RoleBase
         creep = creep.creep
-    if creep.memory.work:
-        return creep.memory.work
     work = 0
     for part in creep.body:
         if part.type == WORK:
@@ -467,27 +454,13 @@ def work_count(creep):
                 # rough estimation, we probably don't care about boosts for different
                 # functions yet, since we don't even have boosted creeps spawning!
                 work += boost[Object.keys(boost)[0]]
-    creep.memory.work = work
     return work
 
 
 def carry_count(creep):
     if creep.creep:  # support RoleBase
         creep = creep.creep
-    if creep.memory.carry:
-        return creep.memory.carry
-    carry = 0
-    for part in creep.body:
-        if part.type == CARRY:
-            carry += 1
-            if part.boost:
-                boost = BOOSTS[WORK][part.boost]
-                # rough estimation, we probably don't care about boosts for different
-                # functions yet, since we don't even have boosted creeps spawning!
-                if boost.capacity:
-                    carry += boost.capacity
-    creep.memory.carry = carry
-    return carry
+    return creep.carryCapacity / 50
 
 
 run = profiling.profiled(run, "spawning.run")

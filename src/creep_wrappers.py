@@ -1,4 +1,3 @@
-import context
 from constants import *
 from roles import building
 from roles import colonizing
@@ -11,7 +10,6 @@ from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
 from roles import utility
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -44,18 +42,20 @@ role_classes = {
 }
 
 
-def wrap_creep(creep):
+def wrap_creep(hive_mind, target_mind, home, creep):
     """
     Wraps a given creep with it's role wrapper.
+    :param hive_mind: The active hive mind
+    :param target_mind: The active target mind
+    :param home: The creep's home room
     :param creep: The creep to wrap
     :return: The role class, providing methods specific to the role, including run()
     :rtype: role_base.RoleBase
     """
     role = creep.memory.role
     if role in role_classes:
-        return role_classes[role](context.targets(), creep)
+        return role_classes[role](hive_mind, target_mind, home, creep)
     else:
         return None
 
-
-wrap_creep = profiling.profiled(wrap_creep, "creep_wrappers.wrap_creep")
+# wrap_creep = profiling.profiled(wrap_creep, "creep_wrappers.wrap_creep")

@@ -64,6 +64,11 @@ JSON.stringify(PathFinder.search(new RoomPosition(15, 6, "W47N27"), {pos: new Ro
 JSON.stringify(Memory.hostiles, 3, 3)
 for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() * 50 }
 for (let key in Memory.cache) { if (key.indexOf("W46N28") != -1) { delete Memory.cache[key] } }
+for (let site of Game.rooms.W45N28.find(FIND_MY_CONSTRUCTION_SITES)) { site.remove() };
+for (let key in Memory.cache) { if (key.indexOf("W45N28") != -1) { delete Memory.cache[key] } }
 for (let room of py.context.hive().visible_rooms) { delete room.mem.cache.paving_here }
+for (let room of py.context.hive().visible_rooms) { room.building.next_priority_destruct_targets(); room.building.refresh_destruction_targets(); }
 Memory.hyper_upgrade = true; for (let room of py.context.hive().my_rooms) { room.reset_planned_role() }
+for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }
+Memory.rooms.W46N28.empty_to = "W49N25"
 ```

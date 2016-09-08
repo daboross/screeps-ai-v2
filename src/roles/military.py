@@ -3,7 +3,6 @@ import math
 import random
 
 import autoactions
-import context
 import flags
 from constants import target_single_flag, role_td_healer
 from control import pathdef
@@ -25,8 +24,10 @@ def delete_target(target_id):
 
 
 class RoleDefender(RoleBase):
+    def should_pickup(self, resource_type=None):
+        return False
+
     def run(self):
-        self.memory.emptying = True
         target_id = self.memory.attack_target
         if not target_id:
             best_id = None
@@ -40,7 +41,10 @@ class RoleDefender(RoleBase):
                 target_id = best_id
                 self.memory.attack_target = best_id
             else:
-                self.creep.move(random.randint(1, 9))
+                if Game.cpu.bucket < 6500:
+                    self.creep.suicide()
+                else:
+                    self.creep.move(random.randint(1, 9))
                 return False
 
         hostile_room = Memory.hostile_last_rooms[target_id]
@@ -254,7 +258,7 @@ class MilitaryBase(RoleBase):
 
 class Scout(MilitaryBase):
     def run(self):
-        destination = self.target_mind.get_new_target(self, target_single_flag, flags.SCOUT)
+        destination = self.targets.get_new_target(self, target_single_flag, flags.SCOUT)
         if not destination:
             self.log("ERROR: Scout does not have destination set!")
             return
@@ -266,7 +270,7 @@ class Scout(MilitaryBase):
 
 class TowerDrainHealer(RoleBase, MilitaryBase):
     def run(self):
-        target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
+        target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
         if not target:
             if len(flags.find_flags(self.home, flags.RAID_OVER)):
                 self.recycle_me()
@@ -280,7 +284,7 @@ class TowerDrainHealer(RoleBase, MilitaryBase):
         autoactions.instinct_do_heal(self)
 
     def _calculate_time_to_replace(self):
-        target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
+        target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
         if not target:
             return -1
         path = self.get_military_path(self.home.spawn, target)
@@ -292,16 +296,19 @@ class TowerDrainHealer(RoleBase, MilitaryBase):
 
 
 class TowerDrainer(RoleBase, MilitaryBase):
+    def should_pickup(self, resource_type=None):
+        return False
+
     def run(self):
         if self.memory.goading and self.creep.hits < self.creep.hitsMax / 2:
             self.memory.goading = False
-            self.target_mind.untarget_all(self)
+            self.targets.untarget_all(self)
         if not self.memory.goading and self.creep.hits >= self.creep.hitsMax:
             self.memory.goading = True
-            self.target_mind.untarget_all(self)
+            self.targets.untarget_all(self)
 
         if self.memory.goading:
-            target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
+            target = self.targets.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
                     self.recycle_me()
@@ -321,7 +328,7 @@ class TowerDrainer(RoleBase, MilitaryBase):
                 else:
                     self.follow_military_path(self.home.spawn, target)
         else:
-            target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
+            target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
                     self.recycle_me()
@@ -332,7 +339,7 @@ class TowerDrainer(RoleBase, MilitaryBase):
             if self.pos.roomName != target.pos.roomName:
                 self.moveTo(target)
             else:
-                room = context.hive().get_room(target.pos.roomName)
+                room = self.hive.get_room(target.pos.roomName)
                 if room and _.find(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_td_healer):
                     if not self.creep.pos.isEqualTo(target.pos):
                         self.creep.moveTo(target)
@@ -342,7 +349,7 @@ class TowerDrainer(RoleBase, MilitaryBase):
         autoactions.instinct_do_attack(self)
 
     def _calculate_time_to_replace(self):
-        target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
+        target = self.targets.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
         if not target:
             return -1
         path = self.get_military_path(self.home.spawn, target)
@@ -353,17 +360,17 @@ class TowerDrainer(RoleBase, MilitaryBase):
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
-class Dismantler(RoleBase, MilitaryBase):
+class Dismantler(MilitaryBase):
     def run(self):
         if self.memory.dismantling and self.creep.hits < self.creep.hitsMax / 2:
             self.memory.dismantling = False
-            self.target_mind.untarget_all(self)
+            self.targets.untarget_all(self)
         if not self.memory.dismantling and self.creep.hits >= self.creep.hitsMax:
             self.memory.dismantling = True
-            self.target_mind.untarget_all(self)
+            self.targets.untarget_all(self)
 
         if self.memory.dismantling:
-            target = self.target_mind.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
+            target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
                     self.recycle_me()
@@ -372,7 +379,7 @@ class Dismantler(RoleBase, MilitaryBase):
                     self.go_to_depot()
                 return
             if self.creep.pos.isNearTo(target.pos):
-                struct = self.room.room.lookForAt(LOOK_STRUCTURES, target.pos)[0]
+                struct = self.room.find_at(FIND_STRUCTURES, target.pos)[0]
                 if struct:
                     self.creep.dismantle(struct)
                 else:
@@ -385,7 +392,7 @@ class Dismantler(RoleBase, MilitaryBase):
                 else:
                     self.follow_military_path(self.home.spawn, target)
         else:
-            target = self.target_mind.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
+            target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
                     self.recycle_me()
@@ -394,9 +401,9 @@ class Dismantler(RoleBase, MilitaryBase):
                     self.go_to_depot()
                 return
             if self.pos.roomName != target.pos.roomName:
-                self.moveTo(target)
+                self.creep.moveTo(target)
             else:
-                room = context.hive().get_room(target.pos.roomName)
+                room = self.hive.get_room(target.pos.roomName)
                 if room and _.find(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_td_healer):
                     if not self.creep.pos.isEqualTo(target.pos):
                         self.creep.moveTo(target)
@@ -405,7 +412,7 @@ class Dismantler(RoleBase, MilitaryBase):
                     self.go_to_depot()
 
     def _calculate_time_to_replace(self):
-        target = self.target_mind.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
+        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
         if not target:
             return -1
         path = self.get_military_path(self.home.spawn, target)

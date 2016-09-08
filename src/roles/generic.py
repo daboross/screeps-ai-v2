@@ -40,25 +40,19 @@ class ReplacingExpendedCreep(RoleBase):
             #     self.memory.replacing_role, self.memory.replacing
             # ))
             # He isn't alive anymore, we're too late.
-            base = self.memory.base
             home = self.memory.home
             self.memory = Memory.creeps[self.name]
-            Memory.creeps[self.name] = {
-                "role": role, "base": base, "home": home
-            }
+            Memory.creeps[self.name] = {"role": role, "home": home}
             self.home.register_to_role(self)
             return
 
         if role in immediately_replace_roles and not self.creep.spawning:
-            Memory.creeps[old_creep.name] = {"role": role_recycling, "home": self.memory.home, "base": self.memory.base,
+            Memory.creeps[old_creep.name] = {"role": role_recycling, "home": self.memory.home,
                                              "last_role": "replaced-{}".format(self.memory.role)}
-            self.target_mind.untarget_all(old_creep)
-            base = self.memory.base
+            self.targets.untarget_all(old_creep)
             home = self.memory.home
             self.memory = Memory.creeps[self.name]
-            Memory.creeps[self.name] = {
-                "role": role, "base": base, "home": home
-            }
+            Memory.creeps[self.name] = {"role": role, "home": home}
             self.home.register_to_role(self)
             self.home.mem.meta.clear_next = 0  # clear next tick
             return
@@ -77,17 +71,14 @@ class ReplacingExpendedCreep(RoleBase):
         _.assign(Memory.creeps[self.name], Memory.creeps[old_name])
         # TODO: this works because memory isn't a property, but set during construction. However, memory should probably
         # be turned into a property in the future.
-        self.target_mind.assume_identity(old_name, self.creep.name)  # needs to happen before switching memory.
+        self.targets.assume_identity(old_name, self.creep.name)  # needs to happen before switching memory.
         self.memory = Memory.creeps[self.name]
         del Memory.creeps[old_name]
-        Memory.creeps[old_name] = {"role": role_recycling, "home": self.memory.home, "base": self.memory.base,
+        Memory.creeps[old_name] = {"role": role_recycling, "home": self.memory.home,
                                    "last_role": "replaced-{}".format(self.memory.role)}
         del self.memory.calculated_replacement_time
         del self.memory.replacement
-        del self.memory.stationary
         del self.memory._path
-        del self.memory.work
-        del self.memory.carry
         del self.memory.last_checkpoint
         self.memory.replaced = True
 
@@ -95,14 +86,13 @@ class ReplacingExpendedCreep(RoleBase):
         role = self.memory.role
 
         if role == role_dedi_miner:
-            source = self.target_mind.get_existing_target(self, target_big_source)
+            source = self.targets.get_existing_target(self, target_big_source)
             if source:
                 Memory.dedicated_miners_stationed[source.id] = self.creep.name
         elif role == role_remote_miner:
-            flag = self.target_mind.get_existing_target(self, target_remote_mine_miner)
+            flag = self.targets.get_existing_target(self, target_remote_mine_miner)
             if flag and flag.memory and flag.memory.remote_miner_targeting == old_name:
                 flag.memory.remote_miner_targeting = self.creep.name
-                flag.memory.remote_miner_death_tick = Game.time + self.creep.ticksToLive
         elif role == role_remote_mining_reserve:
             room = self.memory.claiming
             if room:
@@ -119,10 +109,12 @@ profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
 
 class Recycling(RoleBase):
+    def should_pickup(self, resource_type=None):
+        return self.creep.ticksToLive > 100
+
     def run(self):
         # flag to other creeps
-        self.memory.emptying = True
-        self.memory.harvesting = False
+        self.memory.filling = False
         if _.sum(self.creep.carry) > 0:
             storage = self.home.room.storage
             if storage:

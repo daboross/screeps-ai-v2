@@ -14,7 +14,7 @@ _MOVE_ARGS = {"use_roads": True}
 
 class DedicatedMiner(RoleBase):
     def run(self):
-        source = self.target_mind.get_new_target(self, target_big_source)
+        source = self.targets.get_new_target(self, target_big_source)
 
         if not source:
             self.log("Dedicated miner could not find any new big sources.")
@@ -26,9 +26,6 @@ class DedicatedMiner(RoleBase):
             self.report(speech.dedi_miner_moving)
             return False
 
-        self.memory.stationary = True
-        if not self.memory.action_start_time:
-            self.memory.action_start_time = Game.time
         result = self.creep.harvest(source)
         if result == OK:
             if Memory.dedicated_miners_stationed:
@@ -48,7 +45,7 @@ class DedicatedMiner(RoleBase):
         return False
 
     def _calculate_time_to_replace(self):
-        source = self.target_mind.get_new_target(self, target_big_source)
+        source = self.targets.get_new_target(self, target_big_source)
         if not source:
             return -1
         source_pos = source.pos
@@ -64,7 +61,7 @@ profiling.profile_whitelist(DedicatedMiner, ["run"])
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class LocalHauler(SpawnFill, TransportPickup):
     def run(self):
-        pickup = self.target_mind.get_new_target(self, target_source)
+        pickup = self.targets.get_new_target(self, target_source)
 
         if not pickup:
             return SpawnFill.run(self)
@@ -72,7 +69,7 @@ class LocalHauler(SpawnFill, TransportPickup):
         if _.sum(self.creep.carry) > self.creep.carry.energy:
             fill = self.home.room.storage
         else:
-            fill = self.target_mind.get_new_target(self, target_closest_energy_site, pickup.pos)
+            fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
 
         if not pickup:
             self.go_to_depot()

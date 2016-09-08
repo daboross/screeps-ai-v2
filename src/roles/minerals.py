@@ -1,4 +1,4 @@
-from constants import role_mineral_hauler, role_recycling, role_mineral_miner
+from constants import role_mineral_hauler, role_recycling, role_mineral_miner, recycle_time
 from role_base import RoleBase
 from utilities import movement
 from utilities.screeps_constants import *
@@ -84,7 +84,13 @@ ideal_terminal_counts = {
 
 
 class MineralHauler(RoleBase):
+    def should_pickup(self, resource_type=None):
+        return True
+
     def run(self):
+        if self.creep.ticksToLive < recycle_time:
+            self.memory.role = role_recycling
+            self.memory.last_role = role_mineral_hauler
         if not self.memory.state:
             self.memory.state = "miner_harvesting"
         state = self.memory.state
@@ -92,7 +98,10 @@ class MineralHauler(RoleBase):
         if state == "miner_harvesting" \
                 and _.sum(self.creep.carry) >= self.creep.carryCapacity \
                 or (_.sum(self.creep.carry) > 0 and self.creep.ticksToLive < 100):
-            self.memory.state = state = "terminal_deposit_minerals"
+            if self.home.get_emptying_terminal():
+                self.memory.state = state = "empty_terminal_deposit"
+            else:
+                self.memory.state = state = "terminal_deposit_minerals"
 
         if state == state == "storage_harvest_energy" \
                 and _.sum(self.creep.carry) >= self.creep.carryCapacity \
@@ -100,7 +109,12 @@ class MineralHauler(RoleBase):
             self.memory.state = state = "terminal_deposit_energy"
 
         if state == "terminal_deposit_minerals" and _.sum(self.creep.carry) <= 0:
-            self.memory.state = state = "storage_harvest_energy"
+            mineral = self.home.find(FIND_MINERALS)[0]
+            if mineral and _.sum(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
+                                 lambda s: _.sum(s.store) if s.structureType == STRUCTURE_CONTAINER else 0) > 1000:
+                self.memory.state = state = "miner_harvesting"
+            else:
+                self.memory.state = state = "storage_harvest_energy"
 
         if state == "terminal_deposit_energy" and _.sum(self.creep.carry) <= 0:
             if self.home.role_count(role_mineral_miner):
@@ -155,6 +169,9 @@ class MineralHauler(RoleBase):
                 self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
         elif state == "storage_harvest_energy":
             terminal = self.home.room.terminal
+            if self.home.get_emptying_terminal():
+                self.memory.state = "empty_terminal_withdraw"
+                return True
             if not terminal or terminal.store.energy > max(ideal_terminal_counts[RESOURCE_ENERGY],
                                                            self.home.get_target_terminal_energy()):
                 if self.home.role_count(role_mineral_miner):
@@ -169,10 +186,15 @@ class MineralHauler(RoleBase):
             if not self.creep.pos.isNearTo(storage):
                 self.move_to(storage)
                 return False
-            result = self.creep.withdraw(storage, RESOURCE_ENERGY)
+            resource = RESOURCE_ENERGY
+            if self.home.get_all_filling_terminal() and not self.home.get_target_terminal_energy():
+                mineral = _.find(Object.keys(storage.store), lambda r: storage.store[r] and r != RESOURCE_ENERGY)
+                if mineral:
+                    resource = mineral
+            result = self.creep.withdraw(storage, resource)
             if result != OK:
                 self.log("Unknown result from mineral-hauler.withdraw({}, {}): {}".format(
-                    storage, RESOURCE_ENERGY, result))
+                    storage, resource, result))
         elif state == "terminal_deposit_minerals" or state == "terminal_deposit_energy":
             terminal = self.home.room.terminal
             storage = self.home.room.storage
@@ -208,7 +230,10 @@ class MineralHauler(RoleBase):
                 self.log("Unknown result from MineralHauler.transfer({}, {}): {}".format(target, mtype, result))
         elif state == "empty_terminal_deposit":
             if _.sum(self.creep.carry) <= 0:
-                self.memory.state = "empty_terminal_withdraw"
+                if self.home.role_count(role_mineral_miner):
+                    self.memory.state = "miner_harvesting"
+                else:
+                    self.memory.state = "empty_terminal_withdraw"
                 return True
             storage = self.home.room.storage
 
@@ -230,8 +255,9 @@ class MineralHauler(RoleBase):
                 self.log("Unknown result from mineral-creep.transfer({}, {}): {}".format(storage, resource, result))
         elif state == "empty_terminal_withdraw":
             terminal = self.home.room.terminal
-            if _.sum(terminal.store) < terminal.storeCapacity * 0.75 \
-                    or _.sum(terminal.store) == terminal.store.energy <= self.home.get_target_terminal_energy():
+            if (_.sum(terminal.store) < terminal.storeCapacity * 0.75
+                or _.sum(terminal.store) == terminal.store.energy <= self.home.get_target_terminal_energy()) \
+                    and not self.home.get_emptying_terminal():
                 self.memory.state = "terminal_deposit_energy"
                 return True
             if _.sum(self.creep.carry) >= self.creep.carryCapacity:

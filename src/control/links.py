@@ -118,7 +118,6 @@ class LinkingMind:
     def tick_links(self):
         if not self.enabled_this_turn():
             return
-        time = Game.time
         main_link = self.get_main_link()
         current_output_links = []
         current_input_links = []

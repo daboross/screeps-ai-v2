@@ -1,12 +1,12 @@
 import math
 
-import context
 import flags
 from constants import target_source, role_dedi_miner, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
     PYFIND_BUILDABLE_ROADS, target_closest_energy_site
 from control import pathdef
 from tools import profiling
 from utilities import movement, global_cache
+from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -19,11 +19,14 @@ class RoleBase:
     :type target_mind: control.targets.TargetMind
     :type creep: Creep
     :type name: str
-    :type home: RoomMind
+    :type hive: control.hivemind.HiveMind
+    :type home: control.hivemind.RoomMind
     """
 
-    def __init__(self, target_mind, creep):
-        self.target_mind = target_mind
+    def __init__(self, hive_mind, target_mind, home, creep):
+        self.hive = hive_mind
+        self.targets = target_mind
+        self.home = home
         self.creep = creep
         if creep.memory:
             self.memory = creep.memory
@@ -36,16 +39,7 @@ class RoleBase:
             }
             Memory.creeps[creep.name] = memory
             self.memory = memory
-        self._home = None
         self._room = None
-
-    def get_harvesting(self):
-        return self.memory.harvesting
-
-    def set_harvesting(self, value):
-        self.memory.harvesting = value
-
-    harvesting = property(get_harvesting, set_harvesting)
 
     def get_name(self):
         return self.creep.name
@@ -57,27 +51,12 @@ class RoleBase:
 
     pos = property(get_pos)
 
-    def get_home(self):
-        """
-        :rtype: control.hivemind.RoomMind
-        """
-        if not self._home:
-            if not self.memory.home:
-                self._home = context.hive().get_closest_owned_room(self.creep.pos.roomName)
-                self.memory.home = self._home.room_name
-            else:
-                self._home = context.hive().get_room(self.memory.home)
-
-        return self._home
-
-    home = property(get_home)
-
     def get_room(self):
         """
         :rtype: control.hivemind.RoomMind
         """
         if not self._room:
-            self._room = context.hive().get_room(self.creep.room.name)
+            self._room = self.hive.get_room(self.creep.room.name)
             if not self._room:
                 self.log("ERROR: can't find room we're in from hive! Room: {}".format(self.creep.room.name))
         return self._room
@@ -186,7 +165,7 @@ class RoleBase:
         checkpoint = self.last_checkpoint
         if not checkpoint:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
-                                                        movement.is_block_clear(self.creep.room, target.x, target.y)):
+                                                        movement.is_block_clear(self.room, target.x, target.y)):
                 self.last_checkpoint = target
             return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
         elif target.isEqualTo(checkpoint):
@@ -233,7 +212,7 @@ class RoleBase:
             # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
             # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
             # but if they're just trying to get close to it, inRangeTo is what we want.
-            if self.creep.pos.inRangeTo(target, 2) and movement.is_block_clear(self.creep.room, target.x, target.y):
+            if self.creep.pos.inRangeTo(target, 2) and movement.is_block_clear(self.room, target.x, target.y):
                 self.last_checkpoint = target
         elif result == ERR_INVALID_ARGS:
             self.log("Invalid path found: {}".format(JSON.stringify(path)))
@@ -262,7 +241,7 @@ class RoleBase:
             result = self.creep.moveTo(queue_flag, _DEFAULT_PATH_OPTIONS)
         if result == OK:
             if self.creep.pos.isNearTo(queue_flag.pos) and \
-                    movement.is_block_clear(self.creep.room, queue_flag.pos.x, queue_flag.pos.y):
+                    movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
                 self.last_checkpoint = queue_flag.pos
         return result
 
@@ -282,7 +261,8 @@ class RoleBase:
                 # instead of the direct route using these flags.
                 no_exit_flag = movement.get_no_exit_flag_to(here.roomName, pos.roomName)
                 if not no_exit_flag:
-                    self.log("ERROR: Couldn't find exit flag from {} to {}.".format(here.roomName, pos.roomName))
+                    self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {})"
+                             .format(here.roomName, pos.roomName, pos))
                 self.last_checkpoint = None
                 return self.creep.moveTo(pos)  # no _DEFAULT_PATH_OPTIONS since we're doing multi-room here.
         if follow_defined_path:
@@ -293,9 +273,15 @@ class RoleBase:
             return self.creep.moveTo(pos, _DEFAULT_PATH_OPTIONS)
 
     def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
-        if not same_position_ok:
-            # do this automatically, and the roles will set it to true once they've reached their destination.
-            self.memory.stationary = False
+        run_cache = volatile_cache.mem("creeps_moved")
+        if run_cache.has(self.name):
+            value = run_cache.get(self.name) + 1
+            run_cache.set(self.name, value)
+            self.log("WARNING: Running for the {}{} time!".format(
+                value, ("th" if 4 <= value % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(value % 10, "th"))
+            ))
+        else:
+            run_cache.set(self.name, 1)
         if target.pos:
             pos = target.pos
         else:
@@ -323,6 +309,7 @@ class RoleBase:
                     self.log("WARNING: Unknown result from creep.moveByPath: {}", result)
 
                 if not already_tried:
+                    self.log("WARNING: Moving to another time!")
                     self.move_to(target, same_position_ok, follow_defined_path, True)
                 else:
                     self.log("WARNING: Failed to move from {} to {} twice.", self.creep.pos, pos)
@@ -334,7 +321,7 @@ class RoleBase:
             # Full storage use enabled! Just do that.
             storage = self.home.room.storage
             if _.sum(self.creep.carry) == self.creep.carry.energy:  # don't do this if we have minerals
-                target = self.target_mind.get_new_target(self, target_closest_energy_site)
+                target = self.targets.get_new_target(self, target_closest_energy_site)
                 if not target:
                     target = storage
                 elif target.energy <= 0 and not self.home.links.enabled:
@@ -357,7 +344,7 @@ class RoleBase:
                                 self.creep.pos.getRangeTo(target.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
-                    self.memory.harvesting = False
+                    self.memory.filling = False
                 self.move_to(target, False, follow_defined_path)
                 return False
 
@@ -380,10 +367,7 @@ class RoleBase:
                 self.log("Unknown result from creep.withdraw({}): {}", target, result)
             return False
 
-        if not self.memory.last_source_change or self.memory.last_source_change + 50 < Game.time:
-            self.target_mind.untarget(self, target_source)
-            self.memory.last_source_change = Game.time
-        source = self.target_mind.get_new_target(self, target_source)
+        source = self.targets.get_new_target(self, target_source)
         if not source:
             if self.creep.getActiveBodyparts(WORK):
                 self.log("Wasn't able to find a source!")
@@ -402,7 +386,7 @@ class RoleBase:
                 if not self.creep.pos.isNearTo(pile) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(pile.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
-                    self.memory.harvesting = False
+                    self.memory.filling = False
                 self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START, follow_defined_path)
                 return False
             result = self.creep.pickup(pile)
@@ -418,7 +402,7 @@ class RoleBase:
                 if not self.creep.pos.isNearTo(container) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(container.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
-                    self.memory.harvesting = False
+                    self.memory.filling = False
                 self.move_to_with_queue(container, flags.SOURCE_QUEUE_START, follow_defined_path)
 
             result = self.creep.withdraw(container, RESOURCE_ENERGY)
@@ -436,7 +420,7 @@ class RoleBase:
                     if not self.creep.pos.isNearTo(miner) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                             and self.creep.pos.getRangeTo(miner.pos) > 5:
                         # a spawn fill has given use some extra energy, let's go use it.
-                        self.memory.harvesting = False
+                        self.memory.filling = False
                     if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
                         # Just get all you can - if this much has built up, it means something's blocking the queue...
                         self.move_to(miner)
@@ -456,8 +440,6 @@ class RoleBase:
             self.move_to(source, False, follow_defined_path)
             return False
 
-        if not self.memory.action_start_time:
-            self.memory.action_start_time = Game.time
         result = self.creep.harvest(source)
 
         if result != OK and result != ERR_NOT_ENOUGH_RESOURCES:
@@ -465,9 +447,8 @@ class RoleBase:
         return False
 
     def finished_energy_harvest(self):
-        del self.memory.action_start_time
-        self.target_mind.untarget(self, target_source)
-        self.target_mind.untarget(self, target_closest_energy_site)
+        self.targets.untarget(self, target_source)
+        self.targets.untarget(self, target_closest_energy_site)
 
     def repair_nearby_roads(self):
         if self.creep.getActiveBodyparts(WORK) <= 0:
@@ -491,6 +472,7 @@ class RoleBase:
         if len(depots):
             self.move_to(depots[0], True, follow_defined_path)
         else:
+            self.log("WARNING: No depots found in {}!".format(self.home))
             depots = flags.find_flags_global(flags.DEPOT)
             if len(depots):
                 self.move_to(depots[0], True, follow_defined_path)
@@ -519,7 +501,6 @@ class RoleBase:
     def empty_to_storage(self):
         total = _.sum(self.creep.carry)
         if total > 0:
-            self.creep.say("Emptying", True)
             storage = self.home.room.storage
             if storage:
                 if self.creep.pos.isNearTo(storage.pos):
@@ -529,7 +510,7 @@ class RoleBase:
                             if result == OK:
                                 return True
                             else:
-                                self.log("Unknown result from emptying-creep.transfer({}, {}): {}"
+                                self.log("Unknown result from creep.transfer({}, {}): {}"
                                          .format(storage, rtype, result))
                     else:
                         self.log("[empty_to_storage] Couldn't find resource to empty!")
@@ -600,10 +581,7 @@ class RoleBase:
 
     def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:
-            if self.memory.action_start_time:
-                time = Game.time - self.memory.action_start_time
-            else:
-                time = Game.time
+            time = Game.time
             if len(args):
                 stuff = task_array[0][time % len(task_array[0])].format(*args)
             else:
@@ -618,6 +596,9 @@ class RoleBase:
         :type args: list[object]
         """
         print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
+
+    def should_pickup(self, resource_type=None):
+        return not resource_type or resource_type == RESOURCE_ENERGY
 
     def toString(self):
         return "Creep[role: {}, home: {}]".format(self.memory.role, self.home.room_name)

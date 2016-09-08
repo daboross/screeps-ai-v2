@@ -12,12 +12,12 @@ __pragma__('noalias', 'name')
 
 
 # TODO: abstract path movement out of TransportPickup into a higher class.
-class RemoteMiner(RoleBase, TransportPickup):
+class RemoteMiner(TransportPickup):
     def run(self):
-        source_flag = self.target_mind.get_existing_target(self, target_remote_mine_miner)
+        source_flag = self.targets.get_existing_target(self, target_remote_mine_miner)
         if not source_flag:
             self.log("WARNING: Getting new remote mine for remote miner!")
-            source_flag = self.target_mind.get_new_target(self, target_remote_mine_miner)
+            source_flag = self.targets.get_new_target(self, target_remote_mine_miner)
         if not source_flag:
             self.log("Remote miner can't find any sources! Flag: {}".format(source_flag))
             self.memory.role = role_recycling
@@ -25,10 +25,6 @@ class RemoteMiner(RoleBase, TransportPickup):
             self.report(speech.remote_miner_no_flag)
             return False
         if source_flag.memory.sponsor != self.home.room_name:
-            self.log("Remote miner currently targeting foreign mine! Mine: {}, sponsor: {}, home: {},"
-                     " home.targeting: {}. Adjusting home accordingly!".format(source_flag, source_flag.memory.sponsor,
-                                                                               self.home.room_name,
-                                                                               self.home.remote_mining_operations))
             self.memory.home = source_flag.memory.sponsor
 
         source_flag.memory.remote_miner_targeting = self.name
@@ -41,8 +37,7 @@ class RemoteMiner(RoleBase, TransportPickup):
             self.report(speech.remote_miner_moving)
             return False
 
-        self.memory.stationary = True
-        sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
+        sources_list = self.room.find_at(FIND_SOURCES, source_flag.pos)
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             self.report(speech.remote_miner_flag_no_source)
@@ -60,7 +55,7 @@ class RemoteMiner(RoleBase, TransportPickup):
         return False
 
     def _calculate_time_to_replace(self):
-        source = self.target_mind.get_new_target(self, target_remote_mine_miner)
+        source = self.targets.get_new_target(self, target_remote_mine_miner)
         if not source:
             return -1
         path = self.home.honey.find_path(self.home.spawn, source)
@@ -74,11 +69,11 @@ profiling.profile_whitelist(RemoteMiner, ["run"])
 # TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class RemoteHauler(SpawnFill, TransportPickup):
     def run(self):
-        pickup = self.target_mind.get_existing_target(self, target_remote_mine_hauler)
+        pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
-            self.target_mind.untarget(self, target_closest_energy_site)
-            pickup = self.target_mind.get_new_target(self, target_remote_mine_hauler)
+            self.targets.untarget(self, target_closest_energy_site)
+            pickup = self.targets.get_new_target(self, target_remote_mine_hauler)
 
         if not pickup:
             self.memory.role = role_recycling
@@ -88,7 +83,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
         if _.sum(self.creep.carry) > self.creep.carry.energy:
             fill = self.home.room.storage
         else:
-            fill = self.target_mind.get_new_target(self, target_closest_energy_site, pickup.pos)
+            fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
             if fill and fill.energy >= fill.energyCapacity and fill.structureType == STRUCTURE_LINK and \
                     not self.home.links.enabled:
                 fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
@@ -102,7 +97,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
         return self.transport(pickup, fill)
 
     def _calculate_time_to_replace(self):
-        source = self.target_mind.get_new_target(self, target_remote_mine_hauler)
+        source = self.targets.get_new_target(self, target_remote_mine_hauler)
         if not source:
             return -1
         path = self.home.honey.find_path(self.home.spawn, source)
@@ -173,10 +168,6 @@ class RemoteReserve(RoleBase):
         if not self.creep.pos.isNearTo(controller.pos):
             self.move_to(controller)
             return
-
-        self.memory.stationary = True
-        if not self.memory.action_start_time:
-            self.memory.action_start_time = Game.time
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
             self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",

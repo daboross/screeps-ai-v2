@@ -1,6 +1,5 @@
 import math
 
-import context
 import flags
 import spawning
 from constants import *
@@ -375,7 +374,7 @@ class TargetMind:
             distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
             if distance < closest_distance:
                 if structure.color:
-                    max = 1
+                    max = math.ceil(creep.home.role_count(role_spawn_fill) / len(structures))
                 else:
                     max = structure.energyCapacity / 50.0
                 if not current_carry or current_carry < max:
@@ -411,15 +410,12 @@ class TargetMind:
         """
         smallest_work_force = Infinity
         best_id = None
-        needs_refresh = False
         for site_id in creep.home.building.next_priority_construction_targets():
             if site_id.startsWith("flag-"):
                 max_work = _MAX_BUILDERS
             else:
                 site = Game.getObjectById(site_id)
                 if not site:
-                    # we've built it
-                    needs_refresh = True
                     continue
                 max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
             current_work = self.workforce_of(target_construction, site_id)
@@ -431,8 +427,6 @@ class TargetMind:
             elif current_work < smallest_work_force:
                 best_id = site_id
                 smallest_work_force = current_work
-        if needs_refresh:
-            context.room().building.refresh_building_targets()
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits, max_work=None):
@@ -479,6 +473,8 @@ class TargetMind:
                 if not current_num or current_num < 1:
                     # List is already in priority.
                     return struct_id
+        return _.min(creep.home.building.next_priority_big_repair_targets(),
+                     lambda sid: self.targets[target_big_repair][sid] or 0)
 
     def _find_new_destruction_site(self, creep):
         """

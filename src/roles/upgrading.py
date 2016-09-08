@@ -1,5 +1,5 @@
 import speech
-from constants import recycle_time, role_recycling, role_upgrader, target_closest_energy_site, creep_base_full_upgrader
+from constants import recycle_time, role_recycling, role_upgrader, target_closest_energy_site
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement
@@ -17,7 +17,7 @@ def split_pos_str(pos_str):
 
 class Upgrader(RoleBase):
     def run(self):
-        link = self.target_mind.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
+        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
         if link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
             return self.run_dedicated_upgrading(link)
         else:
@@ -54,7 +54,7 @@ class Upgrader(RoleBase):
             a_creep_with_energy = None
             for pos in available_positions:
                 x, y = split_pos_str(pos)
-                that_creep = _.find(self.home.room.lookForAt(LOOK_CREEPS, x, y))
+                that_creep = _.find(self.home.find_at(FIND_MY_CREEPS, x, y))
                 if not that_creep:
                     self.move_to(__new__(RoomPosition(x, y, self.home.room_name)))
                     break
@@ -102,69 +102,59 @@ class Upgrader(RoleBase):
         if result != OK:
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
 
+    def should_pickup(self, resource_type=None):
+        if not RoleBase.should_pickup(self, resource_type):
+            return False
+        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
+        return not self.home.upgrading_paused() and not \
+            (link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4)
+
     def run_individual_upgrading(self):
-        del self.memory.emptying
         if self.creep.ticksToLive < recycle_time:
             self.memory.role = role_recycling
             self.memory.last_role = role_upgrader
             return False
-        if self.memory.harvesting and self.creep.carry.energy >= self.creep.carryCapacity:
-            self.memory.harvesting = False
+        if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
+            self.memory.filling = False
             self.finished_energy_harvest()
-        elif not self.memory.harvesting and self.creep.carry.energy <= 0:
-            self.memory.harvesting = True
+        elif not self.memory.filling and self.creep.carry.energy <= 0:
+            self.memory.filling = True
             self.finished_energy_harvest()
 
         if not self.home.room.controller.my or (self.home.upgrading_paused()
                                                 and self.creep.room.controller.ticksToDowngrade >= 5000):
             self.report(speech.upgrading_upgrading_paused)
-            self.memory.emptying = True  # flag for spawn fillers to not refill me.
             if not self.empty_to_storage():
                 self.go_to_depot()
             return False
 
-        if self.memory.harvesting:
-            self.memory.stationary = False
-            if self.harvest_energy():
-                return True
-
-        target = self.home.room.controller
-        if not self.creep.pos.inRangeTo(target.pos, 3):
-            if self.memory.harvesting:
-                # Let's upgrade if we're in range while we're harvesting, but otherwise we can just harvest.
-                return False
-            self.move_to(target)
-            self.memory.stationary = False
-            self.report(speech.upgrading_moving_to_controller)
-            return False
-
-        self.memory.stationary = True
-        result = self.creep.upgradeController(target)
-        if result == ERR_NOT_ENOUGH_RESOURCES:
-            if not self.memory.harvesting:
-                self.memory.harvesting = True
-                return True
-        elif result == OK:
-            # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering
-            # from. Otherwise, move towards the controller to leave room for other upgraders
-            if self.creep.carryCapacity > 100:
-                if not self.memory.harvesting:
-                    self.basic_move_to(target)
-            else:
-                if self.memory.base == creep_base_full_upgrader and not self.memory.harvesting and \
-                                self.creep.carry.energy < self.creep.carryCapacity:
-                    self.harvest_energy()
-            self.report(speech.upgrading_ok)
+        if self.memory.filling:
+            self.harvest_energy()
         else:
-            self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
+            target = self.home.room.controller
+            if not self.creep.pos.inRangeTo(target.pos, 3):
+                self.move_to(target)
+                self.report(speech.upgrading_moving_to_controller)
+                return False
 
-            if self.creep.carry.energy < self.creep.carryCapacity:
-                self.memory.harvesting = True
+            result = self.creep.upgradeController(target)
+            if result == ERR_NOT_ENOUGH_RESOURCES:
+                if not self.memory.filling:
+                    self.memory.filling = True
+                    return True
+            elif result == OK:
+                # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering
+                # from. Otherwise, move towards the controller to leave room for other upgraders
+                self.basic_move_to(target)
+                self.report(speech.upgrading_ok)
             else:
-                self.go_to_depot()
-                self.report(speech.upgrading_unknown_result)
+                self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
 
-        return False
+                if self.creep.carry.energy < self.creep.carryCapacity:
+                    self.memory.filling = True
+                else:
+                    self.go_to_depot()
+                    self.report(speech.upgrading_unknown_result)
 
 
 profiling.profile_whitelist(Upgrader, ["run"])

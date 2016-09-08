@@ -10,12 +10,12 @@ class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
         self.repair_nearby_roads()
         total_carried_now = _.sum(self.creep.carry)
-        if self.memory.pickup:
+        if self.memory.filling:
             target = pickup.pos
             if total_carried_now >= self.creep.carryCapacity:
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
-                self.memory.pickup = False
+                self.memory.filling = False
                 self.follow_energy_path(pickup, fill)
                 return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
@@ -29,7 +29,7 @@ class TransportPickup(RoleBase):
 
                     if result == OK:
                         if energy.amount > self.creep.carryCapacity - _.sum(self.creep.carry):
-                            self.memory.pickup = False
+                            self.memory.filling = False
                             self.follow_energy_path(pickup, fill)
                     else:
                         self.log("Unknown result from creep.pickup({}): {}".format(energy, result))
@@ -56,7 +56,7 @@ class TransportPickup(RoleBase):
                     else:
                         return
                     if amount > self.creep.carryCapacity - _.sum(self.creep.carry):
-                        self.memory.pickup = False
+                        self.memory.filling = False
                         self.follow_energy_path(pickup, fill)
                 else:
                     if self.pos.isNearTo(target):
@@ -75,7 +75,7 @@ class TransportPickup(RoleBase):
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage
             elif self.creep.carry.energy <= 0:
-                self.creep.memory.pickup = True
+                self.creep.memory.filling = True
                 self.follow_energy_path(fill, pickup)
                 return
 
@@ -103,7 +103,7 @@ class TransportPickup(RoleBase):
                 if self.creep.ticksToLive < 2.2 * self.path_length(fill, pickup):
                     self.creep.suicide()
                     return
-                self.memory.pickup = True
+                self.memory.filling = True
                 self.follow_energy_path(fill, pickup)
                 return
 
@@ -113,7 +113,7 @@ class TransportPickup(RoleBase):
                 empty = fill.storeCapacity - _.sum(fill.store)
 
             if min(amount, empty) >= _.sum(self.creep.carry):
-                # self.memory.pickup = True
+                # self.memory.filling = True
                 self.follow_energy_path(fill, pickup)
 
     def path_length(self, origin, target):
@@ -162,12 +162,15 @@ class TransportPickup(RoleBase):
                 if not self.memory.tried_new_next_ppos:
                     self.memory.tried_new_next_ppos = True
                 else:
+                    del self.memory.tried_new_next_ppos
                     # the path is incorrect!
                     self.log("WARNING: Path from {} to {} found to be cached incorrectly - it should contain {}, but"
                              " it doesn't.".format(origin, target, new_target))
                     self.log("Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}".format(
                         self.pos.roomName, JSON.stringify(path, 0, 4)))
                     self.room.honey.clear_cached_path(origin, target)
+            else:
+                del self.memory.tried_new_next_ppos
             self.creep.moveTo(new_target)
             if not self.memory.off_path_for:
                 self.memory.off_path_for = 1
