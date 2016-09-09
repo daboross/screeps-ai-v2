@@ -119,6 +119,8 @@ class MiningMind:
     def get_active_mining_flags(self):
         if self._active_mining_flags is None:
             max_count = self.room.get_max_mining_op_count()
+            if max_count > len(self.available_mines):
+                max_count = len(self.available_mines)
             self._active_mining_flags = self.available_mines[:max_count]
         return self._active_mining_flags
 
@@ -189,7 +191,7 @@ class MiningMind:
                 },
                 'run_after': run_after,
             }
-        elif claimer.memory.calculated_replacement_time <= Game.time \
+        elif live_creep_utils.replacement_time(claimer) <= Game.time \
                 and not Game.creeps[claimer.memory.replacement]:
             room = Game.rooms[flag.pos.roomName]
             if not room or not room.controller.reservation or room.controller.reservation.ticksToEnd < 4000:

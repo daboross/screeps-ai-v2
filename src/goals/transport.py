@@ -65,12 +65,15 @@ class TransportPickup(RoleBase):
                         self.follow_energy_path(fill, pickup)
                 return
             # No energy, let's just wait
-            if not _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, target),
-                          lambda c: c.getActiveBodyparts(WORK) >= 5):
+            if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                      lambda c: c.getActiveBodyparts(WORK) >= 5 and not c.pos.isNearTo(target)):
                 if Game.time % 5 == 0:
                     self.follow_energy_path(pickup, fill)
                 else:
                     self.follow_energy_path(fill, pickup)
+            elif _.sum(self.creep.carry) > self.creep.carryCapacity * 0.5:
+                self.memory.filling = False
+                self.follow_energy_path(pickup, fill)
         else:
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage

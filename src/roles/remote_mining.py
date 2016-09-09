@@ -37,6 +37,16 @@ class RemoteMiner(TransportPickup):
             self.report(speech.remote_miner_moving)
             return False
 
+        container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
+                           lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) < s.storeCapacity)
+        if container and not self.pos.isEqualTo(container.pos):
+            self.basic_move_to(container)
+        else:
+            biggest_pile = _.max(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, source_flag.pos),
+                                 lambda e: e.amount)
+            if biggest_pile and not self.pos.isEqualTo(biggest_pile.pos):
+                self.basic_move_to(biggest_pile)
+
         sources_list = self.room.find_at(FIND_SOURCES, source_flag.pos)
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
@@ -112,6 +122,11 @@ class RemoteReserve(RoleBase):
     def find_claim_room(self):
         claim_room = self.memory.claiming
         if claim_room:
+            if Memory.reserving[claim_room] != self.name:
+                if Memory.reserving[claim_room] in Game.creeps:
+                    self.creep.suicide()
+                else:
+                    Memory.reserving[claim_room] = self.name
             return claim_room
         self.log("WARNING: Calculating new reserve target for remote mining reserver!")
         if not Memory.reserving:

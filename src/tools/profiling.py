@@ -8,7 +8,8 @@ enabled = False
 initialized = False
 custom = False
 
-if Memory.meta and (Memory.meta.enable_profiling or Memory.meta.auto_enable_profiling):
+if Memory.meta and (Memory.meta.enable_profiling or
+                        (Memory.meta.auto_enable_profiling and custom)):
     enabled = True
 else:
     enabled = False

@@ -106,6 +106,8 @@ class HiveMind:
                 print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.room_name, flag.name))
                 flag.remove()
             else:
+                if not flag.memory.active:
+                    continue
                 sponsor = self.get_room(flag.memory.sponsor)
                 if not sponsor:
                     print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
@@ -1670,11 +1672,10 @@ class RoomMind:
     def plan_next_role(self):
         funcs_to_try = [
             self._next_needed_local_mining_role,
-            lambda: self.mining.next_remote_mining_role(2 - len(self.sources)),
+            # lambda: self.mining.next_remote_mining_role(2 - len(self.sources)),
+            lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
             self._next_cheap_military_role,
             self._next_needed_local_role,
-            # lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count())
-            # if Game.cpu.bucket > 6500 else None,
             self._next_probably_local_role,
             self._next_tower_breaker_role,
         ]
