@@ -277,9 +277,7 @@ class RoleBase:
         if run_cache.has(self.name):
             value = run_cache.get(self.name) + 1
             run_cache.set(self.name, value)
-            self.log("WARNING: Running for the {}{} time!".format(
-                value, ("th" if 4 <= value % 100 <= 20 else {1: "st", 2: "nd", 3: "rd"}.get(value % 10, "th"))
-            ))
+            self.log("WARNING: Moving {} times!".format(value))
         else:
             run_cache.set(self.name, 1)
         if target.pos:

@@ -37,13 +37,19 @@ def run(room):
         del room.mem.alert_for
         return
 
-    if room.mem.alert_for >= 50:
-        return
-
     towers = _.filter(room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER})
     hostiles = room.find(FIND_HOSTILE_CREEPS)
+
+    if room.mem.alert_for >= 50:
+        hostiles = _.filter(hostiles, lambda c: c.owner.username == "Invader")
+        if not len(hostiles):
+            return
+
     for tower in towers:
-        tower.attack(hostiles[random.randint(0, len(hostiles))])
+        index = random.randint(0, len(hostiles))
+        hostile = hostiles[index]
+        tower.attack()
+        print("[{}] Attacking {} (i: {})".format(room.room_name, hostile, index))
 
 
 run = profiling.profiled(run, "tower.run")

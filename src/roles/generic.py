@@ -1,5 +1,6 @@
 import speech
 from constants import *
+from control import pathdef
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
@@ -64,6 +65,10 @@ class ReplacingExpendedCreep(RoleBase):
                 self.move_to(old_creep)
                 return
 
+        if self.pos.isNearTo(old_creep.pos) and not self.creep.spawning:
+            self.creep.move(pathdef.direction_to(self.pos, old_creep.pos))
+            old_creep.move(pathdef.direction_to(old_creep.pos, self.pos))
+
         # self.log("Sending {} to recycling, and taking over as a {}.".format(
         #     old_name, self.memory.replacing_role,
         # ))
@@ -80,7 +85,6 @@ class ReplacingExpendedCreep(RoleBase):
         del self.memory.replacement
         del self.memory._path
         del self.memory.last_checkpoint
-        self.memory.replaced = True
 
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role

@@ -1404,7 +1404,7 @@ class RoomMind:
                     return 1
                 else:
                     return 2  # without any containers, we need 2 so the miner can constantly deposit into one of them.
-        elif self.get_target_terminal_energy() or self.get_emptying_terminal():
+        elif self.get_target_terminal_energy() or self.get_emptying_terminal() or self.mem.empty_to:
             # this method returns 0 once the terminal has reached it's target
             # this is really a hack, and should be changed soon!
             return 1
