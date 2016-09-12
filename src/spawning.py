@@ -7,6 +7,8 @@ from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],

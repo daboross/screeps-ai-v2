@@ -13,6 +13,8 @@ from roles import utility
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 role_classes = {
     role_upgrader: upgrading.Upgrader,

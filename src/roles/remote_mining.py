@@ -9,6 +9,8 @@ from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 
 # TODO: abstract path movement out of TransportPickup into a higher class.

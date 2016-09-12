@@ -6,6 +6,8 @@ from utilities import global_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 
 def reassign_room_roles(room):

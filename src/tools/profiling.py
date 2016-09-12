@@ -2,6 +2,8 @@ from tools import decorate
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 module_profiler = None
 enabled = False

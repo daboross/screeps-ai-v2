@@ -1,6 +1,8 @@
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 _volatile_memory = None
 _tick_stored_for = 0

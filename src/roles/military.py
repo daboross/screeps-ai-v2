@@ -13,6 +13,8 @@ from utilities.movement import center_pos, room_xy_to_name, parse_room_to_xy
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 
 def delete_target(target_id):

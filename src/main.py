@@ -20,6 +20,8 @@ from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 require("perf")()
 
@@ -71,14 +73,14 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
                 print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
                                                                         creep.memory.role))
     except:
-        e = __except__
+        e = __except0__
         role = creep.memory.role
         Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
             role if role else "[no role]", creep.name, creep.memory.home, e.stack if e else "e == null??"
         ), 10)
         print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
                                                        role if role else "[no role]"))
-        print(e.stack if e else "e == null??")
+        print(e.stack if e else "e == null?? {}".format(e))
 
 
 def run_room(target_mind, creeps_skipped, room):

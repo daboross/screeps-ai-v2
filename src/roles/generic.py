@@ -6,6 +6,8 @@ from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 immediately_replace_roles = [
     role_local_hauler,

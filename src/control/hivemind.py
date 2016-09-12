@@ -18,6 +18,8 @@ from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 
 def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):

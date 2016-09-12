@@ -3,6 +3,8 @@ import creep_wrappers
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
 
 
 def replacement_time(creep):
