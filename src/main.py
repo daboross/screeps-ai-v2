@@ -14,7 +14,7 @@ from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling
-from utilities import consistency, global_cache
+from utilities import consistency, global_cache, averages
 from utilities import movement
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -91,7 +91,10 @@ def run_room(target_mind, creeps_skipped, room):
     """
     context.set_room(room)
     if not Memory.skipped_last_turn:
-        room.precreep_tick_actions()
+        try:
+            room.precreep_tick_actions()
+        except:
+            print("[{}] Error running precreep_tick_actions:\n{}".format(room.room_name, __except0__.stack))
     if Memory.skipped_last_turn and room.room_name in Memory.skipped_last_turn:
         for name in Memory.skipped_last_turn[room.room_name]:
             creep = Game.creeps[name]
@@ -116,6 +119,8 @@ def run_room(target_mind, creeps_skipped, room):
 
 
 def main():
+    averages.start_main_loop()
+
     if not Memory.meta:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
@@ -197,6 +202,8 @@ def main():
         print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
         Memory.skipped_last_turn = creeps_skipped
 
+    averages.end_main_loop()
+
 
 module.exports.loop = profiling.wrap_main(main)
 
@@ -213,7 +220,8 @@ __pragma__('js', 'global').py = {
     "cache": global_cache,
     "get_creep": lambda name: wrap_creep(context.hive(), context.targets(),
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
-    if name in Game.creeps else None
+    if name in Game.creeps else None,
+    "cpu_avg": averages.get_average,
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)

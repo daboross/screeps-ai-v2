@@ -98,8 +98,10 @@ def _get_custom_func(func, name):
             arguments = ""
             for arg in args:
                 try:
-                    if typeof(arg) == 'object' or typeof(arg) == 'number':
+                    if typeof(arg) == 'object' or _.isNumber(arg):
                         arg = arg.toString()
+                    elif _.isString(arg):
+                        arg = arg
                     else:
                         arg = "[non-viewable]"
                 except:
