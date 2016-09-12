@@ -221,7 +221,7 @@ __pragma__('js', 'global').py = {
     "get_creep": lambda name: wrap_creep(context.hive(), context.targets(),
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
-    "cpu_avg": averages.get_average,
+    "cpu_avg": averages.get_average_visual,
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
