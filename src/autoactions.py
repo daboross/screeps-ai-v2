@@ -1,5 +1,6 @@
 import context
-from constants import role_scout
+import flags
+from constants import role_scout, INVADER_USERNAME
 from control import pathdef
 from tools import profiling
 from utilities import volatile_cache, movement
@@ -23,7 +24,7 @@ def pathfinder_enemy_array_for_room(room_name):
             if abs(dx) <= 1 and abs(dy) <= 1:
                 if owner == "Source Keeper":
                     enemy_range = 5
-                elif owner == "Invader":
+                elif owner == INVADER_USERNAME:
                     enemy_range = 20
                 else:
                     enemy_range = 60
@@ -86,6 +87,8 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
     for creep in room.find(FIND_CREEPS):
         set_in_range(creep.pos, 1, 5, 0)
         cost_matrix.set(creep.pos.x, creep.pos.y, 255)
+    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+        set_in_range(flag.pos, 4, 255, 0)
 
     if not new_to_use_as_base:
         cache.set(room_name, cost_matrix)

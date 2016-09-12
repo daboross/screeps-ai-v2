@@ -6,7 +6,8 @@ __pragma__('noalias', 'Infinity')
 
 # Creep base parts
 creep_base_worker = "worker"
-creep_base_full_miner = "fast_big_miner"
+creep_base_3000miner = "fast_big_miner"
+creep_base_4500miner = "faster_bigger_miner"
 creep_base_hauler = "med_hauler"
 creep_base_work_full_move_hauler = "fw_fm_hauler"
 creep_base_work_half_move_hauler = "fw_hm_hauler"
@@ -66,14 +67,11 @@ role_simple_dismantle = "simple_dismantler"
 role_scout = "scout"
 
 role_bases = {
-    role_upgrader: "ask",
     role_spawn_fill_backup: creep_base_worker,
     role_spawn_fill: creep_base_hauler,
-    role_dedi_miner: creep_base_full_miner,
+    role_dedi_miner: creep_base_3000miner,
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_hauler,
-    role_remote_miner: creep_base_full_miner,
-    role_remote_hauler: "ask",
     role_remote_mining_reserve: creep_base_reserving,
     role_local_hauler: creep_base_hauler,
     role_link_manager: creep_base_hauler,
@@ -92,7 +90,8 @@ role_bases = {
 
 default_roles = {
     creep_base_worker: role_spawn_fill_backup,
-    creep_base_full_miner: role_remote_miner,
+    creep_base_3000miner: role_remote_miner,
+    creep_base_4500miner: role_remote_miner,
     creep_base_hauler: role_cleanup,
     creep_base_work_full_move_hauler: role_remote_hauler,
     creep_base_work_half_move_hauler: role_remote_hauler,
@@ -111,5 +110,7 @@ default_roles = {
 
 PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"
 PYFIND_BUILDABLE_ROADS = "pyfind_buildable_roads"
+INVADER_USERNAME = "Invader"
+SK_USERNAME = "Source Keeper"
 
 recycle_time = 50

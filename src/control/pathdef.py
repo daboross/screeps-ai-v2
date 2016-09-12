@@ -201,6 +201,12 @@ class HoneyTrails:
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
                         matrix.set(x, y, 2 * if_roads_mutiplier)
 
+    def mark_sk_lairs(self, room_name, matrix, opts):
+        for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+            for x in range(flag.pos.x - 4, flag.pos.x + 5):
+                for y in range(flag.pos.y - 4, flag.pos.y + 5):
+                    matrix.set(x, y, 255)
+
     def _new_cost_matrix(self, room_name, origin, destination, opts):
         use_roads = opts['roads']
         future_chosen = opts['future_chosen']
@@ -227,6 +233,7 @@ class HoneyTrails:
                 matrix = __new__(PathFinder.CostMatrix())
                 # Avoid stepping on exit tiles unnecessarily
                 self.mark_exit_tiles(room_name, matrix, opts)
+                self.mark_sk_lairs(room_name, matrix, opts)
                 return matrix
         print("[honey] Calculating matrix for room {}.".format(room_name))
 
@@ -250,6 +257,7 @@ class HoneyTrails:
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
+        self.mark_sk_lairs(room_name, cost_matrix, opts)
 
         def wall_at(x, y):
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'

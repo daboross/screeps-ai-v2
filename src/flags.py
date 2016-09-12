@@ -18,7 +18,7 @@ REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
 RESERVE_NOW = "top_priority_reserve"
 SPAWN_FILL_WAIT = "spawnfill_wait"
-PATH_FINDING_AVOID = "avoid_moving_through"
+SK_LAIR_SOURCE_NOTED = "avoid_moving_through"
 SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
 MAIN_BUILD = "build"
@@ -55,7 +55,7 @@ DIR_TO_NO_EXIT_FLAG = {
 
 flag_definitions = {
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
-    PATH_FINDING_AVOID: (COLOR_BLUE, COLOR_WHITE),
+    SK_LAIR_SOURCE_NOTED: (COLOR_BLUE, COLOR_WHITE),
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
     SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
     TD_H_H_STOP: (COLOR_CYAN, COLOR_RED),

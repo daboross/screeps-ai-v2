@@ -858,8 +858,12 @@ class RoomMind:
         if not Memory.hostile_last_positions:
             Memory.hostile_last_positions = {}
 
+        sk_room = False
         if self.hostile:
-            return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
+            if self.room.controller:
+                return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
+            else:
+                sk_room = True
 
         remove = None
         for hostile_id, hostile_room, pos, owner, dead_at in Memory.hostiles:
@@ -875,6 +879,10 @@ class RoomMind:
         new_hostiles = False
         targets = self.find(FIND_HOSTILE_CREEPS)
         for hostile in targets:
+            if sk_room and hostile.owner.username != INVADER_USERNAME and \
+                    (hostile.owner.username == SK_USERNAME or
+                         (hostile.getActiveBodyparts(ATTACK) == 0 and hostile.getActiveBodyparts(RANGED_ATTACK) == 0)):
+                continue
             # TODO: overhaul hostile info storage
             hostile_list = _.find(Memory.hostiles, lambda t: t[0] == hostile.id and t[1] == self.room_name)
             if hostile_list:
@@ -1208,13 +1216,13 @@ class RoomMind:
             room_mine_to_protect = {}
             if Memory.hostiles:
                 for hostile_id, hostile_room, hostile_pos, hostile_owner in Memory.hostiles:
-                    if hostile_owner == "Invader":  # TODO: ranged defenders to go against player attackers!
+                    if hostile_owner == INVADER_USERNAME:  # TODO: ranged defenders to go against player attackers!
                         if hostile_room not in room_mine_to_protect:
                             room = self.hive_mind.get_room(hostile_room)
                             closest_owned_room = self.hive_mind.get_closest_owned_room(hostile_room)
-                            if (not first or (room and room.room_name == self.room_name)) \
+                            if (not first or (room and hostile_room == self.room_name)) \
                                     and closest_owned_room.room_name == self.room_name \
-                                    and (room.room_name != self.room_name or self.mem.alert_for > 20):
+                                    and (hostile_room != self.room_name or self.mem.alert_for > 20):
                                 room_mine_to_protect[hostile_room] = True
                             else:
                                 room_mine_to_protect[hostile_room] = False
@@ -1526,7 +1534,7 @@ class RoomMind:
                             spawning.max_sections_of(self, creep_base_hauler)),
             role_dedi_miner:
             # Have a maximum of 3 move for local miners
-                lambda: min(3, spawning.max_sections_of(self, creep_base_full_miner)),
+                lambda: min(3, spawning.max_sections_of(self, creep_base_3000miner)),
             role_cleanup:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self, creep_base_hauler)))),

@@ -1,5 +1,6 @@
 import random
 
+from constants import INVADER_USERNAME
 from tools import profiling
 from utilities.screeps_constants import *
 
@@ -43,15 +44,14 @@ def run(room):
     hostiles = room.find(FIND_HOSTILE_CREEPS)
 
     if room.mem.alert_for >= 50:
-        hostiles = _.filter(hostiles, lambda c: c.owner.username == "Invader")
+        hostiles = _.filter(hostiles, lambda c: c.owner.username == INVADER_USERNAME)
         if not len(hostiles):
             return
 
     for tower in towers:
-        index = random.randint(0, len(hostiles))
-        hostile = hostiles[index]
-        tower.attack()
-        print("[{}] Attacking {} (i: {})".format(room.room_name, hostile, index))
+        hostile = hostiles[random.randint(0, len(hostiles) - 1)]
+        tower.attack(hostile)
+        print("[{}] Attacking {}".format(room.room_name, hostile))
 
 
 run = profiling.profiled(run, "tower.run")

@@ -4,7 +4,7 @@ import random
 
 import autoactions
 import flags
-from constants import target_single_flag, role_td_healer
+from constants import target_single_flag, role_td_healer, INVADER_USERNAME
 from control import pathdef
 from role_base import RoleBase
 from tools import profiling
@@ -61,7 +61,7 @@ class RoleDefender(RoleBase):
 
         target = Game.getObjectById(target_id)
 
-        if target is None or self.room.hostile:
+        if target is None or (self.room.hostile and target.owner.username != INVADER_USERNAME):
             self.memory.attack_target = None
             delete_target(target_id)
             return True
@@ -77,7 +77,6 @@ profiling.profile_whitelist(RoleDefender, ["run"])
 
 class MilitaryBase(RoleBase):
     def _find_nearest_junctions(self):
-
         room_xy = parse_room_to_xy(self.pos.roomName)
         if room_xy is None:  # we're in sim
             return []

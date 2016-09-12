@@ -16,7 +16,8 @@ initial_section = {
     creep_base_goader: [ATTACK, MOVE, TOUGH],
     creep_base_full_move_goader: [ATTACK, MOVE],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
-    creep_base_full_miner: [WORK, WORK, WORK, WORK, WORK],
+    creep_base_3000miner: [WORK, WORK, WORK, WORK, WORK],
+    creep_base_4500miner: [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK],
     creep_base_mammoth_miner: [MOVE, CARRY, WORK, WORK, WORK],
 }
 
@@ -28,7 +29,8 @@ scalable_sections = {
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [CARRY, MOVE, ATTACK],
-    creep_base_full_miner: [MOVE],
+    creep_base_3000miner: [MOVE],
+    creep_base_4500miner: [MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
     creep_base_full_move_goader: [CARRY],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
@@ -127,8 +129,8 @@ def run(room, spawn):
             else:
                 print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
                       .format(room.room_name, num_sections, new_size))
-            # Since the literal memory object is returned, this mutation will stick for until this creep has been spawned,
-            # or the target creep has been refreshed
+            # Since the literal memory object is returned, this mutation will stick for until this creep has been
+            # spawned, or the target creep has been refreshed
             num_sections = role_obj.num_sections = new_size
             cost = initial_section_cost(base) + new_size * energy_per_section(base)
         energy = cost
@@ -139,20 +141,30 @@ def run(room, spawn):
 
     descriptive_level = None
 
-    if base is creep_base_full_miner:
+    if base is creep_base_3000miner:
         if energy < 550:
-            print("[{}][spawning] Too few extensions to build a remote miner!".format(room.room_name))
+            print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
             return
         parts = []
         num_move = num_sections or 5
         num_work = 5
-        for i in range(0, num_move - 1):
-            parts.append(MOVE)
         for i in range(0, num_work):
             parts.append(WORK)
-        parts.append(MOVE)
-        if num_move < 5:
-            descriptive_level = num_move
+        for i in range(0, num_move):
+            parts.append(MOVE)
+        descriptive_level = num_move
+    elif base is creep_base_4500miner:
+        if energy < 850:
+            print("[{}][spawning] Too few extensions to build a dedicated 4500 miner!".format(room.room_name))
+            return
+        parts = []
+        num_move = num_sections or 8
+        num_work = 8
+        for i in range(0, num_work):
+            parts.append(WORK)
+        for i in range(0, num_move):
+            parts.append(MOVE)
+        descriptive_level = num_move
     elif base is creep_base_reserving:
         parts = []
         for i in range(0, num_sections):
@@ -372,7 +384,9 @@ def find_base_type(creep):
     elif part_counts[WORK] == part_counts[CARRY] / 3 == part_counts[MOVE] / 4 == total / 8:
         base = creep_base_worker
     elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 5:
-        base = creep_base_full_miner
+        base = creep_base_3000miner
+    elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 8:
+        base = creep_base_4500miner
     elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
     elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:

@@ -457,15 +457,21 @@ class RoleBase:
             return
         repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
         if len(repair):
-            result = self.creep.repair(repair[0])
+            if len(repair) > 1:
+                result = self.creep.repair(_.min(repair, 'hits'))
+            else:
+                result = self.creep.repair(repair[0])
             if result != OK:
-                self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
+                self.log("Unknown result from passingby-road-repair on {}: {}".format(repair, result))
         else:
             build = self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos)
             if len(build):
-                result = self.creep.build(build[0])
+                if len(build) > 1:
+                    result = self.creep.build(_.max(build, 'progress'))
+                else:
+                    result = self.creep.build(build[0])
                 if result != OK:
-                    self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
+                    self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
 
     def go_to_depot(self, follow_defined_path=False):
         depots = flags.find_flags(self.home, flags.DEPOT)
