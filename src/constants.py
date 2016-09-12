@@ -9,6 +9,7 @@ creep_base_worker = "worker"
 creep_base_3000miner = "fast_big_miner"
 creep_base_4500miner = "faster_bigger_miner"
 creep_base_hauler = "med_hauler"
+creep_base_half_move_hauler = "hm_hauler"
 creep_base_work_full_move_hauler = "fw_fm_hauler"
 creep_base_work_half_move_hauler = "fw_hm_hauler"
 creep_base_full_upgrader = "min_carry_worker"
@@ -21,6 +22,8 @@ creep_base_goader = "med_goader"
 creep_base_full_move_goader = "fm_goader"
 creep_base_dismantler = "med_dismantle"
 creep_base_full_move_dismantler = "fm_dismantle"
+creep_base_power_attack = "power_attack"
+creep_base_full_move_power_attack = "fm_power_attack"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room,
 # and away from enemies.
@@ -39,6 +42,7 @@ target_remote_mine_hauler = "remote_mine_hauler"
 target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
+target_single_flag2 = "sccf2"  # single creep, closest flag
 creep_base_scout = "scout"
 
 role_upgrader = "upgrader"
@@ -64,6 +68,8 @@ role_mineral_hauler = "local_mineral_hauler"
 role_td_healer = "tower_drain_healer"
 role_td_goad = "tower_drain_goader"
 role_simple_dismantle = "simple_dismantler"
+role_power_attack = "attack_power"
+role_power_cleanup = "power_cleanup"
 role_scout = "scout"
 
 role_bases = {
@@ -82,8 +88,6 @@ role_bases = {
     role_room_reserve: creep_base_reserving,
     role_mineral_miner: creep_base_mammoth_miner,
     role_mineral_hauler: creep_base_hauler,
-    role_td_goad: creep_base_goader,
-    role_td_healer: creep_base_half_move_healer,
     role_simple_dismantle: creep_base_dismantler,
     role_scout: creep_base_scout,
 }
@@ -106,6 +110,8 @@ default_roles = {
     creep_base_full_move_dismantler: role_simple_dismantle,
     creep_base_full_upgrader: role_upgrader,
     creep_base_scout: role_recycling,
+    creep_base_power_attack: role_power_attack,
+    creep_base_full_move_power_attack: role_power_attack,
 }
 
 PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"

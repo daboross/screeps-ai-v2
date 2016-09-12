@@ -65,6 +65,7 @@ class TargetMind:
             target_reserve_now: self._find_top_priority_reservable_room,
             target_closest_energy_site: self._find_closest_deposit_site,
             target_single_flag: self._find_closest_flag,
+            target_single_flag2: self._find_closest_flag,
         }
 
     def __get_targets(self):
@@ -261,7 +262,7 @@ class TargetMind:
         target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:
             return None
-        if target_id.startswith("flag-"):
+        if target_id.startswith and target_id.startswith("flag-"):
             target = Game.flags[target_id[5:]]
         else:
             target = Game.getObjectById(target_id)
@@ -613,14 +614,18 @@ class TargetMind:
                         closest_flag = flag_id
         return closest_flag
 
-    def _find_closest_flag(self, creep, flag_type):
+    def _find_closest_flag(self, creep, flag_type, pos):
+        if not pos:
+            pos = creep.pos
+        elif pos.pos:
+            pos = pos.pos
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
             flag_id = "flag-{}".format(flag.name)
             current = self.targets[target_single_flag][flag_id]
             if not current or current < 1:
-                distance = movement.distance_squared_room_pos(creep.creep.pos, flag.pos)
+                distance = movement.distance_squared_room_pos(pos, flag.pos)
                 if distance < closest_distance:
                     closest_distance = distance
                     closest_flag = flag_id

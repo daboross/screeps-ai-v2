@@ -1066,19 +1066,22 @@ class RoomMind:
         else:
             return False
 
+    def _any_closest_to_me(self, flag_type):
+        return _.find(
+            flags.find_flags_global(flag_type),
+            lambda f: self.hive_mind.get_closest_owned_room(f.pos.roomName).room_name == self.room_name
+        )
+
     def conducting_siege(self):
         if self._conducting_siege is None:
-            def any_closest_to_me(flag_type):
-                return _.find(
-                    flags.find_flags_global(flag_type),
-                    lambda f: self.hive_mind.get_closest_owned_room(f.pos.roomName).room_name == self.room_name
+            self._conducting_siege = Game.cpu.bucket > 4200 and not not (
+                self._any_closest_to_me(flags.ATTACK_DISMANTLE)
+                or (
+                    (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK))
+                    and self._any_closest_to_me(flags.TD_H_H_STOP)
+                    and self._any_closest_to_me(flags.TD_H_D_STOP)
                 )
-
-            self._conducting_siege = not not (any_closest_to_me(flags.ATTACK_DISMANTLE) or (
-                any_closest_to_me(flags.TD_D_GOAD)
-                and any_closest_to_me(flags.TD_H_H_STOP)
-                and any_closest_to_me(flags.TD_H_D_STOP)
-            ))
+            )
         return self._conducting_siege
 
     def get_max_mining_op_count(self):
@@ -1618,75 +1621,77 @@ class RoomMind:
                     }
         return None
 
-    def _next_tower_breaker_role(self):
-
-        if not self.conducting_siege():
-            return None
-        # TODO: This is basically the exact same huge loop done three times, with different base constants,
-        # different flag types, and different role constants. Maybe we could make a utility method for
-        # "calculate_next_spawning_single_flag_role"?
-        for flag in flags.find_flags_global(flags.TD_H_H_STOP):
+    def flags_without_target(self, flag_type):
+        result = []  # TODO: yield
+        for flag in flags.find_flags_global(flag_type):
             if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
                 flag_id = "flag-{}".format(flag.name)
                 # TODO: this is really... wrong.... just wrong.
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
                 if noneol_targeting_count < 1:
-                    if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
-                        base = creep_base_full_move_healer
-                    else:
-                        base = creep_base_half_move_healer
-                    return {
-                        "role": role_td_healer,
-                        "base": base,
-                        "num_sections": spawning.max_sections_of(self, base),
-                        "targets": [
-                            [target_single_flag, flag_id],
-                        ]
-                    }
-        for flag in flags.find_flags_global(flags.TD_D_GOAD):
-            if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
-                flag_id = "flag-{}".format(flag.name)
-                noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
-                if noneol_targeting_count < 1:
-                    if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
-                        base = creep_base_full_move_goader
-                    else:
-                        base = creep_base_goader
-                    return {
-                        "role": role_td_goad,
-                        "base": base,
-                        "num_sections": spawning.max_sections_of(self, base),
-                        "targets": [
-                            [target_single_flag, flag_id],
-                        ],
-                        "memory": {
-                            # See comment below about dismantling in memory.
-                            "goading": True,
-                        }
-                    }
-        for flag in flags.find_flags_global(flags.ATTACK_DISMANTLE):
-            if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
-                flag_id = "flag-{}".format(flag.name)
-                noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
-                if noneol_targeting_count < 1:
-                    if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
-                        base = creep_base_full_move_dismantler
-                    else:
-                        base = creep_base_dismantler
-                    return {
-                        "role": role_simple_dismantle,
-                        "base": base,
-                        "num_sections": spawning.max_sections_of(self, base),
-                        "targets": [
-                            [target_single_flag, flag_id],
-                        ],
-                        "memory": {
-                            # If we don't do this, according to the role's current code, it will untarget all targets
-                            # if dismantling is False and it is at full health. Then we won't have it targeting the
-                            # right place!
-                            "dismantling": True,
-                        }
-                    }
+                    result.append(flag)
+        return result
+
+    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag):
+        if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
+            base = full_move_base
+        else:
+            base = half_move_base
+        return {
+            "role": role,
+            "base": base,
+            "num_sections": spawning.max_sections_of(self, base),
+            "targets": [
+                [target_single_flag, "flag-{}".format(flag.name)],
+            ]
+        }
+
+    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base):
+        for flag in self.flags_without_target(flag_type):
+            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag)
+        return None
+
+    def _next_tower_breaker_role(self):
+        if not self.conducting_siege():
+            return None
+        # TODO: This is basically the exact same huge loop done three times, with different base constants,
+        # different flag types, and different role constants. Maybe we could make a utility method for
+        # "calculate_next_spawning_single_flag_role"?
+        role_obj = self.spawn_one_creep_per_flag(flags.TD_H_H_STOP, role_td_healer, creep_base_half_move_healer,
+                                                 creep_base_full_move_healer)
+        if role_obj:
+            return role_obj
+        role_obj = self.spawn_one_creep_per_flag(flags.TD_D_GOAD, role_td_goad, creep_base_goader,
+                                                 creep_base_full_move_goader)
+        if role_obj:
+            return role_obj
+        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE, role_simple_dismantle, creep_base_dismantler,
+                                                 creep_base_full_move_dismantler)
+        if role_obj:
+            return role_obj
+        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
+                                                 creep_base_full_move_power_attack)
+        if role_obj:
+            return role_obj
+        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
+                                                 creep_base_full_move_power_attack)
+        if role_obj:
+            return role_obj
+        role_obj = self.spawn_one_creep_per_flag(flags.REAP_POWER_BANK, role_power_cleanup, creep_base_half_move_hauler,
+                                                 creep_base_hauler)
+        if role_obj:
+            return role_obj
+        # for flag in flags.find_flags_global(flags.REAP_POWER_BANK):
+        #     if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+        #         # TODO: don't duplicate in TargetMind
+        #         room = self.hive_mind.get_room(flag.pos.roomName)
+        #         if not room:
+        #             continue
+        #         bank = room.find_at(FIND_STRUCTURES, flag.pos)[0]
+        #         if bank and bank.hits < bank.hitsMax * 0.1:
+        #             return self.get_spawn_for_flag(role_power_cleanup, creep_base_half_move_hauler,
+        #                                            creep_base_hauler, flag)
+
         return None
 
     def reset_planned_role(self):
@@ -1695,12 +1700,12 @@ class RoomMind:
     def plan_next_role(self):
         funcs_to_try = [
             self._next_needed_local_mining_role,
-            # lambda: self.mining.next_remote_mining_role(2 - len(self.sources)),
-            lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
             self._next_cheap_military_role,
+            # lambda: self.mining.next_remote_mining_role(2 - len(self.sources)) if self.conducting_siege() else None,
+            lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
+            self._next_tower_breaker_role,
             self._next_needed_local_role,
             self._next_probably_local_role,
-            self._next_tower_breaker_role,
         ]
         next_role = None
         for func in funcs_to_try:

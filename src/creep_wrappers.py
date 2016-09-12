@@ -41,6 +41,8 @@ role_classes = {
     role_td_goad: military.TowerDrainer,
     role_simple_dismantle: military.Dismantler,
     role_scout: military.Scout,
+    role_power_attack: military.PowerAttack,
+    role_power_cleanup: military.PowerCleanup,
 }
 
 

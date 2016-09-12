@@ -150,43 +150,43 @@ class MiningMind:
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
+        miner_needed = False
         if len(miners):
-            non_eol_count = 0
-            replacement_needed = None
+            # In order to have replacement miners correctly following the cached path and saving CPU, we no longer use
+            # the generic "replacing" class, and instead just assign the new miner to the same source. The miner has
+            # code to replace the old miner successfully through suicide itself.
             for miner_name in miners:
                 creep = Game.creeps[miner_name]
                 if not creep: continue
-                if live_creep_utils.replacement_time(creep) <= Game.time and not Game.creeps[creep.memory.replacement]:
-                    replacement_needed = miner_name
-                else:
-                    non_eol_count += 1
-            if non_eol_count < 1:
-                if flag.memory.sk_room:
-                    base = creep_base_4500miner
-                    num_sections = min(8, spawning.max_sections_of(self.room, base))
-                else:
-                    base = creep_base_3000miner
-                    num_sections = min(5, spawning.max_sections_of(self.room, base))
-                return {
-                    'role': role_remote_miner,
-                    'base': base,
-                    'num_sections': num_sections,
-                    'replacing': replacement_needed,
-                }
+                if live_creep_utils.replacement_time(creep) > Game.time:
+                    break
+            else:
+                # We only need one miner, so let's just spawn a new one if there aren't any with replacement time left.
+                miner_needed = True
         else:
+            miner_needed = True
+        if miner_needed:
+            if flag.memory.sk_room:
+                base = creep_base_4500miner
+                num_sections = min(8, spawning.max_sections_of(self.room, base))
+            else:
+                base = creep_base_3000miner
+                num_sections = min(5, spawning.max_sections_of(self.room, base))
             return {
                 'role': role_remote_miner,
-                'base': creep_base_3000miner,
-                'num_sections': min(5, spawning.max_sections_of(self.room, creep_base_3000miner)),
+                'base': base,
+                'num_sections': num_sections,
                 'targets': [
                     [target_remote_mine_miner, flag_id.format(flag.name)],
                 ]
             }
+
         if not flag.memory.sk_room:
             if not Memory.reserving:
                 Memory.reserving = {}
             claimer = Game.creeps[Memory.reserving[flag.pos.roomName]]
-            if not claimer:
+            if not claimer or live_creep_utils.replacement_time(claimer) <= Game.time \
+                    and not Game.creeps[claimer.memory.replacement]:
                 room = Game.rooms[flag.pos.roomName]
                 if not room or not room.controller.reservation or room.controller.reservation.ticksToEnd < 4000:
                     max_sections = 2
@@ -204,19 +204,6 @@ class MiningMind:
                         'claiming': flag.pos.roomName
                     },
                     'run_after': run_after,
-                }
-            elif live_creep_utils.replacement_time(claimer) <= Game.time \
-                    and not Game.creeps[claimer.memory.replacement]:
-                room = Game.rooms[flag.pos.roomName]
-                if not room or not room.controller.reservation or room.controller.reservation.ticksToEnd < 4000:
-                    max_sections = 2
-                else:
-                    max_sections = 1
-                return {
-                    'role': role_remote_mining_reserve,
-                    'base': creep_base_reserving,
-                    'num_sections': min(max_sections, spawning.max_sections_of(self.room, creep_base_reserving)),
-                    'replacing': claimer.name,
                 }
         current_noneol_hauler_mass = 0
         eol_mass = 0

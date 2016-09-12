@@ -37,6 +37,13 @@ class RemoteMiner(TransportPickup):
             return
         if not self.creep.pos.isNearTo(source_flag.pos):
             if self.pos.roomName == source_flag.pos.roomName:
+                if self.pos.getRangeTo(source_flag.pos) <= 5:
+                    other_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
+                                         lambda c: c.getActiveBodyparts(WORK) >= 5
+                                                   and c.ticksToLive < self.creep.ticksToLive)
+                    if other_miner:
+                        other_miner.suicide()
+                        del self.memory._move
                 self.move_to(source_flag)
             else:
                 self.follow_energy_path(self.home.spawn, source_flag)
@@ -130,7 +137,9 @@ class RemoteReserve(TransportPickup):
         if claim_room:
             if Memory.reserving[claim_room] != self.name:
                 if Memory.reserving[claim_room] in Game.creeps:
-                    self.creep.suicide()
+                    creep = Game.creeps[Memory.reserving[claim_room]]
+                    if self.pos.roomName != claim_room or creep.pos.getRangeTo(self.creep.room.controller.pos) < 6:
+                        self.creep.suicide()
                 else:
                     Memory.reserving[claim_room] = self.name
             return claim_room

@@ -4,7 +4,7 @@ import random
 
 import autoactions
 import flags
-from constants import target_single_flag, role_td_healer, INVADER_USERNAME
+from constants import target_single_flag, role_td_healer, target_single_flag2, INVADER_USERNAME
 from control import pathdef
 from role_base import RoleBase
 from tools import profiling
@@ -414,6 +414,193 @@ class Dismantler(MilitaryBase):
 
     def _calculate_time_to_replace(self):
         target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
+        if not target:
+            return -1
+        path = self.get_military_path(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+            path_len = len(path)
+        else:
+            path_len = len(path) * 2
+        return path_len + _.size(self.creep.body) * 3 + 10
+
+
+class PowerAttack(MilitaryBase):
+    def run(self):
+        if not self.memory.healing and self.creep.hits < \
+                max(ATTACK_POWER * self.creep.getActiveBodyparts(ATTACK), self.creep.hitsMax / 2):
+            self.memory.healing = True
+            self.targets.untarget_all(self)
+        if self.memory.healing and self.creep.hits >= self.creep.hitsMax:
+            self.memory.healing = False
+            self.targets.untarget_all(self)
+
+        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
+        if not target:
+            if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                self.recycle_me()
+            else:
+                self.log("PowerAttack has no target!")
+                self.go_to_depot()
+            return
+        heal_target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP, target.pos)
+        if self.memory.healing:
+            if not heal_target:
+                if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                    self.recycle_me()
+                else:
+                    self.log("PowerAttack has no healer target!")
+                    self.go_to_depot()
+                return
+            if self.pos.roomName != heal_target.pos.roomName:
+                self.creep.moveTo(heal_target)
+            else:
+                room = self.hive.get_room(heal_target.pos.roomName)
+                if room and _.find(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_td_healer):
+                    if not self.creep.pos.isEqualTo(heal_target.pos):
+                        self.creep.moveTo(heal_target)
+                        self.follow_military_path(self.home.spawn, heal_target)
+                else:
+                    self.go_to_depot()
+        else:
+            if self.creep.pos.isNearTo(target.pos):
+                struct = self.room.find_at(FIND_STRUCTURES, target.pos)[0]
+                if struct:
+                    self.creep.attack(struct)
+                else:
+                    for flag in flags.find_flags(self.room, flags.TD_H_H_STOP):
+                        flag.remove()
+                    for flag in flags.find_flags(self.room, flags.TD_H_D_STOP):
+                        flag.remove()
+                    target.remove()
+            if not self.creep.pos.isEqualTo(heal_target.pos):
+                if self.pos.roomName == target.pos.roomName:
+                    result = self.creep.moveTo(heal_target)
+                    if result != OK and result != ERR_TIRED:
+                        self.log("Unknown result from creep.moveTo({}): {}".format(target, result))
+                else:
+                    self.follow_military_path(self.home.spawn, heal_target)
+
+    def _calculate_time_to_replace(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
+        if not target:
+            return -1
+        path = self.get_military_path(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+            path_len = len(path)
+        else:
+            path_len = len(path) * 2
+        return path_len + _.size(self.creep.body) * 3 + 10
+
+
+# TODO: Change the speech on this to something unique.
+class PowerCleanup(MilitaryBase):
+    def should_pickup(self, resource_type=None):
+        return resource_type is None or resource_type == RESOURCE_POWER
+
+    def run(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.REAP_POWER_BANK)
+        if not target:
+            if len(flags.find_flags(self.home, flags.RAID_OVER)) or self.creep.ticksToLive < 100:
+                self.recycle_me()
+            else:
+                self.log("PowerAttack has no target!")
+                self.go_to_depot()
+            return
+        if self.memory.filling and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+            self.memory.filling = False
+
+        if not self.memory.filling and _.sum(self.creep.carry) <= 0:
+            self.memory.filling = True
+
+        storage = self.home.room.storage
+        if self.memory.filling:
+            if self.pos.roomName != target.pos.roomName:
+                self.follow_military_path(self.home.spawn, target)
+                return
+
+            # TODO: Make some cached memory map of all hostile creeps, and use it to avoid.
+            resources = self.room.find(FIND_DROPPED_RESOURCES)
+            if len(resources):
+                closest = None
+                closest_distance = Infinity
+                for resource in resources:
+                    if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
+
+                        if self.memory.last_energy_target:
+                            compressed_pos = resource.pos.x | (resource.pos.y << 6)
+                            if compressed_pos == self.memory.last_energy_target:
+                                closest = resource
+                                break
+                        if (resource.amount > 50 or
+                                    len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0):
+
+                            # we've confirmed now that this is a valid target! congrats.
+                            distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
+                            if distance < closest_distance:
+                                closest = resource
+                                closest_distance = distance
+                pile = closest
+            else:
+                pile = None
+
+            if not pile:
+                del self.memory.last_energy_target
+                if not _.find(self.room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_POWER_BANK}):
+                    if _.sum(self.creep.carry) >= 0:
+                        self.memory.filling = False
+                    else:
+                        target.remove()
+                else:
+                    if self.pos.inRangeTo(target, 7):
+                        self.move_around(target)
+                    else:
+                        self.move_to(target)
+                return
+
+            self.memory.last_energy_target = pile.pos.x | (pile.pos.y << 6)
+
+            if not self.creep.pos.isNearTo(pile.pos):
+                self.move_to(pile)
+                return False
+
+            result = self.creep.pickup(pile)
+
+            if result == OK:
+                pass
+            elif result == ERR_FULL:
+                self.memory.filling = False
+                return True
+            else:
+                self.log("Unknown result from cleanup-creep.pickup({}): {}", pile, result)
+        else:
+            if not storage:
+                self.go_to_depot()
+                return
+
+            if self.creep.pos.roomName != storage.pos.roomName:
+                self.follow_military_path(target, storage)
+                return False
+
+            target = storage
+            if not self.creep.pos.isNearTo(target.pos):
+                self.move_to(target)
+                return False
+
+            resource_type = _.find(Object.keys(self.creep.carry), lambda r: self.creep.carry[r] > 0)
+            result = self.creep.transfer(target, resource_type)
+            if result == OK:
+                pass
+            elif result == ERR_NOT_ENOUGH_RESOURCES:
+                self.memory.filling = True
+                return True
+            elif result == ERR_FULL:
+                if target == storage:
+                    self.log("Storage in room {} full!", storage.room.name)
+            else:
+                self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)
+
+    def _calculate_time_to_replace(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.REAP_POWER_BANK)
         if not target:
             return -1
         path = self.get_military_path(self.home.spawn, target)
