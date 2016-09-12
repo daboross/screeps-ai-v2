@@ -258,7 +258,8 @@ class MineralHauler(RoleBase):
         elif state == "empty_terminal_withdraw":
             terminal = self.home.room.terminal
             if (_.sum(terminal.store) < terminal.storeCapacity * 0.75
-                or _.sum(terminal.store) == terminal.store.energy <= self.home.get_target_terminal_energy()) \
+                or _.sum(terminal.store) - 100 <= terminal.store.energy
+                    <= (self.home.get_target_terminal_energy() or 1000)) \
                     and not self.home.get_emptying_terminal():
                 self.memory.state = "terminal_deposit_energy"
                 return True
@@ -267,14 +268,22 @@ class MineralHauler(RoleBase):
                 return True
 
             for mtype in Object.keys(terminal.store):
-                if terminal.store[mtype] > 0:
-                    if mtype != RESOURCE_ENERGY or terminal.store[mtype] > self.home.get_target_terminal_energy():
-                        resource = mtype
-                        break
+                if not self.home.mem.empty_to and terminal.store[mtype] > 0 \
+                        and mtype != RESOURCE_ENERGY:
+                    resource = mtype
+                    break
             else:
-                self.log("No resources to remove to clear up terminal!")
-                self.go_to_depot()
-                return False
+                # Prioritize getting minerals out over energy
+                if terminal.store[RESOURCE_ENERGY] > (self.home.get_target_terminal_energy() or 1000):
+                    resource = RESOURCE_ENERGY
+                else:
+                    if _.sum(self.creep.carry) > 0:
+                        self.memory.state = "empty_terminal_deposit"
+                        return True
+                    else:
+                        self.log("No resources to remove to clear up terminal!")
+                        self.go_to_depot()
+                        return False
 
             if not self.creep.pos.isNearTo(terminal.pos):
                 self.move_to(terminal)

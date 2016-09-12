@@ -838,7 +838,9 @@ class RoomMind:
 
         if minerals > 1000 or _.sum(self.room.storage.store) == self.room.storage.store.energy:
             mineral_chosen = _.find(Object.keys(term.store),
-                                    lambda r: r != RESOURCE_ENERGY and term.store[r])
+                                    lambda r: r != RESOURCE_ENERGY and term.store[r] >= 100)
+            if not mineral_chosen:
+                return
             amount = term.store[mineral_chosen]
             cost = Game.market.calcTransactionCost(amount, self.room_name, self.mem.empty_to)
             if energy < cost:
@@ -956,7 +958,7 @@ class RoomMind:
     def get_emptying_terminal(self):
         if not self.get_all_filling_terminal() and self.room.storage and self.room.terminal \
                 and not self.get_target_terminal_energy():
-            if self.mem.emptying_terminal and _.sum(self.room.terminal.store) <= 0:
+            if self.mem.emptying_terminal and _.sum(self.room.terminal.store) <= 1000:
                 self.mem.emptying_terminal = False
             if not self.mem.emptying_terminal and _.sum(self.room.terminal.store) > 10000:
                 self.mem.emptying_terminal = True
@@ -964,7 +966,8 @@ class RoomMind:
         return False
 
     def get_all_filling_terminal(self):
-        return not not self.mem.empty_to
+        return not not (self.mem.empty_to and self.room.storage
+                        and _.sum(self.room.storage.store) - self.room.storage.store.energy > 500)
 
     def get_if_all_big_miners_are_placed(self):
         """
@@ -1405,7 +1408,8 @@ class RoomMind:
         minerals = self.find(FIND_MINERALS)
         if _.sum(minerals, 'mineralAmount') > 0 and _.find(self.find(FIND_MY_STRUCTURES),
                                                            {'structureType': STRUCTURE_EXTRACTOR}) \
-                and (self.room.storage.store[minerals[0].mineralType] < 400000):  # TODO: customizable threshold.
+                and (self.room.storage.store[minerals[0].mineralType] < 400000) \
+                and not self.mem.empty_to:  # TODO: customizable threshold.
             return 1
         else:
             return 0
@@ -1423,7 +1427,7 @@ class RoomMind:
                     return 1
                 else:
                     return 2  # without any containers, we need 2 so the miner can constantly deposit into one of them.
-        elif self.get_target_terminal_energy() or self.get_emptying_terminal() or self.mem.empty_to:
+        elif self.get_target_terminal_energy() or self.get_emptying_terminal() or self.get_all_filling_terminal():
             # this method returns 0 once the terminal has reached it's target
             # this is really a hack, and should be changed soon!
             return 1
@@ -1562,8 +1566,8 @@ class RoomMind:
             role_builder: lambda: min(self.get_target_builder_work_mass(),
                                       spawning.max_sections_of(self, creep_base_worker)),
             role_mineral_miner:
-                lambda: 16,  # TODO: bigger miner/haulers maybe if we get resource prioritization?
-            role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral
+                lambda: 4,  # TODO: bigger miner/haulers maybe if we get resource prioritization?
+            role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral + miner size
                 lambda: spawning.max_sections_of(self, creep_base_hauler),
             role_td_goad:
                 lambda: spawning.max_sections_of(self, creep_base_goader),
