@@ -71,5 +71,5 @@ for (let room of py.context.hive().visible_rooms) { room.building.next_priority_
 Memory.hyper_upgrade = true; for (let room of py.context.hive().my_rooms) { room.reset_planned_role() }
 for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }
 Memory.rooms.W46N28.empty_to = "W49N25"
-Memory.rooms.W46N28.cache.placed_mining_roads = 0
+delete Memory.rooms.W47N26.cache.placed_mining_roads
 ```

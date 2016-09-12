@@ -273,12 +273,22 @@ class ConstructionMind:
         del self.room.mem.cache.placed_mining_roads
 
     def place_remote_mining_roads(self):
-        current_method_version = 22
+        current_method_version = 23
+        latest_key = "{}-{}".format(current_method_version, len(self.room.mining.active_mines))
         last_run_version = self.room.get_cached_property("placed_mining_roads")
-        if last_run_version and last_run_version == current_method_version:
+        if last_run_version and last_run_version == latest_key:
             return
+        elif last_run_version == "missing_rooms":
+            missing_rooms = self.room.get_cached_property("pmr_missing_rooms")
+            if Game.time % 10 != 3:
+                return  # don't check every tick
+            for name in missing_rooms:
+                if Game.rooms[name]:
+                    break # Re-pave if we can now see a room we couldn't before!
+            else:
+                return
         if not self.room.paving():
-            self.room.store_cached_property("placed_mining_roads", current_method_version, 100)
+            self.room.store_cached_property("placed_mining_roads", latest_key, 100)
             return
 
         if not self.room.my:
@@ -300,46 +310,56 @@ class ConstructionMind:
         # I hope this is a safe assumption to make for now.
         road_opts = {'decided_future_roads': future_road_positions_per_room}
         spawn_road_opts = {'range': 3, 'decided_future_roads': future_road_positions_per_room}
+        any_non_visible_rooms = False
+        non_visible_rooms = None
+
+        def check_route(positions):
+            nonlocal path_count, placed_count, any_non_visible_rooms, non_visible_rooms
+            path_count += 1
+            for pos in positions:
+                if checked_positions_per_room.has(pos.roomName):
+                    checked_positions = checked_positions_per_room.get(pos.roomName)
+                else:
+                    checked_positions = __pragma__('js', 'new Set()')
+                    checked_positions_per_room.set(pos.roomName, checked_positions)
+
+                room = self.hive.get_room(pos.roomName)
+                if not room:
+                    # We don't have visibility to this active mine! let's just wait on this one
+                    any_non_visible_rooms = True
+                    if non_visible_rooms is None:
+                        non_visible_rooms = __pragma__('js', 'new Set()')
+                    non_visible_rooms.add(pos.roomName)
+                    continue
+
+                # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
+                # equals, and thus wouldn't be unique in the set - but this *is* unique.
+                pos_key = pos.x << 6 + pos.y
+                if not checked_positions.has(pos_key):
+                    destruct_flag = flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
+                    if destruct_flag:
+                        destruct_flag.remove()
+                    if not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                                  {"structureType": STRUCTURE_ROAD}) \
+                            and not len(room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                        room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
+                        placed_count += 1
+                    checked_positions.add(pos_key)
+                    if pos.roomName in future_road_positions_per_room:
+                        future_road_positions_per_room[pos.roomName].push(pos)
+                    else:
+                        future_road_positions_per_room[pos.roomName] = [pos]
+
         for mine in self.room.mining.active_mines:
             deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
             self.room.honey.clear_cached_path(deposit_point, mine)
             self.room.honey.clear_cached_path(mine, deposit_point)
-            route_positions = [self.room.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts)]
+            # It's important to run check_route on this path before doing another path, since this updates the
+            # future_road_positions_per_room object.
+            check_route(self.room.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
             for spawn in self.room.spawns:
                 self.room.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                route_positions.append(self.room.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
-            for positions in route_positions:
-                path_count += 1
-                for pos in positions:
-                    if checked_positions_per_room.has(pos.roomName):
-                        checked_positions = checked_positions_per_room.get(pos.roomName)
-                    else:
-                        checked_positions = __pragma__('js', 'new Set()')
-                        checked_positions_per_room.set(pos.roomName, checked_positions)
-
-                    room = self.hive.get_room(pos.roomName)
-                    if not room:
-                        # We don't have visibility to this active mine! let's just wait on this one
-                        self.room.store_cached_property("placed_mining_roads", current_method_version, 100)
-                        return
-
-                    # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
-                    # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                    pos_key = pos.x << 6 + pos.y
-                    if not checked_positions.has(pos_key):
-                        destruct_flag = flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                        if destruct_flag:
-                            destruct_flag.remove()
-                        if not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                                      {"structureType": STRUCTURE_ROAD}) \
-                                and not len(room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
-                            room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
-                            placed_count += 1
-                        checked_positions.add(pos_key)
-                        if pos.roomName in future_road_positions_per_room:
-                            future_road_positions_per_room[pos.roomName].push(pos)
-                        else:
-                            future_road_positions_per_room[pos.roomName] = [pos]
+                check_route(self.room.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
 
         to_destruct = 0
         for room_name in checked_positions_per_room.keys():
@@ -378,13 +398,17 @@ class ConstructionMind:
                     flag.remove()
 
         print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-            self.room.room_name, _.sum(checked_positions_per_room.values(),
-                                       lambda s: s.size), placed_count, path_count))
+            self.room.room_name, _.sum(checked_positions_per_room.values(), lambda s: s.size),
+            placed_count, path_count))
 
         # stagger updates after a version change.
         # Really don't do this often either - this is an expensive operation.
-        self.room.store_cached_property("placed_mining_roads", current_method_version, random.randint(20000, 40000))
-        # Done!
+        if any_non_visible_rooms:
+            self.room.store_cached_property("placed_mining_roads", "missing_rooms", 1000)
+            self.room.store_cached_property("pmr_missing_rooms", list(non_visible_rooms.values()), 1000)
+        else:
+            self.room.store_cached_property("placed_mining_roads", latest_key, random.randint(30000, 40000))
+            # Done!
 
 
 profiling.profile_whitelist(ConstructionMind, [

@@ -3,7 +3,6 @@ import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
     role_remote_hauler, role_remote_miner, role_recycling
 from goals.transport import TransportPickup
-from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
 from utilities.screeps_constants import *
@@ -31,11 +30,16 @@ class RemoteMiner(TransportPickup):
 
         source_flag.memory.remote_miner_targeting = self.name
 
+        if self.creep.hits < self.creep.hitsMax and (self.pos.roomName != self.home.room_name
+                                                     or self.pos.x > 40 or self.pos.y > 40
+                                                     or self.pos.x < 10 or self.pos.y < 10):
+            self.follow_energy_path(source_flag, self.home.spawn)
+            return
         if not self.creep.pos.isNearTo(source_flag.pos):
             if self.pos.roomName == source_flag.pos.roomName:
                 self.move_to(source_flag)
             else:
-                self.follow_energy_path(self.home.spawn, source_flag.pos)
+                self.follow_energy_path(self.home.spawn, source_flag)
             self.report(speech.remote_miner_moving)
             return False
 
@@ -95,7 +99,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
         if _.sum(self.creep.carry) > self.creep.carry.energy:
             fill = self.home.room.storage
         else:
-            fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
+            fill = self.home.mining.closest_deposit_point_to_mine(pickup)
             if fill and fill.energy >= fill.energyCapacity and fill.structureType == STRUCTURE_LINK and \
                     not self.home.links.enabled:
                 fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
@@ -120,7 +124,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
 profiling.profile_whitelist(RemoteHauler, ["run"])
 
 
-class RemoteReserve(RoleBase):
+class RemoteReserve(TransportPickup):
     def find_claim_room(self):
         claim_room = self.memory.claiming
         if claim_room:
@@ -170,9 +174,10 @@ class RemoteReserve(RoleBase):
 
         if self.creep.pos.roomName != claim_room:
             if Game.rooms[claim_room]:
-                self.move_to(Game.rooms[claim_room].controller)
+                target = Game.rooms[claim_room].controller.pos
             else:
-                self.move_to(__new__(RoomPosition(25, 25, claim_room)))
+                target = __new__(RoomPosition(25, 25, claim_room))
+            self.follow_energy_path(self.home.spawn, target)
             self.report(speech.remote_reserve_moving)
             return
 

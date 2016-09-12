@@ -62,7 +62,10 @@ class MiningMind:
             target = self.room.spawn
 
         target_id = target.id
-        self.room.store_cached_property(key, target_id, 50)
+        if not self.room.links.enabled_last_turn and self.room.links.main_link:
+            self.room.store_cached_property(key, target_id, 5)
+        else:
+            self.room.store_cached_property(key, target_id, 50)
         return target
 
     def distance_to_mine(self, flag):
@@ -216,31 +219,34 @@ class MiningMind:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
             else:
                 eol_mass += spawning.carry_count(creep)
-        # All lines from here to the print() statement would be inside the `if current... < self.calc...` statement, if
-        # they weren't also being used in the print() statement.
-        if self.room.all_paved():
-            base = creep_base_work_half_move_hauler
-        elif self.room.paving():
-            base = creep_base_work_full_move_hauler
-        else:
-            base = creep_base_hauler
-        new_hauler_num_sections = self.calculate_creep_num_sections_for_mine(flag)
-        if base == creep_base_work_half_move_hauler:
-            new_hauler_mass = new_hauler_num_sections * 2 + 1
-        else:
-            new_hauler_mass = new_hauler_num_sections
-        print('[{}][mining] Hauler stats for {}: ideal_mass: {}, current_target: {}, current_hauler_mass: {},'
-              ' eol_hauler_mass: {}, hauler_size: {} ({} sections)'
-              .format(self.room.room_name, flag.name, self.calculate_ideal_mass_for_mine(flag),
-                      self.calculate_current_target_mass_for_mine(flag), current_noneol_hauler_mass, eol_mass,
-                      new_hauler_mass, new_hauler_num_sections))
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
+            if self.room.all_paved():
+                base = creep_base_work_half_move_hauler
+            elif self.room.paving():
+                base = creep_base_work_half_move_hauler
+                # TODO: better all_paved detection *per mine*
+                # base = creep_base_work_full_move_hauler
+            else:
+                base = creep_base_hauler
+
+            # TODO: make an "colony report" module which this can be included in
+            # new_hauler_num_sections = self.calculate_creep_num_sections_for_mine(flag)
+            # if base == creep_base_work_half_move_hauler:
+            #     new_hauler_mass = new_hauler_num_sections * 2 + 1
+            # else:
+            #     new_hauler_mass = new_hauler_num_sections
+            # print('[{}][mining] Hauler stats for {}: ideal_mass: {}, current_target: {}, current_hauler_mass: {},'
+            #       ' eol_hauler_mass: {}, hauler_size: {} ({} sections)'
+            #       .format(self.room.room_name, flag.name, self.calculate_ideal_mass_for_mine(flag),
+            #               self.calculate_current_target_mass_for_mine(flag), current_noneol_hauler_mass, eol_mass,
+            #               new_hauler_mass, new_hauler_num_sections))
+
             return {
                 'role': role_remote_hauler,
                 'base': base,
                 # note that this is just an above referenced variable because it was already calculated for the debug
                 # print - new_hauler_num_sections should be again inlined if above debug is removed!
-                'num_sections': new_hauler_num_sections,
+                'num_sections': self.calculate_creep_num_sections_for_mine(flag),
                 'targets': [
                     [target_remote_mine_hauler, flag_id],
                     [target_closest_energy_site, self.closest_deposit_point_to_mine(flag).id],

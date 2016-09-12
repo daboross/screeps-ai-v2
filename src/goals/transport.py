@@ -67,15 +67,17 @@ class TransportPickup(RoleBase):
                         self.follow_energy_path(fill, pickup)
                 return
             # No energy, let's just wait
-            if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
-                      lambda c: c.getActiveBodyparts(WORK) >= 5 and not c.pos.isNearTo(target)):
-                if Game.time % 5 == 0:
+            if not _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, target),
+                          lambda c: c.getActiveBodyparts(WORK) >= 5):
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                          lambda c: c.getActiveBodyparts(WORK) >= 5):
+                    if Game.time % 5 == 0:
+                        self.follow_energy_path(pickup, fill)
+                    else:
+                        self.follow_energy_path(fill, pickup)
+                elif _.sum(self.creep.carry) > self.creep.carryCapacity * 0.5:
+                    self.memory.filling = False
                     self.follow_energy_path(pickup, fill)
-                else:
-                    self.follow_energy_path(fill, pickup)
-            elif _.sum(self.creep.carry) > self.creep.carryCapacity * 0.5:
-                self.memory.filling = False
-                self.follow_energy_path(pickup, fill)
         else:
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage
@@ -149,9 +151,13 @@ class TransportPickup(RoleBase):
                 closest = None
                 closest_distance = Infinity
                 for pos in all_positions:
-                    if movement.distance_squared_room_pos(pos, origin) < min(3, len(path) - 2):
-                        continue  # Don't try and target where the miner is right now!
-                    distance = movement.distance_squared_room_pos(self.pos, pos)
+                    if movement.distance_room_pos(pos, origin) < 3 or movement.distance_room_pos(pos, target) < 3:
+                        room = self.hive.get_room(pos.roomName)
+                        if room and not movement.is_block_clear(room, pos.x, pos.y):
+                            continue  # Don't try and target where the miner is right now!
+                    distance = movement.distance_room_pos(self.pos, pos)
+                    if pos.roomName != self.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
+                        distance += 10
                     if distance < closest_distance:
                         closest_distance = distance
                         closest = pos

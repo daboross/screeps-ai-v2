@@ -175,7 +175,12 @@ class HoneyTrails:
 
     def mark_exit_tiles(self, room_name, matrix, opts):
         use_roads = opts['roads']
-        if_roads_mutiplier = 2 if use_roads else 1
+        future_chosen = opts['future_chosen']
+        if future_chosen:
+            if_roads_mutiplier = 5
+        else:
+            if_roads_mutiplier = 2 if use_roads else 1
+
         room_x, room_y = movement.parse_room_to_xy(room_name)
         if room_x % 10 == 0 or room_y % 10 == 0:
             for x in [0, 49]:
@@ -333,7 +338,7 @@ class HoneyTrails:
             storage = self.room.room.storage
             for x in range(ml.pos.x - 1, ml.pos.x + 2):
                 for y in range(ml.pos.y - 1, ml.pos.y + 2):
-                    if abs(storage.pos.x - x) == 1 and abs(storage.pos.y - y) == 1:
+                    if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
                         cost_matrix.set(x, y, 255)
 
         return cost_matrix
@@ -341,21 +346,33 @@ class HoneyTrails:
     def _get_callback(self, origin, destination, opts):
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
+    def get_default_max_ops(self, origin, destination, opts):
+        linear_distance = movement.distance_room_pos(origin, destination)
+        ops = linear_distance * 100
+        if opts["dfr"]:
+            ops *= 5
+        elif opts["use_roads"]:
+            ops *= 2
+        return ops
+
     def get_serialized_path_obj(self, origin, destination, opts=None):
         if opts:
             roads_better = opts["use_roads"] if "use_roads" in opts else True
             ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
             range = opts["range"] if "range" in opts else 1
-            max_ops = opts["max_ops"] if "max_ops" in opts else 10000
-            max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
             decided_future_roads = opts["decided_future_roads"] if "decided_future_roads" in opts else None
+            max_ops = opts["max_ops"] if "max_ops" in opts else self.get_default_max_ops(origin, destination,
+                                                                                         {"use_roads": roads_better,
+                                                                                          "dfr": decided_future_roads})
+            max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
         else:
             roads_better = True
             ignore_swamp = False
             range = 1
-            max_ops = 10000
             max_rooms = 16
             decided_future_roads = None
+            max_ops = self.get_default_max_ops(origin, destination, {"use_roads": roads_better,
+                                                                     "dfr": decided_future_roads})
 
         if origin.pos:
             origin = origin.pos
@@ -484,6 +501,11 @@ class HoneyTrails:
         global_cache.rem(key)
 
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
+        """
+        Gets a list of room positions in the path. The positions are guaranteed to be in order for each room, but it is
+        not guaranteed that the rooms will be in order. This is retrieved from cached memory, but a new list to return
+        is created each call, and each RoomPosition is created fresh each call.
+        """
         if origin.pos:
             origin = origin.pos
         if destination.pos:
@@ -498,7 +520,8 @@ class HoneyTrails:
                 continue
             path = Room.deserializePath(serialized_path)
             for pos in path:
-                final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
+                if 0 < pos.x < 50 and 0 < pos.y < 50:
+                    final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
 
 
