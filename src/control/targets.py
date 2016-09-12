@@ -362,8 +362,8 @@ class TargetMind:
         if not len(structures):
             # waiting flag instead:
             structures = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
-            # We could do two loops, but this way we only have to write work stealing code once, and it works for both spawns
-            # and spawn fill wait places!
+            # We could do two loops, but this way we only have to write work stealing code once, and it works for both
+            # spawns and spawn fill wait places!
         for structure in structures:
             if structure.id:
                 structure_id = structure.id
@@ -376,7 +376,8 @@ class TargetMind:
             distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
             if distance < closest_distance:
                 if structure.color:
-                    max = math.ceil(creep.home.role_count(role_spawn_fill) / len(structures))
+                    max = math.ceil((creep.home.role_count(role_spawn_fill) + creep.home.role_count(role_tower_fill))
+                                    / len(structures))
                 else:
                     max = structure.energyCapacity / 50.0
                 if not current_carry or current_carry < max:
