@@ -468,6 +468,8 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
+        best_id = None
+        smallest_num = Infinity
         for struct_id in creep.home.building.next_priority_big_repair_targets():
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < min(max_hits, struct.hitsMax):
@@ -475,8 +477,10 @@ class TargetMind:
                 if not current_num or current_num < 1:
                     # List is already in priority.
                     return struct_id
-        return _.min(creep.home.building.next_priority_big_repair_targets(),
-                     lambda sid: self.targets[target_big_repair][sid] or 0)
+                elif current_num < smallest_num:
+                    best_id = struct_id
+                    smallest_num = current_num
+        return best_id
 
     def _find_new_destruction_site(self, creep):
         """

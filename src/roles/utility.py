@@ -23,8 +23,19 @@ class LinkManager(RoleBase):
             self.report(speech.link_manager_something_not_found)
             return False
         # TODO: this could go quite wrong if there are more than two squares between the storage and the main link.
-        if not self.creep.pos.isNearTo(link):
-            self.move_to(link)
+        if not self.creep.pos.isNearTo(link) or not self.creep.pos.isNearTo(storage):
+            for x in range(link.pos.x - 1, link.pos.x + 2):
+                for y in range(link.pos.y - 1, link.pos.y + 2):
+                    if abs(x - storage.pos.x) == 1 and abs(y - storage.pos.y) == 1 \
+                            and movement.is_block_clear(self.home, x, y):
+                        pos = __new__(RoomPosition(x, y, self.home.room_name))
+                        break
+                else:
+                    continue
+                break
+            else:
+                self.go_to_depot()
+            self.move_to(pos)
             self.report(speech.link_manager_moving)
             return False
         elif not self.creep.pos.isNearTo(storage):

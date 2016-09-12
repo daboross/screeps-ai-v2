@@ -1020,10 +1020,11 @@ class RoomMind:
     def upgrading_paused(self):
         if self.room.controller.level < 4:
             return False
-        if self.conducting_siege():
-            return True  # Don't upgrade while we're taking someone down.
         if not self.room.storage:
             return False
+        # TODO: constant here and below in upgrader_work_mass
+        if self.conducting_siege() and self.room.storage.store.energy < 700000:
+            return True  # Don't upgrade while we're taking someone down.
         if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
             self.mem.upgrading_paused = False
         if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
@@ -1277,7 +1278,7 @@ class RoomMind:
     def get_target_builder_work_mass(self, first=False, last=False):
         def is_relatively_decayed(id):
             thing = Game.getObjectById(id)
-            return thing is not None and thing.structureType != STRUCTURE_ROAD \
+            return thing is not None and (thing.structureType != STRUCTURE_ROAD or thing.hits < 1000) \
                    and thing.hits < min(thing.hitsMax, self.max_sane_wall_hits) * 0.6
 
         # TODO: this is a hack to get correct workmasses (this is called twice)
@@ -1319,6 +1320,8 @@ class RoomMind:
                     return 2 * worker_size
                 else:
                     return 3 * worker_size
+            else:
+                return 0
 
     def get_target_upgrader_work_mass(self):
         worker_size = max(1, spawning.max_sections_of(self, creep_base_worker))
@@ -1328,10 +1331,16 @@ class RoomMind:
             wm = spawning.max_sections_of(self, creep_base_worker) * 4
         else:
             wm = min(self.room.controller.level, worker_size)
-        if self.full_storage_use and _.sum(self.room.storage.store) > 700000:
-            wm += math.floor((_.sum(self.room.storage.store) - 700000) / 2000)
-        if Memory.hyper_upgrade and self.room.storage and _.sum(self.room.storage.store) > 100000:
-            wm += math.ceil((_.sum(self.room.storage.store) - 100000) / 5000)
+        if self.full_storage_use:
+            if Memory.hyper_upgrade:
+                extra = min(_.sum(self.room.storage.store) - 100000, self.room.storage.store.energy - 50000)
+            else:
+                extra = min(_.sum(self.room.storage.store) - 700000, self.room.storage.store.energy - 150000)
+            if extra > 0:
+                if Memory.hyper_upgrade:
+                    wm += math.ceil(extra / 5000)
+                else:
+                    wm += math.floor(extra / 2000)
 
         base = self.get_variable_base(role_upgrader)
         if base is creep_base_full_upgrader:
@@ -1705,9 +1714,8 @@ class RoomMind:
         return self.mem.next_role
 
     def toString(self):
-        return "RoomMind[room_name: {}, roles: {}, my: {}, using_storage: {}]".format(
-            self.room_name, self.mem.role_counts if self.mem.role_counts else "undefined", self.my,
-            self.full_storage_use)
+        return "RoomMind[room_name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
+            self.room_name, self.my, self.full_storage_use, self.conducting_siege())
 
     room_name = property(get_name)
     position = property(get_position)

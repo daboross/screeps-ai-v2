@@ -103,7 +103,7 @@ class Upgrader(RoleBase):
 
     def harvest_from(self, link):
         if self.creep.ticksToLive < 20:
-            return # Don't get more energy at this point, just upgrade with what we have left and idle.
+            return  # Don't get more energy at this point, just upgrade with what we have left and idle.
         self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
                                                  self.creep.pos.getRangeTo(link))
         if self.creep.carry.energy >= self.creep.carryCapacity \
@@ -114,9 +114,7 @@ class Upgrader(RoleBase):
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
 
     def should_pickup(self, resource_type=None):
-        if not RoleBase.should_pickup(self, resource_type):
-            return False
-        return not self.get_dedicated_upgrading_link() and not self.home.upgrading_paused()
+        return RoleBase.should_pickup(self, resource_type) and not self.home.upgrading_paused()
 
     def run_individual_upgrading(self):
         if self.creep.ticksToLive < recycle_time:

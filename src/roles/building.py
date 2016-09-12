@@ -1,6 +1,6 @@
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
-    role_builder, target_destruction_site, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS
+    role_builder, target_destruction_site, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS, role_upgrader
 from role_base import RoleBase
 from roles import upgrading
 from tools import profiling
@@ -47,11 +47,8 @@ class Builder(upgrading.Upgrader):
                     return self.execute_destruction_target(destruct)
                 else:
                     return self.empty_to_storage()
-            if not self.home.upgrading_paused():
-                return upgrading.Upgrader.run(self)
             else:
-                if not self.empty_to_storage():
-                    self.go_to_depot()
+                self.memory.role = role_upgrader
                 return False
 
         if self.memory.filling:
@@ -116,14 +113,8 @@ class Builder(upgrading.Upgrader):
                 self.memory.last_big_repair_max_hits = self.home.max_sane_wall_hits
                 return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
 
-            # TODO: duplicated above
-            if not self.home.upgrading_paused():
-                return upgrading.Upgrader.run(self)
-            else:
-                if not self.empty_to_storage():
-                    self.go_to_depot()
-                return False
-
+            self.memory.role = role_upgrader
+            return False
     def build_swamp_roads(self):
         if self.creep.carry.energy > 0:
             repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
@@ -141,7 +132,12 @@ class Builder(upgrading.Upgrader):
                         self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
 
     def get_new_repair_target(self, max_hits, ttype):
-        return self.targets.get_new_target(self, ttype, max_hits)
+        target = self.targets.get_new_target(self, ttype, max_hits)
+        if target and target.hits >= max_hits:
+            self.log("WARNING: TargetMind.get_new_target({}, {}, {}) returned {} ({} hits)"
+                     .format(self, ttype, max_hits, target, target.hits))
+            return None
+        return target
 
     def get_new_construction_target(self):
         return self.targets.get_new_target(self, target_construction)
