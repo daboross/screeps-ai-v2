@@ -72,6 +72,8 @@ class LocalHauler(SpawnFill, TransportPickup):
             fill = self.home.room.storage
         else:
             fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
+            if fill.pos.getRangeTo(self.home.room.controller) <= 3:
+                fill = self.home.room.storage
 
         if not pickup:
             self.go_to_depot()
