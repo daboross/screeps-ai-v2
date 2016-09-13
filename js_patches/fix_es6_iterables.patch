@@ -1,0 +1,14 @@
+diff --git a/dist/main.js b/target/main.js
+index 46ed629..f0fa741 100644
+--- a/target/main.js
++++ b/target/main.js
+@@ -778,6 +778,9 @@ function main () {
+ 			iterator.next = wrap_py_next;
+ 			return iterator;
+ 		}
++		else if (Symbol.iterator in iterable) {
++			return iterable[Symbol.iterator]();
++		}
+ 		else if ('next' in iterable) {	// It's a JavaScript generator
+ 			// It should have an iterator field, but doesn't in Chrome
+ 			// So we just return the generator itself, which is both an iterable and an iterator

@@ -22,11 +22,13 @@ rm -rf target/
 mkdir -p target/
 
 cd "src"
+# "$TRANSCRYPT" -n -b -p .none -e6 main.py
 "$TRANSCRYPT" -n -b -p .none main.py
 cp __javascript__/main.* ../target/
 cd ../
 
 patch -lb target/main.js js_patches/fix_string_format.patch
+patch -lb target/main.js js_patches/fix_es6_iterables.patch
 
 mkdir -p dist/
 cp target/main.js dist/
