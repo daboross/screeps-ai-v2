@@ -1085,6 +1085,9 @@ class RoomMind:
         return self._conducting_siege
 
     def get_max_mining_op_count(self):
+        if not self.room.controller:
+            print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.room_name))
+            return 0
         spawning_energy = self.room.energyCapacityAvailable
         sources = len(self.sources)
         rcl = self.room.controller.level
@@ -1097,8 +1100,10 @@ class RoomMind:
             extra_rcl = 0
             if rcl < 7:
                 max_via_rcl2 = 3
-            else:
+            elif rcl == 7:
                 max_via_rcl2 = 4
+            else:
+                max_via_rcl2 = 2
         else:
             min_wm = 40  # Around all roles built needed for an rcl 3 room!
             extra_wm = 10
@@ -1107,8 +1112,10 @@ class RoomMind:
             extra_rcl = 1
             if rcl < 7:
                 max_via_rcl2 = 2
-            else:
+            elif rcl == 7:
                 max_via_rcl2 = 3
+            else:
+                max_via_rcl2 = 1
 
         if self.work_mass < min_wm:
             max_via_wm = 0
@@ -1338,11 +1345,16 @@ class RoomMind:
                 return 0
 
     def get_target_upgrader_work_mass(self):
-        worker_size = max(1, spawning.max_sections_of(self, creep_base_worker))
+        base = self.get_variable_base(role_upgrader)
+        if base is creep_base_full_upgrader:
+            worker_size = max(2, spawning.max_sections_of(self, base)) * 2
+        else:
+            worker_size = max(1, spawning.max_sections_of(self, base))
+
         if self.upgrading_paused():
             wm = 1
         elif self.mining_ops_paused():
-            wm = spawning.max_sections_of(self, creep_base_worker) * 4
+            wm = worker_size * 4
         else:
             wm = min(self.room.controller.level, worker_size)
         if self.full_storage_use:
@@ -1352,16 +1364,15 @@ class RoomMind:
                 extra = min(_.sum(self.room.storage.store) - 700000, self.room.storage.store.energy - 150000)
             if extra > 0:
                 if Memory.hyper_upgrade:
-                    wm += math.ceil(extra / 5000)
+                    wm += math.ceil(extra / 1000)
                 else:
                     wm += math.floor(extra / 2000)
+                if extra >= 200000:
+                    wm += math.ceil((extra - 200000) / 400)
+                    print("[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})"
+                          .format(self.room_name, wm, worker_size))
 
-        base = self.get_variable_base(role_upgrader)
-        if base is creep_base_full_upgrader:
-            max_per_upgrader = worker_size / 2
-        else:
-            max_per_upgrader = worker_size
-        return min(wm, max_per_upgrader * 6)
+        return min(wm, worker_size * 6)
 
     def get_target_tower_fill_mass(self):
         if not self.get_target_spawn_fill_mass():
@@ -1451,6 +1462,8 @@ class RoomMind:
             [role_dedi_miner, self.get_target_local_miner_count],
             [role_tower_fill, self.get_target_tower_fill_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+            [role_upgrader, lambda: self.get_target_upgrader_work_mass() if self.mining_ops_paused() else None,
+             False, True],
             [role_local_hauler, self.get_target_local_hauler_mass, True],
         ]
         role_needed = None

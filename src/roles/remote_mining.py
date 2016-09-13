@@ -1,7 +1,7 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
-    role_remote_hauler, role_remote_miner, role_recycling
+    role_remote_hauler, role_remote_miner, role_recycling, role_upgrader
 from goals.transport import TransportPickup
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -110,6 +110,9 @@ class RemoteHauler(SpawnFill, TransportPickup):
             if fill and fill.energy >= fill.energyCapacity and fill.structureType == STRUCTURE_LINK and \
                     not self.home.links.enabled:
                 fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
+
+            if fill.pos.getRangeTo(self.home.room.controller) <= 3.0 and self.home.role_count(role_upgrader) > 3:
+                fill = self.home.room.storage # if there's a large upgrader party, let's not stop there.
 
         if not fill:
             self.log("WARNING: Couldn't find fill site!")
