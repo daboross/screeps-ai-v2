@@ -49,9 +49,13 @@ class LinkManager(RoleBase):
         if self.creep.carry.energy != self.creep.carryCapacity / 2:
             # this is not the norm.
             if self.creep.carry.energy > self.creep.carryCapacity / 2:
-                self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, self.creep.carry.energy
-                                                   - self.creep.carryCapacity / 2), "transfer", storage,
-                               RESOURCE_ENERGY)
+                result = self.creep.transfer(storage, RESOURCE_ENERGY, self.creep.carry.energy
+                                             - self.creep.carryCapacity / 2)
+                if result == ERR_FULL:
+                    result = self.creep.transfer(self.home.links.main_link, RESOURCE_ENERGY, self.creep.carry.energy
+                                                 - self.creep.carryCapacity / 2)
+                self.ensure_ok(result, "transfer", storage, RESOURCE_ENERGY)
+
             else:
                 self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, self.creep.carryCapacity / 2
                                                    - self.creep.carry.energy), "withdraw", storage,
