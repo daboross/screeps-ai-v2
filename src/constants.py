@@ -63,6 +63,7 @@ role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
 role_recycling = "recycling"
+role_mineral_steal = "steal_minerals"
 role_mineral_miner = "local_mineral_miner"
 role_mineral_hauler = "local_mineral_hauler"
 role_td_healer = "tower_drain_healer"
@@ -90,6 +91,7 @@ role_bases = {
     role_mineral_hauler: creep_base_hauler,
     role_simple_dismantle: creep_base_dismantler,
     role_scout: creep_base_scout,
+    role_mineral_steal: creep_base_half_move_hauler,
 }
 
 default_roles = {

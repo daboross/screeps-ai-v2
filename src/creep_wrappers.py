@@ -34,6 +34,7 @@ role_classes = {
     role_colonist: colonizing.Colonist,
     role_simple_claim: colonizing.Claim,
     role_room_reserve: colonizing.ReserveNow,
+    role_mineral_steal: colonizing.MineralSteal,
     role_recycling: generic.Recycling,
     role_mineral_miner: minerals.MineralMiner,
     role_mineral_hauler: minerals.MineralHauler,

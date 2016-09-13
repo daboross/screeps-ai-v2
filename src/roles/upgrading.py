@@ -117,7 +117,7 @@ class Upgrader(RoleBase):
         return RoleBase.should_pickup(self, resource_type) and not self.home.upgrading_paused()
 
     def run_individual_upgrading(self):
-        if self.creep.ticksToLive < recycle_time:
+        if self.creep.ticksToLive < recycle_time and self.home.spawn:
             self.memory.role = role_recycling
             self.memory.last_role = role_upgrader
             return False

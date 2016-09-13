@@ -72,4 +72,6 @@ Memory.hyper_upgrade = true; for (let room of py.context.hive().my_rooms) { room
 for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }
 Memory.rooms.W46N28.empty_to = "W49N25"
 delete Memory.rooms.W47N26.cache.placed_mining_roads
+for (let creep of _.values(Game.creeps)) { if (creep.memory.role == py.constants.role_colonist) { console.log(creep.name + ": "+ creep.pos); }}
+for (let s of Game.rooms.W48N29.find(FIND_STRUCTURES)) { if (s.structureType == STRUCTURE_WALL && !s.pos.lookFor(LOOK_FLAGS).length && Game.cpu.getUsed() < 200) { s.pos.cfms(py.flags.MAIN_BUILD, py.flags.SUB_WALL); } }
 ```

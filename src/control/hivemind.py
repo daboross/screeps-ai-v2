@@ -273,7 +273,8 @@ class RoomMind:
         self._target_defender_count = None
         self._first_simple_target_defender_count = None
         self._first_target_cleanup_mass = None
-        self._target_colonist_count = None
+        self._target_colonist_work_mass = None
+        self._target_mineral_steal_mass = None
         self._target_simple_claim_count = None
         self._target_room_reserve_count = None
         self._target_spawn_fill_mass = None
@@ -1248,13 +1249,28 @@ class RoomMind:
         return self._first_simple_target_defender_count if first else self._target_defender_count
 
     def get_target_colonist_work_mass(self):
-        work_max_10 = min(10, spawning.max_sections_of(self, creep_base_worker))
-        if not self._target_colonist_count:
+        worker_mass = spawning.max_sections_of(self, creep_base_worker)
+        hauler_mass = spawning.max_sections_of(self, creep_base_half_move_hauler)
+        if not self._target_colonist_work_mass:
             needed = 0
+            mineral_steal = 0
             for room in self.subsidiaries:
-                needed += max(0, 3 - _.sum(room.role_counts))
-            self._target_colonist_count = needed * work_max_10
-        return self._target_colonist_count
+                room_work_mass = 0
+                for role in Object.keys(room.work_mass_map):
+                    room_work_mass += room.work_mass_map[role] \
+                                      - room.work_mass_of_replacements_currently_needed_for(role)
+                needed += max(0, worker_mass * 3 - room_work_mass)
+                if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store.energy \
+                        and room.room.storage.storeCapacity <= 0:
+                    mineral_steal += hauler_mass
+            self._target_colonist_work_mass = needed
+            self._target_mineral_steal_mass = mineral_steal
+        return self._target_colonist_work_mass
+
+    def get_target_mineral_steal_mass(self):
+        if not self._target_mineral_steal_mass:
+            self.get_target_colonist_work_mass()
+        return self._target_mineral_steal_mass
 
     def get_target_spawn_fill_backup_work_mass(self):
         work_max_5 = max(3, min(5, spawning.max_sections_of(self, creep_base_worker)))
@@ -1499,7 +1515,8 @@ class RoomMind:
             [role_simple_claim, self.get_target_simple_claim_count],
             [role_room_reserve, self.get_target_room_reserve_count],
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
-            [role_colonist, self.get_target_colonist_work_mass],
+            [role_colonist, self.get_target_colonist_work_mass, False, True],
+            [role_mineral_steal, self.get_target_mineral_steal_mass, True],
             [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_mineral_miner, self.get_target_mineral_miner_count],
             [role_builder, lambda: self.get_target_builder_work_mass(True), False, True],

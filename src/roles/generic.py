@@ -11,7 +11,6 @@ __pragma__('noalias', 'Infinity')
 
 immediately_replace_roles = [
     role_local_hauler,
-    role_mineral_hauler,
 ]
 let_live_roles = [
     role_spawn_fill_backup,
@@ -24,6 +23,8 @@ let_live_roles = [
     role_remote_hauler,
     role_remote_miner, # We need this and mining reserve to let them use the cached paths.
     role_remote_mining_reserve,
+    role_mineral_steal,
+    role_mineral_hauler,
 ]
 
 

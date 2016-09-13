@@ -43,20 +43,27 @@ class TransportPickup(RoleBase):
                 return
 
             containers = self.room.find_in_range(FIND_STRUCTURES, 1, target)
-            container = _.find(containers, {'structureType': STRUCTURE_CONTAINER})
+            container = _.find(containers, lambda s: s.structureType == STRUCTURE_CONTAINER
+                                                     or s.structureType == STRUCTURE_STORAGE)
             if container:
                 if self.pos.isNearTo(container):
-                    for mtype in Object.keys(container.store):
-                        amount = container.store[mtype]
-                        if amount > 0:
-                            result = self.creep.withdraw(container, mtype)
-                            if result != OK:
-                                self.log("Unknown result from creep.withdraw({}, {}): {}"
-                                         .format(container, mtype, result))
-                                amount = 0
-                            break
+                    if _.sum(container.store) > container.store.energy:
+                        for mtype in Object.keys(container.store):
+                            amount = container.store[mtype]
+                            if amount > 0 and mtype != RESOURCE_ENERGY: # Prioritize minerals over energy
+                                break
+                        else:
+                            return
                     else:
+                        mtype = RESOURCE_ENERGY
+                        amount = container.store[RESOURCE_ENERGY]
+
+                    result = self.creep.withdraw(container, mtype)
+                    if result != OK:
+                        self.log("Unknown result from creep.withdraw({}, {}): {}"
+                                 .format(container, mtype, result))
                         return
+
                     if amount > self.creep.carryCapacity - _.sum(self.creep.carry):
                         self.memory.filling = False
                         self.follow_energy_path(pickup, fill)
@@ -81,7 +88,10 @@ class TransportPickup(RoleBase):
         else:
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage
-            elif self.creep.carry.energy <= 0:
+            elif _.sum(self.creep.carry) <= 0:
+                if self.creep.ticksToLive < 2.2 * self.path_length(fill, pickup):
+                    self.creep.suicide()
+                    return
                 self.creep.memory.filling = True
                 self.follow_energy_path(fill, pickup)
                 return
