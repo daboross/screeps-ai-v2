@@ -10,6 +10,25 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
+building_priorities = {
+    STRUCTURE_EXTENSION: 0,
+    STRUCTURE_SPAWN: 1,
+    STRUCTURE_LINK: 1,
+    STRUCTURE_TOWER: 2,
+    STRUCTURE_STORAGE: 3,
+    STRUCTURE_WALL: 4,
+    STRUCTURE_RAMPART: 5,
+    STRUCTURE_TERMINAL: 6,
+}
+default_priority = 10
+
+
+def get_priority(structure_type):
+    if structure_type in building_priorities:
+        return building_priorities[structure_type]
+    else:
+        return default_priority
+
 
 class ConstructionMind:
     """
@@ -54,31 +73,21 @@ class ConstructionMind:
         del self.room.mem.cache.destruct_targets
 
     def next_priority_construction_targets(self):
-        priority_list = self.room.get_cached_property("building_targets")
-        if priority_list is not None:
-            return priority_list
-        current_targets = {}
-        low_priority = []
-        med_priority = []
-        high_priority = []
+        targets = self.room.get_cached_property("building_targets")
+        if targets is not None:
+            return targets
 
-        for site in self.room.find(FIND_CONSTRUCTION_SITES):
-            if site.structureType in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION, STRUCTURE_LINK, STRUCTURE_TOWER):
-                high_priority.append(site.id)
-            elif site.structureType in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE):
-                med_priority.append(site.id)
-            # elif site.structureType == STRUCTURE_ROAD:
-            #     # let's only have haulers repairing roads, that way we won't build too many where we don't need them,
-            #     # if the pathfinding doesn't work.
-            #     # TODO: Remove this statement once we rewrite the remote pathfinding to iterate over remote mines and
-            #     # only place paths for a single path to each mine, instead of using recently-used cached paths.
-            #     continue
+        currently_existing = {}
+        for s in self.room.find(FIND_STRUCTURES):
+            if s.structureType in currently_existing:
+                currently_existing[s.structureType] += 1
             else:
-                low_priority.append(site.id)
-            if current_targets[site.structureType]:
-                current_targets[site.structureType] += 1
+                currently_existing[s.structureType] = 1
+        for s in self.room.find(FIND_CONSTRUCTION_SITES):
+            if s.structureType in currently_existing:
+                currently_existing[s.structureType] += 1
             else:
-                current_targets[site.structureType] = 1
+                currently_existing[s.structureType] = 1
 
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
@@ -98,13 +107,11 @@ class ConstructionMind:
                   " which isn't ours!".format(self.room.room_name, self.room.room_name))
             controller_level = 0
 
-        new_site_placed = False
+        new_sites = []
 
-        currently_built_structures = {}
-
-        for flag, flag_type in _.sortBy(
-                flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
-                lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos, flag_tuple[0].pos)):
+        for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
+                                        lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos,
+                                                                                              flag_tuple[0].pos)):
             structure_type = flags.flag_sub_to_structure_type[flag_type]
             if not structure_type:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
@@ -112,47 +119,24 @@ class ConstructionMind:
                 ))
             if flags.look_for(self.room, flag, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type]):
                 continue
-            if currently_built_structures[structure_type]:
-                currently_built = currently_built_structures[structure_type]
-            else:
-                currently_built = 0
-                for s in self.room.find(FIND_STRUCTURES):
-                    if s.structureType == structure_type and (not s.owner or s.my):
-                        currently_built += 1
-                currently_built_structures[structure_type] = currently_built
-            if CONTROLLER_STRUCTURES[structure_type][controller_level] \
-                    > currently_built + (current_targets[structure_type] or 0):
-                if len(_.filter(self.room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": structure_type})) \
-                        or len(_.filter(self.room.find_at(FIND_CONSTRUCTION_SITES, flag.pos),
-                                        {"structureType": structure_type})):
+            if CONTROLLER_STRUCTURES[structure_type][controller_level] > (currently_existing[structure_type] or 0):
+                if _.find(self.room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": structure_type}) \
+                        or _.find(self.room.find_at(FIND_CONSTRUCTION_SITES, flag.pos),
+                                  {"structureType": structure_type}):
                     continue  # already built.
                 flag.pos.createConstructionSite(structure_type)
-                if structure_type in (STRUCTURE_SPAWN, STRUCTURE_TOWER, STRUCTURE_LINK):
-                    high_priority.append("flag-{}".format(flag.name))
-                elif structure_type in (STRUCTURE_WALL, STRUCTURE_RAMPART, STRUCTURE_STORAGE, STRUCTURE_EXTENSION):
-                    med_priority.append("flag-{}".format(flag.name))
-                else:
-                    low_priority.append("flag-{}".format(flag.name))
-                new_site_placed = True
+                new_sites.append("flag-{}".format(flag.name))
 
-        if len(high_priority):
-            # We're going to want to work on high priority targets anyways, even if new ones are placed. Long TTL!
-            self.room.store_cached_property("building_targets", high_priority, 400)
-        elif len(med_priority):
-            # We're halfway done. Somewhat random TTL!
-            self.room.store_cached_property("building_targets", med_priority, 200)
-        elif len(low_priority):
-            # These are the last of the targets placed - there won't be any more unless more are placed manually.
-            # TODO: This should be lower if auto-placing is ever implemented. Or, autoplacing should just use refresh()
-            self.room.store_cached_property("building_targets", low_priority, 300)
+        sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
+                         lambda s: get_priority(s.structureType) * 50
+                                   + movement.distance_room_pos(spawn_pos, s.pos))]
+
+        if len(new_sites):
+            # Have most things target the new flags first, since the Builder class will auto-re-target next turn when it
+            # finds itself targeting a flag.
+            self.room.store_cached_property("building_targets", new_sites.concat(sites), 1)
         else:
-            # No targets available at current controller level. TODO: refresh when controller upgrades!
-            self.room.store_cached_property("building_targets", low_priority, 70)
-
-        if new_site_placed:
-            # expires in one tick, when new construction sites are active.
-            self.room.mem.cache.building_targets.dead_at = Game.time + 1
-
+            self.room.store_cached_property("building_targets", sites, 100)
         return self.room.get_cached_property("building_targets")
 
     def next_priority_repair_targets(self):
@@ -284,7 +268,7 @@ class ConstructionMind:
                 return  # don't check every tick
             for name in missing_rooms:
                 if Game.rooms[name]:
-                    break # Re-pave if we can now see a room we couldn't before!
+                    break  # Re-pave if we can now see a room we couldn't before!
             else:
                 return
         if not self.room.paving():
