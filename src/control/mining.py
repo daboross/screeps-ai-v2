@@ -80,9 +80,9 @@ class MiningMind:
         carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
         room = Game.rooms[flag.pos.roomName]
         if room and room.controller and room.controller.reservation:
-            mining_per_tick = 12.0  # With 2 added just to have some leeway
+            mining_per_tick = 11.0  # With 1 added just to have some leeway
         elif flag.memory.sk_room:
-            mining_per_tick = 18.0  # With 3 added to have some leeway
+            mining_per_tick = 16.0  # With 1 added to have some leeway
         else:
             mining_per_tick = 6.0  # With 1 added just to have some leeway
         produce_per_tick = mining_per_tick
@@ -219,9 +219,8 @@ class MiningMind:
             if self.room.all_paved():
                 base = creep_base_work_half_move_hauler
             elif self.room.paving():
-                base = creep_base_work_half_move_hauler
-                # TODO: better all_paved detection *per mine*
-                # base = creep_base_work_full_move_hauler
+                # TODO: better all_paved detection *per mine* (all_paved currently is always set to paving() value)
+                base = creep_base_work_full_move_hauler
             else:
                 base = creep_base_hauler
 

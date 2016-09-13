@@ -524,7 +524,7 @@ class RoomMind:
         elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(_.filter(self.find(FIND_STRUCTURES),
                                                                    {"structureType": STRUCTURE_ROAD})):
             paved = False  # still paving
-        else:
+        elif self.my:
             for flag in self.mining.active_mines:
                 room = self.hive_mind.get_room(flag.pos.roomName)
                 if room:
@@ -533,12 +533,16 @@ class RoomMind:
                         break
                 else:
                     unreachable_rooms = True  # Cache for less time
+        # TODO: better remote mine-specific paving detection, so we can disable this shortcut
+        if not paved and self.paving():
+            paved = True
         if paved:
             if unreachable_rooms:
                 self.store_cached_property("completely_paved", paved, 50)
             else:
                 self.store_cached_property("completely_paved", paved, 200)
         else:
+
             self.store_cached_property("completely_paved", paved, 20)
         return paved
 
