@@ -75,33 +75,28 @@ class Builder(upgrading.Upgrader):
             target = self.targets.get_existing_target(self, target_construction)
             if target:
                 return self.execute_construction_target(target)
+            target = self.targets.get_existing_target(self, target_big_repair)
+            if target:
+                return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
 
             if self.memory.building_walls_at:
                 walls = self.room.find_at(FIND_STRUCTURES, self.memory.building_walls_at & 0x3F,
                                           (self.memory.building_walls_at >> 6) & 0x3F)
-                if len(walls):
-                    self.targets._register_new_targeter(target_repair, self.name, walls[0].id)
-                    return self.execute_repair_target(walls[0], min(350000, self.home.min_sane_wall_hits),
-                                                      target_repair)
+                wall = _.find(walls, lambda s: s.structureType == STRUCTURE_WALL
+                                               or s.structureType == STRUCTURE_RAMPART)
                 del self.memory.building_walls
+                if wall:
+                    self.targets._register_new_targeter(target_repair, self.name, wall.id)
+                    return self.execute_repair_target(wall, min(350000, self.home.min_sane_wall_hits),
+                                                      target_repair)
 
             target = self.get_new_repair_target(min(350000, self.home.min_sane_wall_hits), target_repair)
             if target:
-                self.targets.untarget(self, target_big_repair)
-                del self.memory.last_big_repair_max_hits
                 return self.execute_repair_target(target, min(350000, self.home.min_sane_wall_hits), target_repair)
 
             target = self.get_new_construction_target()
             if target:
-                self.targets.untarget(self, target_big_repair)
-                del self.memory.last_big_repair_max_hits
                 return self.execute_construction_target(target)
-
-            if self.memory.last_big_repair_max_hits:
-                max_hits = self.memory.last_big_repair_max_hits
-                target = self.get_new_repair_target(max_hits, target_big_repair)
-                if target:
-                    return self.execute_repair_target(target, max_hits, target_big_repair)
 
             for max_hits in range(min(400000, self.home.min_sane_wall_hits), self.home.max_sane_wall_hits, 50000):
                 target = self.get_new_repair_target(max_hits, target_big_repair)
@@ -115,6 +110,7 @@ class Builder(upgrading.Upgrader):
 
             self.memory.role = role_upgrader
             return False
+
     def build_swamp_roads(self):
         if self.creep.carry.energy > 0:
             repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
@@ -133,9 +129,10 @@ class Builder(upgrading.Upgrader):
 
     def get_new_repair_target(self, max_hits, ttype):
         target = self.targets.get_new_target(self, ttype, max_hits)
-        if target and target.hits >= max_hits:
+        if target and (target.hits >= max_hits or target.hits > target.maxHits):
             self.log("WARNING: TargetMind.get_new_target({}, {}, {}) returned {} ({} hits)"
                      .format(self, ttype, max_hits, target, target.hits))
+            self.targets.untarget(self, ttype)
             return None
         return target
 
