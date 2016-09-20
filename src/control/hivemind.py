@@ -34,6 +34,23 @@ def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
     return trying
 
 
+def parse_xy_arguments(pos, optional_y):
+    """
+    Parses x/optional_y arguments into x, y, and roomName
+    :param pos: The first argument
+    :param optional_y: The second argument
+    :return: (x, y, room_name)
+    :rtype: (int, int, str)
+    """
+    if optional_y is not None and optional_y is not undefined:
+        return pos, optional_y, None
+    else:
+        if pos.pos:
+            return pos.pos.x, pos.pos.y, pos.pos.roomName
+        else:
+            return pos.x, pos.y, pos.roomName
+
+
 class HiveMind:
     """
     :type target_mind: control.targets.TargetMind
@@ -378,18 +395,13 @@ class RoomMind:
         :return: A list of results
         :rtype: list[RoomObject]
         """
-        if optional_y is not None and optional_y is not undefined:
-            x = pos
-            y = optional_y
-        else:
-            x = pos.x
-            y = pos.y
-            if pos.roomName and pos.roomName != self.room_name:
-                room = self.hive_mind.get_room(pos.roomName)
-                if room:
-                    return room.find_at(find_type, pos, optional_y)
-                else:
-                    return []
+        x, y, room_name = parse_xy_arguments(pos, optional_y)
+        if room_name is not None and room_name != self.room_name:
+            room = self.hive_mind.get_room(room_name)
+            if room:
+                return room.find_at(find_type, x, y)
+            else:
+                return []
         raw_find_results = self.find(find_type)
         found = []
         if len(raw_find_results):
@@ -419,12 +431,13 @@ class RoomMind:
         :return: A list of results
         :rtype: list[RoomObject]
         """
-        if optional_y is not None and optional_y is not undefined:
-            x = pos
-            y = optional_y
-        else:
-            x = pos.x
-            y = pos.y
+        x, y, room_name = parse_xy_arguments(pos, optional_y)
+        if room_name is not None and room_name != self.room_name:
+            room = self.hive_mind.get_room(pos.roomName)
+            if room:
+                return room.find_in_range(find_type, find_range, x, y)
+            else:
+                return []
         raw_find_results = self.find(find_type)
         found = []
         if len(raw_find_results):
@@ -596,7 +609,7 @@ class RoomMind:
         if not rt_map[role]:
             rt_map[role] = [rt_pair]
         else:
-            #_.sortedIndex(array, value, [iteratee=_.identity])
+            # _.sortedIndex(array, value, [iteratee=_.identity])
             # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
             rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
 
@@ -638,7 +651,7 @@ class RoomMind:
             if not rt_map[role]:
                 rt_map[role] = [rt_pair]
             else:
-                #_.sortedIndex(array, value, [iteratee=_.identity])
+                # _.sortedIndex(array, value, [iteratee=_.identity])
                 # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
                 rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
         self.mem.roles_alive = roles_alive
