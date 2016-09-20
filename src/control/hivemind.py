@@ -701,7 +701,8 @@ class RoomMind:
         """
         key = "ecc_{}".format(role)
         result = self.get_cached_property(key)
-        if result: return result
+        if result:
+            return result
         current = self.carry_mass_of(role)
         left_to_remove = current - target_carry_mass
         result = []
@@ -710,9 +711,9 @@ class RoomMind:
         rt_map = self._get_rt_map()
         if role in rt_map:
             for name, rt in rt_map[role]:
-                if name not in Memory.creeps:
+                if name not in Game.creeps:
                     continue
-                carry = Memory.creeps[name].carry  # TODO: this should always be set, but what if it isn't?
+                carry = spawning.carry_count(Game.creeps[name])
                 if carry > left_to_remove:
                     # We don't want to go below the target, but there might be a smaller creep we can remove?
                     continue
@@ -734,9 +735,10 @@ class RoomMind:
         :type target_work_mass: int
         :rtype: list[str]
         """
-        key = "ecc_{}".format(role)
+        key = "ecw_{}".format(role)
         result = self.get_cached_property(key)
-        if result: return result
+        if result:
+            return result
         current = self.work_mass_of(role)
         left_to_remove = current - target_work_mass
         result = []
@@ -745,9 +747,9 @@ class RoomMind:
         rt_map = self._get_rt_map()
         if role in rt_map:
             for name, rt in rt_map[role]:
-                if name not in Memory.creeps:
+                if name not in Game.creeps:
                     continue
-                work = Memory.creeps[name].work  # TODO: this should always be set, but what if it isn't?
+                work = spawning.work_count(Game.creeps[name])
                 if work > left_to_remove:
                     # We don't want to go below the target, but there might be a smaller creep we can remove?
                     continue
@@ -805,6 +807,8 @@ class RoomMind:
             for creep, replacement_time in rt_map[role]:
                 if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
                     mass += spawning.carry_count(Game.creeps[creep])
+                else:
+                    break  # this is sorted
         return mass
 
     def work_mass_of_replacements_currently_needed_for(self, role):
@@ -814,6 +818,8 @@ class RoomMind:
             for creep, replacement_time in rt_map[role]:
                 if Game.creeps[creep] and not Memory.creeps[creep].replacement and replacement_time <= Game.time:
                     mass += spawning.work_count(Game.creeps[creep])
+                else:
+                    break  # this is sorted
         return mass
 
     def precreep_tick_actions(self):
