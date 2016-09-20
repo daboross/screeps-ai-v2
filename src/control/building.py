@@ -276,7 +276,8 @@ class ConstructionMind:
         non_visible_rooms = None
 
         def check_route(positions):
-            nonlocal path_count, placed_count, any_non_visible_rooms, non_visible_rooms
+            nonlocal checked_positions_per_room, future_road_positions_per_room, path_count, placed_count, \
+                any_non_visible_rooms, non_visible_rooms
             path_count += 1
             for pos in positions:
                 if checked_positions_per_room.has(pos.roomName):
@@ -314,14 +315,16 @@ class ConstructionMind:
 
         for mine in self.room.mining.active_mines:
             deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
-            self.room.honey.clear_cached_path(deposit_point, mine)
-            self.room.honey.clear_cached_path(mine, deposit_point)
+            if not deposit_point:
+                continue  # This will be the case if we have no storage nor spawn. In that case, don't yet pave.
+            self.hive.honey.clear_cached_path(deposit_point, mine)
+            self.hive.honey.clear_cached_path(mine, deposit_point)
             # It's important to run check_route on this path before doing another path, since this updates the
             # future_road_positions_per_room object.
-            check_route(self.room.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
+            check_route(self.hive.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
             for spawn in self.room.spawns:
-                self.room.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                check_route(self.room.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
+                self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
+                check_route(self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
 
         to_destruct = 0
         for room_name in checked_positions_per_room.keys():
@@ -359,9 +362,14 @@ class ConstructionMind:
                                        {"structureType": STRUCTURE_ROAD}):
                     flag.remove()
 
-        print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-            self.room.room_name, _.sum(checked_positions_per_room.values(), lambda s: s.size),
-            placed_count, path_count))
+        if any_non_visible_rooms:
+            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms {})".format(
+                self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
+                placed_count, path_count, list(non_visible_rooms.values())))
+        else:
+            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
+                self.room.room_name, _.sum(list(checked_positions_per_room.values()), 'size'),
+                placed_count, path_count))
 
         # stagger updates after a version change.
         # Really don't do this often either - this is an expensive operation.

@@ -137,7 +137,7 @@ class TransportPickup(RoleBase):
         if origin.pos: origin = origin.pos
         if target.pos: target = target.pos
 
-        path = self.room.honey.find_path(origin, target)
+        path = self.hive.honey.find_path(origin, target)
         return len(path)
 
     def follow_energy_path(self, origin, target):
@@ -148,7 +148,7 @@ class TransportPickup(RoleBase):
             return
         # if over_debug:
         #     self.log("Following path from {} to {}!".format(origin, target))
-        path = self.room.honey.find_path(origin, target, {'current_room': self.pos.roomName})
+        path = self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName})
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
@@ -157,7 +157,7 @@ class TransportPickup(RoleBase):
                 return
             if not self.memory.next_ppos or self.memory.off_path_for > 100:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
-                all_positions = self.room.honey.list_of_room_positions_in_path(origin, target)
+                all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target)
                 closest = None
                 closest_distance = Infinity
                 for pos in all_positions:
@@ -189,7 +189,7 @@ class TransportPickup(RoleBase):
                              " it doesn't.".format(origin, target, new_target))
                     self.log("Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}".format(
                         self.pos.roomName, JSON.stringify(path, 0, 4)))
-                    self.room.honey.clear_cached_path(origin, target)
+                    self.hive.honey.clear_cached_path(origin, target)
             else:
                 del self.memory.tried_new_next_ppos
             self.creep.moveTo(new_target)

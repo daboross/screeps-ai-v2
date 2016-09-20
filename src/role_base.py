@@ -191,8 +191,7 @@ class RoleBase:
                 self.last_checkpoint = None
                 return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
 
-        # TODO: RoleBase should have a reference to the hive!
-        path = self.room.honey.find_path(checkpoint, target)
+        path = self.hive.honey.find_path(checkpoint, target)
         if set_rhp:
             # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
             global_cache.set("rhp_{}_{}_{}_{}_{}".format(
@@ -275,13 +274,6 @@ class RoleBase:
             return self.creep.moveTo(pos, _DEFAULT_PATH_OPTIONS)
 
     def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
-        run_cache = volatile_cache.mem("creeps_moved")
-        if run_cache.has(self.name):
-            value = run_cache.get(self.name) + 1
-            run_cache.set(self.name, value)
-            self.log("WARNING: Moving {} times!".format(value))
-        else:
-            run_cache.set(self.name, 1)
         if target.pos:
             pos = target.pos
         else:

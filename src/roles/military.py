@@ -1,5 +1,4 @@
 import math
-
 import random
 
 import autoactions
@@ -176,12 +175,12 @@ class MilitaryBase(RoleBase):
                     target = dest_midpoint
                     path_opts.range = 10
 
-        path = self.room.honey.find_path(origin, target, path_opts)
+        path = self.hive.honey.find_path(origin, target, path_opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
             if not self.memory.next_ppos:
-                all_positions = self.room.honey.list_of_room_positions_in_path(origin, target, path_opts)
+                all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, path_opts)
                 closest = None
                 closest_distance = Infinity
                 for pos in all_positions:
@@ -232,7 +231,7 @@ class MilitaryBase(RoleBase):
                 del self.memory.last_position
                 del self.memory.standstill_for
                 del self.memory.next_ppos
-                self.room.honey.clear_cached_path(origin, target, path_opts)
+                self.hive.honey.clear_cached_path(origin, target, path_opts)
                 self.move_to(target)
         else:
             self.memory.last_pos = serialized_pos
@@ -254,7 +253,7 @@ class MilitaryBase(RoleBase):
             path_opts.max_ops = 9000
             path_opts.max_rooms = 15
 
-        return self.room.honey.find_path(spawn, target, path_opts)
+        return self.hive.honey.find_path(spawn, target, path_opts)
 
 
 class Scout(MilitaryBase):

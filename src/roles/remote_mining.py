@@ -81,7 +81,7 @@ class RemoteMiner(TransportPickup):
         source = self.targets.get_new_target(self, target_remote_mine_miner)
         if not source:
             return -1
-        path = self.home.honey.find_path(self.home.spawn, source)
+        path = self.hive.honey.find_path(self.home.spawn, source)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         return len(path) + _.size(self.creep.body) * 3 + 15
 
@@ -126,9 +126,9 @@ class RemoteHauler(SpawnFill, TransportPickup):
         source = self.targets.get_new_target(self, target_remote_mine_hauler)
         if not source:
             return -1
-        path = self.home.honey.find_path(self.home.spawn, source)
-        # TODO: find a good time in a better way!
-        return len(path) * 1.7 + _.size(self.creep.body) * 3 + 15  # Don't live-replace as often.
+        path = self.hive.honey.find_path(self.home.spawn, source)
+        # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
+        return len(path) * 1.7 + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(RemoteHauler, ["run"])
@@ -223,7 +223,7 @@ class RemoteReserve(TransportPickup):
             target_pos = Game.rooms[room].controller.pos
         else:
             return -1
-        path = self.home.honey.find_path(self.home.spawn, target_pos)
+        path = self.hive.honey.find_path(self.home.spawn, target_pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return len(path) + _.size(self.creep.body) * 3 + 15
 

@@ -132,74 +132,42 @@ def direction_to(origin, destination):
     return direction
 
 
-class CachedTrails:
-    def __init__(self, hive):
-        self.hive = hive
-
-    def find_path(self, origin, destination):
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
-        if origin.roomName != destination.roomName:
-            return None
-        room = self.hive.get_room(origin.roomName)
-        if room:
-            return room.honey.find_path(origin, destination)
-        memory = Memory.rooms[origin.roomName]
-        if not memory or not memory.cache:
-            return None
-        key = "path_{}_{}_{}_{}".format(origin.x, origin.y, destination.x, destination.y)
-        if key not in memory.cache:
-            return None
-        if memory.cache[key].dead_at <= Game.time:
-            del memory.cache[key]
-            return None
-        try:
-            return Room.deserializePath(memory.cache[key].value)
-        except:
-            print("[{}][honey] Serialized path from {},{} to {},{} was invalid.")
-            del memory.cache[key]
-            return None
-
-
 class HoneyTrails:
     """
-    :type room: control.hivemind.RoomMind
+    :type hive: control.hivemind.HiveMind
     """
 
-    def __init__(self, room):
-        self.room = room
-        self.hive = room.hive_mind
+    def __init__(self, hive_mind):
+        self.hive = hive_mind
         self.used_basic_matrix = False
 
     def mark_exit_tiles(self, room_name, matrix, opts):
         use_roads = opts['roads']
         future_chosen = opts['future_chosen']
         if future_chosen:
-            if_roads_mutiplier = 5
+            if_roads_multiplier = 5
         else:
-            if_roads_mutiplier = 2 if use_roads else 1
+            if_roads_multiplier = 2 if use_roads else 1
 
         room_x, room_y = movement.parse_room_to_xy(room_name)
         if room_x % 10 == 0 or room_y % 10 == 0:
             for x in [0, 49]:
                 for y in range(0, 50):
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 1 * if_roads_mutiplier)
+                        matrix.set(x, y, 1 * if_roads_multiplier)
             for y in [0, 49]:
                 for x in range(0, 50):
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 1 * if_roads_mutiplier)
+                        matrix.set(x, y, 1 * if_roads_multiplier)
         else:
             for x in [0, 49]:
                 for y in range(0, 50):
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 2 * if_roads_mutiplier)
+                        matrix.set(x, y, 2 * if_roads_multiplier)
             for y in [0, 49]:
                 for x in range(0, 50):
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 2 * if_roads_mutiplier)
+                        matrix.set(x, y, 2 * if_roads_multiplier)
 
     def mark_sk_lairs(self, room_name, matrix, opts):
         for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
@@ -212,29 +180,24 @@ class HoneyTrails:
         future_chosen = opts['future_chosen']
 
         if future_chosen:
-            if_roads_mutiplier = 5
+            if_roads_multiplier = 5
             this_room_future_roads = future_chosen[room_name] or []
         else:
-            if_roads_mutiplier = 2 if use_roads else 1
+            if_roads_multiplier = 2 if use_roads else 1
             this_room_future_roads = None
-        if self.room.room_name != room_name:
-
-            room = self.hive.get_room(room_name)
-            if room:
-                print("[honey] Redelegating matrix for room {}.".format(room_name))
-                return room.honey._new_cost_matrix(room_name, origin, destination, opts)
-            else:
-                if Memory.enemy_rooms and room_name in Memory.enemy_rooms \
-                        and room_name != origin.roomName and room_name != destination.roomName:
-                    print("[honey] Avoiding room {}.".format(room_name))
-                    return False
-                print("[honey] Using basic matrix for room {}.".format(room_name))
-                self.used_basic_matrix = True
-                matrix = __new__(PathFinder.CostMatrix())
-                # Avoid stepping on exit tiles unnecessarily
-                self.mark_exit_tiles(room_name, matrix, opts)
-                self.mark_sk_lairs(room_name, matrix, opts)
-                return matrix
+        room = self.hive.get_room(room_name)
+        if not room:
+            if Memory.enemy_rooms and room_name in Memory.enemy_rooms \
+                    and room_name != origin.roomName and room_name != destination.roomName:
+                print("[honey] Avoiding room {}.".format(room_name))
+                return False
+            print("[honey] Using basic matrix for room {}.".format(room_name))
+            self.used_basic_matrix = True
+            matrix = __new__(PathFinder.CostMatrix())
+            # Avoid stepping on exit tiles unnecessarily
+            self.mark_exit_tiles(room_name, matrix, opts)
+            self.mark_sk_lairs(room_name, matrix, opts)
+            return matrix
         print("[honey] Calculating matrix for room {}.".format(room_name))
 
         # Python way doesn't work in JS :(
@@ -242,18 +205,20 @@ class HoneyTrails:
         #                     [s.structureType for s in self.room.find_at(FIND_STRUCTURES, destination)]
         structures_ignore = []
         if origin.roomName == room_name:
-            for s in self.room.find_at(FIND_STRUCTURES, origin):
+            for s in room.find_at(FIND_STRUCTURES, origin):
                 structures_ignore.append(s.structureType)
         if destination.roomName == room_name:
-            for s in self.room.find_at(FIND_STRUCTURES, destination):
+            for s in room.find_at(FIND_STRUCTURES, destination):
                 structures_ignore.append(s.structureType)
         going_to_extension = STRUCTURE_EXTENSION in structures_ignore or STRUCTURE_SPAWN in structures_ignore
         going_to_storage = STRUCTURE_STORAGE in structures_ignore or STRUCTURE_LINK in structures_ignore
         going_to_controller = STRUCTURE_CONTROLLER in structures_ignore
         # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual
         # room. that allows this to work correctly for multi-room paths.
-        going_to_source = (origin.roomName == room_name and len(self.room.find_at(FIND_SOURCES, origin))) \
-                          or (destination.roomName == room_name and len(self.room.find_at(FIND_SOURCES, destination)))
+        going_to_source = (
+            (origin.roomName == room_name and len(room.find_at(FIND_SOURCES, origin)))
+            or (destination.roomName == room_name and len(room.find_at(FIND_SOURCES, destination)))
+        )
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
@@ -263,10 +228,10 @@ class HoneyTrails:
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
         def road_at(x, y):
-            for s in self.room.find_at(FIND_STRUCTURES, x, y):
+            for s in room.find_at(FIND_STRUCTURES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
-            for s in self.room.find_at(FIND_CONSTRUCTION_SITES, x, y):
+            for s in room.find_at(FIND_CONSTRUCTION_SITES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
             return False
@@ -274,7 +239,7 @@ class HoneyTrails:
         def set_matrix(stype, pos, planned):
             if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
                 if stype == STRUCTURE_ROAD and use_roads \
-                        and not flags.look_for(self.room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
+                        and not flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
                     # TODO: this should really just be a method on top of this method to do this
                     if cost_matrix.get(pos.x, pos.y) > 2:
                         if this_room_future_roads:
@@ -309,31 +274,31 @@ class HoneyTrails:
                     or ((stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK) and not going_to_storage):
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
-                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 10 * if_roads_mutiplier:
-                            cost_matrix.set(x, y, 10 * if_roads_mutiplier)
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 10 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 10 * if_roads_multiplier)
             elif (stype == STRUCTURE_CONTROLLER and not going_to_controller) or \
                     (stype == "this_is_a_source" and not going_to_source):
                 for x in range(pos.x - 3, pos.x + 4):
                     for y in range(pos.y - 3, pos.y + 4):
-                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_mutiplier:
-                            cost_matrix.set(x, y, 5 * if_roads_mutiplier)
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 5 * if_roads_multiplier)
                 for x in range(pos.x - 2, pos.x + 3):
                     for y in range(pos.y - 2, pos.y + 3):
-                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_mutiplier:
-                            cost_matrix.set(x, y, 7 * if_roads_mutiplier)
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 7 * if_roads_multiplier)
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
-                        if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_mutiplier:
-                            cost_matrix.set(x, y, 20 * if_roads_mutiplier)
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 20 * if_roads_multiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
-        for struct in self.room.find(FIND_STRUCTURES):
+        for struct in room.find(FIND_STRUCTURES):
             set_matrix(struct.structureType, struct.pos, False)
-        for site in self.room.find(FIND_CONSTRUCTION_SITES):
+        for site in room.find(FIND_CONSTRUCTION_SITES):
             set_matrix(site.structureType, site.pos, True)
-        for flag, stype in flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD):
+        for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
             set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True)
-        for source in self.room.find(FIND_SOURCES):
+        for source in room.find(FIND_SOURCES):
             set_matrix("this_is_a_source", source.pos, False)
 
         if this_room_future_roads:
@@ -341,9 +306,9 @@ class HoneyTrails:
                 cost_matrix.set(pos.x, pos.y, 2)
 
         # Make room for the link manager creep! This can cause problems if not included.
-        if self.room.my and self.room.room.storage and self.room.links.main_link:
-            ml = self.room.links.main_link
-            storage = self.room.room.storage
+        if room.my and room.room.storage and room.links.main_link:
+            ml = room.links.main_link
+            storage = room.room.storage
             for x in range(ml.pos.x - 1, ml.pos.x + 2):
                 for y in range(ml.pos.y - 1, ml.pos.y + 2):
                     if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
@@ -434,18 +399,22 @@ class HoneyTrails:
         if room_to_path_obj is None:
             return None
         all_paved = True
+        all_owned = False
         for pos in result.path:
-            if not _.find(self.room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                          lambda s: s.structureType == STRUCTURE_ROAD) \
-                    and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y),
-                                   lambda s: s.structureType == STRUCTURE_ROAD):
+            room = self.hive.get_room(pos.roomName)
+            if not room or (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                                       lambda s: s.structureType == STRUCTURE_ROAD)
+                            and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
+                            lambda s: s.structureType == STRUCTURE_ROAD):
                 all_paved = False
                 break
+            if not room or not room.my:
+                all_owned = False
 
         expire_in = 20000
         if all_paved:
             expire_in *= 4
-        if not self.room.my:
+        if all_owned:
             expire_in *= 2
         if self.used_basic_matrix:
             # Don't constantly re-calculate super-long paths that we can't view the rooms for.
@@ -471,8 +440,8 @@ class HoneyTrails:
         try:
             path = Room.deserializePath(serialized_path_obj[current_room])
         except:
-            print("[{}][honey] Serialized path from {} to {} with current-room {} was invalid.".format(
-                self.room.room_name, origin, destination, current_room))
+            print("[honey] Serialized path from {} to {} with current-room {} was invalid.".format(
+                origin, destination, current_room))
             self.clear_cached_path(origin, destination, opts)
             new_path_obj = self.get_serialized_path_obj(origin, destination, opts)
             if current_room in new_path_obj:

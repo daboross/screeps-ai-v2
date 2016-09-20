@@ -8,7 +8,7 @@ from control import live_creep_utils
 from control.building import ConstructionMind
 from control.links import LinkingMind
 from control.mining import MiningMind
-from control.pathdef import HoneyTrails, CachedTrails
+from control.pathdef import HoneyTrails
 from role_base import RoleBase
 from roles import military
 from tools import profiling
@@ -60,7 +60,7 @@ class HiveMind:
 
     def __init__(self, target_mind):
         self.target_mind = target_mind
-        self._honey = None
+        self.honey = HoneyTrails(self)
         self._my_rooms = None
         self._all_rooms = None
         self._remote_mining_flags = None
@@ -107,14 +107,6 @@ class HiveMind:
         if not self._all_rooms:
             self.find_visible_rooms()
         return self._room_to_mind[room_name]
-
-    def get_honey(self):
-        """
-        :rtype: CachedTrails
-        """
-        if not self._honey:
-            self._honey = CachedTrails(self)
-        return self._honey
 
     def poll_remote_mining_flags(self):
         flag_list = flags.find_flags_global(flags.REMOTE_MINE)
@@ -203,7 +195,6 @@ class HiveMind:
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.room_name for room in self.my_rooms]))
 
     my_rooms = property(find_my_rooms)
-    honey = property(get_honey)
     visible_rooms = property(find_visible_rooms)
 
 
@@ -251,7 +242,6 @@ class RoomMind:
     :type hive_mind: HiveMind
     :type room: Room
     :type building: ConstructionMind
-    :type honey: HoneyTrails
     :type links: LinkingMind
     :type mining: MiningMind
     :type subsidiaries: list[RoomMind]
@@ -268,7 +258,6 @@ class RoomMind:
     def __init__(self, hive_mind, room):
         self.hive_mind = hive_mind
         self.room = room
-        self.honey = HoneyTrails(self)
         self.my = room.controller and room.controller.my
         if self.my:
             self.building = ConstructionMind(self)

@@ -183,7 +183,7 @@ class Upgrader(RoleBase):
                     self.report(speech.upgrading_unknown_result)
 
     def _calculate_time_to_replace(self):
-        path = self.home.honey.find_path(self.home.spawn, self.home.room.controller)
+        path = self.hive.honey.find_path(self.home.spawn, self.home.room.controller)
         # No leeway because we're assuming that we A: won't need to go all the way to the controller and B: the road
         # will be somewhat paved
         return len(path) * 2 + _.size(self.creep.body) * 3
