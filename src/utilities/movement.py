@@ -217,6 +217,10 @@ def get_no_exit_flag_to(from_room, to_room):
 
 
 def path_distance(here, target, non_roads_two_movement=False):
+    if here.pos:
+        here = here.pos
+    if target.pos:
+        target = target.pos
     if here == target:
         return 0
     current = __new__(RoomPosition(here.x, here.y, here.roomName))
@@ -256,10 +260,9 @@ def path_distance(here, target, non_roads_two_movement=False):
                 path_len += len(path) * 2 + 1
         else:
             if room_mind:
-                if not path:
-                    print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(
-                        exit_direction, current.roomName))
-                    return -1
+                print("[path_distance] pathfinding couldn't find path to exit {} in room {}!".format(
+                    exit_direction, current.roomName))
+                return -1
             else:
                 # TODO: use PathFinder here!
                 print("[path_distance] Couldn't find view to room {}! Using linear distance.".format(current.roomName))
@@ -307,16 +310,37 @@ def path_distance(here, target, non_roads_two_movement=False):
 
 def is_block_clear(room, x, y):
     """
+    Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
     :type room: control.hivemind.RoomMind
     """
-    if not room.room:
-        raise ValueError("Wrong argument")
+    if x > 49 or y > 49 or x < 0 or y < 0:
+        return False
     if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
         return False
     if len(room.find_at(FIND_CREEPS, x, y)) != 0:
         return False
     for struct in room.find_at(FIND_STRUCTURES, x, y):
-        if struct.structureType != STRUCTURE_RAMPART and struct.structureType != STRUCTURE_EXTENSION \
+        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+            return False
+    for struct in room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
+        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+            return False
+    return True
+
+
+def is_block_empty(room, x, y):
+    """
+    Checks if a block is not a wall, and has no non-walkable structures. (does not check creeps).
+    :type room: control.hivemind.RoomMind
+    """
+    if x > 49 or y > 49 or x < 0 or y < 0:
+        return False
+    if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
+        return False
+    for struct in room.find_at(FIND_STRUCTURES, x, y):
+        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
     return True
