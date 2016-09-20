@@ -26,8 +26,9 @@ def end_main_loop():
     clean_and_prepare_memory_array("with-cl")
     clean_and_prepare_memory_array("without-cl")
     clean_and_prepare_memory_array("creep-count")
-    Memory.cpu_usage["without-cl"].push(Game.cpu.getUsed() - volatile_cache.volatile().get("main_loop_start_cpu"))
-    Memory.cpu_usage["with-cl"].push(Game.cpu.getUsed())
+    Memory.cpu_usage["without-cl"].push(round(Game.cpu.getUsed()
+                                              - volatile_cache.volatile().get("main_loop_start_cpu")))
+    Memory.cpu_usage["with-cl"].push(round(Game.cpu.getUsed()))
     Memory.cpu_usage["creep-count"].push(_.size(Game.creeps))
 
 
@@ -98,6 +99,7 @@ def get_average_visual():
             round(with_cl50 / creeps50 * 10) / 10,
             get_bucket_trend(0, 50),
             get_bucket_trend(0, 100),
+            get_bucket_trend(0, 500),
             get_bucket_trend(0, 1000),
         )
     )
