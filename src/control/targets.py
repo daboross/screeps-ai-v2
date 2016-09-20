@@ -360,51 +360,44 @@ class TargetMind:
         structures = _.filter(creep.room.find(FIND_MY_STRUCTURES),
                               lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN) \
                                         and s.energy < s.energyCapacity and s.isActive())
-        if not len(structures):
-            # waiting flag instead:
-            structures = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
-            # We could do two loops, but this way we only have to write work stealing code once, and it works for both
-            # spawns and spawn fill wait places!
-        for structure in structures:
-            if structure.id:
+        if len(structures):
+            for structure in structures:
                 structure_id = structure.id
-            else:
-                structure_id = "flag-{}".format(structure.name)
-            if volatile_cache.mem("extensions_filled").has(structure_id):
-                continue
-            current_carry = self.workforce_of(target_spawn_deposit, structure_id)
-            # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
-            distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-            if distance < closest_distance:
-                if structure.color:
-                    max = math.ceil((creep.home.role_count(role_spawn_fill) + creep.home.role_count(role_tower_fill))
-                                    / len(structures))
-                else:
+                if volatile_cache.mem("extensions_filled").has(structure_id):
+                    continue
+                current_carry = self.workforce_of(target_spawn_deposit, structure_id)
+                # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
+                distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+                if distance < closest_distance:
                     max = structure.energyCapacity / 50.0
-                if not current_carry or current_carry < max:
-                    closest_distance = distance
-                    best_id = structure_id
-                    stealing_from = None
-                else:
-                    targeting = self.reverse_targets[target_spawn_deposit][structure_id]
-                    if len(targeting):
-                        for name in targeting:
-                            if not Game.creeps[name] or movement.distance_squared_room_pos(
-                                    Game.creeps[name].pos, structure.pos) > distance * 2.25:
-                                # If we're at least 1.5x closer than them, let's steal their place.
-                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
-                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
-                                closest_distance = distance
-                                best_id = structure_id
-                                stealing_from = name
-                                break
-                    else:
+                    if not current_carry or current_carry < max:
                         closest_distance = distance
                         best_id = structure_id
                         stealing_from = None
-
-        if stealing_from is not None:
-            self._unregister_targeter(target_spawn_deposit, stealing_from)
+                    else:
+                        targeting = self.reverse_targets[target_spawn_deposit][structure_id]
+                        if len(targeting):
+                            for name in targeting:
+                                if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                        Game.creeps[name].pos, structure.pos) > distance * 2.25:
+                                    # If we're at least 1.5x closer than them, let's steal their place.
+                                    # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
+                                    # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                                    closest_distance = distance
+                                    best_id = structure_id
+                                    stealing_from = name
+                                    break
+                        else:
+                            closest_distance = distance
+                            best_id = structure_id
+                            stealing_from = None
+            if stealing_from is not None:
+                self._unregister_targeter(target_spawn_deposit, stealing_from)
+        else:
+            flag_list = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
+            if len(flag_list):
+                best_id = _.min(_.map(flag_list, lambda f: "flag-{}".format(f.name)),
+                                lambda fid: self.reverse_targets[target_spawn_deposit][fid] or 0)
 
         return best_id
 

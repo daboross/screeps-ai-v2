@@ -40,7 +40,6 @@ class SpawnFill(building.Builder):
                         self.targets.untarget(self, target_spawn_deposit)
                         return True
                     if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
-                        del self.memory.filling_now
                         if self.creep.carry.energy < self.creep.carryCapacity:
                             self.memory.filling = True
                             return True
@@ -51,7 +50,6 @@ class SpawnFill(building.Builder):
                                 self.move_to(target)
                         return False
                 else:
-                    del self.memory.filling_now
                     if target.energy >= target.energyCapacity:
                         self.targets.untarget(self, target_spawn_deposit)
                         return True
