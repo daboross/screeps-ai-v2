@@ -29,8 +29,9 @@ require("perf")()
 def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
         role = creep.memory.role
-        if not (role == role_spawn_fill or role == role_local_hauler or role == role_dedi_miner
-                or role == role_remote_hauler or role == role_remote_miner or role == role_link_manager):
+        if not (role == role_spawn_fill or role == role_tower_fill or role == role_local_hauler
+                or role == role_dedi_miner or role == role_remote_hauler or role == role_remote_miner
+                or role == role_link_manager):
             if creeps_skipped[room.room_name]:
                 creeps_skipped[room.room_name].append(creep.name)
             else:
@@ -39,11 +40,6 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
     try:
         if creep.spawning and creep.memory.role != role_temporary_replacing:
             return
-        # if Game.cpu.bucket < 6000 and creep.memory.role in [role_remote_hauler, role_remote_miner, role_builder] \
-        #         and len(room.sources) >= 2:
-        #     if creep.memory.role != role_remote_miner:
-        #         RoleBase(hive_mind, target_mind, room, creep).go_to_depot()
-        #     return
         instance = wrap_creep(hive_mind, target_mind, room, creep)
         if not instance:
             if creep.memory.role:
@@ -64,7 +60,7 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
         if canceled_via_instict:
             return
         rerun = instance.run()
-        if Game.cpu.bucket >= 6000:
+        if Game.cpu.bucket >= 7000:
             if rerun:
                 rerun = instance.run()
             if rerun:
@@ -89,39 +85,45 @@ def run_room(target_mind, creeps_skipped, room):
     :type creeps_skipped: dict
     :type room: control.hivemind.RoomMind
     """
-    context.set_room(room)
-    if not Memory.skipped_last_turn:
-        try:
+    try:
+        context.set_room(room)
+        tower.run(room)
+        if not Memory.skipped_last_turn:
             room.precreep_tick_actions()
-        except:
-            print("[{}] Error running precreep_tick_actions:\n{}".format(room.room_name, __except0__.stack))
-    if Memory.skipped_last_turn and room.room_name in Memory.skipped_last_turn:
-        for name in Memory.skipped_last_turn[room.room_name]:
-            creep = Game.creeps[name]
-            if creep:
-                run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
-        for creep in room.creeps:
-            role = creep.memory.role
-            if role == role_spawn_fill or role == role_local_hauler or role == role_dedi_miner \
-                    or role == role_remote_hauler or role == role_remote_miner or role == role_link_manager:
-                run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
+        if 'skipped_last_turn' in Memory and room.room_name in Memory.skipped_last_turn:
+            for name in Memory.skipped_last_turn[room.room_name]:
+                creep = Game.creeps[name]
+                if creep:
+                    run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
+            for creep in room.creeps:
+                role = creep.memory.role
+                if role == role_spawn_fill or role == role_local_hauler or role == role_dedi_miner \
+                        or role == role_remote_hauler or role == role_remote_miner or role == role_link_manager:
+                    run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
 
-    else:
-        for creep in room.creeps:
-            run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
-    room.links.tick_links()
-    if not Memory.skipped_last_turn:
-        room.building.place_remote_mining_roads()
-        for spawn in room.spawns:
-            spawning.run(room, spawn)
-    room.mining.poll_flag_energy_sitting()
-    tower.run(room)
+        else:
+            for creep in room.creeps:
+                run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
+        room.links.tick_links()
+        if 'skipped_last_turn' not in Memory:
+            room.building.place_remote_mining_roads()
+            for spawn in room.spawns:
+                spawning.run(room, spawn)
+        room.mining.poll_flag_energy_sitting()
+        room.minerals.tick_terminal()
+    except:
+        e = __except0__
+        Game.notify("Error running room {}!\n{}".format(
+            room.room_name, e.stack if e else "e == null??"
+        ), 10)
+        print("[{}] Error running room {}!".format(room.room_name, room.room_name))
+        print(e.stack if e else "e == null?? {}".format(e))
 
 
 def main():
     averages.start_main_loop()
 
-    if not Memory.meta:
+    if 'meta' not in Memory:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate teir
@@ -142,7 +144,7 @@ def main():
         if Memory.meta.waiting_for_bucket:
             if Game.cpu.bucket >= 10000:
                 print("[paused] Bucket full, resuming next tick.")
-                Memory.meta.pause = False
+                del Memory.meta.pause
                 del Memory.meta.waiting_for_bucket
             else:
                 print("[paused] Bucket accumulated: {} (used loading code: {})".format(Game.cpu.bucket,
