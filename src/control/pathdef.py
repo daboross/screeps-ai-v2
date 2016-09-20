@@ -191,6 +191,10 @@ class HoneyTrails:
                     and room_name != origin.roomName and room_name != destination.roomName:
                 print("[honey] Avoiding room {}.".format(room_name))
                 return False
+            serialized_cost_matrix = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
+            if serialized_cost_matrix:
+                print("[honey] Using serialized cost matrix for room {}.")
+                return PathFinder.CostMatrix.deserialize(JSON.parse(serialized_cost_matrix))
             print("[honey] Using basic matrix for room {}.".format(room_name))
             self.used_basic_matrix = True
             matrix = __new__(PathFinder.CostMatrix())
@@ -313,6 +317,9 @@ class HoneyTrails:
                 for y in range(ml.pos.y - 1, ml.pos.y + 2):
                     if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
                         cost_matrix.set(x, y, 255)
+        if not room.my:
+            serialized = JSON.stringify(cost_matrix.serialize())
+            global_cache.set("{}_cost_matrix_{}".format(room_name, if_roads_multiplier), serialized, 10000)
 
         return cost_matrix
 
