@@ -27,6 +27,16 @@ def mem(key):
     return v.get(key)
 
 
+def setmem(key):
+    """
+    :rtype: utilities.screeps_constants.JSMSet
+    """
+    v = volatile()
+    if not v.has(key):
+        v.set(key, new_set())
+    return v.get(key)
+
+
 def submem(key1, key2):
     """
     :rtype: utilities.screeps_constants.JSMap

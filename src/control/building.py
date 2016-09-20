@@ -5,6 +5,7 @@ from constants import PYFIND_BUILDABLE_ROADS
 from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
+from utilities.screeps_constants import new_set
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -304,7 +305,7 @@ class ConstructionMind:
                 if checked_positions_per_room.has(pos.roomName):
                     checked_positions = checked_positions_per_room.get(pos.roomName)
                 else:
-                    checked_positions = __pragma__('js', 'new Set()')
+                    checked_positions = new_set()
                     checked_positions_per_room.set(pos.roomName, checked_positions)
 
                 room = self.hive.get_room(pos.roomName)
@@ -312,7 +313,7 @@ class ConstructionMind:
                     # We don't have visibility to this active mine! let's just wait on this one
                     any_non_visible_rooms = True
                     if non_visible_rooms is None:
-                        non_visible_rooms = __pragma__('js', 'new Set()')
+                        non_visible_rooms = new_set()
                     non_visible_rooms.add(pos.roomName)
                     continue
 

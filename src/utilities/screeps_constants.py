@@ -188,6 +188,30 @@ class JSMap:
         """
 
 
+class JSSet:
+    def has(self, key):
+        """
+        :type key: Any
+        :rtype: bool
+        """
+
+    def add(self, key):
+        """
+        :type key: Any
+        :rtype: Any
+        """
+
+    def keys(self):
+        """
+        :rtype: list[Any]
+        """
+
+    def values(self):
+        """
+        :rtype: list[Any]
+        """
+
+
 __pragma__('noskip')
 
 
@@ -196,3 +220,10 @@ def new_map(iterable=undefined):
     :rtype: JSMap
     """
     return __new__(Map(iterable))
+
+
+def new_set(iterable=undefined):
+    """
+    :rtype: JSSet
+    """
+    return __new__(Set(iterable))
