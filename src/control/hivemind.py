@@ -1027,8 +1027,9 @@ class RoomMind:
         :rtype: bool
         """
         if self._full_storage_use is None:
-            if self.room.storage and self.room.storage.store[RESOURCE_ENERGY] \
-                    >= _min_stored_energy_to_draw_from_before_refilling:
+            if self.room.storage and (self.room.storage.store[RESOURCE_ENERGY]
+                                          >= _min_stored_energy_to_draw_from_before_refilling or
+                                          (not self.spawn and self.room.storage.store[RESOURCE_ENERGY] > 0)):
                 self._full_storage_use = True
                 self.mem.full_storage_use = True
             else:
@@ -1058,9 +1059,7 @@ class RoomMind:
         return not not self.mem.focusing_home
 
     def upgrading_paused(self):
-        if self.room.controller.level < 4:
-            return False
-        if not self.room.storage:
+        if self.room.controller.level < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
             return False
         # TODO: constant here and below in upgrader_work_mass
         if self.conducting_siege() and self.room.storage.store.energy < 700000:
@@ -1072,12 +1071,10 @@ class RoomMind:
         return not not self.mem.upgrading_paused
 
     def building_paused(self):
-        if self.room.controller.level < 4:
+        if self.room.controller.level < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
             return False
         if self.conducting_siege():
-            return True  # Don't upgrade while we're taking someone down.
-        if not self.room.storage:
-            return False
+            return True  # Don't build while we're taking someone down.
         if self.mem.building_paused and self.room.storage.store.energy > _energy_to_resume_building:
             self.mem.building_paused = False
         if not self.mem.building_paused and self.room.storage.store.energy < _energy_to_pause_building:
@@ -1114,7 +1111,7 @@ class RoomMind:
         return self._conducting_siege
 
     def get_max_mining_op_count(self):
-        if not self.room.controller:
+        if not self.my:
             print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.room_name))
             return 0
         spawning_energy = self.room.energyCapacityAvailable
