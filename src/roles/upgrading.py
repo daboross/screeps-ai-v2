@@ -1,5 +1,5 @@
 import speech
-from constants import recycle_time, role_recycling, role_upgrader, target_closest_energy_site
+from constants import recycle_time, role_recycling, role_upgrader
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement
@@ -26,11 +26,28 @@ class Upgrader(RoleBase):
             return self.run_individual_upgrading()
 
     def get_dedicated_upgrading_link(self):
-        link = self.targets.get_new_target(self, target_closest_energy_site, self.home.room.controller.pos)
-        if link and movement.distance_squared_room_pos(link, self.home.room.controller) <= 4 * 4:
-            return link
+        link_id = self.home.get_cached_property("upgrader_link_id")
+        if link_id:
+            if link_id == -1:
+                return None
+            else:
+                link = Game.getObjectById(link_id)
+                if link:
+                    return link
+        links = _.filter(self.home.find_in_range(FIND_MY_STRUCTURES, 4, self.home.room.controller.pos),
+                         lambda s: s.structureType == STRUCTURE_STORAGE or s.structureType == STRUCTURE_LINK)
+        if len(links):
+            if len(links) > 1:
+                link = _.min(links, lambda l: movement.distance_squared_room_pos(l, self.home.room.controller))
+                link_id = link.id
+            else:
+                link = links[0]
+                link_id = link.id
         else:
-            return None
+            link = None
+            link_id = -1
+        self.home.store_cached_property("upgrader_link_id", link_id, 100)
+        return link
 
     def run_dedicated_upgrading(self, link):
         controller = self.home.room.controller
@@ -102,19 +119,23 @@ class Upgrader(RoleBase):
             self.log("Unknown result from creep.upgradeController({}): {}", self.creep.room.controller, result)
 
     def harvest_from(self, link):
-        if self.creep.ticksToLive < 20:
-            return  # Don't get more energy at this point, just upgrade with what we have left and idle.
+        if self.creep.ticksToLive < 20 or self.creep.carry.energy >= self.creep.carryCapacity:
+            return
+        energy = _.find(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, self.pos), {'resourceType': RESOURCE_ENERGY})
+        if energy:
+            self.creep.pickup(energy)
+            return
         self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
                                                  self.creep.pos.getRangeTo(link))
-        if self.creep.carry.energy >= self.creep.carryCapacity \
-                or link.energy <= 0 or not self.pos.isNearTo(link):
+        if link.energy <= 0 or not self.pos.isNearTo(link):
             return
         result = self.creep.withdraw(link, RESOURCE_ENERGY)
         if result != OK:
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
 
     def should_pickup(self, resource_type=None):
-        return RoleBase.should_pickup(self, resource_type) and not self.home.upgrading_paused()
+        return not self.get_dedicated_upgrading_link() and RoleBase.should_pickup(self, resource_type) \
+               and not self.home.upgrading_paused()
 
     def run_individual_upgrading(self):
         if self.creep.ticksToLive < recycle_time and self.home.spawn:
@@ -150,8 +171,6 @@ class Upgrader(RoleBase):
                     self.memory.filling = True
                     return True
             elif result == OK:
-                # If we're a "full upgrader", with carry capacity just 50, let's keep close to the link we're gathering
-                # from. Otherwise, move towards the controller to leave room for other upgraders
                 self.basic_move_to(target)
                 self.report(speech.upgrading_ok)
             else:
