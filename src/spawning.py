@@ -390,7 +390,7 @@ def run(room, spawn):
         if role_obj.run_after:
             role_obj.run_after(name)
         if replacing:
-            room.register_new_replacing_creep(role, replacing, result)
+            room.register_new_replacing_creep(replacing, result)
         else:
             room.register_to_role(Game.creeps[result])
 

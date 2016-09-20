@@ -759,7 +759,7 @@ class RoomMind:
             self.store_cached_property(key, result, 19)
         return result
 
-    def register_new_replacing_creep(self, role, replaced_name, replacing_name):
+    def register_new_replacing_creep(self, replaced_name, replacing_name):
         # print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name,
         #                                                                   replaced_name, role))
         if Memory.creeps[replaced_name]:
