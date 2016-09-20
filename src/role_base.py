@@ -458,7 +458,7 @@ class RoleBase:
         repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
         if len(repair):
             if len(repair) > 1:
-                result = self.creep.repair(_.min(repair, 'hits'))
+                result = self.creep.repair(_.min(repair, lambda s: s.hits / s.hitsMax))
             else:
                 result = self.creep.repair(repair[0])
             if result != OK:
@@ -563,7 +563,8 @@ class RoleBase:
             self.creep.move(BOTTOM)
 
     def basic_move_to(self, target):
-        if target.pos: target = target.pos
+        if target.pos:
+            target = target.pos
         if self.pos.isEqualTo(target):
             return True
         dx = target.x - self.pos.x
@@ -573,17 +574,37 @@ class RoleBase:
             dx /= abs(dx)
         if dy:
             dy /= abs(dy)
-        if dx and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
-            self.creep.move(pathdef.get_direction(dx, 0))
-            return True
-        elif dy and movement.is_block_clear(self.room, self.pos.y + dy, self.pos.x):
-            self.creep.move(pathdef.get_direction(0, dy))
-            return True
-        elif dx and dy and movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + dy):
-            self.creep.move(pathdef.get_direction(dx, dy))
-            return True
-        else:
-            return False
+        if dx and dy:
+            if movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + dy):
+                self.creep.move(pathdef.get_direction(dx, dy))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
+                self.creep.move(pathdef.get_direction(dx, 0))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.y + dy, self.pos.x):
+                self.creep.move(pathdef.get_direction(0, dy))
+                return True
+        elif dx:
+            if movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
+                self.creep.move(pathdef.get_direction(dx, 0))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + 1):
+                self.creep.move(pathdef.get_direction(dx, 1))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y - 1):
+                self.creep.move(pathdef.get_direction(dx, -1))
+                return True
+        elif dy:
+            if movement.is_block_clear(self.room, self.pos.x, self.pos.y + dy):
+                self.creep.move(pathdef.get_direction(0, dy))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.x + 1, self.pos.y + dy):
+                self.creep.move(pathdef.get_direction(1, dy))
+                return True
+            elif movement.is_block_clear(self.room, self.pos.x - 1, self.pos.y + dy):
+                self.creep.move(pathdef.get_direction(-1, dy))
+                return True
+        return False
 
     def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:
@@ -601,13 +622,16 @@ class RoleBase:
         :type format_string: str
         :type args: list[object]
         """
-        print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
+        if len(args):
+            print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
+        else:
+            print("[{}][{}] {}".format(self.home.room_name, self.name, format_string))
 
     def should_pickup(self, resource_type=None):
         return not resource_type or resource_type == RESOURCE_ENERGY
 
     def toString(self):
-        return "Creep[role: {}, home: {}]".format(self.memory.role, self.home.room_name)
+        return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.room_name)
 
 
 profiling.profile_whitelist(RoleBase, [
