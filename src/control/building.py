@@ -129,8 +129,8 @@ class ConstructionMind:
                 new_sites.append("flag-{}".format(flag.name))
 
         sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
-                         lambda s: get_priority(s.structureType) * 50
-                                   + movement.distance_room_pos(spawn_pos, s.pos))]
+                                        lambda s: get_priority(s.structureType) * 50
+                                                  + movement.distance_room_pos(spawn_pos, s.pos))]
 
         if len(new_sites):
             # Have most things target the new flags first, since the Builder class will auto-re-target next turn when it
@@ -141,12 +141,9 @@ class ConstructionMind:
         return self.room.get_cached_property("building_targets")
 
     def next_priority_repair_targets(self):
-        priority_list = self.room.get_cached_property("repair_targets")
-        if priority_list is not None:
-            return priority_list
-        low_priority = []
-        med_priority = []
-        high_priority = []
+        structures = self.room.get_cached_property("repair_targets")
+        if structures is not None:
+            return structures
 
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
@@ -159,39 +156,19 @@ class ConstructionMind:
                       " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
                 spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
 
-        # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
         max_hits = min(350000, self.room.min_sane_wall_hits)
 
-        for structure in _.sortBy(_.filter(self.room.find(FIND_STRUCTURES),
-                                           lambda s: (s.my or not s.owner)
-                                           and s.hits < s.hitsMax * 0.9 and s.hits < max_hits
-                                           and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.4)),
-                                  lambda s: movement.distance_squared_room_pos(spawn_pos, s.pos)):
-            structure_type = structure.type
+        # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
+        structures = [x.id for x in _.sortBy(
+            _.filter(self.room.find(FIND_STRUCTURES),
+                     lambda s: (s.my or not s.owner) and s.hits < s.hitsMax * 0.9 and s.hits < max_hits
+                               and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
+                               and not flags.look_for(self.room, s.pos, flags.MAIN_DESTRUCT,
+                                                      flags.structure_type_to_flag_sub[s.structureType])),
+            lambda s: get_priority(s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
 
-            if flags.look_for(self.room, structure.pos, flags.MAIN_DESTRUCT,
-                              flags.structure_type_to_flag_sub[structure_type]):
-                continue
-            if structure_type in (STRUCTURE_SPAWN, STRUCTURE_EXTENSION,
-                                  STRUCTURE_TOWER, STRUCTURE_STORAGE, STRUCTURE_LINK):
-                high_priority.append(structure.id)
-            elif structure_type in (STRUCTURE_WALL, STRUCTURE_RAMPART):
-                med_priority.append(structure.id)
-            else:
-                low_priority.append(structure.id)
-
-        if len(high_priority):
-            self.room.store_cached_property("repair_targets", high_priority, 100)
-            return high_priority
-        elif len(med_priority):
-            self.room.store_cached_property("repair_targets", med_priority, 70)
-            return med_priority
-        elif len(low_priority):
-            self.room.store_cached_property("repair_targets", low_priority, 40)
-            return low_priority
-        else:
-            self.room.store_cached_property("repair_targets", low_priority, 70)
-            return low_priority
+        self.room.store_cached_property("repair_targets", structures, 50)
+        return structures
 
     def next_priority_big_repair_targets(self):
         target_list = self.room.get_cached_property("big_repair_targets")

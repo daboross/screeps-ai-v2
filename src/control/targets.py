@@ -433,26 +433,22 @@ class TargetMind:
                 smallest_work_force = current_work
         return best_id
 
-    def _find_new_repair_site(self, creep, max_hits, max_work=None):
+    def _find_new_repair_site(self, creep, max_hits, max_work=_MAX_REPAIR_WORKFORCE):
         """
         :type creep: role_base.RoleBase
         """
-        # TODO: update big repair target to also use room building.
+        repair_targets = creep.home.building.next_priority_repair_targets()
+        if not len(repair_targets):
+            return None
         closest_distance = Infinity
         smallest_num_builders = Infinity
         best_id = None
-        repair_targets = creep.home.building.next_priority_repair_targets()
         if len(repair_targets) <= 1:
             max_work = Infinity
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
-            if structure and structure.hits < min(max_hits, structure.hitsMax):
-                if max_work:
-                    current_max = min(max_work,
-                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
-                else:
-                    current_max = min(_MAX_REPAIR_WORKFORCE,
-                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
+            if structure and structure.hits < structure.hitsMax and structure.hits < max_hits:
+                current_max = min(max_work, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
                 current_workforce = self.workforce_of(target_repair, struct_id)
                 if not current_workforce or current_workforce < current_max \
                         or current_workforce < smallest_num_builders + 1:
@@ -461,20 +457,29 @@ class TargetMind:
                         smallest_num_builders = current_workforce
                         closest_distance = distance
                         best_id = struct_id
-        if not best_id and max_work is None and len(repair_targets):
+        if not best_id and max_work is _MAX_REPAIR_WORKFORCE and len(repair_targets):
             # TODO: do this through multiple best_id variables in the above loop, not like this.
             return self._find_new_repair_site(creep, max_hits, Infinity)
+        if best_id:
+            best = Game.getObjectById(best_id)
+            print("[targets][{}] Found new repair site in room {} with max_hits {} and max_work {}: {} (hits: {})"
+                  .format(creep.name, creep.home.room_name, max_hits, max_work, best, best.hits))
+        else:
+            print("[targets][{}] Didn't find new repair site in room {} with max_hits {} and max_work {}"
+                  .format(creep.name, creep.home.room_name, max_hits, max_work))
         return best_id
 
     def _find_new_big_repair_site(self, creep, max_hits):
         """
         :type creep: role_base.RoleBase
         """
+        print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
+              .format(creep.name, creep.home.room_name, max_hits))
         best_id = None
         smallest_num = Infinity
         for struct_id in creep.home.building.next_priority_big_repair_targets():
             struct = Game.getObjectById(struct_id)
-            if struct and struct.hits < min(max_hits, struct.hitsMax):
+            if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
                 current_num = self.targets[target_big_repair][struct_id]
                 if not current_num or current_num < 1:
                     # List is already in priority.
