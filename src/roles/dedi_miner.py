@@ -1,5 +1,5 @@
 import speech
-from constants import target_big_source, target_source, target_closest_energy_site
+from constants import target_big_source, target_source, target_closest_energy_site, role_spawn_fill
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
@@ -66,6 +66,8 @@ class LocalHauler(SpawnFill, TransportPickup):
         pickup = self.targets.get_new_target(self, target_source)
 
         if not pickup:
+            self.memory.role = role_spawn_fill
+            self.home.mem.clear_next = 0
             return SpawnFill.run(self)
 
         if _.sum(self.creep.carry) > self.creep.carry.energy:
@@ -74,10 +76,6 @@ class LocalHauler(SpawnFill, TransportPickup):
             fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
             if fill.pos.getRangeTo(self.home.room.controller) <= 3:
                 fill = self.home.room.storage
-
-        if not pickup:
-            self.go_to_depot()
-            return
 
         if not fill:
             fill = self.home.spawn
