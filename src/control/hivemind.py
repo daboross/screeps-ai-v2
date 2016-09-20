@@ -266,10 +266,12 @@ class RoomMind:
     def __init__(self, hive_mind, room):
         self.hive_mind = hive_mind
         self.room = room
-        self.building = ConstructionMind(self)
         self.honey = HoneyTrails(self)
-        self.links = LinkingMind(self)
-        self.mining = MiningMind(self)
+        self.my = room.controller and room.controller.my
+        if self.my:
+            self.building = ConstructionMind(self)
+            self.links = LinkingMind(self)
+            self.mining = MiningMind(self)
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None
@@ -304,7 +306,6 @@ class RoomMind:
         self._max_sane_wall_hits = None
         self._conducting_siege = None
         self._spawns = None
-        self.my = room.controller and room.controller.my
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         if room.controller and room.controller.owner and not room.controller.my:
