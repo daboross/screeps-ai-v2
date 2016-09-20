@@ -188,8 +188,9 @@ def run_away_check(creep):
     """
     hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
     if not len(hostile_path_targets):
-        del creep.memory._away_path
-        del creep.memory.running_now
+        if 'running_now' in creep.memory:
+            del creep.memory._away_path
+            del creep.memory.running_now
         return False
     if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK):
         return False  # we're a defender, defenders don't run away!
@@ -248,7 +249,7 @@ def pickup_check(creep):
     """
     :type creep: role_base.RoleBase
     """
-    if creep.should_pickup() and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
+    if creep.creep.carryCapacity and creep.should_pickup() and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
         energy = creep.room.find_in_range(FIND_DROPPED_RESOURCES, 1, creep.creep.pos)
         if len(energy) > 0:
             if len(energy) > 1:
@@ -279,8 +280,8 @@ def instinct_check(creep):
         return False
     if run_away_check(creep):
         return True
-    if mercy_check(creep):
-        return True
+    # if mercy_check(creep):
+    #     return True
     pickup_check(creep)
     # transfer_check(creep)
     return False

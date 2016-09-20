@@ -24,9 +24,10 @@ creep_base_dismantler = "med_dismantle"
 creep_base_full_move_dismantler = "fm_dismantle"
 creep_base_power_attack = "power_attack"
 creep_base_full_move_power_attack = "fm_power_attack"
+creep_base_scout = "scout"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room,
-# and away from enemies.
+# and away from enemies. (or improve scout)
 
 # Hive Mind TargetMind possible targets
 target_source = "source"
@@ -43,7 +44,6 @@ target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
 target_single_flag2 = "sccf2"  # single creep, closest flag
-creep_base_scout = "scout"
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
