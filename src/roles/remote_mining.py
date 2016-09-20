@@ -111,13 +111,21 @@ class RemoteHauler(SpawnFill, TransportPickup):
                     not self.home.links.enabled:
                 fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
 
-            if fill.pos.getRangeTo(self.home.room.controller) <= 3.0 and self.home.role_count(role_upgrader) > 3:
-                fill = self.home.room.storage # if there's a large upgrader party, let's not stop there.
+            if fill and fill.pos.getRangeTo(self.home.room.controller) <= 3.0 \
+                    and self.home.role_count(role_upgrader) > 3:
+                fill = self.home.room.storage  # if there's a large upgrader party, let's not stop there.
 
         if not fill:
             self.log("WARNING: Couldn't find fill site!")
-            fill = self.home.spawn
-            if self.pos.roomName == fill.pos.roomName and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+            if self.home.room.storage:
+                fill = self.home.room.storage
+            elif self.home.spawn:
+                fill = self.home.spawn
+            else:
+                self.log("WARNING: Remote hauler in room with no storage nor spawn!")
+                return
+            if fill == self.home.spawn and self.pos.roomName == fill.pos.roomName \
+                    and not self.memory.filling:
                 return SpawnFill.run(self)
 
         return self.transport(pickup, fill)

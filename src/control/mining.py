@@ -4,7 +4,7 @@ import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
     target_remote_mine_miner, role_remote_miner, creep_base_3000miner, role_remote_mining_reserve, \
     creep_base_reserving, \
-    target_remote_mine_hauler, role_remote_hauler, target_closest_energy_site, creep_base_4500miner
+    target_remote_mine_hauler, role_remote_hauler, creep_base_4500miner
 from control import live_creep_utils
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -49,7 +49,8 @@ class MiningMind:
             target = Game.getObjectById(target_id)
             if target:
                 return target
-        if self.room.links.enabled_last_turn:
+        # Even if we don't have a link manager active right now, we will soon if there is a main link
+        if self.room.links.main_link:
             main_link_id = self.room.links.main_link.id
             target = self.room.find_closest_by_range(
                 FIND_MY_STRUCTURES, flag,
@@ -58,8 +59,10 @@ class MiningMind:
             )
         elif self.room.room.storage:
             target = self.room.room.storage
-        else:
+        elif self.room.spawn:
             target = self.room.spawn
+        else:
+            return None
 
         target_id = target.id
         if not self.room.links.enabled_last_turn and self.room.links.main_link:
@@ -69,7 +72,12 @@ class MiningMind:
         return target
 
     def distance_to_mine(self, flag):
-        return len(self.room.honey.find_path(self.closest_deposit_point_to_mine(flag), flag))
+        deposit_point = self.closest_deposit_point_to_mine(flag)
+        if deposit_point:
+            return len(self.hive.honey.find_path(deposit_point, flag))
+        else:
+            # This will happen if we have no storage nor spawn
+            return Infinity
 
     def calculate_ideal_mass_for_mine(self, flag):
         key = "mine_{}_ideal_mass".format(flag.name)
@@ -157,7 +165,8 @@ class MiningMind:
             # code to replace the old miner successfully through suicide itself.
             for miner_name in miners:
                 creep = Game.creeps[miner_name]
-                if not creep: continue
+                if not creep:
+                    continue
                 if live_creep_utils.replacement_time(creep) > Game.time:
                     break
             else:
@@ -239,13 +248,10 @@ class MiningMind:
             return {
                 'role': role_remote_hauler,
                 'base': base,
-                # note that this is just an above referenced variable because it was already calculated for the debug
-                # print - new_hauler_num_sections should be again inlined if above debug is removed!
                 'num_sections': self.calculate_creep_num_sections_for_mine(flag),
                 'targets': [
-                    [target_remote_mine_hauler, flag_id],
-                    [target_closest_energy_site, self.closest_deposit_point_to_mine(flag).id],
-                ]
+                    [target_remote_mine_hauler, flag_id]
+                ],
             }
 
         # print("[{}][mining] All roles reached for {}!".format(self.room.room_name, flag.name))
@@ -254,7 +260,7 @@ class MiningMind:
     def next_remote_mining_role(self, max_to_check):
         if max_to_check <= 0: return None
         mines = self.available_mines
-        known_nothing_needed = volatile_cache.mem("rolechecked_mines")
+        known_nothing_needed = volatile_cache.setmem("rolechecked_mines")
         checked_count = 0
         for mining_flag in mines:
             if not known_nothing_needed.has(mining_flag.name):
@@ -262,8 +268,7 @@ class MiningMind:
                 if role:
                     return role
                 else:
-                    # Just needs to be in there at all
-                    known_nothing_needed.set(mining_flag.name, None)
+                    known_nothing_needed.add(mining_flag.name)
             checked_count += 1
             if checked_count >= max_to_check:
                 break
