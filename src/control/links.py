@@ -130,9 +130,6 @@ class LinkingMind:
                 continue
             mem = self.link_mem(link)
             vmem = self.volatile_link_mem(link)
-            # deposited_at_this_distance = 0
-            # for name in _.sortBy(mem, lambda obj: obj.distance):
-            # TODO: the above, a more complicated (and more prone to failure) system. For now, this works.
             energy_change_now = 0
             # TODO: Switch over to ES6 code generation so this isn't needed!
             vmem_values = __pragma__('js', 'Array.from(vmem.values())')

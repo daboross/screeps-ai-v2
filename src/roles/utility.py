@@ -1,7 +1,7 @@
 import spawning
 import speech
 from constants import role_cleanup, recycle_time, role_recycling, \
-    target_closest_energy_site, role_local_hauler
+    target_closest_energy_site, role_local_hauler, role_link_manager
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -18,16 +18,28 @@ class LinkManager(RoleBase):
         link = self.home.links.main_link
         storage = self.home.room.storage
         if not link or not storage:
-            self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.room.room_name))
+            self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.home.room_name))
             self.go_to_depot()
             self.report(speech.link_manager_something_not_found)
             return False
-        # TODO: this could go quite wrong if there are more than two squares between the storage and the main link.
+        # Note: this does assume storage is directly within one space of the main link.
         if not self.creep.pos.isNearTo(link) or not self.creep.pos.isNearTo(storage):
             for x in range(link.pos.x - 1, link.pos.x + 2):
                 for y in range(link.pos.y - 1, link.pos.y + 2):
-                    if abs(x - storage.pos.x) == 1 and abs(y - storage.pos.y) == 1 \
-                            and movement.is_block_clear(self.home, x, y):
+                    if -1 <= x - storage.pos.x <= 1 and -1 <= y - storage.pos.y <= 1 \
+                            and (storage.pos.x != x or storage.pos.y != y) \
+                            and (link.pos.x != x or link.pos.y != y):
+                        if not movement.is_block_empty(self.home, x, y):
+                            continue
+                        creeps = self.home.find_at(FIND_CREEPS, x, y)
+                        if len(creeps) != 0:
+                            creep = creeps[0]
+                            if creep.memory.role == role_link_manager:
+                                if self.creep.ticksTolive > creep.ticksToLive:
+                                    creep.suicide()
+                                else:
+                                    self.creep.suicide()
+                                    return False
                         pos = __new__(RoomPosition(x, y, self.home.room_name))
                         break
                 else:
@@ -35,11 +47,8 @@ class LinkManager(RoleBase):
                 break
             else:
                 self.go_to_depot()
+                return False
             self.move_to(pos)
-            self.report(speech.link_manager_moving)
-            return False
-        elif not self.creep.pos.isNearTo(storage):
-            self.move_to(storage)
             self.report(speech.link_manager_moving)
             return False
 
@@ -115,9 +124,8 @@ class LinkManager(RoleBase):
         if not link:
             return -1
         link_pos = link.pos
-        spawn_pos = movement.average_pos_same_room(self.home.spawns)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, link_pos)
-        return movement.path_distance(spawn_pos, link_pos) + _.size(self.creep.body) * 3 + 15
+        return movement.path_distance(self.home.spawn, link_pos) + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
