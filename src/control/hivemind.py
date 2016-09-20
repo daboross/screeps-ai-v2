@@ -7,6 +7,7 @@ from constants import *
 from control import live_creep_utils
 from control.building import ConstructionMind
 from control.links import LinkingMind
+from control.minerals import MineralMind
 from control.mining import MiningMind
 from control.pathdef import HoneyTrails
 from role_base import RoleBase
@@ -263,6 +264,7 @@ class RoomMind:
             self.building = ConstructionMind(self)
             self.links = LinkingMind(self)
             self.mining = MiningMind(self)
+            self.minerals = MineralMind(self)
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None
@@ -841,30 +843,6 @@ class RoomMind:
         if Game.time % 10 == 0:
             self.reassign_roles()
 
-        if self.mem.empty_to:
-            self.run_emptying_terminal()
-
-    def run_emptying_terminal(self):
-        term = self.room.terminal
-        if not term or self.mem.target_terminal_energy:
-            return
-
-        energy = term.store.energy
-        minerals = _.sum(term.store) - energy
-
-        if minerals > 1000 or _.sum(self.room.storage.store) == self.room.storage.store.energy:
-            mineral_chosen = _.find(Object.keys(term.store),
-                                    lambda r: r != RESOURCE_ENERGY and term.store[r] >= 100)
-            if not mineral_chosen:
-                return
-            amount = term.store[mineral_chosen]
-            cost = Game.market.calcTransactionCost(amount, self.room_name, self.mem.empty_to)
-            if energy < cost:
-                self.mem.target_terminal_energy = cost
-                return
-
-            term.send(mineral_chosen, amount, self.mem.empty_to, "Emptying to {}".format(self.mem.empty_to))
-
     def reassign_roles(self):
         return consistency.reassign_room_roles(self)
 
@@ -959,31 +937,6 @@ class RoomMind:
                         mass += 1
             self._work_mass = math.floor(mass / 2)
         return self._work_mass
-
-    def get_target_terminal_energy(self):
-        if not self.room.terminal:
-            return 0
-        target = self.mem.target_terminal_energy
-        if not target:
-            return 0
-        if self.room.terminal.store.energy >= target:
-            del self.mem.target_terminal_energy
-            return 0
-        return target
-
-    def get_emptying_terminal(self):
-        if not self.get_all_filling_terminal() and self.room.storage and self.room.terminal \
-                and not self.get_target_terminal_energy():
-            if self.mem.emptying_terminal and _.sum(self.room.terminal.store) <= 1000:
-                self.mem.emptying_terminal = False
-            if not self.mem.emptying_terminal and _.sum(self.room.terminal.store) > 10000:
-                self.mem.emptying_terminal = True
-            return self.mem.emptying_terminal
-        return False
-
-    def get_all_filling_terminal(self):
-        return not not (self.mem.empty_to and self.room.storage
-                        and _.sum(self.room.storage.store) - self.room.storage.store.energy > 500)
 
     def get_if_all_big_miners_are_placed(self):
         """
@@ -1422,38 +1375,6 @@ class RoomMind:
             # claimable!
         return self._target_room_reserve_count
 
-    def get_target_mineral_miner_count(self):
-        # TODO: cache this
-        # TODO: this should also depend on work mass
-        minerals = self.find(FIND_MINERALS)
-        if _.sum(minerals, 'mineralAmount') > 0 and _.find(self.find(FIND_MY_STRUCTURES),
-                                                           {'structureType': STRUCTURE_EXTRACTOR}) \
-                and (self.room.storage.store[minerals[0].mineralType] < 400000) \
-                and not self.mem.empty_to:  # TODO: customizable threshold.
-            return 1
-        else:
-            return 0
-
-    def get_target_mineral_hauler_count(self):
-        if self.get_target_mineral_miner_count():
-            minerals = self.find(FIND_MINERALS)
-            if len(minerals) != 1:
-                print("[{}] ERROR: Unknown number of minerals in {}: {}!".format(self.room_name, self.room_name,
-                                                                                 len(minerals)))
-                return 0
-            if len(minerals):
-                if _.find(self.find_in_range(FIND_STRUCTURES, 2, minerals[0].pos),
-                          lambda s: s.structureType == STRUCTURE_CONTAINER):
-                    return 1
-                else:
-                    return 2  # without any containers, we need 2 so the miner can constantly deposit into one of them.
-        elif self.get_target_terminal_energy() or self.get_emptying_terminal() or self.get_all_filling_terminal():
-            # this method returns 0 once the terminal has reached it's target
-            # this is really a hack, and should be changed soon!
-            return 1
-        else:
-            return 0
-
     def get_next_spawn_fill_body_size(self):
         # Enough so that it takes only 2 trips for each creep to fill all extensions.
         total_mass = self.room.energyCapacityAvailable / 50 / 2
@@ -1507,8 +1428,8 @@ class RoomMind:
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
             [role_colonist, self.get_target_colonist_work_mass, False, True],
             [role_mineral_steal, self.get_target_mineral_steal_mass, True],
-            [role_mineral_hauler, self.get_target_mineral_hauler_count],
-            [role_mineral_miner, self.get_target_mineral_miner_count],
+            [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count],
+            [role_mineral_miner, self.minerals.get_target_mineral_miner_count],
             [role_builder, self.get_target_builder_work_mass, False, True],
             [role_defender, self.get_target_simple_defender_count],
         ]

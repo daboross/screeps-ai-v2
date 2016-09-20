@@ -74,4 +74,18 @@ Memory.rooms.W46N28.empty_to = "W49N25"
 delete Memory.rooms.W47N26.cache.placed_mining_roads
 for (let creep of _.values(Game.creeps)) { if (creep.memory.role == py.constants.role_colonist) { console.log(creep.name + ": "+ creep.pos); }}
 for (let s of Game.rooms.W48N29.find(FIND_STRUCTURES)) { if (s.structureType == STRUCTURE_WALL && !s.pos.lookFor(LOOK_FLAGS).length && Game.cpu.getUsed() < 200) { s.pos.cfms(py.flags.MAIN_BUILD, py.flags.SUB_WALL); } }
+Game.market.createOrder(ORDER_SELL, RESOURCE_HYDROGEN, x, 20000, "W49N25")
+for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game.rooms[name].controller || !Game.rooms[name].controller.my) { let mem = Memory.rooms[name]; delete mem.market; if (mem.cache && _.isEmpty(mem.cache)) { delete mem.cache; }; if (_.isEmpty(mem)) { delete Memory.rooms[name]; }}}
+JSON.stringify(Game.market.orders, null, 4)
 ```
+
+Planned market deals:
+
+py.get_room("W49N25").minerals.fulfill_market_order('E9N11', 'H', 6000, '57d90b4f65b00f5b2259578f')
+py.get_room("W49N25").minerals.fulfill_market_order('W60N30', 'H', 100000, 57d8fc7fc1dd100c7b45a4d8')
+py.get_room("W49N25").minerals.fulfill_market_order('W50N30', 'Z', 50000, '57da38e4d950275f71ffbd64');
+py.get_room("W49N25").minerals.fulfill_market_order('W50N20', 'H', 100 * 1000, '57da2c006de15d752b0684d4');
+py.get_room("W49N25").minerals.fulfill_market_order('E24S21', 'H', 6500, '57da2bacc35ad09c28417c3d');
+py.get_room("W49N25").minerals.fulfill_market_order('W28S13', 'H', 27082, '57ddd8a09f7906ce03b5d3e1')
+
+TODO: creep 'setting_up' memory variable which is set on spawn or on replacing or on autoactions move

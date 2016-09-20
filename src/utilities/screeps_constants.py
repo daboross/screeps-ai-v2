@@ -126,6 +126,8 @@ __all__ = [
     "RANGED_HEAL_POWER",
     "REPAIR_COST",
     "DISMANTLE_COST",
+    "ORDER_BUY",
+    "ORDER_SELL",
     "typeof",
     "require",
     "module",
