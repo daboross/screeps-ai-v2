@@ -155,6 +155,48 @@ class MiningMind:
         else:
             return fit_num_sections(needed, maximum)
 
+    def reserver_needed(self, flag):
+        """
+        Gets the spawn data for a reserver if a reserver is needed. Separate method so that early return statements can
+        be used and we don't get tons and tons of nested if statements.
+        """
+        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[flag.pos.roomName]:
+            return None
+
+        if not Memory.reserving:
+            Memory.reserving = {}
+
+        room_name = flag.pos.roomName
+        # Reservation ends at, set in the RemoteReserve class
+        if room_name in Memory.rooms and 'rea' in Memory.rooms[room_name]:
+            ticks_to_end = Memory.rooms[room_name].rea - Game.time
+            if ticks_to_end >= 1000:
+                max_sections = min(5, spawning.max_sections_of(self.room, creep_base_reserving))
+                if 5000 - ticks_to_end < max_sections * 600:
+                    return None
+
+        claimer = Game.creeps[Memory.reserving[flag.pos.roomName]]
+        if not claimer or live_creep_utils.replacement_time(claimer) <= Game.time \
+                and not Game.creeps[claimer.memory.replacement]:
+            room = Game.rooms[flag.pos.roomName]
+            if room and not room.controller:
+                Memory.no_controller[flag.pos.roomName] = True
+            else:
+                def run_after(name):
+                    Memory.reserving[flag.pos.roomName] = name
+
+                return {
+                    'role': role_remote_mining_reserve,
+                    'base': creep_base_reserving,
+                    'num_sections': min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
+                    'memory': {
+                        'claiming': flag.pos.roomName
+                    },
+                    'run_after': run_after,
+                }
+        else:
+            return None
+
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
@@ -190,30 +232,10 @@ class MiningMind:
                 ]
             }
 
-        if not flag.memory.sk_room:
-            if not Memory.reserving:
-                Memory.reserving = {}
-            claimer = Game.creeps[Memory.reserving[flag.pos.roomName]]
-            if not claimer or live_creep_utils.replacement_time(claimer) <= Game.time \
-                    and not Game.creeps[claimer.memory.replacement]:
-                room = Game.rooms[flag.pos.roomName]
-                if not room or not room.controller.reservation or room.controller.reservation.ticksToEnd < 4000:
-                    max_sections = 2
-                else:
-                    max_sections = 1
+        reserver_needed = self.reserver_needed(flag)
+        if reserver_needed:
+            return reserver_needed
 
-                def run_after(name):
-                    Memory.reserving[flag.pos.roomName] = name
-
-                return {
-                    'role': role_remote_mining_reserve,
-                    'base': creep_base_reserving,
-                    'num_sections': min(max_sections, spawning.max_sections_of(self.room, creep_base_reserving)),
-                    'memory': {
-                        'claiming': flag.pos.roomName
-                    },
-                    'run_after': run_after,
-                }
         current_noneol_hauler_mass = 0
         eol_mass = 0
         for hauler_name in self.targets.creeps_now_targeting(target_remote_mine_hauler, flag_id):

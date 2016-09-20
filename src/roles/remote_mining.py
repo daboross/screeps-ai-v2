@@ -149,8 +149,12 @@ class RemoteReserve(TransportPickup):
             if Memory.reserving[claim_room] != self.name:
                 if Memory.reserving[claim_room] in Game.creeps:
                     creep = Game.creeps[Memory.reserving[claim_room]]
-                    if self.pos.roomName != claim_room or creep.pos.getRangeTo(self.creep.room.controller.pos) < 6:
-                        self.creep.suicide()
+                    if not creep.spawning:
+                        if self.creep.ticksToLive > creep.ticksToLive:
+                            Memory.reserving[claim_room] = self.name
+                        elif self.pos.roomName != claim_room or \
+                                        creep.pos.getRangeTo(self.creep.room.controller.pos) < 4:
+                            self.creep.suicide()
                 else:
                     Memory.reserving[claim_room] = self.name
             return claim_room
@@ -158,34 +162,39 @@ class RemoteReserve(TransportPickup):
         if not Memory.reserving:
             Memory.reserving = {}
 
-        second_best = None
-        for op_flag in self.home.mining.available_mines:
-            if Game.creeps[Memory.reserving[op_flag.pos.roomName]]:
+        lowest_time = Infinity
+        best = None
+        for op_flag in self.home.mining.active_mines:
+            creep = Game.creeps[Memory.reserving[op_flag.pos.roomName]]
+            if creep and creep.ticksToLive > 200:
                 continue
             if Memory.no_controller and Memory.no_controller[op_flag.pos.roomName]:
                 continue
-            if Game.rooms[op_flag.pos.roomName] and not Game.rooms[op_flag.pos.roomName].controller:
+            room = Game.rooms[op_flag.pos.roomName]
+            if room and not room.controller:
                 if Memory.no_controller:
                     Memory.no_controller[op_flag.pos.roomName] = True
                 else:
                     Memory.no_controller = {op_flag.pos.roomName: True}
                 continue
-            if op_flag.remote_miner_targeting:
-                Memory.reserving[op_flag.pos.roomName] = self.name
-                self.memory.claiming = op_flag.pos.roomName
-                return op_flag.pos.roomName
-            else:
-                second_best = op_flag.pos.roomName
+            time = room and room.controller.reservation and room.controller.reservation.ticksToEnd or 0
+            if creep:
+                time += creep.ticksToLive * (creep.getActiveBodyparts(CLAIM) - 1)
+            if time >= 4999:
+                continue
+            if time < lowest_time:
+                lowest_time = time
+                best = op_flag.pos.roomName
 
-        if second_best:
-            Memory.reserving[second_best] = self.name
-        self.memory.claiming = second_best
-        return second_best
+        if best:
+            Memory.reserving[best] = self.name
+            self.memory.claiming = best
+        return best
 
     def run(self):
         claim_room = self.find_claim_room()
         if not claim_room:
-            self.go_to_depot()
+            self.creep.suicide()
             return
 
         if Game.rooms[claim_room] and not Game.rooms[claim_room].controller:
@@ -198,30 +207,36 @@ class RemoteReserve(TransportPickup):
             else:
                 target = __new__(RoomPosition(25, 25, claim_room))
             self.follow_energy_path(self.home.spawn, target)
-            self.report(speech.remote_reserve_moving)
             return
 
         controller = self.room.room.controller
 
-        if controller.reservation and controller.reservation.ticksToEnd > 4900:
-            del self.memory.claiming
-            return True
+        if controller.reservation and controller.reservation.ticksToEnd > 4999:
+            if self.creep.pos.isNearTo(controller.pos):
+                self.creep.suicide()
+                return False
+            else:
+                del self.memory.claiming
+                return True
 
         if not self.creep.pos.isNearTo(controller.pos):
             self.move_to(controller)
-            return
+            return False
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
             self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",
                      controller.reservation.username)
-        if not controller.reservation or controller.reservation.ticksToEnd < 5000:
+        else:
             if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
                 # claim this!
                 self.creep.claimController(controller)
                 controller.room.memory.sponsor = self.home.room_name
             else:
                 self.creep.reserveController(controller)
-            self.report(speech.remote_reserve_reserving)
+                if controller.reservation:
+                    controller.room.memory.rea = Game.time + controller.reservation.ticksToEnd
+                else:
+                    controller.room.memory.rea = Game.time + self.creep.getActiveBodyparts(CLAIM)
 
     def _calculate_time_to_replace(self):
         room = self.find_claim_room()
