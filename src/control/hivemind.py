@@ -216,8 +216,10 @@ profiling.profile_whitelist(HiveMind, [
 _min_work_mass_big_miner = 8  # TODO: This really should be based off of spawn extensions & work mass percentage!
 _extra_work_mass_per_big_miner = 10
 
-_min_energy_pause_remote_mining = 950000
-_max_energy_resume_remote_mining = 700000
+_min_total_pause_remote_mining = 950000
+_min_energy_pause_remote_mining = 150000
+_max_total_resume_remote_mining = 700000
+_max_energy_resume_remote_mining = 50000
 _min_work_mass_per_source_for_full_storage_use = 15
 
 _min_energy_enable_full_storage_use = 10000
@@ -1047,9 +1049,11 @@ class RoomMind:
     def mining_ops_paused(self):
         if not self.full_storage_use:
             return False
-        if self.mem.focusing_home and _.sum(self.room.storage.store) < _max_energy_resume_remote_mining:
+        if self.mem.focusing_home and _.sum(self.room.storage.store) < _max_total_resume_remote_mining \
+                or self.room.storage.store.energy < _max_energy_resume_remote_mining:
             self.mem.focusing_home = False
-        if not self.mem.focusing_home and _.sum(self.room.storage.store) > _min_energy_pause_remote_mining:
+        if not self.mem.focusing_home and _.sum(self.room.storage.store) > _min_total_pause_remote_mining \
+                and self.room.storage.store.energy > _min_energy_pause_remote_mining:
             self.mem.focusing_home = True
         return not not self.mem.focusing_home
 
