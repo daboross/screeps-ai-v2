@@ -20,6 +20,13 @@ class TransportPickup(RoleBase):
                 self.memory.filling = False
                 self.follow_energy_path(pickup, fill)
                 return
+            if 'hbu' in self.memory:
+                if Game.time > self.memory.hbu and _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, target),
+                                                          lambda c: c.getActiveBodyparts(WORK) >= 5):
+                    del self.memory.hbu
+                else:
+                    self.follow_energy_path(pickup, fill)
+                    return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
                 self.follow_energy_path(fill, pickup)
                 return
@@ -50,7 +57,7 @@ class TransportPickup(RoleBase):
                     if _.sum(container.store) > container.store.energy:
                         for mtype in Object.keys(container.store):
                             amount = container.store[mtype]
-                            if amount > 0 and mtype != RESOURCE_ENERGY: # Prioritize minerals over energy
+                            if amount > 0 and mtype != RESOURCE_ENERGY:  # Prioritize minerals over energy
                                 break
                         else:
                             return
@@ -78,10 +85,8 @@ class TransportPickup(RoleBase):
                           lambda c: c.getActiveBodyparts(WORK) >= 5):
                 if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
                           lambda c: c.getActiveBodyparts(WORK) >= 5):
-                    if Game.time % 5 == 0:
-                        self.follow_energy_path(pickup, fill)
-                    else:
-                        self.follow_energy_path(fill, pickup)
+                    self.memory.hbu = Game.time + 7  # head back until
+                    self.follow_energy_path(pickup, fill)
                 elif _.sum(self.creep.carry) > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
                     self.follow_energy_path(pickup, fill)

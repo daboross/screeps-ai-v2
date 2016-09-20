@@ -44,21 +44,27 @@ class RemoteMiner(TransportPickup):
                     if other_miner:
                         other_miner.suicide()
                         del self.memory._move
-                self.move_to(source_flag)
+                self.creep.moveTo(source_flag, {'ignoreCreeps': True})
             else:
                 self.follow_energy_path(self.home.spawn, source_flag)
             self.report(speech.remote_miner_moving)
             return False
-
-        container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
-                           lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) < s.storeCapacity)
-        if container and not self.pos.isEqualTo(container.pos):
-            self.basic_move_to(container)
-        else:
-            biggest_pile = _.max(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, source_flag.pos),
-                                 lambda e: e.amount)
-            if biggest_pile and not self.pos.isEqualTo(biggest_pile.pos):
-                self.basic_move_to(biggest_pile)
+        if 'container_pos' not in self.memory:
+            container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
+                               lambda s: s.structureType == STRUCTURE_CONTAINER)
+            if container:
+                self.memory.container_pos = container.pos.x | (container.pos.y << 6)
+            else:
+                biggest_pile = _.max(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, source_flag.pos),
+                                     lambda e: e.amount)
+                if biggest_pile != -Infinity:
+                    self.memory.container_pos = biggest_pile.pos.x | (biggest_pile.pos.y << 6)
+                else:
+                    self.memory.container_pos = None
+        this_pos_to_check = self.pos.x | self.pos.y << 6  # Transcrypt does this incorrectly in an if statement.
+        if self.memory.container_pos and this_pos_to_check != self.memory.container_pos:
+            self.basic_move_to(__new__(RoomPosition(self.memory.container_pos & 0x3F,
+                                                    self.memory.container_pos >> 6 & 0x3F, self.pos.roomName)))
 
         sources_list = self.room.find_at(FIND_SOURCES, source_flag.pos)
         if not len(sources_list):
