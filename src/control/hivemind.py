@@ -1207,16 +1207,11 @@ class RoomMind:
         """
         :rtype: int
         """
-        # TODO: dynamically spawn creeps with less mass!
-        # TODO: Merge local hauler and spawn fill roles!
+        # TODO: Merge local and remote hauler spawning!
         if self._target_local_hauler_carry_mass is None:
             if self.trying_to_get_full_storage_use:
-                # TODO: "max_parts_on" is essentially trying to duplicate behavior prior to fully-dynamic creep bodies
-                # Previously, we grew bodies dynamically and maxed out at 5 carry per creep.
-                # TODO: this should be replaced with a calculation taking in path distance from each source to
-                # the storage and hauler capacity.
-                carry_max_5 = max(3, min(5, spawning.max_sections_of(self, creep_base_hauler)))
-                total_mass = math.ceil(self.get_target_local_miner_count() * 1.5 * carry_max_5)
+                carry_max_6 = max(3, min(6, spawning.max_sections_of(self, creep_base_hauler)))
+                total_mass = math.ceil(self.get_target_local_miner_count() * 2 * carry_max_6)
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                     total_mass += energy / 200.0
@@ -1337,44 +1332,23 @@ class RoomMind:
                 self._total_needed_spawn_fill_mass = 0
         return self._total_needed_spawn_fill_mass
 
-    def get_target_builder_work_mass(self, first=False, last=False):
+    def get_target_builder_work_mass(self):
+        no_repair_above = self.max_sane_wall_hits * 0.8
+
+        def not_road(id):
+            thing = Game.getObjectById(id)
+            return thing is not None and thing.structureType != STRUCTURE_ROAD
+
         def is_relatively_decayed(id):
             thing = Game.getObjectById(id)
-            return thing is not None and (thing.structureType != STRUCTURE_ROAD or thing.hits < 1000) \
-                   and thing.hits < min(thing.hitsMax, self.max_sane_wall_hits) * 0.6
+            return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above
 
-        # TODO: this is a hack to get correct workmasses (this is called twice)
-        if self._builder_use_first_only:
-            if last:
-                self._builder_use_first_only = False
-            else:
-                first = True
-        elif first:
-            self._builder_use_first_only = True
         worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
         if self.building_paused():
             return 0
-        elif first:
-            worker_size = max(1, min(8, spawning.max_sections_of(self, creep_base_worker)))
-            if _.find(self.building.next_priority_construction_targets(),
-                      lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD):
-                if len(self.sources) >= 2:
-                    return 1.5 * len(self.sources) * min(8, spawning.max_sections_of(self, creep_base_worker))
-                else:
-                    return min(8, spawning.max_sections_of(self, creep_base_worker))
-            elif _.find(self.building.next_priority_repair_targets(), is_relatively_decayed) \
-                    or _.find(self.building.next_priority_big_repair_targets(), is_relatively_decayed):
-                return len(self.sources) * worker_size
-            elif _.find(self.building.next_priority_destruct_targets(),
-                        lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD):
-                return worker_size
-            else:
-                return 0
         else:
-            total = _.sum(self.building.next_priority_construction_targets(),
-                          lambda id: Game.getObjectById(id) and Game.getObjectById(id).structureType != STRUCTURE_ROAD) \
-                    + _.sum(self.building.next_priority_repair_targets(), is_relatively_decayed) \
-                    + _.sum((self.building.next_priority_big_repair_targets(), is_relatively_decayed))
+            total = _.sum(self.building.next_priority_construction_targets(), not_road) \
+                    + _.sum(self.building.next_priority_repair_targets(), is_relatively_decayed)
             if total > 0:
                 if total < 4:
                     return worker_size
@@ -1383,7 +1357,9 @@ class RoomMind:
                 else:
                     return 3 * worker_size
             else:
-                return 0
+                total = _.sum(self.building.next_priority_big_repair_targets(), is_relatively_decayed)
+                if total > 0:
+                    return worker_size
 
     def get_target_upgrader_work_mass(self):
         base = self.get_variable_base(role_upgrader)
@@ -1544,7 +1520,7 @@ class RoomMind:
             [role_mineral_steal, self.get_target_mineral_steal_mass, True],
             [role_mineral_hauler, self.get_target_mineral_hauler_count],
             [role_mineral_miner, self.get_target_mineral_miner_count],
-            [role_builder, lambda: self.get_target_builder_work_mass(True), False, True],
+            [role_builder, self.get_target_builder_work_mass, False, True],
             [role_defender, self.get_target_simple_defender_count],
         ]
         role_needed = None
@@ -1574,19 +1550,6 @@ class RoomMind:
         else:
             return None
 
-    def _next_probably_local_role(self):
-        target_builder_mass = self.get_target_builder_work_mass(False, True)
-        if self.work_mass_of(role_builder) - self.work_mass_of_replacements_currently_needed_for(role_builder) \
-                < target_builder_mass and target_builder_mass > 0:
-            return {
-                "role": role_builder,
-                "base": self.get_variable_base(role_builder),
-                "replacing": self.get_next_replacement_name(role_builder),
-                "num_sections": self.get_max_sections_for_role(role_builder),
-            }
-        else:
-            return None
-
     def get_max_sections_for_role(self, role):
         max_mass = {
             role_spawn_fill_backup:
@@ -1608,7 +1571,8 @@ class RoomMind:
                 lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
                                          spawning.max_sections_of(self, creep_base_hauler), 0, 2),
             role_local_hauler:
-                lambda: math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
+                lambda: fit_num_sections(math.ceil(self.get_target_local_hauler_mass() / len(self.sources)),
+                                         spawning.max_sections_of(self, creep_base_hauler)),
             role_upgrader:
                 lambda: min(self.get_target_upgrader_work_mass(),
                             spawning.max_sections_of(self, self.get_variable_base(role_upgrader))),
@@ -1621,8 +1585,7 @@ class RoomMind:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
-            role_builder: lambda: min(self.get_target_builder_work_mass(),
-                                      spawning.max_sections_of(self, creep_base_worker)),
+            role_builder: lambda: max(3, min(8, spawning.max_sections_of(self, creep_base_worker))),
             role_mineral_miner:
                 lambda: 4,  # TODO: bigger miner/haulers maybe if we get resource prioritization?
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral + miner size
@@ -1681,7 +1644,6 @@ class RoomMind:
         for flag in flags.find_flags_global(flag_type):
             if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
                 flag_id = "flag-{}".format(flag.name)
-                # TODO: this is really... wrong.... just wrong.
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
                 if noneol_targeting_count < 1:
                     result.append(flag)
@@ -1709,9 +1671,6 @@ class RoomMind:
     def _next_tower_breaker_role(self):
         if not self.conducting_siege():
             return None
-        # TODO: This is basically the exact same huge loop done three times, with different base constants,
-        # different flag types, and different role constants. Maybe we could make a utility method for
-        # "calculate_next_spawning_single_flag_role"?
         role_obj = self.spawn_one_creep_per_flag(flags.TD_H_H_STOP, role_td_healer, creep_base_half_move_healer,
                                                  creep_base_full_move_healer)
         if role_obj:
@@ -1753,14 +1712,14 @@ class RoomMind:
         del self.mem.next_role
 
     def plan_next_role(self):
+        if not self.my:
+            return None
         funcs_to_try = [
             self._next_needed_local_mining_role,
             self._next_cheap_military_role,
-            # lambda: self.mining.next_remote_mining_role(2 - len(self.sources)) if self.conducting_siege() else None,
             lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
             self._next_tower_breaker_role,
             self._next_needed_local_role,
-            self._next_probably_local_role,
         ]
         next_role = None
         for func in funcs_to_try:
