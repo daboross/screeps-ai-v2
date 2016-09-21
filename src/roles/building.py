@@ -1,3 +1,5 @@
+import math
+
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
     role_builder, target_destruction_site, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS, role_upgrader
@@ -98,15 +100,26 @@ class Builder(upgrading.Upgrader):
             if target:
                 return self.execute_construction_target(target)
 
-            for max_hits in range(min(400000, self.home.min_sane_wall_hits), self.home.max_sane_wall_hits, 50000):
-                target = self.get_new_repair_target(max_hits, target_big_repair)
-                if target:
-                    self.memory.last_big_repair_max_hits = max_hits
-                    return self.execute_repair_target(target, max_hits, target_big_repair)
             target = self.get_new_repair_target(self.home.max_sane_wall_hits, target_big_repair)
             if target:
-                self.memory.last_big_repair_max_hits = self.home.max_sane_wall_hits
-                return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
+                self.memory.last_big_repair_max_hits = min(self.home.max_sane_wall_hits,
+                                                           math.ceil(target.hits / 50000) * 50000)
+                return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+
+            # Old code which was being possible inefficient when there were only high-hits targets left
+            # Note that since this code was last active, TargetMind._find_new_big_repair_site has been updated
+            # to return the structure with the least hits (previously it just returned the first structure found with
+            # hits < max_hits). This update to TargetMind is what allowed the more simplified code above to work
+            # effectively.
+            # for max_hits in range(min(400000, self.home.min_sane_wall_hits), self.home.max_sane_wall_hits, 50000):
+            #     target = self.get_new_repair_target(max_hits, target_big_repair)
+            #     if target:
+            #         self.memory.last_big_repair_max_hits = max_hits
+            #         return self.execute_repair_target(target, max_hits, target_big_repair)
+            # target = self.get_new_repair_target(self.home.max_sane_wall_hits, target_big_repair)
+            # if target:
+            #     self.memory.last_big_repair_max_hits = self.home.max_sane_wall_hits
+            #     return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
 
             self.memory.role = role_upgrader
             return False
@@ -177,7 +190,6 @@ class Builder(upgrading.Upgrader):
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
             # available targets. Let's ask for a new target, so as to allow it to update the targets list.
             # this seems like an OK way to do this!
-            self.home.building.refresh_building_targets()
             self.targets.untarget(self, target_construction)
             self.move_to(target)
             return False

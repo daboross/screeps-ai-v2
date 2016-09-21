@@ -470,16 +470,15 @@ class TargetMind:
               .format(creep.name, creep.home.room_name, max_hits))
         best_id = None
         smallest_num = Infinity
+        smallest_hits = Infinity
         for struct_id in creep.home.building.next_priority_big_repair_targets():
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
-                current_num = self.targets[target_big_repair][struct_id]
-                if not current_num or current_num < 1:
-                    # List is already in priority.
-                    return struct_id
-                elif current_num < smallest_num:
+                struct_num = self.targets[target_big_repair][struct_id]
+                if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
+                    smallest_num = struct_num
+                    smallest_hits = struct.hits
                     best_id = struct_id
-                    smallest_num = current_num
         return best_id
 
     def _find_new_destruction_site(self, creep):

@@ -1286,9 +1286,7 @@ class RoomMind:
             return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above
 
         worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
-        if self.building_paused():
-            return 0
-        else:
+        if not self.building_paused():
             total = _.sum(self.building.next_priority_construction_targets(), not_road) \
                     + _.sum(self.building.next_priority_repair_targets(), is_relatively_decayed)
             if total > 0:
@@ -1302,6 +1300,7 @@ class RoomMind:
                 total = _.sum(self.building.next_priority_big_repair_targets(), is_relatively_decayed)
                 if total > 0:
                     return worker_size
+        return 0
 
     def get_target_upgrader_work_mass(self):
         base = self.get_variable_base(role_upgrader)
