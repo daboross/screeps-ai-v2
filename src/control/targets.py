@@ -231,9 +231,9 @@ class TargetMind:
         :type creep: role_base.RoleBase
         :type extra_var: ?
         """
-        if not self.targets[ttype]:
+        if ttype not in self.targets:
             self.targets[ttype] = {}
-        if not self.targets_workforce[ttype]:
+        if ttype not in self.targets_workforce:
             self.targets_workforce[ttype] = {}
         if ttype not in self.reverse_targets:
             self.reverse_targets[ttype] = {}
@@ -244,14 +244,13 @@ class TargetMind:
             raise Error("Couldn't find find_function for '{}'!".format(ttype))
 
     def _get_existing_target_id(self, ttype, targeter_id):
-        if self.targeters[targeter_id]:
+        if targeter_id in self.targeters and ttype in self.targeters[targeter_id]:
             return self.targeters[targeter_id][ttype]
         return None
 
     def _get_new_target_id(self, ttype, targeter_id, creep, extra_var):
-        existing_target = self._get_existing_target_id(ttype, targeter_id)
-        if existing_target:
-            return existing_target
+        if targeter_id in self.targeters and ttype in self.targeters[targeter_id]:
+            return self.targeters[targeter_id][ttype]
         new_target = self._find_new_target(ttype, creep, extra_var)
         if not new_target:
             return None
@@ -272,9 +271,8 @@ class TargetMind:
                 return self.get_new_target(creep, ttype, extra_var, True)
         return target
 
-    def _get_existing_target_from_name(self, name, ttype):
-        """Exists to give an interface for when creeps die. TODO: make a full method."""
-        target_id = self._get_existing_target_id(ttype, name)
+    def get_existing_target(self, creep, ttype):
+        target_id = self._get_existing_target_id(ttype, creep.name)
         if not target_id:
             return None
         if target_id.startswith("flag-"):
@@ -282,11 +280,8 @@ class TargetMind:
         else:
             target = Game.getObjectById(target_id)
         if not target:
-            self._unregister_targeter(ttype, name)
+            self._unregister_targeter(ttype, creep.name)
         return target
-
-    def get_existing_target(self, creep, ttype):
-        return self._get_existing_target_from_name(creep.name, ttype)
 
     def untarget(self, creep, ttype):
         self._unregister_targeter(ttype, creep.name)

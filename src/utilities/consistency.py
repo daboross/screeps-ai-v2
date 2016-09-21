@@ -28,6 +28,7 @@ def reassign_room_roles(room):
                 break
         room.recalculate_roles_alive()
 
+    pass
     # # Don't make all local haulers suicide if we have stopped making more because of economy failure!
     # # We should be keeping them alive if that's the case!
     # if room.get_target_local_hauler_mass() and room.carry_mass_of(role_local_hauler) \
@@ -68,7 +69,7 @@ def clear_memory(room):
                     print("[{}][{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(
                         home, name))
             elif role == role_remote_miner:
-                flag = target_mind._get_existing_target_from_name(name, target_remote_mine_miner)
+                flag = target_mind.get_existing_target({'name': name}, target_remote_mine_miner)
                 if flag and flag.memory and flag.memory.remote_miner_targeting == name:
                     del flag.memory.remote_miner_targeting
             target_mind._unregister_all(name)
