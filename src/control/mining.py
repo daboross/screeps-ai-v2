@@ -119,8 +119,7 @@ class MiningMind:
                     flag.memory.sitting -= 1
                 else:
                     flag.memory.sitting = 0
-            if flag.memory.remote_miner_targeting and not Game.creeps[flag.memory.remote_miner_targeting]:
-                del flag.memory.remote_miner_targeting
+            del flag.memory.remote_miner_targeting
 
     def get_available_mining_flags(self):
         if self._available_mining_flags is None:

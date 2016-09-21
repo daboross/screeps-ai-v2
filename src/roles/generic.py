@@ -98,10 +98,6 @@ class ReplacingExpendedCreep(RoleBase):
             source = self.targets.get_existing_target(self, target_big_source)
             if source:
                 Memory.dedicated_miners_stationed[source.id] = self.creep.name
-        elif role == role_remote_miner:
-            flag = self.targets.get_existing_target(self, target_remote_mine_miner)
-            if flag and flag.memory and flag.memory.remote_miner_targeting == old_name:
-                flag.memory.remote_miner_targeting = self.creep.name
         elif role == role_remote_mining_reserve:
             room = self.memory.claiming
             if room:

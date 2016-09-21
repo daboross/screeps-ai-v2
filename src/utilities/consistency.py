@@ -70,8 +70,6 @@ def clear_memory(room):
                         home, name))
             elif role == role_remote_miner:
                 flag = target_mind.get_existing_target({'name': name}, target_remote_mine_miner)
-                if flag and flag.memory and flag.memory.remote_miner_targeting == name:
-                    del flag.memory.remote_miner_targeting
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]

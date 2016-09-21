@@ -28,8 +28,6 @@ class RemoteMiner(TransportPickup):
         if source_flag.memory.sponsor != self.home.room_name:
             self.memory.home = source_flag.memory.sponsor
 
-        source_flag.memory.remote_miner_targeting = self.name
-
         if self.creep.hits < self.creep.hitsMax and (self.pos.roomName != self.home.room_name
                                                      or self.pos.x > 40 or self.pos.y > 40
                                                      or self.pos.x < 10 or self.pos.y < 10):

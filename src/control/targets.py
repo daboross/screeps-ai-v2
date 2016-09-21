@@ -536,9 +536,7 @@ class TargetMind:
         best_id = None
         # don't go to any rooms with 100% haulers in use.
         smallest_percentage = 1
-        for flag in creep.home.mining.available_mines:
-            if not flag.memory.remote_miner_targeting and not (flag.memory.sitting > 500):
-                continue  # only target mines with active miners
+        for flag in creep.home.mining.active_mines:
             flag_id = "flag-{}".format(flag.name)
             hauler_mass = self.workforce_of(target_remote_mine_hauler, flag_id)
             hauler_percentage = float(hauler_mass) / creep.home.mining.calculate_current_target_mass_for_mine(flag)

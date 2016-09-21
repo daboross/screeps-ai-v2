@@ -509,7 +509,7 @@ class RoomMind:
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
-                    if flag.memory.sponsor and flag.memory.remote_miner_targeting:
+                    if flag.memory.sponsor:
                         # if we're a remote mine and our sponsor is paving, let's also pave.
                         sponsor = self.hive_mind.get_room(flag.memory.sponsor)
                         if sponsor and sponsor.paving():
