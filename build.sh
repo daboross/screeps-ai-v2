@@ -28,7 +28,7 @@ cp __javascript__/main.* ../target/
 cd ../
 
 patch -lb target/main.js js_patches/fix_string_format.patch
-patch -lb target/main.js js_patches/fix_es6_iterables.patch
+#patch -lb target/main.js js_patches/fix_es6_iterables.patch
 
 mkdir -p dist/
 cp target/main.js dist/
