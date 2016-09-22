@@ -120,7 +120,7 @@ class Builder(upgrading.Upgrader):
             # if target:
             #     self.memory.last_big_repair_max_hits = self.home.max_sane_wall_hits
             #     return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
-
+            self.log("No targets found, repurposing as upgrader.")
             self.memory.role = role_upgrader
             return False
 
@@ -171,7 +171,7 @@ class Builder(upgrading.Upgrader):
         result = self.creep.repair(target)
         if result == OK:
             if self.pos.isNearTo(target):
-                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name) > 1:
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
                     self.move_around(target)
             else:
                 self.basic_move_to(target)
@@ -204,7 +204,7 @@ class Builder(upgrading.Upgrader):
         result = self.creep.build(target)
         if result == OK:
             if self.pos.isNearTo(target):
-                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name) > 1:
+                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
                     self.move_around(target)
             else:
                 self.basic_move_to(target)
@@ -228,7 +228,8 @@ class Builder(upgrading.Upgrader):
 
         result = self.creep.dismantle(target)
         if result == OK:
-            self.move_around(target)
+            if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
+                self.move_around(target)
             if target.hits < self.creep.getActiveBodyparts(WORK) * 50:  # we've fully destroyed it
                 # check to see if we've opened up any new spots for construction sites with our destroyed structure.
                 self.home.building.refresh_building_targets()

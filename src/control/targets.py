@@ -435,8 +435,12 @@ class TargetMind:
             max_work = Infinity
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
-            if structure and structure.hits < structure.hitsMax and structure.hits < max_hits:
-                current_max = min(max_work, math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
+            if structure and structure.hits < structure.hitsMax * 0.9 and structure.hits < max_hits:
+                if max_work is Infinity:
+                    current_max = Infinity
+                else:
+                    current_max = min(max_work,
+                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
                 current_workforce = self.workforce_of(target_repair, struct_id)
                 if not current_workforce or current_workforce < current_max \
                         or current_workforce < smallest_num_builders + 1:
@@ -469,7 +473,7 @@ class TargetMind:
         for struct_id in creep.home.building.next_priority_big_repair_targets():
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
-                struct_num = self.targets[target_big_repair][struct_id]
+                struct_num = self.workforce_of(target_big_repair, struct_id)
                 if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
                     smallest_num = struct_num
                     smallest_hits = struct.hits
@@ -488,9 +492,8 @@ class TargetMind:
                 if not current_num or current_num < _MAX_BUILDERS:
                     # List is already in priority.
                     if struct.structureType not in construct_count:
-                        construct_count[struct.structureType] = len(
-                            _.filter(creep.home.find(FIND_MY_CONSTRUCTION_SITES),
-                                     lambda s: s.structureType == struct.structureType))
+                        construct_count[struct.structureType] = _.sum(creep.home.find(FIND_MY_CONSTRUCTION_SITES),
+                                                                      lambda s: s.structureType == struct.structureType)
                     if construct_count[struct.structureType] < 2:
                         return struct_id
 

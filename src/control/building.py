@@ -162,7 +162,7 @@ class ConstructionMind:
         structures = [x.id for x in _.sortBy(
             _.filter(self.room.find(FIND_STRUCTURES),
                      lambda s: (s.my or not s.owner) and s.hits < s.hitsMax * 0.9 and s.hits < max_hits
-                               and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
+                               and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.8)
                                and not flags.look_for(self.room, s.pos, flags.MAIN_DESTRUCT,
                                                       flags.structure_type_to_flag_sub[s.structureType])),
             lambda s: get_priority(s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
@@ -213,6 +213,8 @@ class ConstructionMind:
         for flag, secondary in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT),
                                         lambda t: -movement.distance_squared_room_pos(t[0].pos, spawn_pos)):
             structure_type = flags.flag_sub_to_structure_type[secondary]
+            if structure_type == STRUCTURE_ROAD:
+                continue
             structures = _.filter(self.room.find_at(FIND_STRUCTURES, flag.pos),
                                   lambda s: s.structureType == structure_type)
             if structure_type != STRUCTURE_RAMPART and _.find(self.room.find_at(FIND_STRUCTURES, flag.pos),

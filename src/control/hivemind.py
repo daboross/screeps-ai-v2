@@ -1283,7 +1283,8 @@ class RoomMind:
 
         def is_relatively_decayed(id):
             thing = Game.getObjectById(id)
-            return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above
+            return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above \
+                   and (thing.structureType != STRUCTURE_ROAD or thing.hits <= thing.hitsMax * 0.3)
 
         worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
         if not self.building_paused():
