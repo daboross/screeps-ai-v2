@@ -25,9 +25,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def should_pickup(self, resource_type=None):
-        if not RoleBase.should_pickup(self, resource_type):
-            return False
-        return self.any_building_targets()
+        return RoleBase.should_pickup(self, resource_type) and self.any_building_targets()
 
     def run(self):
         if self.creep.ticksToLive < recycle_time and self.home.spawn:
@@ -42,7 +40,7 @@ class Builder(upgrading.Upgrader):
             self.targets.untarget_all(self)
             self.memory.filling = True
 
-        if not self.any_building_targets():
+        if 'la' not in self.memory and not self.any_building_targets():
             destruct = self.targets.get_new_target(self, target_destruction_site)
             if destruct:
                 if self.memory.filling:
@@ -71,15 +69,38 @@ class Builder(upgrading.Upgrader):
                 self.build_swamp_roads()
                 return self.harvest_energy()
         else:
-            target = self.targets.get_existing_target(self, target_repair)
-            if target:
-                return self.execute_repair_target(target, min(350000, self.home.min_sane_wall_hits), target_repair)
-            target = self.targets.get_existing_target(self, target_construction)
-            if target:
-                return self.execute_construction_target(target)
-            target = self.targets.get_existing_target(self, target_big_repair)
-            if target:
-                return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+            sc_last_action = self.memory.la
+            if sc_last_action == "r":
+                target = self.targets.get_existing_target(self, target_repair)
+                if target:
+                    return self.execute_repair_target(target, self.home.min_sane_wall_hits, target_repair)
+                else:
+                    del self.memory.la
+            elif sc_last_action == "c":
+                target = self.targets.get_existing_target(self, target_construction)
+                if target:
+                    return self.execute_construction_target(target)
+                else:
+                    del self.memory.la
+            elif sc_last_action == "b":
+                target = self.targets.get_existing_target(self, target_big_repair)
+                if target:
+                    return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+                else:
+                    del self.memory.la
+            else:
+                target = self.targets.get_existing_target(self, target_repair)
+                if target:
+                    self.memory.la = "r"
+                    return self.execute_repair_target(target, self.home.min_sane_wall_hits, target_repair)
+                target = self.targets.get_existing_target(self, target_construction)
+                if target:
+                    self.memory.la = "c"
+                    return self.execute_construction_target(target)
+                target = self.targets.get_existing_target(self, target_big_repair)
+                if target:
+                    self.memory.la = "b"
+                    return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
 
             if self.memory.building_walls_at:
                 walls = self.room.find_at(FIND_STRUCTURES, self.memory.building_walls_at & 0x3F,
@@ -89,12 +110,11 @@ class Builder(upgrading.Upgrader):
                 del self.memory.building_walls
                 if wall:
                     self.targets._register_new_targeter(target_repair, self.name, wall.id)
-                    return self.execute_repair_target(wall, min(350000, self.home.min_sane_wall_hits),
-                                                      target_repair)
+                    return self.execute_repair_target(wall, self.home.min_sane_wall_hits, target_repair)
 
-            target = self.get_new_repair_target(min(350000, self.home.min_sane_wall_hits), target_repair)
+            target = self.get_new_repair_target(self.home.min_sane_wall_hits, target_repair)
             if target:
-                return self.execute_repair_target(target, min(350000, self.home.min_sane_wall_hits), target_repair)
+                return self.execute_repair_target(target, self.home.min_sane_wall_hits, target_repair)
 
             target = self.get_new_construction_target()
             if target:
@@ -190,6 +210,7 @@ class Builder(upgrading.Upgrader):
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
             # available targets. Let's ask for a new target, so as to allow it to update the targets list.
             # this seems like an OK way to do this!
+            self.home.building.refresh_building_targets()
             self.targets.untarget(self, target_construction)
             self.move_to(target)
             return False
