@@ -48,17 +48,18 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
             else:
                 print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
             role = default_roles[spawning.find_base_type(creep)]
-            if not role:
-                base = RoleBase(hive_mind, target_mind, room, creep)
-                base.go_to_depot()
-                base.report(speech.base_no_role)
-                return
-            creep.memory.role = role
-            instance = wrap_creep(hive_mind, target_mind, room, creep)
-            room.register_to_role(instance)
+            if role:
+                creep.memory.role = role
+                instance = wrap_creep(hive_mind, target_mind, room, creep)
+                room.register_to_role(instance)
+            else:
+                instance = RoleBase(hivemind, target_mind, room, creep)
+                instance.go_to_depot()
+                instance.report(speech.base_no_role)
         canceled_via_instict = autoactions.instinct_check(instance)
         if canceled_via_instict:
             return
+        creep.wrapped = instance
         rerun = instance.run()
         if Game.cpu.bucket >= 7000:
             if rerun:
@@ -195,6 +196,8 @@ def main():
                 rooms = rooms[:len(rooms) - 1]
         for room in rooms:
             run_room(target_mind, creeps_skipped, room)
+    for room in hive_mind.visible_rooms:
+        autoactions.pickup_check_room(room)
     skipped_count = _.sum(creeps_skipped, 'length')
     if skipped_count:
         if Memory.skipped_last_turn:

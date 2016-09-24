@@ -284,9 +284,27 @@ def instinct_check(creep):
         return True
     # if mercy_check(creep):
     #     return True
-    pickup_check(creep)
+    # pickup_check(creep)
     # transfer_check(creep)
     return False
 
 
 instinct_check = profiling.profiled(instinct_check, "autoactions.instinct_check")
+
+
+def pickup_check_room(room):
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    energy = room.find(FIND_DROPPED_ENERGY)
+    if not len(energy):
+        return
+    creeps = room.find(FIND_MY_CREEPS)
+    if not len(creeps):
+        return
+    for pile in energy:
+        for creep in creeps:
+            if creep.carryCapacity != 0 and creep.pos.isNearTo(pile.pos) and _.sum(creep.carry) < creep.carryCapacity \
+                    and 'wrapped' in creep and creep.wrapped.should_pickup(pile.resourceType):
+                creep.pickup(pile)
+                break
