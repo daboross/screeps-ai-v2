@@ -70,6 +70,10 @@ class LocalHauler(SpawnFill, TransportPickup):
             fill = self.home.room.storage
         else:
             fill = self.targets.get_new_target(self, target_closest_energy_site, pickup.pos)
+            if fill and fill.energy >= fill.energyCapacity and fill.structureType == STRUCTURE_LINK and \
+                    not self.home.links.enabled:
+                fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
+
             if fill.pos.getRangeTo(self.home.room.controller) <= 3:
                 fill = self.home.room.storage
 

@@ -14,6 +14,13 @@ class TransportPickup(RoleBase):
         total_carried_now = _.sum(self.creep.carry)
         if self.memory.filling:
             target = pickup.pos
+            if not self.creep.carryCapacity:
+                if self.creep.hits < self.creep.hitsMax:
+                    self.follow_energy_path(pickup, fill)
+                else:
+                    self.log("WARNING: Remote hauler has no carry and is at full health!")
+                    self.creep.suicide()
+                return
             if total_carried_now >= self.creep.carryCapacity:
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
@@ -37,9 +44,13 @@ class TransportPickup(RoleBase):
                     result = self.creep.pickup(energy)
 
                     if result == OK:
-                        if energy.amount > self.creep.carryCapacity - _.sum(self.creep.carry):
+                        if energy.amount > self.creep.carryCapacity - total_carried_now:
                             self.memory.filling = False
                             self.follow_energy_path(pickup, fill)
+                        elif Game.time % 6 == 1 and self.creep.ticksToLive < 10 + self.path_length(fill, pickup):
+                            self.memory.filling = False
+                            self.follow_energy_path(fill, pickup)
+                            return
                     else:
                         self.log("Unknown result from creep.pickup({}): {}".format(energy, result))
                 else:
@@ -71,7 +82,7 @@ class TransportPickup(RoleBase):
                                  .format(container, mtype, result))
                         return
 
-                    if amount > self.creep.carryCapacity - _.sum(self.creep.carry):
+                    if amount > self.creep.carryCapacity - total_carried_now:
                         self.memory.filling = False
                         self.follow_energy_path(pickup, fill)
                 else:
@@ -87,13 +98,13 @@ class TransportPickup(RoleBase):
                           lambda c: c.getActiveBodyparts(WORK) >= 5):
                     self.memory.hbu = Game.time + 7  # head back until
                     self.follow_energy_path(pickup, fill)
-                elif _.sum(self.creep.carry) > self.creep.carryCapacity * 0.5:
+                elif total_carried_now > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
                     self.follow_energy_path(pickup, fill)
         else:
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage
-            elif _.sum(self.creep.carry) <= 0:
+            elif total_carried_now <= 0:
                 if self.creep.ticksToLive < 2.2 * self.path_length(fill, pickup):
                     self.creep.suicide()
                     return
@@ -134,7 +145,7 @@ class TransportPickup(RoleBase):
             else:
                 empty = fill.storeCapacity - _.sum(fill.store)
 
-            if min(amount, empty) >= _.sum(self.creep.carry):
+            if min(amount, empty) >= total_carried_now:
                 # self.memory.filling = True
                 self.follow_energy_path(fill, pickup)
 
@@ -153,6 +164,8 @@ class TransportPickup(RoleBase):
             return
         # if over_debug:
         #     self.log("Following path from {} to {}!".format(origin, target))
+        if origin.isNearTo(target):
+            origin = self.home.spawn.pos
         path = self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName})
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
@@ -177,8 +190,12 @@ class TransportPickup(RoleBase):
                         closest_distance = distance
                         closest = pos
                 if not closest:
-                    self.log("WARNING: Couldn't find closest position to return too! all positions: {}!".format(
-                        all_positions))
+                    self.log("WARNING: Transport creep off path, with no positions to return to. I'm at {}, going from "
+                             "{} to {}. All positions: {}!"
+                             .format(self.pos, origin, target, all_positions))
+                    if not len(all_positions):
+                        if Game.time % 20 == 10:
+                            self.hive.honey.clear_cached_path(origin, target)
                     return
                 self.memory.next_ppos = closest
             mtarget = self.memory.next_ppos
