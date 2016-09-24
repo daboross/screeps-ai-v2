@@ -48,16 +48,11 @@ class ConstructionMind:
     def toString(self):
         return "ConstructionMind[room: {}]".format(self.room.room_name)
 
-    def _get_mem(self):
-        if self.room.room.memory.construction is undefined:
-            self.room.room.memory.construction = {}
-        return self.room.room.memory.construction
-
     def refresh_building_targets(self):
-        del self.room.mem.cache.building_targets
+        self.room.mem.cache.building_targets.dead_at = Game.time + 1
 
     def refresh_repair_targets(self):
-        del self.room.mem.cache.repair_targets
+        self.room.mem.cache.repair_targets.dead_at = Game.time + 1
 
         big_targets = self.room.get_cached_property("big_repair_targets")
         if big_targets:
@@ -118,15 +113,15 @@ class ConstructionMind:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
                     self.room.room_name, flag_type
                 ))
-            if flags.look_for(self.room, flag, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type]):
-                continue
-            if CONTROLLER_STRUCTURES[structure_type][controller_level] > (currently_existing[structure_type] or 0):
-                if _.find(self.room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": structure_type}) \
-                        or _.find(self.room.find_at(FIND_CONSTRUCTION_SITES, flag.pos),
-                                  {"structureType": structure_type}):
-                    continue  # already built.
+            if CONTROLLER_STRUCTURES[structure_type][controller_level] \
+                    > (currently_existing[structure_type] or 0) and \
+                    not flags.look_for(self.room, flag, flags.MAIN_DESTRUCT,
+                                       flags.structure_type_to_flag_sub[structure_type]) \
+                    and not (_.find(self.room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": structure_type})
+                             or _.find(self.room.find_at(FIND_CONSTRUCTION_SITES, flag.pos))):
                 flag.pos.createConstructionSite(structure_type)
                 new_sites.append("flag-{}".format(flag.name))
+                currently_existing[structure_type] = (currently_existing[structure_type] or 0) + 1
 
         sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
                                         lambda s: get_priority(s.structureType) * 50
@@ -244,12 +239,17 @@ class ConstructionMind:
             return
         elif last_run_version == "missing_rooms":
             missing_rooms = self.room.get_cached_property("pmr_missing_rooms")
-            if Game.time % 10 != 3:
+            if Game.time % 30 != 3:
                 return  # don't check every tick
             for name in missing_rooms:
                 if Game.rooms[name]:
                     break  # Re-pave if we can now see a room we couldn't before!
             else:
+                return
+        elif last_run_version == "too_many_sites":
+            if Game.time % 30 != 3:
+                return
+            if len(Game.constructionSites) >= 50:
                 return
         if not self.room.paving():
             self.room.store_cached_property("placed_mining_roads", latest_key, 100)
@@ -266,6 +266,7 @@ class ConstructionMind:
 
         checked_positions_per_room = new_map()
         future_road_positions_per_room = {}
+        preexisting_count = len(Game.constructionSites)
         placed_count = 0
         path_count = 0
 
@@ -278,8 +279,8 @@ class ConstructionMind:
         non_visible_rooms = None
 
         def check_route(positions):
-            nonlocal checked_positions_per_room, future_road_positions_per_room, path_count, placed_count, \
-                any_non_visible_rooms, non_visible_rooms
+            nonlocal  checked_positions_per_room, future_road_positions_per_room, path_count, \
+                placed_count, any_non_visible_rooms, non_visible_rooms
             path_count += 1
             for pos in positions:
                 if checked_positions_per_room.has(pos.roomName):
@@ -307,6 +308,8 @@ class ConstructionMind:
                     if not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
                                   {"structureType": STRUCTURE_ROAD}) \
                             and not len(room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                        if placed_count + preexisting_count >= 100:
+                            break
                         room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
                         placed_count += 1
                     checked_positions.add(pos_key)
@@ -365,9 +368,13 @@ class ConstructionMind:
                     flag.remove()
 
         if any_non_visible_rooms:
-            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms {})".format(
+            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms)".format(
                 self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
-                placed_count, path_count, list(non_visible_rooms.values())))
+                placed_count, path_count))
+        elif placed_count + preexisting_count >= 100:
+            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (hit site limit)".format(
+                self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
+                placed_count, path_count))
         else:
             print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
                 self.room.room_name, _.sum(list(checked_positions_per_room.values()), 'size'),
@@ -375,11 +382,14 @@ class ConstructionMind:
 
         # stagger updates after a version change.
         # Really don't do this often either - this is an expensive operation.
+        ttl = random.randint(30000, 40000)
         if any_non_visible_rooms:
-            self.room.store_cached_property("placed_mining_roads", "missing_rooms", 1000)
-            self.room.store_cached_property("pmr_missing_rooms", list(non_visible_rooms.values()), 1000)
+            self.room.store_cached_property("placed_mining_roads", "missing_rooms", ttl)
+            self.room.store_cached_property("pmr_missing_rooms", list(non_visible_rooms.values()), ttl)
+        elif placed_count + preexisting_count >= 100:
+            self.room.store_cached_property("placed_mining_roads", "too_many_sites", ttl)
         else:
-            self.room.store_cached_property("placed_mining_roads", latest_key, random.randint(30000, 40000))
+            self.room.store_cached_property("placed_mining_roads", latest_key, ttl)
             # Done!
 
 

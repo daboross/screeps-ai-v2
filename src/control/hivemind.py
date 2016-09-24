@@ -105,7 +105,7 @@ class HiveMind:
         Gets a visible room given its room name.
         :rtype: RoomMind
         """
-        if not self._all_rooms:
+        if self._all_rooms is None:
             self.find_visible_rooms()
         return self._room_to_mind[room_name]
 
