@@ -49,7 +49,7 @@ def squared_distance(xy1, xy2):
 def parse_room_to_xy(room_name):
     matches = room_regex.exec(room_name)
     if not matches:
-        return None
+        return 0, 0
     if matches[1] == "W":
         x = -int(matches[2])
     else:

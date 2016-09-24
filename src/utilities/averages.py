@@ -7,6 +7,8 @@ __pragma__('noalias', 'Infinity')
 
 
 def start_main_loop():
+    if 'cpu_usage' not in Memory:
+        Memory.cpu_usage = {}
     volatile_cache.volatile().set("main_loop_start_cpu", Game.cpu.getUsed())
     clean_and_prepare_memory_array("bucket")
     Memory.cpu_usage["bucket"].push(Game.cpu.bucket)
@@ -21,8 +23,6 @@ def clean_and_prepare_memory_array(name):
 
 
 def end_main_loop():
-    if not Memory.cpu_usage:
-        Memory.cpu_usage = {}
     clean_and_prepare_memory_array("with-cl")
     clean_and_prepare_memory_array("without-cl")
     clean_and_prepare_memory_array("creep-count")
@@ -76,15 +76,16 @@ def get_average_visual():
         "\nReport:"
         "\n1000 ticks:"
         "\nAvg CPU: {}"
-        "\nAvg Runtime: {}"
-        "\nAvg creep #: {}"
-        "\nAvg CPU/creep: {}"
+        "\t(Runtime: {})"
+        "\ncreep #: {}"
+        "\tCPU/creep: {}"
         "\n50 ticks average:"
         "\nCPU: {}"
         "\t(Runtime: {})"
         "\ncreep #: {}"
         "\tCPU/creep: {}"
         "\nBucket trends:"
+        "\t(now: {})"
         "\n50: {}"
         "\t100: {}"
         "\t500: {}"
@@ -97,6 +98,7 @@ def get_average_visual():
             without_cl50,
             creeps50,
             round(with_cl50 / creeps50 * 10) / 10,
+            Game.cpu.bucket,
             get_bucket_trend(0, 50),
             get_bucket_trend(0, 100),
             get_bucket_trend(0, 500),
