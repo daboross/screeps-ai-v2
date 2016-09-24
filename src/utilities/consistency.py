@@ -45,14 +45,13 @@ def reassign_room_roles(room):
 
 def clear_memory(room):
     """
-    Clears memory for all creeps belonging to room.
+    Clears memory for all creeps belonging to room, and sets room.mem.meta.(clear_next & reset_spawn_on)
     :type room: control.hivemind.RoomMind
     """
     smallest_ticks_to_live = 500
     closest_replacement_time = Game.time + 100  # reset spawn at a minimum of every 100 ticks.
     target_mind = room.hive_mind.target_mind
-    for name in Object.keys(Memory.creeps):
-        memory = Memory.creeps[name]
+    for name, memory in _.pairs(Memory.creeps):
         home = memory.home
         if home != room.room_name and home:
             continue
@@ -73,6 +72,18 @@ def clear_memory(room):
     dead_next = Game.time + smallest_ticks_to_live
     room.mem.meta.clear_next = dead_next + 1
     room.mem.meta.reset_spawn_on = closest_replacement_time + 1
+
+
+def get_next_replacement_time(room):
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    closest_replacement_time = Game.time + 100
+    for creep in room.creeps:
+        replacement_time = live_creep_utils.replacement_time(creep)
+        if Game.time < replacement_time < closest_replacement_time:
+            closest_replacement_time = replacement_time
+    return closest_replacement_time
 
 
 def clear_cache():

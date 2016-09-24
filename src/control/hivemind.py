@@ -825,7 +825,7 @@ class RoomMind:
             meta = {"clear_next": 0, "reset_spawn_on": 0}
             self.mem.meta = meta
 
-        if time > meta.clear_next:
+        if time >= meta.clear_next:
             # print("[{}] Clearing memory".format(self.room_name))
             consistency.clear_memory(self)
             self.recalculate_roles_alive()
@@ -837,9 +837,9 @@ class RoomMind:
             # print("[{}] Next clear in {} ticks.".format(self.room_name, meta.clear_next - Game.time))
 
         # reset_spawn_on is set to the tick after the next creep's TTR expires in consistency.clear_memory()
-        if time > meta.reset_spawn_on:
+        if time >= meta.reset_spawn_on:
             self.reset_planned_role()
-            meta.reset_spawn_on = meta.clear_next + 1
+            meta.reset_spawn_on = consistency.get_next_replacement_time(self) + 1
 
         # TODO: this will make both rooms do it at the same time, but this is better than checking every time memory is
         # cleared! Actually, it's quite cheap.
