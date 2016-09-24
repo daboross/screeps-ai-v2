@@ -1,8 +1,9 @@
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
-    role_remote_hauler, role_remote_miner, role_recycling, role_upgrader
+    role_hauler, role_miner, role_recycling, role_upgrader
 from goals.transport import TransportPickup
+from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
 from utilities.screeps_constants import *
@@ -22,7 +23,7 @@ class RemoteMiner(TransportPickup):
         if not source_flag:
             self.log("Remote miner can't find any sources! Flag: {}".format(source_flag))
             self.memory.role = role_recycling
-            self.memory.last_role = role_remote_miner
+            self.memory.last_role = role_miner
             self.report(speech.remote_miner_no_flag)
             return False
         if source_flag.memory.sponsor != self.home.room_name:
@@ -64,7 +65,7 @@ class RemoteMiner(TransportPickup):
             self.basic_move_to(__new__(RoomPosition(self.memory.container_pos & 0x3F,
                                                     self.memory.container_pos >> 6 & 0x3F, self.pos.roomName)))
 
-        sources_list = self.room.find_at(FIND_SOURCES, source_flag.pos)
+        sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             self.report(speech.remote_miner_flag_no_source)
@@ -76,10 +77,34 @@ class RemoteMiner(TransportPickup):
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             self.report(speech.remote_miner_ner)
         else:
-            self.log("Unknown result from remote-mining-creep.harvest({}): {}", source_flag, result)
+            self.log("Unknown result from remote-mining-creep.harvest({}): {}", sources_list[0], result)
             self.report(speech.remote_miner_unknown_result)
 
+        if self.creep.carryCapacity:
+            if 'link' in self.memory:
+                if self.memory.link is None:
+                    return False
+                else:
+                    link = Game.getObjectById(self.memory.link)
+                    if link is None:
+                        del self.memory.link
+                        return False
+            else:
+                # TODO: expand this to support 2-space away places using a middle-space-finding code like LinkManager's
+                link = _.find(self.room.find_in_range(FIND_MY_STRUCTURES, 1, source_flag.pos),
+                              {'structureType': STRUCTURE_LINK})
+                if link:
+                    self.memory.link = link.id
+                else:
+                    self.memory.link = None
+            if self.creep.carry.energy + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
+                self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
+                self.creep.transfer(link, RESOURCE_ENERGY)
+
         return False
+
+    def should_pickup(self, resource_type=None):
+        return 'container_pos' in self.memory and RoleBase.should_pickup(resource_type)
 
     def _calculate_time_to_replace(self):
         source = self.targets.get_new_target(self, target_remote_mine_miner)
@@ -104,7 +129,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
 
         if not pickup:
             self.memory.role = role_recycling
-            self.memory.last_role = role_remote_hauler
+            self.memory.last_role = role_hauler
             return
 
         if _.sum(self.creep.carry) > self.creep.carry.energy:

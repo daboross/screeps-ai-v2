@@ -18,6 +18,7 @@ initial_section = {
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
     creep_base_3000miner: [WORK, WORK, WORK, WORK, WORK],
     creep_base_4500miner: [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK],
+    creep_base_carry3000miner: [CARRY, WORK, WORK, WORK, WORK, WORK],
     creep_base_mammoth_miner: [MOVE, CARRY, WORK, WORK, WORK],
 }
 
@@ -31,6 +32,7 @@ scalable_sections = {
     creep_base_defender: [CARRY, MOVE, ATTACK],
     creep_base_3000miner: [MOVE],
     creep_base_4500miner: [MOVE],
+    creep_base_carry3000miner: [MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
     creep_base_full_move_goader: [CARRY],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
@@ -46,6 +48,7 @@ scalable_sections = {
 
 low_energy_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
+    creep_base_full_upgrader: [MOVE, CARRY, WORK],
 }
 
 
@@ -165,6 +168,20 @@ def run(room, spawn):
         num_work = 8
         for i in range(0, num_work):
             parts.append(WORK)
+        for i in range(0, num_move):
+            parts.append(MOVE)
+        descriptive_level = num_move
+    elif base is creep_base_carry3000miner:
+        if energy < 600:
+            print("[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!"
+                  .format(room.room_name))
+            return
+        parts = []
+        num_move = num_sections or 5
+        num_work = 5
+        for i in range(0, num_work):
+            parts.append(WORK)
+        parts.append(CARRY)
         for i in range(0, num_move):
             parts.append(MOVE)
         descriptive_level = num_move

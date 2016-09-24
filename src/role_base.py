@@ -1,8 +1,8 @@
 import math
 
 import flags
-from constants import target_source, role_dedi_miner, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
-    PYFIND_BUILDABLE_ROADS, target_closest_energy_site
+from constants import target_source, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
+    PYFIND_BUILDABLE_ROADS, target_closest_energy_site, role_miner
 from control import pathdef
 from tools import profiling
 from utilities import movement, global_cache
@@ -410,7 +410,7 @@ class RoleBase:
             return False
 
         # TODO: this assumes that different sources are at least 3 away.
-        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_dedi_miner)
+        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_miner)
         if miner:
             if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
@@ -423,7 +423,7 @@ class RoleBase:
                 self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
             return False  # waiting for the miner to gather energy.
 
-        if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), {"memory": {"role": role_dedi_miner}}):
+        if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), lambda c: c.memory.role == role_miner):
             self.go_to_depot()
             return False
         if not self.creep.getActiveBodyparts(WORK):

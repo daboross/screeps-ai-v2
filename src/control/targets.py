@@ -301,7 +301,7 @@ class TargetMind:
         best_source = None
         for source in creep.home.find(FIND_SOURCES):
             if not has_work and not _.find(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
-                                  lambda c: c.memory.role == role_dedi_miner):
+                                  lambda c: c.memory.role == role_miner):
                 continue
             energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
             distance = movement.distance_room_pos(source.pos, creep.pos)

@@ -536,6 +536,8 @@ class RoomMind:
             paved = False  # still paving
         elif self.my:
             for flag in self.mining.active_mines:
+                if flag.pos.roomName == self.room_name:
+                    continue
                 room = self.hive_mind.get_room(flag.pos.roomName)
                 if room:
                     if not room.all_paved():
@@ -953,7 +955,7 @@ class RoomMind:
             all_placed = True
             for source in self.sources:
                 if not _.find(self.find_in_range(FIND_MY_CREEPS, 1, source),
-                              lambda c: c.memory.role == role_dedi_miner):
+                              lambda c: c.memory.role == role_miner):
                     all_placed = False
                     break
             self._all_big_miners_placed = all_placed
@@ -1413,21 +1415,13 @@ class RoomMind:
         total_mass = self.room.energyCapacityAvailable / 50 / 2
         return fit_num_sections(total_mass, spawning.max_sections_of(self, creep_base_hauler))
 
-    def _next_needed_local_mining_role(self):
-        requirements = [
-            [role_spawn_fill_backup, self.get_target_spawn_fill_backup_work_mass, False, True],
-            [role_defender, lambda: self.get_target_simple_defender_count(True)],
-            [role_link_manager, self.get_target_link_manager_count],
-            [role_cleanup, self.get_target_cleanup_mass, True],
-            [role_dedi_miner, self.get_target_local_miner_count],
-            [role_tower_fill, self.get_target_tower_fill_mass, True],
-            [role_spawn_fill, self.get_target_spawn_fill_mass, True],
-            [role_upgrader, lambda: self.get_target_upgrader_work_mass() if self.mining_ops_paused() else None,
-             False, True],
-            [role_local_hauler, self.get_target_local_hauler_mass, True],
-        ]
+    def _check_role_reqs(self, role_list):
+        """
+        Utility function to check the number of creeps in a role, optionally checking the work or carry mass for that
+        role instead.
+        """
         role_needed = None
-        for role, get_ideal, count_carry, count_work in requirements:
+        for role, get_ideal, count_carry, count_work in role_list:
             if count_carry:
                 if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
                     role_needed = role
@@ -1452,6 +1446,53 @@ class RoomMind:
             }
         else:
             return None
+
+    def _next_needed_local_mining_role(self):
+        if spawning.emergency_conditions(self):
+            if not self.full_storage_use and not self.are_all_big_miners_placed:
+                next_role = self._check_role_reqs([
+                    [role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, True],
+                ])
+                if next_role is not None:
+                    return next_role
+            next_role = self._check_role_reqs([
+                [role_tower_fill, self.get_target_tower_fill_mass, True],
+                [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+            ])
+            if next_role is not None:
+                return next_role
+
+        next_role = self._check_role_reqs([
+            [role_defender, lambda: self.get_target_simple_defender_count(True)],
+            [role_link_manager, self.get_target_link_manager_count],
+        ])
+        if next_role is not None:
+            return next_role
+
+        mining_role = self.mining.next_mining_role(len(self.sources))
+        if mining_role is not None and mining_role.role == role_miner:
+            return mining_role
+
+        next_role = self._check_role_reqs([
+            [role_tower_fill, self.get_target_tower_fill_mass, True],
+            [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+            [role_cleanup, self.get_target_cleanup_mass, True],
+            [role_defender, self.get_target_simple_defender_count],
+        ])
+        if next_role is not None:
+            return next_role
+
+        if self.room.controller.ticksToDowngrade < 2000:
+            upgrader = self._check_role_reqs([
+                [role_upgrader, self.get_target_upgrader_work_mass()]
+            ])
+            if upgrader is not None:
+                return upgrader
+
+        if mining_role is not None:
+            return mining_role
+
+        return None
 
     def _next_needed_local_role(self):
         requirements = [
@@ -1464,34 +1505,8 @@ class RoomMind:
             [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count],
             [role_mineral_miner, self.minerals.get_target_mineral_miner_count],
             [role_builder, self.get_target_builder_work_mass, False, True],
-            [role_defender, self.get_target_simple_defender_count],
         ]
-        role_needed = None
-        for role, get_ideal, count_carry, count_work in requirements:
-            if count_carry:
-                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-            elif count_work:
-                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-            else:
-                if self.role_count(role) - self.replacements_currently_needed_for(role) < get_ideal():
-                    role_needed = role
-                    break
-
-        if role_needed:
-            # TODO: this is all mostly a conversion of the old system to the new.
-            # Ideally we'd be creating a more complete package with the above (at least for replacement name)
-            return {
-                "role": role_needed,
-                "base": self.get_variable_base(role_needed),
-                "replacing": self.get_next_replacement_name(role_needed),
-                "num_sections": self.get_max_sections_for_role(role_needed),
-            }
-        else:
-            return None
+        return self._check_role_reqs(requirements)
 
     def get_max_sections_for_role(self, role):
         max_mass = {
@@ -1503,9 +1518,6 @@ class RoomMind:
             role_link_manager:
                 lambda: min(self.get_target_link_manager_count() * 8,
                             spawning.max_sections_of(self, creep_base_hauler)),
-            role_dedi_miner:
-            # Have a maximum of 3 move for local miners
-                lambda: min(3, spawning.max_sections_of(self, creep_base_3000miner)),
             role_cleanup:
                 lambda: math.ceil(max(self.get_target_cleanup_mass(),
                                       min(10, spawning.max_sections_of(self, creep_base_hauler)))),
@@ -1516,10 +1528,6 @@ class RoomMind:
             # Tower fillers are basically specialized spawn fillers.
                 lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
                                          spawning.max_sections_of(self, creep_base_hauler), 0, 2),
-            role_local_hauler:
-                lambda: fit_num_sections(
-                    math.ceil(self.get_target_local_hauler_mass() / self.get_target_local_miner_count()),
-                    spawning.max_sections_of(self, creep_base_hauler)),
             role_upgrader:
                 lambda: min(self.get_target_upgrader_work_mass(),
                             spawning.max_sections_of(self, self.get_variable_base(role_upgrader))),
@@ -1536,7 +1544,7 @@ class RoomMind:
             role_mineral_miner:
                 lambda: 4,  # TODO: bigger miner/haulers maybe if we get resource prioritization?
             role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral + miner size
-                lambda: spawning.max_sections_of(self, creep_base_hauler),
+                lambda: min(20, spawning.max_sections_of(self, creep_base_hauler)),
             role_td_goad:
                 lambda: spawning.max_sections_of(self, creep_base_goader),
             role_td_healer:
@@ -1551,7 +1559,7 @@ class RoomMind:
             return Infinity
 
     def get_variable_base(self, role):
-        if role == role_remote_hauler:
+        if role == role_hauler:
             if self.all_paved():
                 return creep_base_work_half_move_hauler
             elif self.paving():
@@ -1664,7 +1672,7 @@ class RoomMind:
         funcs_to_try = [
             self._next_needed_local_mining_role,
             self._next_cheap_military_role,
-            lambda: self.mining.next_remote_mining_role(self.get_max_mining_op_count()),
+            self.mining.next_mining_role,
             self._next_tower_breaker_role,
             self._next_needed_local_role,
         ]

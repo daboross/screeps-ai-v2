@@ -9,9 +9,7 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-immediately_replace_roles = [
-    role_local_hauler,
-]
+immediately_replace_roles = []
 let_live_roles = [
     role_spawn_fill_backup,
     role_spawn_fill,
@@ -20,8 +18,8 @@ let_live_roles = [
     role_builder,
     role_cleanup,
     role_colonist,
-    role_remote_hauler,
-    role_remote_miner,  # We need this and mining reserve to let them use the cached paths.
+    role_hauler,
+    role_miner,  # We need this and mining reserve to let them use the cached paths.
     role_remote_mining_reserve,
     role_mineral_steal,
     role_mineral_hauler,

@@ -1,10 +1,10 @@
 import math
 
+import flags
 import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
-    target_remote_mine_miner, role_remote_miner, creep_base_3000miner, role_remote_mining_reserve, \
-    creep_base_reserving, \
-    target_remote_mine_hauler, role_remote_hauler, creep_base_4500miner
+    target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
+    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4500miner, creep_base_carry3000miner
 from control import live_creep_utils
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -87,7 +87,7 @@ class MiningMind:
         # each carry can carry 50 energy.
         carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
         room = Game.rooms[flag.pos.roomName]
-        if room and room.controller and room.controller.reservation:
+        if room and room.controller and (room.controller.reservation or room.my):
             mining_per_tick = 11.0  # With 1 added just to have some leeway
         elif flag.memory.sk_room:
             mining_per_tick = 16.0  # With 1 added to have some leeway
@@ -123,16 +123,33 @@ class MiningMind:
 
     def get_available_mining_flags(self):
         if self._available_mining_flags is None:
-            # list() here since lodash-returned lists aren't instanceof the Array prototype given to our code.
-            self._available_mining_flags = list(
-                _.sortBy(self.room.possible_remote_mining_operations, self.distance_to_mine))
+            result = []
+            for source in self.room.sources:
+                flag = flags.look_for(self.room, source, flags.LOCAL_MINE)
+                if not flag:
+                    name = flags.create_flag(source, flags.LOCAL_MINE)
+                    if not name:
+                        print("[{}][mining] Warning: Couldn't create local mining flag!".format(
+                            self.room.room_name))
+                        continue
+                    flag = Game.flags[name]
+                    if not flag:
+                        print("[{}][mining] Warning: Couldn't find local mining flag with name {}!".format(
+                            self.room.room_name, name))
+                        continue
+                if 'sponsor' not in flag.memory:
+                    flag.memory.sponsor = self.room.room_name
+                    flag.memory.active = True
+                result.append(flag)
+            result.concat(_.sortBy(self.room.possible_remote_mining_operations, self.distance_to_mine))
+            self._available_mining_flags = result
         return self._available_mining_flags
 
     available_mines = property(get_available_mining_flags)
 
     def get_active_mining_flags(self):
         if self._active_mining_flags is None:
-            max_count = self.room.get_max_mining_op_count()
+            max_count = len(self.room.sources) + self.room.get_max_mining_op_count()
             if max_count > len(self.available_mines):
                 max_count = len(self.available_mines)
             self._active_mining_flags = self.available_mines[:max_count]
@@ -159,37 +176,48 @@ class MiningMind:
         Gets the spawn data for a reserver if a reserver is needed. Separate method so that early return statements can
         be used and we don't get tons and tons of nested if statements.
         """
-        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[flag.pos.roomName]:
+        room_name = flag.pos.roomName
+
+        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[room_name]:
             return None
 
+        if room_name in Game.rooms:
+            controller = Game.rooms[room_name].controller
+            if not controller:
+                if 'no_controller' in Memory:
+                    Memory.no_controller[room_name] = True
+                else:
+                    Memory.no_controller = {room_name: True}
+                return None
+            elif controller.my:
+                return None
         if not Memory.reserving:
             Memory.reserving = {}
 
-        room_name = flag.pos.roomName
         # Reservation ends at, set in the RemoteReserve class
         if room_name in Memory.rooms and 'rea' in Memory.rooms[room_name]:
             ticks_to_end = Memory.rooms[room_name].rea - Game.time
             if ticks_to_end >= 1000:
-                max_sections = min(5, spawning.max_sections_of(self.room, creep_base_reserving))
+                max_sections = min(7, spawning.max_sections_of(self.room, creep_base_reserving))
                 if 5000 - ticks_to_end < max_sections * 600:
                     return None
 
-        claimer = Game.creeps[Memory.reserving[flag.pos.roomName]]
+        claimer = Game.creeps[Memory.reserving[room_name]]
         if not claimer or live_creep_utils.replacement_time(claimer) <= Game.time \
                 and not Game.creeps[claimer.memory.replacement]:
-            room = Game.rooms[flag.pos.roomName]
+            room = Game.rooms[room_name]
             if room and not room.controller:
-                Memory.no_controller[flag.pos.roomName] = True
+                Memory.no_controller[room_name] = True
             else:
                 def run_after(name):
-                    Memory.reserving[flag.pos.roomName] = name
+                    Memory.reserving[room_name] = name
 
                 return {
                     'role': role_remote_mining_reserve,
                     'base': creep_base_reserving,
                     'num_sections': min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
                     'memory': {
-                        'claiming': flag.pos.roomName
+                        'claiming': room_name
                     },
                     'run_after': run_after,
                 }
@@ -198,6 +226,12 @@ class MiningMind:
 
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
+        miner_carry_no_haulers = (
+            flag.pos.roomName == self.room.room_name
+            # TODO: support links 2 blocks away in RemoteMiner.
+            and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 1)
+        )
+
         miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
         miner_needed = False
         if len(miners):
@@ -216,14 +250,17 @@ class MiningMind:
         else:
             miner_needed = True
         if miner_needed:
-            if flag.memory.sk_room:
+            if miner_carry_no_haulers:
+                base = creep_base_carry3000miner
+                num_sections = min(5, spawning.max_sections_of(self.room, base))
+            elif flag.memory.sk_room:
                 base = creep_base_4500miner
                 num_sections = min(8, spawning.max_sections_of(self.room, base))
             else:
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
             return {
-                'role': role_remote_miner,
+                'role': role_miner,
                 'base': base,
                 'num_sections': num_sections,
                 'targets': [
@@ -234,6 +271,9 @@ class MiningMind:
         reserver_needed = self.reserver_needed(flag)
         if reserver_needed:
             return reserver_needed
+
+        if miner_carry_no_haulers:
+            return None
 
         current_noneol_hauler_mass = 0
         eol_mass = 0
@@ -267,7 +307,7 @@ class MiningMind:
             #               new_hauler_mass, new_hauler_num_sections))
 
             return {
-                'role': role_remote_hauler,
+                'role': role_hauler,
                 'base': base,
                 'num_sections': self.calculate_creep_num_sections_for_mine(flag),
                 'targets': [
@@ -278,9 +318,9 @@ class MiningMind:
         # print("[{}][mining] All roles reached for {}!".format(self.room.room_name, flag.name))
         return None
 
-    def next_remote_mining_role(self, max_to_check):
+    def next_mining_role(self, max_to_check=Infinity):
         if max_to_check <= 0: return None
-        mines = self.available_mines
+        mines = self.active_mines
         known_nothing_needed = volatile_cache.setmem("rolechecked_mines")
         checked_count = 0
         for mining_flag in mines:

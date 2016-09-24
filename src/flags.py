@@ -18,6 +18,7 @@ REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
 RESERVE_NOW = "top_priority_reserve"
 SPAWN_FILL_WAIT = "spawnfill_wait"
+LOCAL_MINE = "local_mine"
 SK_LAIR_SOURCE_NOTED = "avoid_moving_through"
 SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
@@ -60,6 +61,7 @@ flag_definitions = {
     SK_LAIR_SOURCE_NOTED: (COLOR_BLUE, COLOR_WHITE),
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
     SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
+    LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
     TD_H_H_STOP: (COLOR_CYAN, COLOR_RED),
     TD_H_D_STOP: (COLOR_CYAN, COLOR_PURPLE),
     TD_D_GOAD: (COLOR_CYAN, COLOR_BLUE),
@@ -133,7 +135,7 @@ structure_type_to_flag_sub = {
     STRUCTURE_LINK: SUB_LINK,
     STRUCTURE_EXTRACTOR: SUB_EXTRACTOR,
     STRUCTURE_ROAD: SUB_ROAD,
-    STRUCTURE_TERMINAL: SUB_TERMINAL
+    STRUCTURE_TERMINAL: SUB_TERMINAL,
 }
 
 _last_flag_len = 0
@@ -379,6 +381,8 @@ def find_closest_in_room(pos, flag_type):
 
 
 def __create_flag(position, flag_type, primary, secondary):
+    if position.pos:
+        position = position.pos
     name = "{}_{}".format(flag_type, random_digits())
     # TODO: Make some sort of utility for finding a visible position, so we can do this
     # even if all our spawns are dead!

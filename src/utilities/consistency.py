@@ -16,7 +16,7 @@ def reassign_room_roles(room):
     """
     if room.spawn and room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) \
             + room.role_count(role_tower_fill) < 1 \
-            and room.role_count(role_dedi_miner) < room.get_target_local_miner_count():
+            and room.role_count(role_miner) < room.get_target_local_miner_count():
         for creep in room.creeps:
             memory = creep.memory
             base = spawning.find_base_type(creep)

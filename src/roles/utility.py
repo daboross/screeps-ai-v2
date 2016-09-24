@@ -1,7 +1,7 @@
 import spawning
 import speech
 from constants import role_cleanup, recycle_time, role_recycling, \
-    target_closest_energy_site, role_local_hauler, role_link_manager
+    target_closest_energy_site, role_link_manager, role_hauler
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling
@@ -177,11 +177,11 @@ class Cleanup(SpawnFill):
                 extra_cleanup = self.home.extra_creeps_with_carry_in_role(role_cleanup,
                                                                           self.home.get_target_cleanup_mass())
                 if len(extra_cleanup) and self.name in extra_cleanup:
-                    if self.home.carry_mass_of(role_local_hauler) < self.home.get_target_local_hauler_mass():
-                        self.memory.role = role_local_hauler
+                    if self.home.carry_mass_of(role_hauler) < self.home.get_target_local_hauler_mass():
+                        self.memory.role = role_hauler
                         # in case we have multiple cleanup looking at this.
                         # TODO: utility method for this in RoomMind
-                        self.home.carry_mass_map[role_local_hauler] += spawning.carry_count(self)
+                        self.home.carry_mass_map[role_hauler] += spawning.carry_count(self)
                         self.home.mem.meta.clear_next = 0  # clear next tick
                         return False
                     self.memory.role = role_recycling

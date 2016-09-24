@@ -8,6 +8,7 @@ __pragma__('noalias', 'Infinity')
 creep_base_worker = "worker"
 creep_base_3000miner = "fast_big_miner"
 creep_base_4500miner = "faster_bigger_miner"
+creep_base_carry3000miner = "fast_miner_with_carry"
 creep_base_hauler = "med_hauler"
 creep_base_half_move_hauler = "hm_hauler"
 creep_base_work_full_move_hauler = "fw_fm_hauler"
@@ -48,13 +49,11 @@ target_single_flag2 = "sccf2"  # single creep, closest flag
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
 role_spawn_fill = "spawn_fill"
-role_dedi_miner = "dedicated_miner"
 role_builder = "builder"
 role_tower_fill = "tower_fill"
-role_remote_miner = "remote_miner"
-role_remote_hauler = "remote_hauler"
+role_miner = "remote_miner"
+role_hauler = "remote_hauler"
 role_remote_mining_reserve = "remote_reserve_controller"
-role_local_hauler = "local_hauler"
 role_link_manager = "link_manager"
 role_defender = "simple_defender"
 role_colonist = "basic_colonist"
@@ -76,11 +75,9 @@ role_scout = "scout"
 role_bases = {
     role_spawn_fill_backup: creep_base_worker,
     role_spawn_fill: creep_base_hauler,
-    role_dedi_miner: creep_base_3000miner,
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_hauler,
     role_remote_mining_reserve: creep_base_reserving,
-    role_local_hauler: creep_base_hauler,
     role_link_manager: creep_base_hauler,
     role_defender: creep_base_defender,
     role_cleanup: creep_base_hauler,
@@ -96,11 +93,12 @@ role_bases = {
 
 default_roles = {
     creep_base_worker: role_spawn_fill_backup,
-    creep_base_3000miner: role_remote_miner,
-    creep_base_4500miner: role_remote_miner,
-    creep_base_hauler: role_cleanup,
-    creep_base_work_full_move_hauler: role_remote_hauler,
-    creep_base_work_half_move_hauler: role_remote_hauler,
+    creep_base_3000miner: role_miner,
+    creep_base_4500miner: role_miner,
+    creep_base_carry3000miner: role_miner,
+    creep_base_hauler: role_hauler,
+    creep_base_work_full_move_hauler: role_hauler,
+    creep_base_work_half_move_hauler: role_hauler,
     creep_base_reserving: role_remote_mining_reserve,
     creep_base_defender: role_defender,
     creep_base_mammoth_miner: role_mineral_miner,
