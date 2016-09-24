@@ -6,14 +6,14 @@ from constants import target_source, role_dedi_miner, recycle_time, role_recycli
 from control import pathdef
 from tools import profiling
 from utilities import movement, global_cache
-from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 1}
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 1, "reusePath": 13}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": 13, "ignoreRoads": True}
 
 
 class RoleBase:
@@ -151,6 +151,12 @@ class RoleBase:
 
     last_target = property(_get_last_target, _set_last_target)
 
+    def _move_options(self):
+        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+            return _IGNORE_ROADS_OPTIONS
+        else:
+            return _DEFAULT_PATH_OPTIONS
+
     def _follow_path_to(self, target, set_rhp=False):
         if target.pos:
             target = target.pos
@@ -169,27 +175,27 @@ class RoleBase:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
                                                         movement.is_block_clear(self.room, target.x, target.y)):
                 self.last_checkpoint = target
-            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
+            return self.creep.moveTo(target, self._move_options())
         elif target.isEqualTo(checkpoint):
             self.log("Creep target not updated! Last checkpoint is still {}, at {} distance away.".format(
                 target, self.creep.pos.getRangeTo(target)
             ))
             self.last_checkpoint = None
-            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
+            return self.creep.moveTo(target, self._move_options())
         if checkpoint.roomName != self.creep.pos.roomName:
             entrance = movement.get_entrance_for_exit_pos(checkpoint)
             if entrance == -1:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}".format(
                     checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
+                return self.creep.moveTo(target, self._move_options())
             # TODO: Remove debug logging
             self.last_checkpoint = checkpoint = entrance
             if entrance.roomName != self.creep.pos.roomName:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
                          "Removing checkpoint.".format(checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
+                return self.creep.moveTo(target, self._move_options())
 
         path = self.hive.honey.find_path(checkpoint, target)
         if set_rhp:
@@ -208,7 +214,7 @@ class RoleBase:
                 pass
                 # self.log("Uh-oh! We've lost the path from {} to {}.".format(self.last_checkpoint, target))
 
-            return self.creep.moveTo(target, _DEFAULT_PATH_OPTIONS)
+            return self.creep.moveTo(target, self._move_options())
         if result == OK:
             # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
             # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
@@ -239,7 +245,7 @@ class RoleBase:
             result = self._follow_path_to(queue_flag)
         else:
             self.last_checkpoint = None
-            result = self.creep.moveTo(queue_flag, _DEFAULT_PATH_OPTIONS)
+            result = self.creep.moveTo(queue_flag, self._move_options())
         if result == OK:
             if self.creep.pos.isNearTo(queue_flag.pos) and \
                     movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
@@ -271,7 +277,7 @@ class RoleBase:
             return self._follow_path_to(pos, True)
         else:
             self.last_checkpoint = None
-            return self.creep.moveTo(pos, _DEFAULT_PATH_OPTIONS)
+            return self.creep.moveTo(pos, self._move_options())
 
     def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
         if target.pos:
@@ -364,7 +370,7 @@ class RoleBase:
             if self.creep.getActiveBodyparts(WORK):
                 self.log("Wasn't able to find a source!")
                 self.finished_energy_harvest()
-            self.go_to_depot(follow_defined_path)
+            self.go_to_depot()
             return False
 
         if source.pos.roomName != self.creep.pos.roomName:
@@ -375,7 +381,7 @@ class RoleBase:
         if len(piles) > 0:
             pile = piles[0]
             if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
-                if not self.creep.pos.isNearTo(pile) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(pile.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
@@ -391,7 +397,7 @@ class RoleBase:
         if len(containers) > 0:
             container = containers[0]
             if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
-                if not self.creep.pos.isNearTo(container) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(container.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
@@ -461,17 +467,22 @@ class RoleBase:
                 if result != OK:
                     self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
 
-    def go_to_depot(self, follow_defined_path=False):
+    def go_to_depot(self):
         depots = flags.find_flags(self.home, flags.DEPOT)
         if len(depots):
-            self.move_to(depots[0], True, follow_defined_path)
+            depot = depots[0].pos
         else:
-            self.log("WARNING: No depots found in {}!".format(self.home))
+            self.log("WARNING: No depots found in {}!".format(self.home.room_name))
             depots = flags.find_flags_global(flags.DEPOT)
             if len(depots):
-                self.move_to(depots[0], True, follow_defined_path)
+                depot = depots[0].pos
+            elif self.home.spawn:
+                depot = self.home.spawn.pos
             else:
-                self.move_to(self.home.spawn, True, follow_defined_path)
+                depot = __new__(RoomPosition(25, 25, self.home.room_name))
+        if not (self.pos.isEqualTo(depot) or (self.pos.isNearTo(depot)
+                                              and not movement.is_block_clear(self.home, depot.x, depot.y))):
+            self.move_to(depot, True)
 
     def recycle_me(self):
         spawn = self.home.spawns[0]
@@ -529,6 +540,8 @@ class RoleBase:
             self.move_around_counter_clockwise(target)
 
     def move_around_clockwise(self, target):
+        if self.creep.fatigue > 0:
+            return
         direction = target.pos.getDirectionTo(self.creep.pos)
         if direction == TOP_LEFT or direction == TOP:
             self.creep.move(RIGHT)
@@ -540,6 +553,8 @@ class RoleBase:
             self.creep.move(TOP)
 
     def move_around_counter_clockwise(self, target):
+        if self.creep.fatigue > 0:
+            return
         direction = target.pos.getDirectionTo(self.creep.pos)
         if direction == TOP_RIGHT or direction == TOP:
             self.creep.move(LEFT)
@@ -551,6 +566,8 @@ class RoleBase:
             self.creep.move(BOTTOM)
 
     def basic_move_to(self, target):
+        if self.creep.fatigue > 0:
+            return True
         if target.pos:
             target = target.pos
         if self.pos.isEqualTo(target):
