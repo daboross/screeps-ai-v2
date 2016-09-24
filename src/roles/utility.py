@@ -174,28 +174,6 @@ class Cleanup(SpawnFill):
 
             if not pile:
                 del self.memory.last_energy_target
-                extra_cleanup = self.home.extra_creeps_with_carry_in_role(role_cleanup,
-                                                                          self.home.get_target_cleanup_mass())
-                if len(extra_cleanup) and self.name in extra_cleanup:
-                    if self.home.carry_mass_of(role_hauler) < self.home.get_target_local_hauler_mass():
-                        self.memory.role = role_hauler
-                        # in case we have multiple cleanup looking at this.
-                        # TODO: utility method for this in RoomMind
-                        self.home.carry_mass_map[role_hauler] += spawning.carry_count(self)
-                        self.home.mem.meta.clear_next = 0  # clear next tick
-                        return False
-                    self.memory.role = role_recycling
-                    self.memory.last_role = role_cleanup
-                    # TODO: utility method for this kind of thing.
-                    if role_cleanup in self.home.role_counts:
-                        self.home.role_counts[role_cleanup] -= 1
-                        self.home.carry_mass_map[role_cleanup] -= spawning.carry_count(self)
-                    if role_recycling in self.home.role_counts:
-                        self.home.role_counts[role_recycling] += 1
-                        self.home.carry_mass_map[role_recycling] += spawning.carry_count(self)
-                    return
-                if _.sum(self.creep.carry) >= 0:
-                    self.memory.filling = False
                 self.go_to_depot()  # wait
                 return
 

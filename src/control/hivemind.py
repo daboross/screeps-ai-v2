@@ -1206,12 +1206,6 @@ class RoomMind:
                 self._target_link_managers = 0
         return self._target_link_managers
 
-    def get_target_cleanup_mass(self):
-        """
-        :rtype: int
-        """
-        return 0
-
     def get_target_simple_defender_count(self, first=False):
         """
         :rtype: int
@@ -1476,7 +1470,6 @@ class RoomMind:
         next_role = self._check_role_reqs([
             [role_tower_fill, self.get_target_tower_fill_mass, True],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
-            [role_cleanup, self.get_target_cleanup_mass, True],
             [role_defender, self.get_target_simple_defender_count],
         ])
         if next_role is not None:
@@ -1518,9 +1511,6 @@ class RoomMind:
             role_link_manager:
                 lambda: min(self.get_target_link_manager_count() * 8,
                             spawning.max_sections_of(self, creep_base_hauler)),
-            role_cleanup:
-                lambda: math.ceil(max(self.get_target_cleanup_mass(),
-                                      min(10, spawning.max_sections_of(self, creep_base_hauler)))),
             role_spawn_fill:
                 lambda: fit_num_sections(self.get_target_total_spawn_fill_mass(),
                                          spawning.max_sections_of(self, creep_base_hauler), 0, 2),
