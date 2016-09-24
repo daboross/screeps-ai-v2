@@ -141,7 +141,7 @@ class MiningMind:
                     flag.memory.sponsor = self.room.room_name
                     flag.memory.active = True
                 result.append(flag)
-            result.concat(_.sortBy(self.room.possible_remote_mining_operations, self.distance_to_mine))
+            result = result.concat(_.sortBy(self.room.possible_remote_mining_operations, self.distance_to_mine))
             self._available_mining_flags = result
         return self._available_mining_flags
 
@@ -259,6 +259,8 @@ class MiningMind:
             else:
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
+            if self.room.all_paved():
+                num_sections = math.ceil(num_sections / 2)
             return {
                 'role': role_miner,
                 'base': base,
