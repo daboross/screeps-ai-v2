@@ -20,7 +20,7 @@ sell_at_prices = {
 bottom_prices = {
     RESOURCE_OXYGEN: 0.55,
     RESOURCE_HYDROGEN: 0.55,
-    RESOURCE_ZYNTHIUM: 0.95,
+    RESOURCE_ZYNTHIUM: 0.80,
     RESOURCE_UTRIUM: 1.05,
     RESOURCE_LEMERGIUM: 1.05,
 }
@@ -52,23 +52,24 @@ class MineralMind:
             #     total_energy_needed: TARGET_TERMINAL_ENERGY,
             #     fulfilling: { ... },
             # }
-            room.mem.market = {'total_energy_needed': 0}
-        elif 'total_energy_needed' not in room.mem.market:
-            room.mem.market.total_energy_needed = 0
+            room.mem.market = {'total_energy_needed': 0, 'fulfilling': {}}
+        else:
+            if 'total_energy_needed' not in room.mem.market:
+                room.mem.market.total_energy_needed = 0
+            if 'fulfilling' not in room.mem.market:
+                # Memory format:
+                # fulfilling: {
+                #     RESOURCE_TYPE: [
+                #         # Market order
+                #         { order_id: ORDER_ID, room: ROOM_NAME, amount: AMOUNT },
+                #         # Player-made trade
+                #         { room: ROOM_NAME, amount: AMOUNT },
+                #         ...
+                #     ],
+                #     ...
+                # }
+                room.mem.market.fulfilling = {}
         self.mem = room.mem.market
-        if 'fulfilling' not in self.mem:
-            # Memory format:
-            # fulfilling: {
-            #     RESOURCE_TYPE: [
-            #         # Market order
-            #         { order_id: ORDER_ID, room: ROOM_NAME, amount: AMOUNT },
-            #         # Player-made trade
-            #         { room: ROOM_NAME, amount: AMOUNT },
-            #         ...
-            #     ],
-            #     ...
-            # }
-            room.mem.market.fulfilling = {}
         self.fulfilling = self.mem.fulfilling
         if 'last_sold' not in self.mem:
             self.mem.last_sold = {}
@@ -81,8 +82,27 @@ class MineralMind:
     def note_mineral_hauler(self, name):
         self.room.mem.mineral_hauler = name
 
+    def send_minerals(self, target_room, mineral, amount):
+        self.fulfill_market_order(target_room, mineral, amount, None)
+
+    def fill_order(self, order_id, target_amount=Infinity):
+        info = Game.market.getOrderById(order_id)
+        if not info:
+            self.log("WARNING: Tried to fill market order which didn't exit: {}".format(order_id))
+            return
+        if info.type != ORDER_BUY:
+            self.log("WARNING: Tried to fill market order... which was a sell order. ({})".format(order_id))
+            return
+        mineral = info.resourceType
+        target_room = info.roomName
+        amount = min(target_amount, info.amount)
+        return self.fulfill_market_order(target_room, mineral, amount, order_id)
+
     def fulfill_market_order(self, target_room, mineral, amount, order_id=None):
-        energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_room)
+        energy_cost = Game.market.calcTransactionCost(min(_SINGLE_MINERAL_FULFILLMENT_MAX, amount),
+                                                      self.room.room_name, target_room)
+        if energy_cost > self.mem['total_energy_needed']:
+            self.mem['total_energy_needed'] = energy_cost
         self.mem['total_energy_needed'] += energy_cost  # TODO: re-calc this every so often.
         if order_id:
             obj = {
@@ -99,6 +119,16 @@ class MineralMind:
             self.fulfilling[mineral].push(obj)
         else:
             self.fulfilling[mineral] = [obj]
+        self.log("Now fulfilling: Order for {} {}, sent to {}!".format(amount, mineral, target_room))
+
+    def recalculate_energy_needed(self):
+        energy_needed = 0
+        for order_list in _.values(self.fulfilling):
+            for order in order_list:
+                amount = min(_SINGLE_MINERAL_FULFILLMENT_MAX, order.amount)
+                energy_needed = max(energy_needed,
+                                    Game.market.calcTransactionCost(amount, self.room.room_name, order.room))
+        self.mem['total_energy_needed'] = energy_needed
 
     def log(self, message):
         print("[{}][market] {}".format(self.room.room_name, message))
@@ -128,10 +158,11 @@ class MineralMind:
         target_counts = {}
 
         counts = self.get_total_room_resource_counts()
-        for rtype in Object.keys(counts):
-            target = self._terminal_target_for_resource(rtype)
-            if target > 0:
-                target_counts[rtype] = target
+        for rtype, have in _.pairs(counts):
+            if have > 0:
+                target = self._terminal_target_for_resource(rtype, have)
+                if target > 0:
+                    target_counts[rtype] = min(target, have)
         if _.sum(target_counts) == target_counts[RESOURCE_ENERGY]:
             target_counts = {}
         self._target_mineral_counts = target_counts
@@ -141,7 +172,7 @@ class MineralMind:
         if self._removing_from_terminal is None:
             removing = []
             for resource in Object.keys(self.terminal.store):
-                target = self._terminal_target_for_resource(resource)
+                target = self.get_all_terminal_targets()[resource] or 0
                 if self.terminal.store[resource] > target:
                     removing.append([resource, self.terminal.store[resource] - target])
             self._removing_from_terminal = removing
@@ -200,51 +231,46 @@ class MineralMind:
             vmem.set("grouped_sell_orders", all_sell_orders)
             return all_sell_orders[self.room.room_name] or {}
 
-    def _terminal_target_for_resource(self, mineral):
-        if mineral == RESOURCE_POWER and not self.room.mem.empty_to:
-            return 0
-        elif mineral == RESOURCE_ENERGY:
-            minimum = max(0, min(10000, self.storage.store.energy - 20000))
-            min_via_target = (self.room.mem.target_terminal_energy or 0)
+    def _terminal_target_for_resource(self, mineral, currently_have):
+        if mineral == RESOURCE_ENERGY:
+            if currently_have < 20000:
+                return 0
+            elif currently_have <= 30000:
+                return currently_have - 20000
             if self.room.mem.empty_to:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
                 min_via_empty_to = 0
             min_via_fulfillment = self.mem['total_energy_needed']
-            return max(minimum, min_via_target, min_via_empty_to, min_via_fulfillment)
+            return min(currently_have - 20000, max(10000, min_via_empty_to, min_via_fulfillment))
         else:
-            total_counts = self.get_total_room_resource_counts()
-            if mineral in total_counts and total_counts[mineral] >= 1000:
-                target_amount = 1000 * min(math.floor(total_counts[mineral] / 1000), 20)
-            else:
-                target_amount = 0
+            if mineral in self.my_mineral_deposit_minerals():
+                return min(currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2)
+
             fulfilling = self.fulfilling[mineral]
             if fulfilling and len(fulfilling):
-                fulfilment_target = 0
-                for obj in fulfilling:
-                    fulfilment_target += obj.amount
-                target_amount += min(fulfilment_target, _SINGLE_MINERAL_FULFILLMENT_MAX)
+                return min(_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum(fulfilling, 'amount'))
 
-            sell_orders = self.sell_orders_by_mineral()
-            if sell_orders and mineral in sell_orders:
+            sell_orders = self.sell_orders_by_mineral()[mineral]
+            if sell_orders and len(sell_orders):
                 biggest_order = 0
-                for order in sell_orders[mineral]:
+                for order in sell_orders:
                     if order.amountRemaining > biggest_order:
                         biggest_order = order.amountRemaining
-                target_amount += _.max(sell_orders[mineral], 'remainingAmount').remainingAmount
+                return biggest_order
 
-            if mineral in self.my_mineral_deposit_minerals():
-                target_amount = max(target_amount, min(self.get_total_room_resource_counts()[mineral] or 0,
-                                                       _SINGLE_MINERAL_FULFILLMENT_MAX * 2))
-
-            return min(target_amount, total_counts[mineral])
+            if currently_have >= 1000 and (mineral != RESOURCE_POWER or self.room.mem.empty_to):
+                return 1000 * min(math.floor(currently_have / 1000), 20)
+            else:
+                return 0
 
     def tick_terminal(self):
-        if self.has_no_terminal_or_storage() or Game.cpu.bucket < 4300:
+        if self.has_no_terminal_or_storage() or (
+                        Game.cpu.bucket < 4300 and not (Game.time % 1020 == 8 or Game.time % 765 == 3)):
             return
         if self.room.mem.empty_to:
             self.run_emptying_terminal()
-        split = Game.time % 17
+        split = Game.time % 85
         if split == 8 and not _.isEmpty(self.fulfilling):
             self.run_fulfillment()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
@@ -278,16 +304,18 @@ class MineralMind:
 
     def run_fulfillment(self):
         self.log("Running fulfillment for {} minerals.".format(len(self.fulfilling)))
-        for mineral, target_list in _.pairs(self.fulfilling):
-            if not len(target_list):
-                del self.fulfilling[mineral]
-                continue
-            vmem = volatile_cache.mem("market")
-            if vmem.has("market_orders_executed") and vmem.get("market_orders_executed") >= 10:
-                break
+        vmem = volatile_cache.mem("market")
+        for mineral in Object.keys(self.fulfilling):
             if mineral in self.terminal.store:
+                target_list = self.fulfilling[mineral]
+                if not len(target_list):
+                    del self.fulfilling[mineral]
+                    continue
+                if vmem.get("market_orders_executed") >= 10:
+                    break
                 for target in target_list:
-                    if self.terminal.store[mineral] >= min(target.amount, _SINGLE_MINERAL_FULFILLMENT_MAX):
+                    held = self.terminal.store[mineral]
+                    if held >= 1000 or held >= target.amount:
                         result = self.fulfill_now(mineral, target)
                         if result == OK:
                             if vmem.has("market_orders_executed"):
@@ -295,14 +323,18 @@ class MineralMind:
                             else:
                                 vmem.set("market_orders_executed", 1)
                             break
+            elif mineral not in self.my_mineral_deposit_minerals():
+                if len(self.fulfilling[mineral]):
+                    self.log("Used up all of our {}: removing {} remaining orders!".format(
+                        mineral, len(self.fulfilling[mineral])))
+                del self.fulfilling[mineral]
 
     def fulfill_now(self, mineral, target_obj):
-        amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX)
-        if self.terminal.store[mineral] < amount:
+        if self.terminal.store[mineral] < 1000:
             self.log("WARNING: fulfill_now() called with mineral: {}, target: {},"
-                     "but {} < {}".format(mineral, JSON.stringify(target_obj),
-                                          self.terminal.store[mineral], amount))
+                     "but {} < {}".format(mineral, JSON.stringify(target_obj), self.terminal.store[mineral], 1000))
             return ERR_NOT_ENOUGH_RESOURCES
+        amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
         energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
         if self.terminal.store[RESOURCE_ENERGY] < energy_cost:
             return ERR_NOT_ENOUGH_RESOURCES
@@ -312,7 +344,6 @@ class MineralMind:
             result = self.terminal.send(mineral, amount, target_obj.room,
                                         "Fulfilling order for {} {}".format(target_obj.amount, mineral))
         if result == OK:
-            self.mem['total_energy_needed'] -= energy_cost  # TODO: re-calc this every so often.
             if amount < target_obj.amount:
                 target_obj.amount -= amount
                 self.log("Sent {} {} to {} successfully, {} left to go.".format(
@@ -323,8 +354,11 @@ class MineralMind:
                     self.log("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}"
                              .format(JSON.stringify(target_obj), mineral, self.room.room_name))
                 self.fulfilling[mineral].splice(target_index, 1)
+                if not len(self.fulfilling[mineral]):
+                    del self.fulfilling[mineral]
                 self.log("Sent {} {} to {} successfully, finishing the transaction.".format(
                     amount, mineral, target_obj.room))
+            self.recalculate_energy_needed()
         else:
             if 'order_id' in target_obj:
                 if result == ERR_INVALID_ARGS:
@@ -335,6 +369,8 @@ class MineralMind:
                         self.log("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}"
                                  .format(JSON.stringify(target_obj), mineral, self.room.room_name))
                     self.fulfilling[mineral].splice(target_index, 1)
+                    if not len(self.fulfilling[mineral]):
+                        del self.fulfilling[mineral]
                 else:
                     self.log("ERROR: Unknown result from Game.market.deal({}, {}, {}): {}".format(
                         target_obj.order_id, amount, self.room.room_name, result))
@@ -410,11 +446,13 @@ class MineralMind:
                                                    and abs(existing_pos[1].y - y) <= 1):
                     continue
                 if movement.is_block_clear(self.room, x, y):
-                    self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
+                    result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
+                    if result != OK:
+                        self.log("WARNING: Unknown result from {}.createConstructionSite({}, {}, {}): {}"
+                                 .format(self.room.room, x, y, STRUCTURE_CONTAINER, result))
                     existing_pos.append(__new__(RoomPosition(x, y, self.room.room_name)))
-            else:
-                continue
-            break
+            if len(existing_pos) >= 2:
+                break
         if len(existing_pos) < 2:
             if len(existing_pos) < 1:
                 self.log("WARNING: Couldn't find any open spots to place a container near {}".format(pos))
@@ -426,7 +464,10 @@ class MineralMind:
             for x in range(existing_pos[0].x - 1, existing_pos[0].x + 1):
                 for y in range(existing_pos[0].y - 1, existing_pos[0].y + 1):
                     if (x != existing_pos[0].x or y != existing_pos[0].y) and movement.is_block_clear(self.room, x, y):
-                        self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
+                        result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
+                        if result != OK:
+                            self.log("WARNING: Unknown result from {}.createConstructionSite({}, {}, {}): {}"
+                                     .format(self.room.room, x, y, STRUCTURE_CONTAINER, result))
                         break
                 else:
                     continue

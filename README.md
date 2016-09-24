@@ -77,6 +77,7 @@ for (let s of Game.rooms.W48N29.find(FIND_STRUCTURES)) { if (s.structureType == 
 Game.market.createOrder(ORDER_SELL, RESOURCE_HYDROGEN, x, 20000, "W49N25")
 for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game.rooms[name].controller || !Game.rooms[name].controller.my) { let mem = Memory.rooms[name]; delete mem.market; if (mem.cache && _.isEmpty(mem.cache)) { delete mem.cache; }; if (_.isEmpty(mem)) { delete Memory.rooms[name]; }}}
 JSON.stringify(Game.market.orders, null, 4)
+py.get_room("W49N25").minerals.fill_order('')
 ```
 
 Planned market deals:
@@ -87,5 +88,8 @@ py.get_room("W49N25").minerals.fulfill_market_order('W50N30', 'Z', 50000, '57da3
 py.get_room("W49N25").minerals.fulfill_market_order('W50N20', 'H', 100 * 1000, '57da2c006de15d752b0684d4');
 py.get_room("W49N25").minerals.fulfill_market_order('E24S21', 'H', 6500, '57da2bacc35ad09c28417c3d');
 py.get_room("W49N25").minerals.fulfill_market_order('W28S13', 'H', 27082, '57ddd8a09f7906ce03b5d3e1')
+py.get_room("W49N25").minerals.fulfill_market_order('W40N40', 'H', 284380, '57e4232ab62fb4be21b2a15f')
 
 TODO: creep 'setting_up' memory variable which is set on spawn or on replacing or on autoactions move
+
+TODO: "last_half_section" variable in spawning.py, and allowance for a 0.5 addition to how big a creep should be.

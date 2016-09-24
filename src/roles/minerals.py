@@ -1,4 +1,4 @@
-from constants import role_mineral_hauler, role_recycling, role_mineral_miner, recycle_time
+from constants import role_mineral_hauler, role_recycling, role_mineral_miner
 from role_base import RoleBase
 from utilities import movement
 from utilities.screeps_constants import *
@@ -98,32 +98,50 @@ class MineralHauler(RoleBase):
         if now_held < self.creep.carryCapacity:
             mineral = self.home.find(FIND_MINERALS)[0]
             if mineral:
-                containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
+                containers = _.filter(self.home.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
                                       {'structureType': STRUCTURE_CONTAINER})
-                if len(containers):
-                    if _.sum(containers, lambda s: _.sum(s.store)) > 1000:
+                if _.sum(containers, lambda s: _.sum(s.store)) > 1000 or \
+                        (not len(containers) and _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, mineral.pos),
+                                                        lambda c: c.memory.role == role_mineral_miner)):
+                    sending_resource_to_storage = (mind.terminal.store[mineral.resourceType] or 0) >= \
+                                                  (mind.get_all_terminal_targets()[mineral.resourceType] or 0)
+                    # If we have a resource in our carry which isn't headed to the same place as the miner's resource,
+                    # let's not pick up that miner's resource until we've dealt with what we're already carrying.
+                    for resource in Object.keys(self.creep.carry):
+                        if resource != mineral.resourceType:
+                            if sending_resource_to_storage:
+                                if (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
+                                    break
+                            else:
+                                if mind.terminal.store[resource] > (mind.get_all_terminal_targets()[resource] or 0):
+                                    break
+                    else:
                         return _MINER_HARVEST
-                elif _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos),
-                            lambda c: c.getActiveBodyparts(WORK) > c.getActiveBodyparts(CARRY)):
-                    return _MINER_HARVEST
+
+        terminal_can_handle_more = _.sum(mind.terminal.store) <= mind.terminal.storeCapacity - self.creep.carryCapacity
+
+        if not terminal_can_handle_more:
+            if now_held:
+                return _STORAGE_DROPOFF
+            elif len(mind.removing_from_terminal()):
+                return _TERMINAL_PICKUP
+            else:
+                return _DEPOT
 
         for resource in Object.keys(self.creep.carry):
-            if self.creep.carry[resource] > 0:
-                # TODO: make adding_to_terminal return an object or Map so this isn't needed
-                for checked_resource, amount in mind.adding_to_terminal():
-                    if resource == checked_resource and amount > 0:
-                        return _TERMINAL_DROPOFF
+            if self.creep.carry[resource] > 0 and \
+                            (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
+                return _TERMINAL_DROPOFF
+
         if now_held:
             # We have a store which has no minerals needed by the terminal
             return _STORAGE_DROPOFF
         elif self.creep.ticksToLive < 100:
             return _DEAD
-        elif len(mind.removing_from_terminal()) and \
-                (self.pos.isNearTo(mind.terminal) or _.sum(mind.terminal.store)
-                    > mind.terminal.storeCapacity - self.creep.carryCapacity):
+        elif len(mind.removing_from_terminal()) and self.pos.isNearTo(mind.terminal):
             return _TERMINAL_PICKUP
-        elif self.pos.isNearTo(mind.storage) and len(mind.adding_to_terminal()):
-            return _STORAGE_PICKUP
+        # elif self.pos.isNearTo(mind.storage) and len(mind.adding_to_terminal()):
+        #     return _STORAGE_PICKUP
         elif len(mind.adding_to_terminal()):
             return _STORAGE_PICKUP
         elif len(mind.removing_from_terminal()):
@@ -135,12 +153,12 @@ class MineralHauler(RoleBase):
 
     def run(self):
         mind = self.home.minerals
-        if self.creep.ticksToLive < recycle_time or mind.has_no_terminal_or_storage():
+        if mind.has_no_terminal_or_storage():
             self.memory.role = role_recycling
             self.memory.last_role = role_mineral_hauler
             return
         mind.note_mineral_hauler(self.name)
-        if not self.memory.state:
+        if 'state' not in self.memory:
             self.memory.state = self.determine_next_state()
             if self.memory.last_state == self.memory.state:
                 self.log("State loop on state {}!".format(self.memory.state))
@@ -148,6 +166,7 @@ class MineralHauler(RoleBase):
                 return False
             else:
                 self.memory.last_state = self.memory.state
+
         state = self.memory.state
         if state == _MINER_HARVEST:
             return self.run_miner_harvesting()
@@ -176,6 +195,9 @@ class MineralHauler(RoleBase):
         if _.sum(self.creep.carry) >= self.creep.carryCapacity:
             del self.memory.state
             return True
+        if self.creep.ticksToLive < 50:
+            del self.memory.state
+            return True
         mind = self.home.minerals
         minerals = self.home.find(FIND_MINERALS)
 
@@ -193,7 +215,7 @@ class MineralHauler(RoleBase):
             self.go_to_depot()
             return False
 
-        containers = _.filter(_.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
+        containers = _.filter(_.filter(self.home.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER and _.sum(s.store) > 0),
                               lambda s: _.sum(s.store))
 
@@ -209,8 +231,8 @@ class MineralHauler(RoleBase):
             return False
 
         # TODO: make this into a TargetMind target so we can have multiple mineral miners per mineral
-        miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, mineral.pos),
-                       lambda c: c.getActiveBodyparts(WORK) > c.getActiveBodyparts(CARRY))
+        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, mineral.pos),
+                       lambda c: c.memory.role == role_mineral_miner)
         if not miner:
             if mind.get_target_mineral_miner_count():
                 self.go_to_depot()
@@ -292,20 +314,23 @@ class MineralHauler(RoleBase):
         if not self.creep.pos.isNearTo(mind.terminal):
             self.move_to(mind.terminal)
             return False
-        for resource, needed_in_terminal in mind.adding_to_terminal():
-            to_deposit = min(self.creep.carry[resource] or 0, needed_in_terminal)
-            if to_deposit:
-                result = self.creep.transfer(mind.terminal, resource, to_deposit)
-                if result == ERR_FULL:
-                    del self.memory.state
-                    return False
-                elif result != OK:
-                    self.log("Unknown result from mineral-hauler.transfer({}, {}, {}): {}".format(
-                        mind.terminal, resource, to_deposit, result))
-                break
-        else:
+
+        resource = _.findKey(self.creep.carry,
+                             lambda amount, resource:
+                             amount > 0 and (mind.terminal.store[resource] or 0)
+                                            < mind.get_all_terminal_targets()[resource])
+        if not resource:
             del self.memory.state
-            return True
+            return False
+        amount = min(self.creep.carry[resource], mind.get_all_terminal_targets()[resource]
+                     - (mind.terminal.store[resource] or 0))
+        result = self.creep.transfer(mind.terminal, resource, amount)
+        if result == ERR_FULL:
+            del self.memory.state
+            return False
+        elif result != OK:
+            self.log("Unknown result from mineral-hauler.transfer({}, {}, {}): {}".format(
+                mind.terminal, resource, amount, result))
 
     def _calculate_time_to_replace(self):
         return _.size(self.creep.body) * 3  # Don't live replace mineral haulers
