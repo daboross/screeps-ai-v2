@@ -27,7 +27,10 @@ def run(room):
                 tower.heal(target)
         return
 
-    room.mem.alert_for = (room.mem.alert_for or 0) + random.randint(0, 2)
+    if 'alert_for' in room.mem:
+        room.mem.alert_for += 1
+    else:
+        room.mem.alert_for = 0
 
     if not len(room.find(FIND_HOSTILE_CREEPS)):
         for rampart in _.filter(room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_RAMPART}):
@@ -36,7 +39,7 @@ def run(room):
                           lambda s: s.structureType != STRUCTURE_RAMPART
                           and s.structureType != STRUCTURE_ROAD):
                 rampart.setPublic(True)
-        room.mem.alert = False
+        del room.mem.alert
         del room.mem.alert_for
         return
 
@@ -51,7 +54,6 @@ def run(room):
     for tower in towers:
         hostile = hostiles[random.randint(0, len(hostiles) - 1)]
         tower.attack(hostile)
-        print("[{}] Attacking {}".format(room.room_name, hostile))
 
 
 run = profiling.profiled(run, "tower.run")

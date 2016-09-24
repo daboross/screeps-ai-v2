@@ -39,16 +39,15 @@ class SpawnFill(building.Builder):
                     if rwc_cache.get(self.pos.roomName):
                         self.targets.untarget(self, target_spawn_deposit)
                         return True
-                    if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
-                        if self.creep.carry.energy < self.creep.carryCapacity:
-                            self.memory.filling = True
-                            return True
-                        if not self.creep.pos.isEqualTo(target.pos):
-                            if self.creep.pos.isNearTo(target.pos):
-                                self.basic_move_to(target)
-                            else:
-                                self.move_to(target)
-                        return False
+                    if self.creep.carry.energy < self.creep.carryCapacity:
+                        self.memory.filling = True
+                        return True
+                    if not self.creep.pos.isEqualTo(target.pos):
+                        if self.creep.pos.isNearTo(target.pos):
+                            self.basic_move_to(target)
+                        else:
+                            self.move_to(target)
+                    return False
                 else:
                     if target.energy >= target.energyCapacity:
                         self.targets.untarget(self, target_spawn_deposit)

@@ -57,7 +57,7 @@ def emergency_conditions(room):
     volatile_cache.mem(room.room_name).set("emergency_conditions", False)
     if room.room.energyAvailable >= 300:
         spawn_mass = room.carry_mass_of(role_spawn_fill) \
-                     + room.work_mass_of(role_spawn_fill_backup) \
+                     + room.carry_mass_of(role_spawn_fill_backup) \
                      + room.carry_mass_of(role_tower_fill)
         emergency = spawn_mass <= 0 or (
             spawn_mass < room.get_target_spawn_fill_mass() / 2
@@ -304,13 +304,16 @@ def run(room, spawn):
         for i in range(0, num_sections):
             parts.append(MOVE)
     elif base is creep_base_full_upgrader:
-        parts = []
-        for part in initial_section[base]:
-            parts.append(part)
-        for i in range(0, num_sections * 2):
-            parts.append(WORK)
-        for i in range(0, num_sections):
-            parts.append(MOVE)
+        if num_sections > 1:
+            parts = []
+            for part in initial_section[base]:
+                parts.append(part)
+            for i in range(0, num_sections * 2):
+                parts.append(WORK)
+            for i in range(0, num_sections):
+                parts.append(MOVE)
+        else:
+            parts = [MOVE, CARRY, WORK]
     elif base is creep_base_power_attack:
         parts = []
         for i in range(0, num_sections):
@@ -480,6 +483,18 @@ def max_sections_of(room, base):
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
     max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
     return min(max_by_cost, max_by_parts)
+
+
+def using_lower_energy_section(room, base):
+    if emergency_conditions(room):
+        energy = room.room.energyAvailable
+    else:
+        energy = room.room.energyCapacityAvailable
+    max_by_cost = floor((energy - initial_section_cost(base)) / energy_per_section(base))
+    if max_by_cost == 0:
+        return True
+    else:
+        return False
 
 
 def work_count(creep):
