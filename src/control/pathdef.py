@@ -139,7 +139,6 @@ class HoneyTrails:
 
     def __init__(self, hive_mind):
         self.hive = hive_mind
-        self.used_basic_matrix = False
 
     def mark_exit_tiles(self, room_name, matrix, opts):
         use_roads = opts['roads']
@@ -193,10 +192,9 @@ class HoneyTrails:
                 return False
             serialized_cost_matrix = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
             if serialized_cost_matrix:
-                print("[honey] Using serialized cost matrix for room {}.")
+                print("[honey] Using serialized cost matrix for room {}.".format(room_name))
                 return PathFinder.CostMatrix.deserialize(JSON.parse(serialized_cost_matrix))
             print("[honey] Using basic matrix for room {}.".format(room_name))
-            self.used_basic_matrix = True
             matrix = __new__(PathFinder.CostMatrix())
             # Avoid stepping on exit tiles unnecessarily
             self.mark_exit_tiles(room_name, matrix, opts)
@@ -386,7 +384,6 @@ class HoneyTrails:
         #             global_cache.set(key, Room.serializePath(path), Memory.cache.reverse_key.d - Game.time)
         #             return path
 
-        self.used_basic_matrix = False
         result = PathFinder.search(origin, {"pos": destination, "range": range}, {
             "plainCost": 5 if decided_future_roads else (2 if roads_better else 1),
             "swampCost": (2 if roads_better else 1) if ignore_swamp else (10 if roads_better else 5),
@@ -405,25 +402,30 @@ class HoneyTrails:
         room_to_path_obj = pathfinder_path_to_room_to_path_obj(origin, result.path)
         if room_to_path_obj is None:
             return None
+        all_viewed = True
+        all_owned = True
         all_paved = True
-        all_owned = False
         for pos in result.path:
             room = self.hive.get_room(pos.roomName)
-            if not room or (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                                       lambda s: s.structureType == STRUCTURE_ROAD)
-                            and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
-                            lambda s: s.structureType == STRUCTURE_ROAD):
+            if not room:
+                all_owned = False
+                all_viewed = False
                 all_paved = False
                 break
-            if not room or not room.my:
+            if not room.my:
                 all_owned = False
+            if (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                           lambda s: s.structureType == STRUCTURE_ROAD)
+                and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
+                lambda s: s.structureType == STRUCTURE_ROAD):
+                all_paved = False
 
         expire_in = 20000
         if all_paved:
             expire_in *= 4
         if all_owned:
             expire_in *= 2
-        if self.used_basic_matrix:
+        if not all_viewed:
             # Don't constantly re-calculate super-long paths that we can't view the rooms for.
             if len(Object.keys(room_to_path_obj)) < 4:
                 expire_in /= 4
