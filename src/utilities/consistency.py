@@ -61,15 +61,6 @@ def clear_memory(room):
             role = Memory.creeps[name].role
             if role and role != role_recycling:
                 print("[{}][{}] {} died.".format(home, name, role))
-            if role == role_dedi_miner:
-                source_id = target_mind._get_existing_target_id(target_big_source, name)
-                if source_id:
-                    del Memory.dedicated_miners_stationed[source_id]
-                else:
-                    print("[{}][{}] WARNING! clear_memory couldn't find placed source for big harvester!".format(
-                        home, name))
-            elif role == role_remote_miner:
-                flag = target_mind.get_existing_target({'name': name}, target_remote_mine_miner)
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]

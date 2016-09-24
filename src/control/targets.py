@@ -297,41 +297,21 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         has_work = not not creep.creep.getActiveBodyparts(WORK)
-        biggest_energy_store = 0
-        smallest_work_force = Infinity
-        best_id_1 = None
-        best_id_2 = None
-        sources = creep.home.find(FIND_SOURCES)
-        for source in sources:
-            energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
-            # print("[{}] Energy at {}: {}".format(creep.room.name, source.id[-4:], energy))
+        highest_priority = -Infinity
+        best_source = None
+        for source in creep.home.find(FIND_SOURCES):
+            if not has_work and not _.find(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
+                                  lambda c: c.memory.role == role_dedi_miner):
+                continue
+            energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+            distance = movement.distance_room_pos(source.pos, creep.pos)
             current_work_force = self.workforce_of(target_source, source.id)
-            if current_work_force < smallest_work_force:
-                smallest_work_force = current_work_force
-            if energy > biggest_energy_store:
-                biggest_energy_store = energy
-        # print("[{}] Biggest energy store: {}".format(creep.room.name, biggest_energy_store))
-        for source in sources:
-            dedicated_miner_placed = not not (Memory.dedicated_miners_stationed and
-                                              Memory.dedicated_miners_stationed[source.id])
-            energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') or 0
-            if source.id in self.targets[target_source]:
-                current_work_force = self.targets[target_source][source.id]
-            else:
-                current_work_force = 0
-            if dedicated_miner_placed or has_work:
-                if (current_work_force <= smallest_work_force) and energy + 1000 > biggest_energy_store:
-                    # print("[{}] Setting best_id_1: {}. {} + 100 > {}".format(
-                    #     creep.room.name, source.id[-4:], energy, biggest_energy_store))
-                    best_id_1 = source.id
-                elif energy >= biggest_energy_store:
-                    best_id_2 = source.id
+            priority = energy - current_work_force * 100 - distance * 2
+            if priority > highest_priority:
+                best_source = source.id
+                highest_priority = priority
 
-        if best_id_1:
-            return best_id_1
-        if best_id_2:
-            return best_id_2
-        return None
+        return best_source
 
     def _find_new_dedicated_miner_source(self, creep):
         """

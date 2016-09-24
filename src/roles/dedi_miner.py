@@ -16,12 +16,15 @@ _MOVE_ARGS = {"use_roads": True}
 
 class DedicatedMiner(RoleBase):
     def run(self):
-        source = self.targets.get_new_target(self, target_big_source)
+        source = self.targets.get_existing_target(self, target_big_source)
+        if source is None:
+            self.log("Finding new source for dedicated miner.")
+            source = self.targets.get_new_target(self, target_big_source)
 
-        if not source:
-            self.log("Dedicated miner could not find any new big sources.")
-            self.recycle_me()
-            return
+            if source is None:
+                self.log("ERROR: Local miner could not find any new big sources.")
+                self.recycle_me()
+                return
 
         if not self.creep.pos.isNearTo(source.pos):
             self.move_to(source)
@@ -30,12 +33,6 @@ class DedicatedMiner(RoleBase):
 
         result = self.creep.harvest(source)
         if result == OK:
-            if Memory.dedicated_miners_stationed:
-                Memory.dedicated_miners_stationed[source.id] = self.name
-            else:
-                Memory.dedicated_miners_stationed = {
-                    source.id: self.name
-                }
             self.report(speech.dedi_miner_ok)
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             # TODO: trigger some flag on the global mind here, to search for other rooms to settle!
@@ -60,7 +57,6 @@ class DedicatedMiner(RoleBase):
 profiling.profile_whitelist(DedicatedMiner, ["run"])
 
 
-# TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
 class LocalHauler(SpawnFill, TransportPickup):
     def run(self):
         pickup = self.targets.get_new_target(self, target_source)

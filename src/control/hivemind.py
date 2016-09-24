@@ -952,7 +952,8 @@ class RoomMind:
         if self._all_big_miners_placed is None:
             all_placed = True
             for source in self.sources:
-                if not Memory.dedicated_miners_stationed or not Memory.dedicated_miners_stationed[source.id]:
+                if not _.find(self.find_in_range(FIND_MY_CREEPS, 1, source),
+                              lambda c: c.memory.role == role_dedi_miner):
                     all_placed = False
                     break
             self._all_big_miners_placed = all_placed

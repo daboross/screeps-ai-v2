@@ -94,11 +94,7 @@ class ReplacingExpendedCreep(RoleBase):
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role
 
-        if role == role_dedi_miner:
-            source = self.targets.get_existing_target(self, target_big_source)
-            if source:
-                Memory.dedicated_miners_stationed[source.id] = self.creep.name
-        elif role == role_remote_mining_reserve:
+        if role == role_remote_mining_reserve:
             room = self.memory.claiming
             if room:
                 Memory.reserving[room] = self.name

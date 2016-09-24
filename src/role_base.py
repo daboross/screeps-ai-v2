@@ -403,29 +403,25 @@ class RoleBase:
 
             return False
 
-        if Memory.dedicated_miners_stationed and Memory.dedicated_miners_stationed[source.id]:
-            miner = Game.creeps[Memory.dedicated_miners_stationed[source.id]]
-            if miner:
-                if not miner.pos.isNearTo(source.pos):
-                    self.go_to_depot()
-                elif not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
-                    if not self.creep.pos.isNearTo(miner) and self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
-                            and self.creep.pos.getRangeTo(miner.pos) > 5:
-                        # a spawn fill has given use some extra energy, let's go use it.
-                        self.memory.filling = False
-                    if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
-                        # Just get all you can - if this much has built up, it means something's blocking the queue...
-                        self.move_to(miner)
-                    self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
-                return False  # waiting for the miner to gather energy.
-            else:
-                self.home.mem.meta.clear_next = 0  # clear next tick
-                del Memory.dedicated_miners_stationed[source.id]
+        # TODO: this assumes that different sources are at least 3 away.
+        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_dedi_miner)
+        if miner:
+            if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
+                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
+                                self.creep.pos.getRangeTo(miner.pos) > 5:
+                    # a spawn fill has given use some extra energy, let's go use it.
+                    self.memory.filling = False
+                if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
+                    # Just get all you can - if this much has built up, it means something's blocking the queue...
+                    self.move_to(miner)
+                self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
+            return False  # waiting for the miner to gather energy.
+
         if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), {"memory": {"role": role_dedi_miner}}):
-            self.go_to_depot(follow_defined_path)
+            self.go_to_depot()
             return False
         if not self.creep.getActiveBodyparts(WORK):
-            self.go_to_depot(follow_defined_path)
+            self.go_to_depot()
             self.finished_energy_harvest()
             return False
         if not self.creep.pos.isNearTo(source.pos):
