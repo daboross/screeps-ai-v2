@@ -884,7 +884,11 @@ class RoomMind:
             if hostile_list:
                 hostile_list[2] = hostile.pos  # this is the only thing which would update
             else:
-                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, hostile.owner.username,
+                if hostile.getActiveBodyparts(ATTACK) == 0 and hostile.getActiveBodyparts(RANGED_ATTACK) == 0:
+                    username = "harmless"
+                else:
+                    username = hostile.owner.username
+                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, username,
                                       Game.time + hostile.ticksToLive + 1])
                 Memory.hostile_last_rooms[hostile.id] = self.room_name
                 new_hostiles = True
@@ -1194,11 +1198,11 @@ class RoomMind:
                 for hostile_id, hostile_room, hostile_pos, hostile_owner in Memory.hostiles:
                     if hostile_owner == INVADER_USERNAME:  # TODO: ranged defenders to go against player attackers!
                         if hostile_room not in room_mine_to_protect:
-                            room = self.hive_mind.get_room(hostile_room)
-                            closest_owned_room = self.hive_mind.get_closest_owned_room(hostile_room)
-                            if (not first or (room and hostile_room == self.room_name)) \
-                                    and closest_owned_room.room_name == self.room_name \
-                                    and (hostile_room != self.room_name or self.mem.alert_for > 20):
+                            if (not first or hostile_room == self.room_name) \
+                                    and (hostile_room != self.room_name or self.mem.alert_for > 20) \
+                                    and (hostile_room == self.room_name or
+                                                 self.hive_mind.get_closest_owned_room(hostile_room).room_name
+                                                 == self.room_name):
                                 room_mine_to_protect[hostile_room] = True
                             else:
                                 room_mine_to_protect[hostile_room] = False

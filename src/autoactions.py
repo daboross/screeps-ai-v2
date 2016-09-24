@@ -1,6 +1,6 @@
 import context
 import flags
-from constants import role_scout, INVADER_USERNAME
+from constants import INVADER_USERNAME, SK_USERNAME, role_scout
 from control import pathdef
 from tools import profiling
 from utilities import volatile_cache, movement
@@ -22,12 +22,14 @@ def pathfinder_enemy_array_for_room(room_name):
         for hostile, hostile_room, pos, owner in Memory.hostiles:
             dx, dy = movement.inter_room_difference(hostile_room, room_name)
             if abs(dx) <= 1 and abs(dy) <= 1:
-                if owner == "Source Keeper":
+                if owner == SK_USERNAME:
                     enemy_range = 5
                 elif owner == INVADER_USERNAME:
                     enemy_range = 20
+                elif owner != "harmless":
+                    enemy_range = 30
                 else:
-                    enemy_range = 60
+                    continue
                 pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
                 enemy_positions.append({"pos": pos, "range": enemy_range})
 
