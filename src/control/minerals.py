@@ -11,18 +11,18 @@ __pragma__('noalias', 'Infinity')
 _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
 
 sell_at_prices = {
-    RESOURCE_OXYGEN: 1.0,
+    RESOURCE_OXYGEN: 2.1,
     RESOURCE_HYDROGEN: 2.1,
     RESOURCE_ZYNTHIUM: 2.3,
     RESOURCE_UTRIUM: 2.4,
     RESOURCE_LEMERGIUM: 2.5,
 }
 bottom_prices = {
-    RESOURCE_OXYGEN: 0.55,
-    RESOURCE_HYDROGEN: 0.55,
-    RESOURCE_ZYNTHIUM: 0.80,
-    RESOURCE_UTRIUM: 1.05,
-    RESOURCE_LEMERGIUM: 1.05,
+    RESOURCE_OXYGEN: 1.1,
+    RESOURCE_HYDROGEN: 1.2,
+    RESOURCE_ZYNTHIUM: 1.1,
+    RESOURCE_UTRIUM: 1.1,
+    RESOURCE_LEMERGIUM: 1.1,
 }
 
 
@@ -486,7 +486,8 @@ class MineralMind:
             have_now = self.get_total_room_resource_counts()
             if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= 400000:
                 return 0
-            containers = self.room.find_in_range(FIND_STRUCTURES, 2, mineral)
+            containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
+                                  lambda s: s.structureType == STRUCTURE_CONTAINER)
             if len(containers) < 2:
                 construction_sites = _.sum(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
                                            lambda s: s.structureType == STRUCTURE_CONTAINER)

@@ -30,7 +30,8 @@ class MineralMiner(RoleBase):
             self.move_to(mineral)
             return False
 
-        if self.creep.carryCapacity - _.sum(self.creep.carry) >= 1 * self.creep.getActiveBodyparts(WORK):
+        if mineral.cooldown <= 0 and self.creep.carryCapacity - _.sum(self.creep.carry) \
+                >= 1 * self.creep.getActiveBodyparts(WORK):
             # let's be sure not to drop any on the ground
 
             result = self.creep.harvest(mineral)
@@ -63,10 +64,9 @@ class MineralMiner(RoleBase):
                     self.creep.pos.createConstructionSite(STRUCTURE_CONTAINER)
                 return
 
-        for mtype in Object.keys(self.creep.carry):
-            if self.creep.carry[mtype] > 0:
-                self.creep.transfer(transfer_target, mtype)
-                break
+        resource = _.findKey(self.creep.carry, lambda amount: amount > 0)
+        if resource:
+            self.creep.transfer(transfer_target, resource)
 
     def _calculate_time_to_replace(self):
         minerals = self.home.find(FIND_MINERALS)
