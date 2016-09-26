@@ -572,17 +572,16 @@ class RoleBase:
             target = target.pos
         if self.pos.isEqualTo(target):
             return True
-        dx = target.x - self.pos.x
-        dy = target.y - self.pos.y
-        # Don't divide by zero
-        if dx:
-            dx /= abs(dx)
-        if dy:
-            dy /= abs(dy)
+        adx = target.x - self.pos.x
+        ady = target.y - self.pos.y
+        dx = Math.sign(adx)
+        dy = Math.sign(ady)
         if dx and dy:
             if movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + dy):
                 self.creep.move(pathdef.get_direction(dx, dy))
                 return True
+            elif adx == 1 and ady == 1:
+                return False
             elif movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
                 self.creep.move(pathdef.get_direction(dx, 0))
                 return True
@@ -593,6 +592,8 @@ class RoleBase:
             if movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y):
                 self.creep.move(pathdef.get_direction(dx, 0))
                 return True
+            elif adx == 1:
+                return False
             elif movement.is_block_clear(self.room, self.pos.x + dx, self.pos.y + 1):
                 self.creep.move(pathdef.get_direction(dx, 1))
                 return True
@@ -603,6 +604,8 @@ class RoleBase:
             if movement.is_block_clear(self.room, self.pos.x, self.pos.y + dy):
                 self.creep.move(pathdef.get_direction(0, dy))
                 return True
+            elif ady == 1:
+                return False
             elif movement.is_block_clear(self.room, self.pos.x + 1, self.pos.y + dy):
                 self.creep.move(pathdef.get_direction(1, dy))
                 return True

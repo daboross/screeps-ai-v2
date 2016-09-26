@@ -190,11 +190,9 @@ class Builder(upgrading.Upgrader):
 
         result = self.creep.repair(target)
         if result == OK:
-            if self.pos.isNearTo(target):
-                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
+            if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
+                if not self.basic_move_to(target):
                     self.move_around(target)
-            else:
-                self.basic_move_to(target)
         elif result == ERR_INVALID_TARGET:
             self.targets.untarget(self, ttype)
             del self.memory.last_big_repair_max_hits
@@ -224,11 +222,9 @@ class Builder(upgrading.Upgrader):
 
         result = self.creep.build(target)
         if result == OK:
-            if self.pos.isNearTo(target):
-                if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
+            if _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos), lambda c: c.name != self.name):
+                if not self.basic_move_to(target):
                     self.move_around(target)
-            else:
-                self.basic_move_to(target)
             if target.structureType == STRUCTURE_WALL or target.structureType == STRUCTURE_RAMPART:
                 self.memory.building_walls_at = target.pos.x | (target.pos.y << 6)
         elif result == ERR_INVALID_TARGET:
