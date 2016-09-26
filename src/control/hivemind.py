@@ -30,7 +30,7 @@ def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
     num = min_split
     trying = Infinity
     while trying > maximum:
-        trying = math.ceil(needed / num - extra_initial)
+        trying = spawning.ceil_sections(needed / num - extra_initial)
         num += 1
     return trying
 
@@ -1183,7 +1183,7 @@ class RoomMind:
         if self._target_local_hauler_carry_mass is None:
             if self.trying_to_get_full_storage_use:
                 hauler_max_size = max(5, min(9, spawning.max_sections_of(self, creep_base_hauler)))
-                total_mass = math.ceil(self.get_target_local_miner_count() * hauler_max_size)
+                total_mass = self.get_target_local_miner_count() * hauler_max_size
                 for source in self.sources:
                     energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                     if energy >= 1000:
@@ -1269,16 +1269,18 @@ class RoomMind:
             else:
                 return 3
         else:
-            return self.get_target_total_spawn_fill_mass()
+            return spawning.ceil_sections(self.get_target_total_spawn_fill_mass(), creep_base_worker)
 
     def get_target_spawn_fill_mass(self):
         if self._target_spawn_fill_mass is None:
             if self.get_target_local_miner_count():
+                base = self.get_variable_base(role_spawn_fill)
                 # spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
                 tower_fill = self.carry_mass_of(role_tower_fill)
                 # Enough so that it takes only 4 trips for each creep to fill all extensions.
-                total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
-                # Spawn fill backup used to be here, but they now completely shift to builders once all spawn fill have been created.
+                total_mass = spawning.ceil_sections(self.get_target_total_spawn_fill_mass(), base)
+                # Spawn fill backup used to be here, but they now completely shift to builders once all spawn fill have
+                # been created.
                 regular_count = max(0, total_mass - tower_fill)
                 if self.trying_to_get_full_storage_use:
                     self._target_spawn_fill_mass = regular_count
@@ -1287,7 +1289,7 @@ class RoomMind:
                     for source in self.sources:
                         energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
                         extra_count += energy / 200.0
-                    self._target_spawn_fill_mass = math.ceil(regular_count + extra_count)
+                    self._target_spawn_fill_mass = spawning.ceil_sections(regular_count + extra_count, base)
             else:
                 self._target_spawn_fill_mass = 0
         return self._target_spawn_fill_mass
@@ -1340,7 +1342,7 @@ class RoomMind:
             wm = 1
         elif self.rcl == 8:
             if base == creep_base_full_upgrader:
-                return 8
+                return 7.5
             else:
                 return 15
         elif self.mining_ops_paused():
@@ -1679,8 +1681,6 @@ class RoomMind:
                     next_role.num_sections = maximum
                 break
         if next_role:
-            if next_role.replacing is None:
-                del next_role.replacing
             self.mem.next_role = next_role
         else:
             print("[{}] All creep targets reached!".format(self.room_name))
@@ -1689,6 +1689,8 @@ class RoomMind:
     def get_next_role(self):
         if self.mem.next_role is undefined:
             self.plan_next_role()
+            # This function modifies the role.
+            spawning.validate_role(self.mem.next_role)
         return self.mem.next_role
 
     def toString(self):

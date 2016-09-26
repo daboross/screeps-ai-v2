@@ -22,7 +22,7 @@ def fit_num_sections(needed, maximum, extra_initial=0.0, min_split=1):
     num = min_split
     trying = Infinity
     while trying > maximum:
-        trying = math.ceil(needed / num - extra_initial)
+        trying = spawning.ceil_sections(needed / num - extra_initial)
         num += 1
     return trying
 
@@ -94,7 +94,7 @@ class MiningMind:
         else:
             mining_per_tick = 6.0  # With 1 added just to have some leeway
         produce_per_tick = mining_per_tick
-        target_mass = math.ceil(produce_per_tick / carry_per_tick) + 2
+        target_mass = math.ceil(produce_per_tick / carry_per_tick) + 1
         self.room.store_cached_property(key, target_mass, 50)
         return target_mass
 
@@ -260,7 +260,7 @@ class MiningMind:
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
             if self.room.all_paved():
-                num_sections = math.ceil(num_sections / 2)
+                num_sections = spawning.ceil_sections(num_sections / 2, base)
             return {
                 'role': role_miner,
                 'base': base,

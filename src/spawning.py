@@ -1,3 +1,4 @@
+import math
 from math import floor
 
 import context
@@ -44,6 +45,17 @@ scalable_sections = {
     creep_base_full_move_power_attack: [MOVE, ATTACK],
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
     creep_base_half_move_hauler: [MOVE, CARRY, CARRY]
+}
+
+half_sections = {
+    creep_base_worker: [WORK, MOVE],
+    creep_base_work_half_move_hauler: [MOVE, CARRY],
+    creep_base_half_move_hauler: [MOVE, CARRY],
+    creep_base_full_upgrader: [MOVE, WORK],
+    creep_base_defender: [ATTACK, MOVE],
+    creep_base_goader: [TOUGH, MOVE],
+    creep_base_half_move_healer: [MOVE, HEAL],
+    creep_base_power_attack: [MOVE, ATTACK],
 }
 
 low_energy_sections = {
@@ -117,16 +129,18 @@ def run(room, spawn):
         energy = filled
     else:
         energy = spawn.room.energyCapacityAvailable
+
+    half_section = 1 if num_sections % 1 else 0
+    num_sections -= num_sections % 1  # This is so as to only create expected behavior with half-sections
+
     if num_sections is not None and base in scalable_sections:
         if num_sections == 0:
             print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!")
             num_sections = 1
             role_obj.num_sections = 1
-        cost = initial_section_cost(base) + num_sections * energy_per_section(base)
-        if cost > energy and base in low_energy_sections:
-            cost = initial_section_cost(base) + num_sections * lower_energy_per_section(base)
+        cost = cost_of_sections(base, num_sections, energy)
         if cost > energy:
-            # This is just a double check, for as we move into the new role_obj-based system
+            # Do
             new_size = max_sections_of(room, base)
             if new_size <= 0:
                 print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1 section"
@@ -138,7 +152,7 @@ def run(room, spawn):
             # Since the literal memory object is returned, this mutation will stick for until this creep has been
             # spawned, or the target creep has been refreshed
             num_sections = role_obj.num_sections = new_size
-            cost = initial_section_cost(base) + new_size * energy_per_section(base)
+            cost = cost_of_sections(base, num_sections, energy)
         energy = cost
 
     if filled < energy:
@@ -201,9 +215,9 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_half_move_hauler:
         parts = []
-        for i in range(0, num_sections * 2):
+        for i in range(0, num_sections * 2 + half_section):
             parts.append(CARRY)
-        for i in range(0, num_sections):
+        for i in range(0, num_sections + half_section):
             parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_work_full_move_hauler:
@@ -219,20 +233,22 @@ def run(room, spawn):
         parts = []
         for part in initial_section[base]:
             parts.append(part)
-        for i in range(0, num_sections * 2):
+        for i in range(0, num_sections * 2 + half_section):
             parts.append(CARRY)
-        for i in range(0, num_sections):
+        for i in range(0, num_sections + half_section):
             parts.append(MOVE)
         descriptive_level = num_sections * 2 + 1
     elif base is creep_base_worker:
         if energy >= 450:
             parts = []
+            if half_section:
+                parts.append(WORK)
             for i in range(0, num_sections):
                 parts.append(CARRY)
                 parts.append(CARRY)
                 parts.append(WORK)
                 parts.append(CARRY)
-            for i in range(0, num_sections * 4):
+            for i in range(0, num_sections * 4 + half_section):
                 parts.append(MOVE)
             descriptive_level = "carry:{}-work:{}".format(num_sections * 3, num_sections)
         elif energy >= 400:
@@ -250,7 +266,7 @@ def run(room, spawn):
         # MOVE, ATTACK, CARRY = one section = 180
         for i in range(0, num_sections):
             parts.append(CARRY)
-        for i in range(0, num_sections):
+        for i in range(0, num_sections + half_section):
             parts.append(ATTACK)
             parts.append(MOVE)
         descriptive_level = num_sections
@@ -290,14 +306,14 @@ def run(room, spawn):
                 move_counter += 0.25
     elif base is creep_base_goader:
         parts = []
-        for i in range(0, num_sections * 2 + 1):  # extra tough in initial section
+        for i in range(0, num_sections * 2 + 1 + half_section):  # extra tough in initial section
             parts.append(TOUGH)
         parts.append(ATTACK)
-        for i in range(0, num_sections + 1):  # extra move in initial section
+        for i in range(0, num_sections + 1 + half_section):  # extra move in initial section
             parts.append(MOVE)
     elif base is creep_base_full_move_goader:
         parts = []
-        for i in range(0, num_sections * 2 + 1):  # extra tough in initial section
+        for i in range(0, num_sections):
             parts.append(CARRY)
         parts.append(ATTACK)
         parts.append(MOVE)
@@ -305,9 +321,9 @@ def run(room, spawn):
         parts = []
         for i in range(0, num_sections):
             parts.append(HEAL)
-        for i in range(0, num_sections):
+        for i in range(0, num_sections + half_section):
             parts.append(MOVE)
-        for i in range(0, num_sections):
+        for i in range(0, num_sections + half_section):
             parts.append(HEAL)
     elif base is creep_base_full_move_healer:
         parts = []
@@ -325,9 +341,9 @@ def run(room, spawn):
             parts = []
             for part in initial_section[base]:
                 parts.append(part)
-            for i in range(0, num_sections * 2):
+            for i in range(0, num_sections * 2 + half_section):
                 parts.append(WORK)
-            for i in range(0, num_sections):
+            for i in range(0, num_sections + half_section):
                 parts.append(MOVE)
         else:
             parts = [MOVE, CARRY, WORK]
@@ -335,9 +351,9 @@ def run(room, spawn):
         parts = []
         for i in range(0, num_sections):
             parts.append(TOUGH)
-        for i in range(0, num_sections * 2):
+        for i in range(0, num_sections * 2 + half_section):
             parts.append(MOVE)
-        for i in range(0, num_sections * 3):
+        for i in range(0, num_sections * 3 + half_section):
             parts.append(ATTACK)
     elif base is creep_base_full_move_power_attack:
         parts = []
@@ -420,6 +436,18 @@ def random_four_digits():
     return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
 
 
+def validate_role(role_obj):
+    if not role_obj.role:
+        raise __new__(Error("Invalid role: no .role property"))
+    if not role_obj.base:
+        raise __new__(Error("Invalid role: no .base property"))
+    if not role_obj.num_sections:
+        role_obj.num_sections = Infinity
+    if 'replacing' in role_obj and not role_obj.replacing:
+        del role_obj.replacing
+    role_obj.num_sections = ceil_sections(role_obj.num_sections, role_obj.base)
+
+
 def find_base_type(creep):
     part_counts = _.countBy(creep.body, lambda p: p.type)
     total = _.sum(part_counts)
@@ -489,6 +517,26 @@ def initial_section_cost(base):
     return cost
 
 
+def half_section_cost(base):
+    cost = 0
+    if base in half_sections:
+        for part in half_sections[base]:
+            cost += BODYPART_COST[part]
+    return cost
+
+
+def cost_of_sections(base, num_sections, energy_available):
+    initial_cost = initial_section_cost(base)
+    per_section_energy = energy_per_section(base)
+    if initial_cost + per_section_energy > energy_available:
+        per_section_energy = lower_energy_per_section(base)
+    if num_sections % 1 > 0:
+        return initial_cost + math.floor(num_sections) * per_section_energy \
+               + half_section_cost(base)
+    else:
+        return initial_section_cost(base) + num_sections * per_section_energy
+
+
 def max_sections_of(room, base):
     if emergency_conditions(room):
         energy = room.room.energyAvailable
@@ -499,7 +547,14 @@ def max_sections_of(room, base):
         max_by_cost = floor((energy - initial_section_cost(base)) / lower_energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
     max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
-    return min(max_by_cost, max_by_parts)
+    num_sections = min(max_by_cost, max_by_parts)
+    if base in half_sections:
+        current_parts = initial_base_parts + num_sections * len(scalable_sections[base])
+        if current_parts + len(half_sections[base]) <= 50:
+            current_energy = cost_of_sections(base, num_sections, energy)
+            if current_energy + half_section_cost(base) <= energy:
+                num_sections += 0.5
+    return num_sections
 
 
 def using_lower_energy_section(room, base):
@@ -536,3 +591,15 @@ def carry_count(creep):
 
 
 run = profiling.profiled(run, "spawning.run")
+
+
+def ceil_sections(count, base=None):
+    if base is not None and base not in half_sections:
+        return math.ceil(count)
+    return math.ceil(count * 2) / 2
+
+
+def floor_sections(count, base=None):
+    if base is not None and base not in half_sections:
+        return math.floor(count)
+    return math.floor(count * 2) / 2
