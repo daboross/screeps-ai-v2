@@ -71,6 +71,9 @@ class ReplacingExpendedCreep(RoleBase):
         if self.pos.isNearTo(old_creep.pos) and not self.creep.spawning:
             self.creep.move(pathdef.direction_to(self.pos, old_creep.pos))
             old_creep.move(pathdef.direction_to(old_creep.pos, self.pos))
+            mineral = _.findKey(old_creep.carry, lambda amount: amount > 0)
+            if mineral:
+                old_creep.transfer(self.creep, mineral)
 
         # self.log("Sending {} to recycling, and taking over as a {}.".format(
         #     old_name, self.memory.replacing_role,
