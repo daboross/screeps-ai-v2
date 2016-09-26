@@ -31,6 +31,15 @@ def get_priority(structure_type):
         return default_priority
 
 
+protect_with_ramparts = [
+    STRUCTURE_SPAWN,
+    STRUCTURE_POWER_SPAWN,
+    STRUCTURE_TERMINAL,
+    STRUCTURE_TOWER,
+    STRUCTURE_EXTENSION,
+]
+
+
 class ConstructionMind:
     """
     :type room: control.hivemind.RoomMind
@@ -393,6 +402,52 @@ class ConstructionMind:
 
     def re_place_mining_roads(self):
         self.room.mem.cache.placed_mining_roads.dead_at = Game.time + 1
+
+    def place_home_ramparts(self):
+        last_run = self.room.get_cached_property("placed_ramparts")
+        if last_run:
+            return
+
+        volatile = volatile_cache.volatile()
+
+        site_count = len(Game.constructionSites)
+        sites_placed = volatile.get("construction_sites_placed") or 0
+
+        if site_count + sites_placed >= 90:
+            return
+
+        ramparts = new_set()
+        need_ramparts = new_map()
+
+        for structure in self.room.find(FIND_MY_STRUCTURES):
+            pos_key = structure.pos.x * 64 + structure.pos.y
+            if structure.structureType == STRUCTURE_RAMPART:
+                ramparts.add(pos_key)
+            elif structure.structureType in protect_with_ramparts:
+                need_ramparts.set(pos_key, structure)
+
+        for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
+            pos_key = site.pos.x * 64 + site.pos.y
+            if site.structureType == STRUCTURE_RAMPART:
+                ramparts.add(pos_key)
+            elif site.structureType in protect_with_ramparts:
+                need_ramparts.set(pos_key, site)
+
+        for pos_key, structure in need_ramparts.entries():
+            if not ramparts.has(pos_key):
+                print("[{}][building] Protecting {} with a rampart."
+                      .format(self.room.room_name, structure))
+                structure.pos.placeConstructionSite(STRUCTURE_RAMPART)
+                sites_placed += 1
+                if site_count + sites_placed >= 100:
+                    break
+
+        volatile.set("construction_sites_placed", sites_placed)
+
+        self.room.store_cached_property("placed_ramparts", 1, random.randint(8000, 9000))
+
+    def re_place_home_ramparts(self):
+        self.room.mem.cache.placed_ramparts.dead_at = Game.time + 1
 
 
 profiling.profile_whitelist(ConstructionMind, [

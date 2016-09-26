@@ -107,6 +107,7 @@ def run_room(target_mind, creeps_skipped, room):
         room.links.tick_links()
         if 'skipped_last_turn' not in Memory:
             room.building.place_remote_mining_roads()
+            room.building.place_home_ramparts()
             for spawn in room.spawns:
                 spawning.run(room, spawn)
         room.mining.poll_flag_energy_sitting()
