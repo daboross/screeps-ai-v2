@@ -1,7 +1,6 @@
 from constants import *
 from roles import building
 from roles import colonizing
-from roles import dedi_miner
 from roles import generic
 from roles import military
 from roles import minerals
