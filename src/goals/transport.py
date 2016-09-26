@@ -234,3 +234,20 @@ class TransportPickup(RoleBase):
                 if self.memory.on_path_for >= 2:
                     del self.memory.next_ppos
                     del self.memory.on_path_for
+
+            serialized_pos = self.pos.x | (self.pos.y << 6)
+            if self.memory.last_pos == serialized_pos:
+                if 'standstill_for' in self.memory:
+                    self.memory.standstill_for += 1
+                else:
+                    self.memory.standstill_for = 1
+                if self.memory.standstill_for % 2 == 0:  # after two ticks, and then every two ticks after that.
+                    if not _.some(self.creep.body, {"type": WORK}) and \
+                            _.find(self.room.find_in_range(FIND_MY_CREEPS, 10, self.pos),
+                                   lambda c: _.some(c.body, {"type": WORK})):
+                        if 'hbu' in self.memory:
+                            del self.memory.hbu
+                        else:
+                            self.memory.hbu = Game.time + 7
+            else:
+                self.memory.last_pos = serialized_pos
