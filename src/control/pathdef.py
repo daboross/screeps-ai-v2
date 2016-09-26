@@ -343,6 +343,7 @@ class HoneyTrails:
                                                                                          {"use_roads": roads_better,
                                                                                           "dfr": decided_future_roads})
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
+            keep_for = opts["keep_for"] if "keep_for" in opts else 0
         else:
             roads_better = True
             ignore_swamp = False
@@ -351,6 +352,7 @@ class HoneyTrails:
             decided_future_roads = None
             max_ops = self.get_default_max_ops(origin, destination, {"use_roads": roads_better,
                                                                      "dfr": decided_future_roads})
+            keep_for = 0
 
         if origin.pos:
             origin = origin.pos
@@ -402,35 +404,36 @@ class HoneyTrails:
         room_to_path_obj = pathfinder_path_to_room_to_path_obj(origin, result.path)
         if room_to_path_obj is None:
             return None
-        all_viewed = True
-        all_owned = True
-        all_paved = True
-        for pos in result.path:
-            room = self.hive.get_room(pos.roomName)
-            if not room:
-                all_owned = False
-                all_viewed = False
-                all_paved = False
-                break
-            if not room.my:
-                all_owned = False
-            if (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
-                           lambda s: s.structureType == STRUCTURE_ROAD)
-                and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
-                lambda s: s.structureType == STRUCTURE_ROAD):
-                all_paved = False
+        if not (keep_for > 0):
+            all_viewed = True
+            all_owned = True
+            all_paved = True
+            for pos in result.path:
+                room = self.hive.get_room(pos.roomName)
+                if not room:
+                    all_owned = False
+                    all_viewed = False
+                    all_paved = False
+                    break
+                if not room.my:
+                    all_owned = False
+                if (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                               lambda s: s.structureType == STRUCTURE_ROAD)
+                    and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
+                    lambda s: s.structureType == STRUCTURE_ROAD):
+                    all_paved = False
 
-        expire_in = 20000
-        if all_paved:
-            expire_in *= 4
-        if all_owned:
-            expire_in *= 2
-        if not all_viewed:
-            # Don't constantly re-calculate super-long paths that we can't view the rooms for.
-            if len(Object.keys(room_to_path_obj)) < 4:
-                expire_in /= 4
+            keep_for = 20000
+            if all_paved:
+                keep_for *= 4
+            if all_owned:
+                keep_for *= 2
+            if not all_viewed:
+                # Don't constantly re-calculate super-long paths that we can't view the rooms for.
+                if len(Object.keys(room_to_path_obj)) < 4:
+                    keep_for /= 4
         serialized_path_obj = {key: Room.serializePath(value) for key, value in room_to_path_obj.items()}
-        global_cache.set(key, serialized_path_obj, expire_in)
+        global_cache.set(key, serialized_path_obj, keep_for)
         return serialized_path_obj
 
     def find_path(self, origin, destination, opts=None):

@@ -220,13 +220,9 @@ class ConstructionMind:
         self.room.store_cached_property("destruct_targets", target_list, 200)
         return target_list
 
-    def retest_mining_roads(self):
-        # TODO: Make a "trigger" function which runs when a controller upgrades which runs things like this.
-        del self.room.mem.cache.placed_mining_roads
-
     def place_remote_mining_roads(self):
         current_method_version = 23
-        latest_key = "{}-{}".format(current_method_version, len(self.room.mining.active_mines))
+        latest_key = "{}-{}-{}".format(current_method_version, self.room.rcl, len(self.room.mining.active_mines))
         last_run_version = self.room.get_cached_property("placed_mining_roads")
         if last_run_version and last_run_version == latest_key:
             return
@@ -257,17 +253,24 @@ class ConstructionMind:
         else:
             volatile_cache.mem("run_once").set("place_remote_mining_roads", True)
 
+        # stagger updates after a version change.
+        # Really don't do this often either - this is an expensive operation.
+        # Calculate this here so we can pass it to HoneyTrails for how long to keep paths.
+        ttl = random.randint(30000, 40000)
+
+        volatile = volatile_cache.volatile()
+
         checked_positions_per_room = new_map()
         future_road_positions_per_room = {}
-        preexisting_count = len(Game.constructionSites)
+        preexisting_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
         placed_count = 0
         path_count = 0
 
         # TODO: this does assume that each remote mining room will be unique to one owned room (no remote mining rooms
         # with one mine sponsored by one room, and another mine sponsored by another).
         # I hope this is a safe assumption to make for now.
-        road_opts = {'decided_future_roads': future_road_positions_per_room}
-        spawn_road_opts = {'range': 3, 'decided_future_roads': future_road_positions_per_room}
+        road_opts = {'decided_future_roads': future_road_positions_per_room, "keep_for": ttl + 10}
+        spawn_road_opts = {'range': 3, 'decided_future_roads': future_road_positions_per_room, "keep_for": ttl + 10}
         any_non_visible_rooms = False
         non_visible_rooms = None
 
@@ -315,11 +318,12 @@ class ConstructionMind:
             deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
             if not deposit_point:
                 continue  # This will be the case if we have no storage nor spawn. In that case, don't yet pave.
-            self.hive.honey.clear_cached_path(deposit_point, mine)
-            self.hive.honey.clear_cached_path(mine, deposit_point)
             # It's important to run check_route on this path before doing another path, since this updates the
             # future_road_positions_per_room object.
+            self.hive.honey.clear_cached_path(deposit_point, mine)
             check_route(self.hive.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
+            self.hive.honey.clear_cached_path(mine, deposit_point)
+            check_route(self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
             for spawn in self.room.spawns:
                 self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
                 check_route(self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
@@ -360,6 +364,11 @@ class ConstructionMind:
                                        {"structureType": STRUCTURE_ROAD}):
                     flag.remove()
 
+        if volatile.has("construction_sites_placed"):
+            volatile.set("construction_sites_placed", volatile.get("construction_sites_placed") + placed_count)
+        else:
+            volatile.set("construction_sites_placed", placed_count)
+
         if any_non_visible_rooms:
             print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms)".format(
                 self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
@@ -373,9 +382,6 @@ class ConstructionMind:
                 self.room.room_name, _.sum(list(checked_positions_per_room.values()), 'size'),
                 placed_count, path_count))
 
-        # stagger updates after a version change.
-        # Really don't do this often either - this is an expensive operation.
-        ttl = random.randint(30000, 40000)
         if any_non_visible_rooms:
             self.room.store_cached_property("placed_mining_roads", "missing_rooms", ttl)
             self.room.store_cached_property("pmr_missing_rooms", list(non_visible_rooms.values()), ttl)
@@ -384,6 +390,9 @@ class ConstructionMind:
         else:
             self.room.store_cached_property("placed_mining_roads", latest_key, ttl)
             # Done!
+
+    def re_place_mining_roads(self):
+        self.room.mem.cache.placed_mining_roads.dead_at = Game.time + 1
 
 
 profiling.profile_whitelist(ConstructionMind, [
