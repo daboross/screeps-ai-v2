@@ -1534,9 +1534,9 @@ class RoomMind:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
             role_builder: lambda: max(3, min(8, spawning.max_sections_of(self, creep_base_worker))),
             role_mineral_miner:
-                lambda: 4,  # TODO: bigger miner/haulers maybe if we get resource prioritization?
-            role_mineral_hauler:  # TODO: Make this depend on distance from terminal to mineral + miner size
-                lambda: min(20, spawning.max_sections_of(self, creep_base_hauler)),
+                lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
+            role_mineral_hauler:
+                lambda: min(10, spawning.max_sections_of(self, creep_base_hauler)),
             role_td_goad:
                 lambda: spawning.max_sections_of(self, creep_base_goader),
             role_td_healer:
