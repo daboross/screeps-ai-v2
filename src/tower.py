@@ -2,6 +2,7 @@ import random
 
 from constants import INVADER_USERNAME
 from tools import profiling
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -21,10 +22,31 @@ def run(room):
             room.mem.alert = True
     if not room.mem.alert:
         damaged = _.filter(room.find(FIND_MY_CREEPS), lambda creep: creep.hits < creep.hitsMax)
-        if damaged:
-            for tower, target in zip(_.filter(room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER}),
-                                     damaged):
-                tower.heal(target)
+        if len(damaged):
+            towers = _.filter(room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER})
+            if not len(towers):
+                return
+            if len(damaged) > 1 and len(towers) > 1:
+                for creep in _.sortBy(damaged, 'hits'):  # heal the highest health creeps first.
+                    if len(towers) == 1:
+                        towers[0].heal(creep)
+                        break
+                    elif len(towers) < 1:
+                        break
+                    else:
+                        closest_distance = Infinity
+                        closest_index = -1
+                        for i in range(0, len(towers)):
+                            distance = movement.distance_squared_room_pos(creep.pos, towers[i].pos)
+                            if distance < closest_distance:
+                                closest_index = i
+                                closest_distance = distance
+                        tower = towers.splice(closest_index, 1)[0]
+                        tower.heal(creep)
+            elif len(damaged) > 1:
+                towers[0].heal(_.min(damaged, lambda c: movement.distance_squared_room_pos(c, towers[0])))
+            else:
+                towers[0].heal(damaged[0])
         return
 
     if 'alert_for' in room.mem:
