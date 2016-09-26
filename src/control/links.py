@@ -139,12 +139,12 @@ class LinkingMind:
             if Memory.links_debug == self.room.room_name:
                 print("[{}] Energy change: {}".format(link.id[-5:], energy_change_now))
             if energy_change_now > 0:
-                if energy_change_now * 2 > link.energyCapacity - link.energy and link.cooldown <= 0:
+                if energy_change_now * 3 > link.energyCapacity - link.energy and link.cooldown <= 0:
                     current_input_links.append({'link': link, 'priority': -energy_change_now})
                 else:
                     future_input_links.append({'link': link, 'amount': energy_change_now, 'priority': link.cooldown})
             elif energy_change_now < 0:
-                if -energy_change_now * 2 > link.energy:
+                if -energy_change_now * 3 > link.energy:
                     current_output_links.append({'link': link, 'priority': energy_change_now})
                 else:
                     future_output_links.append(
@@ -222,6 +222,10 @@ class LinkingMind:
                                              - main_link.energy)
             else:
                 self.main_link.transferEnergy(future_output_links[0].link)
-
+        elif main_link.energy != main_link.energyCapacity * 2:
+            if main_link.energy > main_link.energyCapacity * 2:
+                self.link_creep.send_from_link(main_link.energy - main_link.energyCapacity * 2)
+            else:
+                self.link_creep.send_to_link(main_link.energyCapacity * 2 - main_link.energy)
 
 profiling.profile_whitelist(LinkingMind, ["tick_links"])
