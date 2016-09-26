@@ -263,10 +263,13 @@ class RoomMind:
         self.room = room
         self.my = room.controller and room.controller.my
         if self.my:
+            self.rcl = self.room.controller.level
             self.building = ConstructionMind(self)
             self.links = LinkingMind(self)
             self.mining = MiningMind(self)
             self.minerals = MineralMind(self)
+        else:
+            self.rcl = 0
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None
@@ -1012,12 +1015,12 @@ class RoomMind:
         return not not self.mem.focusing_home
 
     def upgrading_paused(self):
-        if self.room.controller.level < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
+        if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
             return False
         # TODO: constant here and below in upgrader_work_mass
         if self.conducting_siege() and self.room.storage.store.energy < 700000:
             return True  # Don't upgrade while we're taking someone down.
-        if self.room.controller.level >= 8:
+        if self.rcl >= 8:
             if self.mem.upgrading_paused and self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading:
                 self.mem.upgrading_paused = False
             if not self.mem.upgrading_paused and self.room.storage.store.energy < _rcl8_energy_to_pause_upgrading:
@@ -1031,7 +1034,7 @@ class RoomMind:
 
     def building_paused(self):
         if self._building_paused is None:
-            if self.room.controller.level < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
+            if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
                 self._building_paused = False
             elif self.conducting_siege():
                 self._building_paused = True  # Don't build while we're taking someone down.
@@ -1080,7 +1083,6 @@ class RoomMind:
             return 0
         spawning_energy = self.room.energyCapacityAvailable
         sources = len(self.sources)
-        rcl = self.room.controller.level
 
         if sources <= 1:
             min_wm = 25
@@ -1088,9 +1090,9 @@ class RoomMind:
             min_energy = 550  # rcl 2, fully built
             min_rcl = 2
             extra_rcl = 0
-            if rcl < 7:
+            if self.rcl < 7:
                 max_via_rcl2 = 3
-            elif rcl == 7:
+            elif self.rcl == 7:
                 max_via_rcl2 = 4
             else:
                 # We only want to *actually* pause them at RCL8:
@@ -1104,9 +1106,9 @@ class RoomMind:
             min_energy = 800  # rcl 3, fully built
             min_rcl = 3
             extra_rcl = 1
-            if rcl < 7:
+            if self.rcl < 7:
                 max_via_rcl2 = 2
-            elif rcl == 7:
+            elif self.rcl == 7:
                 max_via_rcl2 = 3
             else:
                 # We only want to *actually* pause them at RCL8:
@@ -1121,10 +1123,10 @@ class RoomMind:
             max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
         if spawning_energy < min_energy:
             return 0
-        if rcl < min_rcl:
+        if self.rcl < min_rcl:
             return 0
         else:
-            max_via_rcl = math.floor((rcl - min_rcl) / extra_rcl) + 1
+            max_via_rcl = math.floor((self.rcl - min_rcl) / extra_rcl) + 1
 
         return min(max_via_wm, max_via_rcl, max_via_rcl2)
 
@@ -1156,10 +1158,10 @@ class RoomMind:
         """
         :rtype: int
         """
-        return _rcl_to_sane_wall_hits[self.room.controller.level - 1]  # 1-to-0-based index
+        return _rcl_to_sane_wall_hits[self.rcl - 1] or 0  # 1-to-0-based index
 
     def get_min_sane_wall_hits(self):
-        return _rcl_to_min_wall_hits[self.room.controller.level - 1]  # 1-to-0 based index
+        return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
 
     def get_target_local_miner_count(self):
         """
@@ -1307,7 +1309,7 @@ class RoomMind:
             return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above \
                    and (thing.structureType != STRUCTURE_ROAD or thing.hits <= thing.hitsMax * 0.3)
 
-        if self.room.controller.level < 8:
+        if self.rcl < 8:
             worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
         else:
             worker_size = max(5, spawning.max_sections_of(self, creep_base_worker))
@@ -1336,7 +1338,7 @@ class RoomMind:
 
         if self.upgrading_paused():
             wm = 1
-        elif self.room.controller.level == 8:
+        elif self.rcl == 8:
             if base == creep_base_full_upgrader:
                 return 8
             else:
@@ -1344,7 +1346,7 @@ class RoomMind:
         elif self.mining_ops_paused():
             wm = worker_size * 4
         else:
-            wm = min(self.room.controller.level, worker_size)
+            wm = min(self.rcl, worker_size)
         if self.full_storage_use:
             if Memory.hyper_upgrade:
                 extra = min(_.sum(self.room.storage.store) - 100000, self.room.storage.store.energy - 50000)

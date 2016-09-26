@@ -96,13 +96,6 @@ class ConstructionMind:
                       " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
                 spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
 
-        if self.room.room.controller and self.room.room.controller.my:
-            controller_level = self.room.room.controller.level
-        else:
-            print("[{}][building] Warning: finding construction targets for room {},"
-                  " which isn't ours!".format(self.room.room_name, self.room.room_name))
-            controller_level = 0
-
         new_sites = []
 
         for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
@@ -113,7 +106,7 @@ class ConstructionMind:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
                     self.room.room_name, flag_type
                 ))
-            if CONTROLLER_STRUCTURES[structure_type][controller_level] \
+            if CONTROLLER_STRUCTURES[structure_type][self.room.rcl] \
                     > (currently_existing[structure_type] or 0) and \
                     not flags.look_for(self.room, flag, flags.MAIN_DESTRUCT,
                                        flags.structure_type_to_flag_sub[structure_type]) \

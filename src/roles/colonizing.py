@@ -57,7 +57,7 @@ class Colonist(MilitaryBase):
                 enemy_storage_exhausted = True
             if room.role_count(role_upgrader) < 1 and not room.upgrading_paused():
                 self.memory.role = role_upgrader
-            elif room.room.controller.level >= 5 and enemy_storage_exhausted:
+            elif room.rcl >= 5 and enemy_storage_exhausted:
                 self.memory.role = role_builder
             else:
                 self.memory.role = role_upgrader

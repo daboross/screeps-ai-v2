@@ -189,7 +189,7 @@ def main():
     else:
         rooms = hive_mind.my_rooms
         if Game.cpu.bucket <= 5000:
-            rooms = sorted(rooms, lambda r: -r.room.controller.level)
+            rooms = sorted(rooms, lambda r: -r.rcl)
             if Game.cpu.bucket <= 4000:
                 rooms = rooms[:len(rooms) - 1]
         for room in rooms:
