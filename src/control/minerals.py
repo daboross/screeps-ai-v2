@@ -421,64 +421,31 @@ class MineralMind:
                                         _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.room_name)
                 self.mem.last_sold[mineral] = Game.time
 
-    def make_container_construction_sites(self, deposit):
+    def place_container_construction_site(self, deposit):
         # TODO: finding in range is duplicated below (in method which calls this)
         # TODO: should this be part of ConstructionMind?
         if deposit.pos:
             pos = deposit.pos
         else:
             pos = deposit
-        existing_pos = []
-        for c in self.room.find_in_range(FIND_STRUCTURES, 2, pos):
-            if c.structureType == STRUCTURE_CONTAINER:
-                existing_pos.append(c.pos)
-        for c in self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, pos):
-            if c.structureType == STRUCTURE_CONTAINER:
-                existing_pos.append(c.pos)
 
-        # TODO: this will break if there are 4 or more containers which aren't next to the mineral.
+        # TODO: this will break if there are 5 containers which aren't next to the mineral.
 
         for x in range(pos.x - 1, pos.x + 2):
             for y in range(pos.y - 1, pos.y + 2):
-                if len(existing_pos) >= 2:
-                    break
-                if len(existing_pos) == 1 and not (abs(existing_pos[0].x - x) <= 1
-                                                   and abs(existing_pos[0].y - y) <= 1):
-                    continue
                 if movement.is_block_clear(self.room, x, y) \
                         and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER) \
                         and not _.find(self.room.find_at(FIND_STRUCTURES, x, y),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER):
                     result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
-                    if result != OK:
+                    if result == OK:
+                        return
+                    else:
                         self.log("WARNING: Unknown result from {}.createConstructionSite({}, {}, {}): {}"
                                  .format(self.room.room, x, y, STRUCTURE_CONTAINER, result))
-                    existing_pos.append(__new__(RoomPosition(x, y, self.room.room_name)))
-            if len(existing_pos) >= 2:
-                break
-        if len(existing_pos) < 2:
-            if len(existing_pos) < 1:
-                self.log("WARNING: Couldn't find any open spots to place a container near {}".format(pos))
-                return  # no possibility here
-            if not existing_pos[0].isNearTo(pos):
-                self.log("WARNING: Only existing container isn't near to the mineral, and no clear places near to the"
-                         "mineral could be found (pos: {}).".format(pos))
-                return
-            for x in range(existing_pos[0].x - 1, existing_pos[0].x + 2):
-                for y in range(existing_pos[0].y - 1, existing_pos[0].y + 2):
-                    if (x != existing_pos[0].x or y != existing_pos[0].y) and movement.is_block_clear(self.room, x, y):
-                        result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
-                        if result != OK:
-                            self.log("WARNING: Unknown result from {}.createConstructionSite({}, {}, {}): {}"
-                                     .format(self.room.room, x, y, STRUCTURE_CONTAINER, result))
-                        break
-                else:
-                    continue
-                break
-            else:
-                self.log("WARNING: No open site found to place second container near first container at {}"
-                         " (deposit at {})".format(existing_pos[0], pos))
+
+        self.log("WARNING: Couldn't find any open spots to place a container near {}".format(pos))
 
     def get_target_mineral_miner_count(self):
         if self.has_no_terminal_or_storage() or self.room.mem.empty_to:
@@ -490,16 +457,15 @@ class MineralMind:
             have_now = self.get_total_room_resource_counts()
             if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= 400000:
                 return 0
-            containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
-                                  lambda s: s.structureType == STRUCTURE_CONTAINER)
-            if len(containers) < 2:
-                construction_sites = _.sum(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
-                                           lambda s: s.structureType == STRUCTURE_CONTAINER)
-                more_needed = 2 - (len(containers) + construction_sites)
-                if more_needed > 0:
-                    self.make_container_construction_sites(mineral)
-            if len(containers):
+            container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
+                               lambda s: s.structureType == STRUCTURE_CONTAINER)
+            if container:
                 return 1
+            else:
+                container_site = _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
+                                        lambda s: s.structureType == STRUCTURE_CONTAINER)
+                if not container_site:
+                    self.place_container_construction_site(mineral)
         return 0
 
     def get_target_mineral_hauler_count(self):
