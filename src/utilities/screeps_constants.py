@@ -139,6 +139,7 @@ __all__ = [
     "console",
     "undefined",
     "Map",
+    "Set",
     "isFinite",
     "_",
     "__pragma__",

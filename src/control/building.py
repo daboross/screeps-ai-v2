@@ -433,7 +433,8 @@ class ConstructionMind:
             elif site.structureType in protect_with_ramparts:
                 need_ramparts.set(pos_key, site)
 
-        for pos_key, structure in need_ramparts.entries():
+        # Need to make this a list in order to iterate it.
+        for pos_key, structure in list(need_ramparts.entries()):
             if not ramparts.has(pos_key):
                 print("[{}][building] Protecting {} with a rampart."
                       .format(self.room.room_name, structure))
