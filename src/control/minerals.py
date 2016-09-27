@@ -443,9 +443,13 @@ class MineralMind:
                 if len(existing_pos) >= 2:
                     break
                 if len(existing_pos) == 1 and not (abs(existing_pos[0].x - x) <= 1
-                                                   and abs(existing_pos[1].y - y) <= 1):
+                                                   and abs(existing_pos[0].y - y) <= 1):
                     continue
-                if movement.is_block_clear(self.room, x, y):
+                if movement.is_block_clear(self.room, x, y) \
+                        and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y),
+                                       lambda s: s.structureType == STRUCTURE_CONTAINER) \
+                        and not _.find(self.room.find_at(FIND_STRUCTURES, x, y),
+                                       lambda s: s.structureType == STRUCTURE_CONTAINER):
                     result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
                     if result != OK:
                         self.log("WARNING: Unknown result from {}.createConstructionSite({}, {}, {}): {}"
@@ -461,8 +465,8 @@ class MineralMind:
                 self.log("WARNING: Only existing container isn't near to the mineral, and no clear places near to the"
                          "mineral could be found (pos: {}).".format(pos))
                 return
-            for x in range(existing_pos[0].x - 1, existing_pos[0].x + 1):
-                for y in range(existing_pos[0].y - 1, existing_pos[0].y + 1):
+            for x in range(existing_pos[0].x - 1, existing_pos[0].x + 2):
+                for y in range(existing_pos[0].y - 1, existing_pos[0].y + 2):
                     if (x != existing_pos[0].x or y != existing_pos[0].y) and movement.is_block_clear(self.room, x, y):
                         result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
                         if result != OK:
