@@ -30,7 +30,7 @@ class MineralMiner(RoleBase):
             self.move_to(mineral)
             return False
 
-        if mineral.cooldown <= 0 and self.creep.carryCapacity - _.sum(self.creep.carry) \
+        if extractor.cooldown <= 0 and self.creep.carryCapacity - _.sum(self.creep.carry) \
                 >= 1 * self.creep.getActiveBodyparts(WORK):
             # let's be sure not to drop any on the ground
 
