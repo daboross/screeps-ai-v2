@@ -437,6 +437,8 @@ def random_four_digits():
 
 
 def validate_role(role_obj):
+    if role_obj is None:
+        return
     if not role_obj.role:
         raise __new__(Error("Invalid role: no .role property"))
     if not role_obj.base:
