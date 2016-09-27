@@ -14,7 +14,7 @@ __pragma__('noalias', 'Infinity')
 
 
 # TODO: abstract path movement out of TransportPickup into a higher class.
-class RemoteMiner(TransportPickup):
+class EnergyMiner(TransportPickup):
     def run(self):
         source_flag = self.targets.get_existing_target(self, target_remote_mine_miner)
         if not source_flag:
@@ -115,11 +115,10 @@ class RemoteMiner(TransportPickup):
         return len(path) + _.size(self.creep.body) * 3 + 15
 
 
-profiling.profile_whitelist(RemoteMiner, ["run"])
+profiling.profile_whitelist(EnergyMiner, ["run"])
 
 
-# TODO: Merge duplicated functionality in LocalHauler and RemoteHauler into a super-class
-class RemoteHauler(SpawnFill, TransportPickup):
+class EnergyHauler(SpawnFill, TransportPickup):
     def run(self):
         pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
@@ -168,7 +167,7 @@ class RemoteHauler(SpawnFill, TransportPickup):
         return len(path) * 1.7 + _.size(self.creep.body) * 3 + 15
 
 
-profiling.profile_whitelist(RemoteHauler, ["run"])
+profiling.profile_whitelist(EnergyHauler, ["run"])
 
 
 class RemoteReserve(TransportPickup):

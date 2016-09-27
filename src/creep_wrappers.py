@@ -4,7 +4,7 @@ from roles import colonizing
 from roles import generic
 from roles import military
 from roles import minerals
-from roles import remote_mining
+from roles import mining
 from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
@@ -22,9 +22,9 @@ role_classes = {
     role_link_manager: utility.LinkManager,
     role_builder: building.Builder,
     role_tower_fill: tower_fill.TowerFill,
-    role_miner: remote_mining.RemoteMiner,
-    role_hauler: remote_mining.RemoteHauler,
-    role_remote_mining_reserve: remote_mining.RemoteReserve,
+    role_miner: mining.EnergyMiner,
+    role_hauler: mining.EnergyHauler,
+    role_remote_mining_reserve: mining.RemoteReserve,
     role_defender: military.RoleDefender,
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,

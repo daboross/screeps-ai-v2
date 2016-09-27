@@ -228,7 +228,7 @@ class MiningMind:
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.room_name
-            # TODO: support links 2 blocks away in RemoteMiner.
+            # TODO: support links 2 blocks away in EnergyMiner.
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 1)
         )
 
