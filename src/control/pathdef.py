@@ -239,13 +239,13 @@ class HoneyTrails:
             return False
 
         def set_matrix(stype, pos, planned):
-            if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART:
+            if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART or stype == STRUCTURE_CONTAINER:
                 if stype == STRUCTURE_ROAD and use_roads \
                         and not flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
                     # TODO: this should really just be a method on top of this method to do this
                     if cost_matrix.get(pos.x, pos.y) > 2:
                         if this_room_future_roads:
-                            # Base is 4 for when planning with future road places
+                            # Plains cost is 4 for when planning with future road places
                             if planned:
                                 cost_matrix.set(pos.x, pos.y, cost_matrix.get(pos.x, pos.y) - 1)
                             else:
