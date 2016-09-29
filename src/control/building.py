@@ -21,14 +21,26 @@ building_priorities = {
     STRUCTURE_RAMPART: 5,
     STRUCTURE_TERMINAL: 6,
 }
+rcl_lt4_priorities = {
+    STRUCTURE_SPAWN: 0,
+    STRUCTURE_TOWER: 1,
+    STRUCTURE_EXTENSION: 2,
+    STRUCTURE_ROAD: 3,
+    STRUCTURE_WALL: 11,
+    STRUCTURE_RAMPART: 12,
+}
 default_priority = 10
 
 
-def get_priority(structure_type):
-    if structure_type in building_priorities:
-        return building_priorities[structure_type]
+def get_priority(rcl, structure_type):
+    if rcl < 4:
+        if structure_type in rcl_lt4_priorities:
+            return rcl_lt4_priorities[structure_type]
     else:
-        return default_priority
+        if structure_type in building_priorities:
+            return building_priorities[structure_type]
+
+    return default_priority
 
 
 protect_with_ramparts = [
@@ -107,6 +119,11 @@ class ConstructionMind:
 
         new_sites = []
 
+        no_walls = self.room.rcl < 3 or (
+            self.room.rcl == 3
+            and not _.find(self.room.find(FIND_MY_STRUCTURES), lambda s: s.structureType == STRUCTURE_TOWER)
+        )
+
         for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
                                         lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos,
                                                                                               flag_tuple[0].pos)):
@@ -115,6 +132,8 @@ class ConstructionMind:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
                     self.room.room_name, flag_type
                 ))
+            if no_walls and (structure_type == STRUCTURE_RAMPART or structure_type == STRUCTURE_WALL):
+                continue
             if CONTROLLER_STRUCTURES[structure_type][self.room.rcl] \
                     > (currently_existing[structure_type] or 0) and \
                     not flags.look_for(self.room, flag, flags.MAIN_DESTRUCT,
@@ -126,7 +145,7 @@ class ConstructionMind:
                 currently_existing[structure_type] = (currently_existing[structure_type] or 0) + 1
 
         sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
-                                        lambda s: get_priority(s.structureType) * 50
+                                        lambda s: get_priority(self.room.rcl, s.structureType) * 50
                                                   + movement.distance_room_pos(spawn_pos, s.pos))]
 
         if len(new_sites):
@@ -162,7 +181,7 @@ class ConstructionMind:
                                and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.8)
                                and not flags.look_for(self.room, s.pos, flags.MAIN_DESTRUCT,
                                                       flags.structure_type_to_flag_sub[s.structureType])),
-            lambda s: get_priority(s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
+            lambda s: get_priority(self.room.rcl, s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
 
         self.room.store_cached_property("repair_targets", structures, 50)
         return structures
@@ -450,6 +469,61 @@ class ConstructionMind:
     def re_place_home_ramparts(self):
         self.room.mem.cache.placed_ramparts.dead_at = Game.time + 1
 
+    def find_loc_near_away_from(self, near, away_from):
+        if near.pos:
+            near = near.pos
+        path = PathFinder.search(near, away_from, {
+            'roomCallback': self.hive.honey._get_callback(near, near, {}),
+            'flee': True,
+            'maxRooms': 1,
+        })
+        if path.incomplete:
+            print("[{}][building] WARNING: Couldn't find full path near {} and away from {}!"
+                  .format(self.room.room_name, near, [x.pos for x in away_from]))
+            if not len(path.path):
+                return
+        return path.path[len(path) - 1]
+
+
+    def place_queue_flag_near(self, source):
+        if 'pos' in source:
+            source = source.pos
+        cache = volatile_cache.setmem("npcf") # newly placed calculated flags
+        cache_key = "qf_{}_{}_{}".format(source.x, source.y, source.roomName)
+        if cache.has(cache_key):
+            return
+        away_from = []
+        for source in self.room.sources:
+            away_from.append({'pos': source.pos, 'range': 5})
+        for spawn in self.room.spawns:
+            away_from.append({'pos': spawn.pos, 'range': 4})
+
+        target = self.find_loc_near_away_from(source, away_from)
+        if target.inRangeTo(source, 10):
+            flags.create_flag(target, flags.SOURCE_QUEUE_START)
+        else:
+            print("[{}][building] WARNING: Path away from source to place source queue start flag is too"
+                  " far away! Path took us to {}, {} squares away from {}!"
+                  .format(self.room.room_name, target, target.getRangeTo(source), source))
+        cache.add(cache_key)
+
+    def place_depot_flag(self):
+        cache = volatile_cache.setmem("npcf")
+        cache_key = "depot_{}".format(self.room.room_name)
+        if cache.has(cache_key):
+            return
+        away_from = []
+        for source in self.room.sources:
+            away_from.append({'pos': source.pos, 'range': 5})
+        for spawn in self.room.spawns:
+            away_from.append({'pos': spawn.pos, 'range': 4})
+        for mineral in self.room.find(FIND_MINERALS):
+            away_from.append({'pos': mineral.pos, 'range': 4})
+        for flag in flags.find_flags(self.room, flags.SOURCE_QUEUE_START):
+            away_from.append({'pos': flag.pos, 'range': 4})
+        target = self.find_loc_near_away_from(self.room.spawn, away_from)
+        flags.create_flag(target, flags.DEPOT)
+        cache.add(cache_key)
 
 profiling.profile_whitelist(ConstructionMind, [
     "next_priority_construction_targets",

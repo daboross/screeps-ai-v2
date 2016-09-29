@@ -374,7 +374,10 @@ class Dismantler(MilitaryBase):
             target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
-                    self.recycle_me()
+                    if self.creep.ticksToLive < 300:
+                        self.creep.suicide()
+                    else:
+                        self.recycle_me()
                 else:
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
@@ -384,7 +387,31 @@ class Dismantler(MilitaryBase):
                 if struct:
                     self.creep.dismantle(struct)
                 else:
-                    target.remove()
+                    site = self.room.find_at(FIND_CONSTRUCTION_SITES, target.pos)[0]
+                    if site:
+                        self.basic_move_to(site)
+                    elif target.memory.dismantle_all:
+                        new_target_site = self.room.find_closest_by_range(FIND_HOSTILE_CONSTRUCTION_SITES, target.pos)
+                        new_structure = self.room.find_closest_by_range(
+                            FIND_STRUCTURES, target.pos, lambda s: s.structureType != STRUCTURE_ROAD
+                                                                   and s.structureType != STRUCTURE_CONTAINER
+                                                                   and s.structureType != STRUCTURE_CONTROLLER
+                                                                   and s.structureType != STRUCTURE_EXTRACTOR
+                                                                   and s.structureType != STRUCTURE_STORAGE
+                                                                   and s.structureType != STRUCTURE_TERMINAL)
+                        if new_structure and (not new_target_site or
+                                                      movement.distance_squared_room_pos(target, new_target_site)
+                                                      > movement.distance_squared_room_pos(target, new_structure)):
+                            new_pos = new_structure.pos
+                        elif new_target_site:
+                            new_pos = new_target_site.pos
+                        else:
+                            target.remove()
+                            return
+                        target.setPosition(new_pos)
+                        self.move_to(new_pos)
+                    else:
+                        target.remove()
             else:
                 if self.pos.roomName == target.pos.roomName:
                     result = self.creep.moveTo(target, {"ignoreDestructibleStructures": True})
@@ -396,7 +423,10 @@ class Dismantler(MilitaryBase):
             target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
-                    self.recycle_me()
+                    if self.creep.ticksToLive < 300:
+                        self.creep.suicide()
+                    else:
+                        self.recycle_me()
                 else:
                     self.log("Dismantler has no healer target!")
                     self.go_to_depot()
@@ -437,7 +467,10 @@ class PowerAttack(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
         if not target:
             if len(flags.find_flags(self.home, flags.RAID_OVER)):
-                self.recycle_me()
+                if self.creep.ticksToLive < 300:
+                    self.creep.suicide()
+                else:
+                    self.recycle_me()
             else:
                 self.log("PowerAttack has no target!")
                 self.go_to_depot()
@@ -446,7 +479,10 @@ class PowerAttack(MilitaryBase):
         if self.memory.healing:
             if not heal_target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
-                    self.recycle_me()
+                    if self.creep.ticksToLive < 300:
+                        self.creep.suicide()
+                    else:
+                        self.recycle_me()
                 else:
                     self.log("PowerAttack has no healer target!")
                     self.go_to_depot()

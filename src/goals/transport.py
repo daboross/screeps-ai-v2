@@ -220,8 +220,8 @@ class TransportPickup(RoleBase):
             else:
                 self.memory.off_path_for += 1
                 # if self.memory.off_path_for > 10:
-                #     self.log("Lost the path from {} to {}! Pos: {}, path: \n{}".format(
-                #         origin, target, self.pos, JSON.stringify(path)))
+                #     self.log("Lost the path from {} to {}! Pos: {}, retargetting to: {}".format(
+                #         origin, target, self.pos, new_target))
         elif result != OK:
             self.log("Unknown result from follow_energy_path: {}".format(result))
         else:

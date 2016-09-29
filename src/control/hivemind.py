@@ -1062,6 +1062,12 @@ class RoomMind:
                     self._building_paused = False
         return self._building_paused
 
+    def overprioritize_building(self):
+        return (self.room.energyCapacityAvailable < 550 or not self.spawn) \
+               and len(self.building.next_priority_construction_targets()) \
+               and self.get_open_source_spaces() < len(self.sources) * 2 \
+               and (self.room.controller.ticksToDowngrade > 100)
+
     def _any_closest_to_me(self, flag_type):
         return _.find(
             flags.find_flags_global(flag_type),
@@ -1071,12 +1077,8 @@ class RoomMind:
     def conducting_siege(self):
         if self._conducting_siege is None:
             self._conducting_siege = Game.cpu.bucket > 4500 and not not (
-                self._any_closest_to_me(flags.ATTACK_DISMANTLE)
-                or (
-                    (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK))
-                    and self._any_closest_to_me(flags.TD_H_H_STOP)
-                    and self._any_closest_to_me(flags.TD_H_D_STOP)
-                )
+                (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK))
+                and self._any_closest_to_me(flags.TD_H_H_STOP) and self._any_closest_to_me(flags.TD_H_D_STOP)
             )
         return self._conducting_siege
 
@@ -1084,78 +1086,28 @@ class RoomMind:
         if not self.my:
             print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.room_name))
             return 0
-        spawning_energy = self.room.energyCapacityAvailable
         sources = len(self.sources)
 
         if sources <= 1:
-            min_wm = 25
-            extra_wm = 10
-            min_energy = 550  # rcl 2, fully built
-            min_rcl = 2
-            extra_rcl = 0
             if self.rcl < 7:
-                max_via_rcl2 = 3
+                return 3
             elif self.rcl == 7:
-                max_via_rcl2 = 4
-            else:
+                return 4
+            elif self.mining_ops_paused():
                 # We only want to *actually* pause them at RCL8:
-                if self.mining_ops_paused():
-                    max_via_rcl2 = 0
-                else:
-                    max_via_rcl2 = 3
+                return 0
+            else:
+                return 3
         else:
-            min_wm = 40  # Around all roles built needed for an rcl 3 room!
-            extra_wm = 10
-            min_energy = 800  # rcl 3, fully built
-            min_rcl = 3
-            extra_rcl = 1
             if self.rcl < 7:
-                max_via_rcl2 = 2
+                return 2
             elif self.rcl == 7:
-                max_via_rcl2 = 3
-            else:
+                return 4
+            elif self.mining_ops_paused():
                 # We only want to *actually* pause them at RCL8:
-                if self.mining_ops_paused():
-                    return 0
-                else:
-                    max_via_rcl2 = 2
-
-        if self.work_mass < min_wm:
-            return 0
-        else:
-            max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
-        if spawning_energy < min_energy:
-            return 0
-        if self.rcl < min_rcl:
-            return 0
-        else:
-            max_via_rcl = math.floor((self.rcl - min_rcl) / extra_rcl) + 1
-
-        return min(max_via_wm, max_via_rcl, max_via_rcl2)
-
-    def get_max_local_miner_count(self):
-        spawning_energy = self.room.energyCapacityAvailable
-        sources = len(self.sources)
-
-        min_energy = 550  # rcl 2, fully built
-        if sources <= 1:
-            min_wm = 7
-            extra_wm = 10
-        else:
-            min_wm = 15
-            extra_wm = 10
-
-        if self.full_storage_use:  # Just make them anyways, it'll be fine - we have stored energy.
-            max_via_wm = Infinity
-        elif self.work_mass < min_wm:
-            max_via_wm = 0
-        else:
-            max_via_wm = math.floor((self.work_mass - min_wm) / extra_wm) + 1
-        if spawning_energy < min_energy:
-            max_via_energy = 0
-        else:
-            max_via_energy = Infinity
-        return min(max_via_wm, max_via_energy)
+                return 0
+            else:
+                return 2
 
     def get_max_sane_wall_hits(self):
         """
@@ -1165,36 +1117,6 @@ class RoomMind:
 
     def get_min_sane_wall_hits(self):
         return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
-
-    def get_target_local_miner_count(self):
-        """
-        :rtype: int
-        """
-        if self._ideal_big_miner_count is None:
-            miner_count = self.get_max_local_miner_count()
-            if miner_count > 0:
-                self._ideal_big_miner_count = min(len(self.sources), miner_count)
-            else:
-                self._ideal_big_miner_count = 0
-        return self._ideal_big_miner_count
-
-    def get_target_local_hauler_mass(self):
-        """
-        :rtype: int
-        """
-        # TODO: Merge local and remote hauler spawning!
-        if self._target_local_hauler_carry_mass is None:
-            if self.trying_to_get_full_storage_use:
-                hauler_max_size = max(5, min(9, spawning.max_sections_of(self, creep_base_hauler)))
-                total_mass = self.get_target_local_miner_count() * hauler_max_size
-                for source in self.sources:
-                    energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
-                    if energy >= 1000:
-                        total_mass += energy / 200.0
-                self._target_local_hauler_carry_mass = math.floor(total_mass)
-            else:
-                self._target_local_hauler_carry_mass = 0
-        return self._target_local_hauler_carry_mass
 
     def get_target_link_manager_count(self):
         """
@@ -1271,12 +1193,14 @@ class RoomMind:
                 return 0
             else:
                 return 3
+        elif self.rcl < 3:
+            return len(self.sources) * spawning.max_sections_of(self, creep_base_worker)
         else:
-            return spawning.ceil_sections(self.get_target_total_spawn_fill_mass(), creep_base_worker)
+            return math.floor(self.get_target_total_spawn_fill_mass() / 2)
 
     def get_target_spawn_fill_mass(self):
         if self._target_spawn_fill_mass is None:
-            if self.get_target_local_miner_count():
+            if self.full_storage_use or self.are_all_big_miners_placed:
                 base = self.get_variable_base(role_spawn_fill)
                 # spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
                 tower_fill = self.carry_mass_of(role_tower_fill)
@@ -1284,22 +1208,17 @@ class RoomMind:
                 total_mass = spawning.ceil_sections(self.get_target_total_spawn_fill_mass(), base)
                 # Spawn fill backup used to be here, but they now completely shift to builders once all spawn fill have
                 # been created.
-                regular_count = max(0, total_mass - tower_fill)
-                if self.trying_to_get_full_storage_use:
-                    self._target_spawn_fill_mass = regular_count
-                else:
-                    extra_count = 0
-                    for source in self.sources:
-                        energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
-                        extra_count += energy / 200.0
-                    self._target_spawn_fill_mass = spawning.ceil_sections(regular_count + extra_count, base)
+                self._target_spawn_fill_mass = max(0, total_mass - tower_fill)
             else:
                 self._target_spawn_fill_mass = 0
         return self._target_spawn_fill_mass
 
     def get_target_total_spawn_fill_mass(self):
         if self._total_needed_spawn_fill_mass is None:
-            self._total_needed_spawn_fill_mass = math.pow(self.room.energyCapacityAvailable / 50.0 * 200, 0.3)
+            if self.room.energyCapacityAvailable < 550 and self.get_open_source_spaces() < len(self.sources) * 2:
+                self._total_needed_spawn_fill_mass = 3
+            else:
+                self._total_needed_spawn_fill_mass = math.pow(self.room.energyCapacityAvailable / 50.0 * 200, 0.3)
         return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self):
@@ -1315,7 +1234,10 @@ class RoomMind:
                    and (thing.structureType != STRUCTURE_ROAD or thing.hits <= thing.hitsMax * 0.3)
 
         if self.rcl < 8:
-            worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
+            if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
+                worker_size = 1
+            else:
+                worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
         else:
             worker_size = max(5, spawning.max_sections_of(self, creep_base_worker))
         if not self.building_paused():
@@ -1334,6 +1256,17 @@ class RoomMind:
                     return worker_size
         return 0
 
+    def get_open_source_spaces(self):
+        if 'oss' not in self.mem:
+            oss = 0
+            for source in self.sources:
+                for x in range(source.pos.x - 1, source.pos.x + 2):
+                    for y in range(source.pos.y - 1, source.pos.y + 2):
+                        if movement.is_block_empty(self, x, y):
+                            oss += 1
+            self.mem.oss = oss
+        return self.mem.oss
+
     def get_target_upgrader_work_mass(self):
         base = self.get_variable_base(role_upgrader)
         if base is creep_base_full_upgrader:
@@ -1343,6 +1276,8 @@ class RoomMind:
 
         if self.upgrading_paused():
             wm = 1
+        elif self.overprioritize_building():
+            return 0
         elif self.rcl == 8:
             if base == creep_base_full_upgrader:
                 return 7.5
@@ -1350,8 +1285,15 @@ class RoomMind:
                 return 15
         elif self.mining_ops_paused():
             wm = worker_size * 4
+        elif self.trying_to_get_full_storage_use:
+            return 4
+        elif self.room.energyCapacityAvailable < 550:
+            wm = self.get_open_source_spaces() * worker_size
+            for source in self.sources:
+                energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                wm += energy / 200.0
         else:
-            wm = min(self.rcl, worker_size)
+            wm = len(self.sources) * 2 * worker_size
         if self.full_storage_use:
             if Memory.hyper_upgrade:
                 extra = min(_.sum(self.room.storage.store) - 100000, self.room.storage.store.energy - 50000)
@@ -1449,7 +1391,7 @@ class RoomMind:
             return None
 
     def _next_needed_local_mining_role(self):
-        if spawning.emergency_conditions(self):
+        if spawning.would_be_emergency(self):
             if not self.full_storage_use and not self.are_all_big_miners_placed:
                 next_role = self._check_role_reqs([
                     [role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, True],
@@ -1462,6 +1404,11 @@ class RoomMind:
             ])
             if next_role is not None:
                 return next_role
+
+        # if self.room.energyCapacityAvailable < 550:
+        #     return self._check_role_reqs([
+        #         [role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, True],
+        #     ])
 
         next_role = self._check_role_reqs([
             [role_defender, lambda: self.get_target_simple_defender_count(True)],
@@ -1484,7 +1431,7 @@ class RoomMind:
 
         if self.room.controller.ticksToDowngrade < 2000:
             upgrader = self._check_role_reqs([
-                [role_upgrader, self.get_target_upgrader_work_mass()]
+                [role_upgrader, self.get_target_upgrader_work_mass]
             ])
             if upgrader is not None:
                 return upgrader
@@ -1513,7 +1460,8 @@ class RoomMind:
             role_spawn_fill_backup:
                 lambda: fit_num_sections(self.get_target_spawn_fill_backup_carry_mass()
                                          if spawning.using_lower_energy_section(self, creep_base_worker)
-                                         else (self.get_target_spawn_fill_backup_carry_mass() / 3),
+                                         else spawning.ceil_sections(self.get_target_spawn_fill_backup_carry_mass() / 3,
+                                                                     creep_base_worker),
                                          spawning.max_sections_of(self, creep_base_worker)),
             role_link_manager:
                 lambda: min(self.get_target_link_manager_count() * 8,
@@ -1537,7 +1485,7 @@ class RoomMind:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
-            role_builder: lambda: max(3, min(8, spawning.max_sections_of(self, creep_base_worker))),
+            role_builder: lambda: min(8, spawning.max_sections_of(self, creep_base_worker)),
             role_mineral_miner:
                 lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
             role_mineral_hauler:
@@ -1660,6 +1608,17 @@ class RoomMind:
 
         return None
 
+    def next_cheap_dismantle_goal(self):
+        if self.conducting_siege():
+            return
+
+        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE,
+                                                 role_simple_dismantle,
+                                                 creep_base_dismantler,
+                                                 creep_base_full_move_dismantler)
+        if role_obj:
+            return role_obj
+
     def reset_planned_role(self):
         del self.mem.next_role
 
@@ -1672,6 +1631,7 @@ class RoomMind:
             self.mining.next_mining_role,
             self._next_tower_breaker_role,
             self._next_needed_local_role,
+            self.next_cheap_dismantle_goal,
         ]
         next_role = None
         for func in funcs_to_try:

@@ -12,8 +12,19 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 1, "reusePath": 13}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": 13, "ignoreRoads": True}
+
+def find_reuse_path_value():
+    if Game.cpu.limit <= 10:
+        return 23
+    elif Game.gcl.level >= _.sum(Game.rooms, lambda r: _.get(r, "controller.my", False)) * 2:
+        return 3
+    else:
+        return 13
+
+
+_REUSE = find_reuse_path_value()
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE, "ignoreRoads": True}
 
 
 class RoleBase:
@@ -235,6 +246,10 @@ class RoleBase:
 
         if not queue_flag or queue_flag.pos.getRangeTo(target) > 10:
             self.log("WARNING! Couldn't find queue flag of type {} close to {}.".format(queue_flag_type, target))
+            if queue_flag_type == flags.SOURCE_QUEUE_START:
+                room = self.hive.get_room(target.roomName)
+                if room and room.my:
+                    room.building.place_queue_flag_near(target)
             return self.move_to(target, False, full_defined_path)
         if self.creep.pos.isEqualTo(queue_flag.pos):
             self.last_checkpoint = queue_flag.pos
@@ -430,6 +445,7 @@ class RoleBase:
             self.go_to_depot()
             self.finished_energy_harvest()
             return False
+
         if not self.creep.pos.isNearTo(source.pos):
             self.move_to(source, False, follow_defined_path)
             return False
@@ -473,6 +489,7 @@ class RoleBase:
             depot = depots[0].pos
         else:
             self.log("WARNING: No depots found in {}!".format(self.home.room_name))
+            self.home.building.place_depot_flag()
             depots = flags.find_flags_global(flags.DEPOT)
             if len(depots):
                 depot = depots[0].pos
@@ -614,6 +631,78 @@ class RoleBase:
                 return True
         return False
 
+    def _try_force_move_to(self, x, y, creep_cond=lambda x: True):
+        """
+        Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
+        (copied from movement.py)
+        """
+        if x > 49 or y > 49 or x < 0 or y < 0:
+            return False
+        if Game.map.getTerrainAt(x, y, self.room.room.name) == 'wall':
+            return False
+        for struct in self.room.find_at(FIND_STRUCTURES, x, y):
+            if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+                    and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+                return False
+        for struct in self.room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
+            if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+                    and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+                return False
+        creeps = self.room.find_at(FIND_CREEPS, x, y)
+        if len(creeps):
+            other = creeps[0]
+            if not creep_cond(other):
+                return False
+            other.move(pathdef.get_direction(self.pos.x - x, self.pos.y - y))
+        self.creep.move(pathdef.get_direction(x - self.pos.x, y - self.pos.y))
+        return True
+
+    def force_basic_move_to(self, target, creep_cond=lambda x: True):
+        """
+        Tries to do a basic move in the direction, forcing place switching with an creep for which creep_cond(creep) returns True.
+        :param target: The location (pos or object with pos property) to move to
+        :param creep_cond: The condition with which this creep will take the place of another creep (default is "lambda x: True")
+        :return: True if moved, False otherwise.
+        """
+        if self.creep.fatigue > 0:
+            return True
+        if target.pos:
+            target = target.pos
+        if self.pos.isNearTo(target):
+            return True
+        adx = target.x - self.pos.x
+        ady = target.y - self.pos.y
+        dx = Math.sign(adx)
+        dy = Math.sign(ady)
+        if dx and dy:
+            if self._try_force_move_to(self.pos.x + dx, self.pos.y + dy, creep_cond):
+                return True
+            elif adx == 1 and ady == 1:
+                return False
+            elif self._try_force_move_to(self.pos.x + dx, self.pos.y, creep_cond):
+                return True
+            elif self._try_force_move_to(self.pos.x, self.pos.y + dy, creep_cond):
+                return True
+        elif dx:
+            if self._try_force_move_to(self.pos.x + dx, self.pos.y, creep_cond):
+                return True
+            elif adx == 1:
+                return False
+            elif self._try_force_move_to(self.pos.x + dx, self.pos.y + 1, creep_cond):
+                return True
+            elif self._try_force_move_to(self.pos.x + dx, self.pos.y - 1, creep_cond):
+                return True
+        elif dy:
+            if self._try_force_move_to(self.pos.x, self.pos.y + dy, creep_cond):
+                return True
+            elif ady == 1:
+                return False
+            elif self._try_force_move_to(self.pos.x + 1, self.pos.y + dy, creep_cond):
+                return True
+            elif self._try_force_move_to(self.pos.x - 1, self.pos.y + dy, creep_cond):
+                return True
+        return False
+
     def report(self, task_array, *args):
         if not Memory.meta.quiet or task_array[1]:
             time = Game.time
@@ -636,7 +725,7 @@ class RoleBase:
             print("[{}][{}] {}".format(self.home.room_name, self.name, format_string))
 
     def should_pickup(self, resource_type=None):
-        return not resource_type or resource_type == RESOURCE_ENERGY
+        return resource_type is None or resource_type == RESOURCE_ENERGY
 
     def toString(self):
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.room_name)

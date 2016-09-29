@@ -14,9 +14,8 @@ def reassign_room_roles(room):
     """
     :type room: control.hivemind.RoomMind
     """
-    if room.spawn and room.role_count(role_spawn_fill) + room.role_count(role_spawn_fill_backup) \
-            + room.role_count(role_tower_fill) < 1 \
-            and room.role_count(role_miner) < room.get_target_local_miner_count():
+    if room.spawn and not room.role_count(role_spawn_fill) and not room.role_count(role_spawn_fill_backup) \
+            and not room.role_count(role_tower_fill) < 1:
         for creep in room.creeps:
             memory = creep.memory
             base = spawning.find_base_type(creep)

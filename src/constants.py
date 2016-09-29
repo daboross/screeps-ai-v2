@@ -6,6 +6,7 @@ __pragma__('noalias', 'Infinity')
 
 # Creep base parts
 creep_base_worker = "worker"
+creep_base_1500miner = "fast_small_miner"
 creep_base_3000miner = "fast_big_miner"
 creep_base_4500miner = "faster_bigger_miner"
 creep_base_carry3000miner = "fast_miner_with_carry"
@@ -45,6 +46,7 @@ target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
 target_single_flag2 = "sccf2"  # single creep, closest flag
+target_refill = "refill"
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -93,6 +95,7 @@ role_bases = {
 
 default_roles = {
     creep_base_worker: role_spawn_fill_backup,
+    creep_base_1500miner: role_miner,
     creep_base_3000miner: role_miner,
     creep_base_4500miner: role_miner,
     creep_base_carry3000miner: role_miner,

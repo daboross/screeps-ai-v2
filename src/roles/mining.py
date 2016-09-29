@@ -2,9 +2,9 @@ import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
     role_hauler, role_miner, role_recycling, role_upgrader
+from goals.refill import Refill
 from goals.transport import TransportPickup
 from role_base import RoleBase
-from roles.spawn_fill import SpawnFill
 from tools import profiling
 from utilities.screeps_constants import *
 
@@ -34,7 +34,7 @@ class EnergyMiner(TransportPickup):
                                                      or self.pos.x < 10 or self.pos.y < 10):
             self.follow_energy_path(source_flag, self.home.spawn)
             return
-        if not self.creep.pos.isNearTo(source_flag.pos):
+        if self.creep.pos.getRangeTo(source_flag.pos) > 2:
             if self.pos.roomName == source_flag.pos.roomName:
                 if self.pos.getRangeTo(source_flag.pos) <= 5:
                     other_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
@@ -43,10 +43,21 @@ class EnergyMiner(TransportPickup):
                     if other_miner:
                         other_miner.suicide()
                         del self.memory._move
-                self.creep.moveTo(source_flag, {'ignoreCreeps': True})
+                if self.memory.mmni:
+                    self.creep.moveTo(source_flag)
+                else:
+                    self.creep.moveTo(source_flag, {'ignoreCreeps': True})
+                serialized_pos = self.pos.x | (self.pos.y << 6)
+                if self.memory.last_pos == serialized_pos:
+                    self.creep.moveTo(source_flag, {'reusePath': 0})
+                    self.memory.mmni = True
+                self.memory.last_pos = serialized_pos
             else:
                 self.follow_energy_path(self.home.spawn, source_flag)
             self.report(speech.remote_miner_moving)
+            return False
+        elif not self.creep.pos.isNearTo(source_flag.pos):
+            self.force_basic_move_to(source_flag.pos, lambda c: c.memory.role != role_miner)
             return False
         if 'container_pos' not in self.memory:
             container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
@@ -60,10 +71,16 @@ class EnergyMiner(TransportPickup):
                     self.memory.container_pos = biggest_pile.pos.x | (biggest_pile.pos.y << 6)
                 else:
                     self.memory.container_pos = None
-        this_pos_to_check = self.pos.x | self.pos.y << 6  # Transcrypt does this incorrectly in an if statement.
-        if self.memory.container_pos and this_pos_to_check != self.memory.container_pos:
-            self.basic_move_to(__new__(RoomPosition(self.memory.container_pos & 0x3F,
-                                                    self.memory.container_pos >> 6 & 0x3F, self.pos.roomName)))
+        if self.memory.container_pos:
+            this_pos_to_check = self.pos.x | self.pos.y << 6  # Transcrypt does this incorrectly in an if statement.
+            if this_pos_to_check != self.memory.container_pos:
+                pos = __new__(RoomPosition(self.memory.container_pos & 0x3F,
+                                           self.memory.container_pos >> 6 & 0x3F, self.pos.roomName))
+                if _.find(self.room.find_at(FIND_MY_CREEPS, pos), lambda c: c.memory.role == role_miner
+                and c.ticksToLive > 15):
+                    self.memory.container_pos = self.pos.x | self.pos.y << 6
+                else:
+                    self.basic_move_to(pos)
 
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
@@ -118,7 +135,7 @@ class EnergyMiner(TransportPickup):
 profiling.profile_whitelist(EnergyMiner, ["run"])
 
 
-class EnergyHauler(SpawnFill, TransportPickup):
+class EnergyHauler(TransportPickup, Refill):
     def run(self):
         pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
@@ -152,9 +169,9 @@ class EnergyHauler(SpawnFill, TransportPickup):
             else:
                 self.log("WARNING: Remote hauler in room with no storage nor spawn!")
                 return
-            if fill == self.home.spawn and self.pos.roomName == fill.pos.roomName \
-                    and not self.memory.filling:
-                return SpawnFill.run(self)
+        if fill == self.home.spawn and self.pos.roomName == fill.pos.roomName \
+                and not self.memory.filling:
+            return Refill.refill_creeps(self)
 
         return self.transport(pickup, fill)
 

@@ -66,6 +66,7 @@ class TargetMind:
             target_closest_energy_site: self._find_closest_deposit_site,
             target_single_flag: self._find_closest_flag,
             target_single_flag2: self._find_closest_flag,
+            target_refill: self._find_refill_target,
         }
 
     def __get_targets(self):
@@ -98,7 +99,8 @@ class TargetMind:
     reverse_targets = property(__get_reverse_targets, __set_reverse_targets)
 
     def workforce_of(self, ttype, target):
-        return (self.targets[ttype][target] and self.targets_workforce[ttype][target]) or 0
+        return (self.targets[ttype] and self.targets[ttype][target]
+                and self.targets_workforce[ttype] and self.targets_workforce[ttype][target]) or 0
 
     def creeps_now_targeting(self, ttype, target_id):
         return (ttype in self.reverse_targets and self.reverse_targets[ttype][target_id]) or []
@@ -301,7 +303,7 @@ class TargetMind:
         best_source = None
         for source in creep.home.find(FIND_SOURCES):
             if not has_work and not _.find(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
-                                  lambda c: c.memory.role == role_miner):
+                                           lambda c: c.memory.role == role_miner):
                 continue
             energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
             distance = movement.distance_room_pos(source.pos, creep.pos)
@@ -603,6 +605,61 @@ class TargetMind:
                     closest_distance = distance
                     closest_flag = flag_id
         return closest_flag
+
+    def _find_refill_target(self, creep):
+        """
+        :type creep: role_base.RoleBase
+        """
+        best_priority = Infinity
+        best_id = None
+        stealing_from = None
+        structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
+                              lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN
+                                         or s.structureType == STRUCTURE_CONTAINER)
+                                        and s.energy < s.energyCapacity and s.isActive())
+        creeps = _.filter(creep.home.find(FIND_MY_CREEPS),
+                          lambda c: (c.memory.role == role_upgrader or c.memory.role == role_builder)
+                                    and c.carry.energy < c.carryCapacity)
+        for structure in structures.concat(creeps):
+            structure_id = structure.id
+            if volatile_cache.mem("extensions_filled").has(structure_id):
+                continue
+            current_carry = self.workforce_of(target_spawn_deposit, structure_id) \
+                            + self.workforce_of(target_refill, structure_id)
+            capacity = (structure.energyCapacity or structure.carryCapacity or structure.storeCapacity) \
+                       - ((structure.store and structure.store.energy)
+                          or (structure.carry and structure.carry.energy)
+                          or structure.energy or 0)
+            if capacity <= 1:
+                continue
+            squared_distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+            distance = math.sqrt(squared_distance)
+            priority = distance - capacity
+            if structure.memory and not structure.memory.filling:
+                priority -= 10
+            if priority < best_priority:
+                max = capacity / 50
+                if not current_carry or current_carry < max:
+                    best_priority = priority
+                    best_id = structure_id
+                    stealing_from = None
+                else:
+                    targeting = self.reverse_targets[target_refill][structure_id]
+                    if len(targeting):
+                        for name in targeting:
+                            if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                    Game.creeps[name].pos, structure.pos) > squared_distance* 2.25:
+                                # If we're at least 1.5x closer than them, let's steal their place.
+                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
+                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                                best_priority = priority
+                                best_id = structure_id
+                                stealing_from = name
+                                break
+        if stealing_from is not None:
+            self._unregister_targeter(target_refill, stealing_from)
+
+        return best_id
 
 
 profiling.profile_whitelist(TargetMind, [

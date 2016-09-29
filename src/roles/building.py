@@ -1,8 +1,6 @@
-import math
-
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
-    role_builder, target_destruction_site, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS, role_upgrader
+    role_builder, target_destruction_site, role_upgrader
 from control import pathdef
 from role_base import RoleBase
 from roles import upgrading
@@ -37,6 +35,13 @@ class Builder(upgrading.Upgrader):
         if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.filling = False
             self.targets.untarget_all(self)
+            del self.memory.la
+            if self.home.room.controller.ticksToDowngrade < 500 \
+                    and not self.home.role_count(role_upgrader) \
+                    and self.memory.role == role_builder:
+                self.memory.role = role_upgrader
+                self.home.register_to_role(self)  # TODO: "unregister_from_role" func
+                return False
         elif not self.memory.filling and self.creep.carry.energy <= 0:
             # don't do this if we don't have targets
             self.targets.untarget_all(self)
@@ -87,7 +92,7 @@ class Builder(upgrading.Upgrader):
             elif sc_last_action == "b":
                 target = self.targets.get_existing_target(self, target_big_repair)
                 if target:
-                    return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+                    return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
                 else:
                     del self.memory.la
             else:
@@ -102,14 +107,14 @@ class Builder(upgrading.Upgrader):
                 target = self.targets.get_existing_target(self, target_big_repair)
                 if target:
                     self.memory.la = "b"
-                    return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+                    return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
 
             if self.memory.building_walls_at:
                 walls = self.room.find_at(FIND_STRUCTURES, self.memory.building_walls_at & 0x3F,
                                           (self.memory.building_walls_at >> 6) & 0x3F)
                 wall = _.find(walls, lambda s: s.structureType == STRUCTURE_WALL
                                                or s.structureType == STRUCTURE_RAMPART)
-                del self.memory.building_walls
+                del self.memory.building_walls_at
                 if wall:
                     self.targets._register_new_targeter(target_repair, self.name, wall.id)
                     return self.execute_repair_target(wall, self.home.min_sane_wall_hits, target_repair)
@@ -124,9 +129,7 @@ class Builder(upgrading.Upgrader):
 
             target = self.get_new_repair_target(self.home.max_sane_wall_hits, target_big_repair)
             if target:
-                self.memory.last_big_repair_max_hits = min(self.home.max_sane_wall_hits,
-                                                           math.ceil(target.hits / 50000) * 50000)
-                return self.execute_repair_target(target, self.memory.last_big_repair_max_hits, target_big_repair)
+                return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
 
             # Old code which was being possible inefficient when there were only high-hits targets left
             # Note that since this code was last active, TargetMind._find_new_big_repair_site has been updated
@@ -146,22 +149,6 @@ class Builder(upgrading.Upgrader):
             self.memory.role = role_upgrader
             return False
 
-    def build_swamp_roads(self):
-        if self.creep.carry.energy > 0:
-            repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
-                            lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
-            if repair:
-                result = self.creep.repair(repair)
-                if result != OK:
-                    self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
-            else:
-                build = _.find(self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos),
-                               lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
-                if build:
-                    result = self.creep.build(build)
-                    if result != OK:
-                        self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
-
     def get_new_repair_target(self, max_hits, ttype):
         target = self.targets.get_new_target(self, ttype, max_hits)
         if target and (target.hits >= max_hits or target.hits > target.maxHits):
@@ -177,11 +164,11 @@ class Builder(upgrading.Upgrader):
     def execute_repair_target(self, target, max_hits, ttype):
         self.report(speech.building_repair_target, target.structureType)
         if target.hits >= target.hitsMax or target.hits >= max_hits * 2:
-            self.log("Untargeting {}: hits: {}, hitsMax: {}, max_hits: {}", target, target.hits, target.hitsMax,
-                     max_hits)
+            self.log("Untargeting {}: hits: {}, hitsMax: {}, max_hits: {} type: {}", target, target.hits,
+                     target.hitsMax,
+                     max_hits, ttype)
             self.home.building.refresh_repair_targets()
             self.targets.untarget(self, ttype)
-            del self.memory.last_big_repair_max_hits
             return False
         if not self.creep.pos.inRangeTo(target.pos, 3):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
@@ -195,7 +182,6 @@ class Builder(upgrading.Upgrader):
             self.move_around_when_ok(target)
         elif result == ERR_INVALID_TARGET:
             self.targets.untarget(self, ttype)
-            del self.memory.last_big_repair_max_hits
             self.home.building.refresh_repair_targets()
             return False
         else:

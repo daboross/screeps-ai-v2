@@ -17,6 +17,7 @@ initial_section = {
     creep_base_goader: [ATTACK, MOVE, TOUGH],
     creep_base_full_move_goader: [ATTACK, MOVE],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
+    creep_base_1500miner: [WORK, WORK, WORK],
     creep_base_3000miner: [WORK, WORK, WORK, WORK, WORK],
     creep_base_4500miner: [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK],
     creep_base_carry3000miner: [CARRY, WORK, WORK, WORK, WORK, WORK],
@@ -31,6 +32,7 @@ scalable_sections = {
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [CARRY, MOVE, ATTACK],
+    creep_base_1500miner: [MOVE],
     creep_base_3000miner: [MOVE],
     creep_base_4500miner: [MOVE],
     creep_base_carry3000miner: [MOVE],
@@ -38,7 +40,8 @@ scalable_sections = {
     creep_base_full_move_goader: [CARRY],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
     creep_base_full_move_healer: [MOVE, HEAL],
-    creep_base_dismantler: [WORK, MOVE],
+    creep_base_dismantler: [WORK, WORK, MOVE],
+    creep_base_full_move_dismantler: [WORK, MOVE],
     creep_base_full_upgrader: [MOVE, WORK, WORK],
     creep_base_scout: [MOVE],
     creep_base_mammoth_miner: [MOVE, WORK, WORK, WORK, WORK],
@@ -56,12 +59,25 @@ half_sections = {
     creep_base_goader: [TOUGH, MOVE],
     creep_base_half_move_healer: [MOVE, HEAL],
     creep_base_power_attack: [MOVE, ATTACK],
+    creep_base_dismantler: [MOVE, WORK],
 }
 
 low_energy_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
     creep_base_full_upgrader: [MOVE, CARRY, WORK],
 }
+
+low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4500miner]
+
+
+def would_be_emergency(room):
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    spawn_mass = room.carry_mass_of(role_spawn_fill) \
+                 + room.carry_mass_of(role_spawn_fill_backup) \
+                 + room.carry_mass_of(role_tower_fill)
+    return spawn_mass <= 0 or (spawn_mass < room.get_target_total_spawn_fill_mass() / 2)
 
 
 def emergency_conditions(room):
@@ -75,7 +91,7 @@ def emergency_conditions(room):
                      + room.carry_mass_of(role_spawn_fill_backup) \
                      + room.carry_mass_of(role_tower_fill)
         emergency = spawn_mass <= 0 or (
-            spawn_mass < room.get_target_spawn_fill_mass() / 2
+            spawn_mass < room.get_target_total_spawn_fill_mass() / 2
             and room.room.energyAvailable >= 100 * spawn_mass
         )
     else:
@@ -112,7 +128,7 @@ def run(room, spawn):
         return
     role = role_obj.role
     base = role_obj.base
-    num_sections = role_obj.num_sections or Infinity
+    num_sections = role_obj.num_sections or 0
     replacing = role_obj.replacing
 
     ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
@@ -134,25 +150,32 @@ def run(room, spawn):
     num_sections -= num_sections % 1  # This is so as to only create expected behavior with half-sections
 
     if num_sections is not None and base in scalable_sections:
-        if num_sections == 0:
-            print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!")
+        if num_sections <= 0 or not num_sections:  # Catch NaN here too?
+            print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!"
+                  .format(room.room_name, base))
             num_sections = 1
             role_obj.num_sections = 1
         cost = cost_of_sections(base, num_sections, energy)
+        if not cost:
+            print("[{}][spawning] ERROR: Unknown cost retrieved from cost_of_sections({}, {}, {}): {}"
+                  .format(room.room_name, base, num_sections, energy, cost))
+            cost = Infinity
         if cost > energy:
-            # Do
             new_size = max_sections_of(room, base)
             if new_size <= 0:
-                print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1 section"
-                      "of!".format(room.room_name, base))
-                return
+                if base in low_energy_dynamic:
+                    cost = energy
+                else:
+                    print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1"
+                          " section of!".format(room.room_name, base))
+                    return
             else:
                 print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
                       .format(room.room_name, num_sections, new_size))
-            # Since the literal memory object is returned, this mutation will stick for until this creep has been
-            # spawned, or the target creep has been refreshed
-            num_sections = role_obj.num_sections = new_size
-            cost = cost_of_sections(base, num_sections, energy)
+                # Since the literal memory object is returned, this mutation will stick for until this creep has been
+                # spawned, or the target creep has been refreshed
+                num_sections = role_obj.num_sections = new_size
+                cost = cost_of_sections(base, num_sections, energy)
         energy = cost
 
     if filled < energy:
@@ -161,34 +184,54 @@ def run(room, spawn):
 
     descriptive_level = None
 
-    if base is creep_base_3000miner:
+    if base is creep_base_1500miner:
+        parts = []
+        if energy < 350:
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            num_work = math.floor((energy - 50) / 100)
+            num_move = math.floor((energy - num_work * 100) / 50)
+        else:
+            num_move = num_sections or 3
+            num_work = 3
+            for i in range(0, num_move):
+                parts.append(MOVE)
+            for i in range(0, num_work):
+                parts.append(WORK)
+        descriptive_level = "work:{}-move:{}".format(num_work, num_move)
+    elif base is creep_base_3000miner:
+        parts = []
         if energy < 550:
-            print("[{}][spawning] Too few extensions to build a dedicated miner!".format(room.room_name))
-            return
-        parts = []
-        num_move = num_sections or 5
-        num_work = 5
-        for i in range(0, num_work):
-            parts.append(WORK)
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            num_work = math.floor((energy - 50) / 100)
+            num_move = math.floor((energy - num_work * 100) / 50)
+        else:
+            num_move = num_sections or 5
+            num_work = 5
         for i in range(0, num_move):
             parts.append(MOVE)
-        descriptive_level = num_move
+        for i in range(0, num_work):
+            parts.append(WORK)
+        descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_4500miner:
-        if energy < 850:
-            print("[{}][spawning] Too few extensions to build a dedicated 4500 miner!".format(room.room_name))
-            return
         parts = []
-        num_move = num_sections or 8
-        num_work = 8
-        for i in range(0, num_work):
-            parts.append(WORK)
+        if energy < 850:
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            num_work = math.floor((energy - 50) / 100)
+            num_move = math.floor((energy - num_work * 100) / 50)
+        else:
+            num_move = num_sections or 8
+            num_work = 8
         for i in range(0, num_move):
             parts.append(MOVE)
-        descriptive_level = num_move
+        for i in range(0, num_work):
+            parts.append(WORK)
+        descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_carry3000miner:
         if energy < 600:
             print("[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!"
                   .format(room.room_name))
+            if Game.time % 30 == 3:
+                room.reset_planned_role()
             return
         parts = []
         num_move = num_sections or 5
@@ -259,6 +302,8 @@ def run(room, spawn):
             descriptive_level = "carry:1-work:1"
         else:
             print("[{}][spawning] Too few extensions to build a worker!".format(room.room_name))
+            if Game.time % 30 == 3:
+                room.reset_planned_role()
             return
     elif base is creep_base_defender:
         parts = []
@@ -331,6 +376,12 @@ def run(room, spawn):
             parts.append(HEAL)
             parts.append(MOVE)
     elif base is creep_base_dismantler:
+        parts = []
+        for i in range(0, num_sections * 2 + half_section):
+            parts.append(WORK)
+        for i in range(0, num_sections + half_section):
+            parts.append(MOVE)
+    elif base is creep_base_full_move_dismantler:
         parts = []
         for i in range(0, num_sections):
             parts.append(WORK)
@@ -457,10 +508,15 @@ def find_base_type(creep):
         base = creep_base_worker
     elif part_counts[WORK] == part_counts[CARRY] / 3 == part_counts[MOVE] / 4 == total / 8:
         base = creep_base_worker
+    elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 3:
+        base = creep_base_1500miner
     elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 5:
         base = creep_base_3000miner
     elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 8:
         base = creep_base_4500miner
+    elif part_counts[CARRY] == 1 and part_counts[MOVE] + part_counts[WORK] + 1 == total \
+            and part_counts[MOVE] <= part_counts[WORK] <= 5:
+        base = creep_base_carry3000miner
     elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
     elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:

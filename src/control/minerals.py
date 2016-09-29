@@ -40,6 +40,8 @@ class MineralMind:
         self.targets = self.hive.target_mind
         self.storage = room.room.storage
         self.terminal = room.room.terminal
+        if self.has_no_terminal_or_storage():
+            return
         self._target_mineral_counts = None
         self._total_resource_counts = None
         self._next_mineral_to_empty = None

@@ -4,8 +4,10 @@ import flags
 import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
     target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
-    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4500miner, creep_base_carry3000miner
+    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4500miner, creep_base_carry3000miner, \
+    creep_base_1500miner
 from control import live_creep_utils
+from utilities import movement
 from utilities import volatile_cache
 from utilities.screeps_constants import *
 
@@ -87,12 +89,15 @@ class MiningMind:
         # each carry can carry 50 energy.
         carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
         room = Game.rooms[flag.pos.roomName]
-        if room and room.controller and (room.controller.reservation or room.my):
-            mining_per_tick = 11.0  # With 1 added just to have some leeway
-        elif flag.memory.sk_room:
-            mining_per_tick = 16.0  # With 1 added to have some leeway
+        # With 1 added to have some leeway
+        if room and room.controller and room.controller.my:
+            mining_per_tick = 11.0
+        elif flag.memory.sk_room or (room and not room.controller):
+            mining_per_tick = 16.0
+        elif self.should_reserve(flag.pos.roomName):
+            return 11.0
         else:
-            mining_per_tick = 6.0  # With 1 added just to have some leeway
+            mining_per_tick = 6.0
         produce_per_tick = mining_per_tick
         target_mass = math.ceil(produce_per_tick / carry_per_tick) + 1
         self.room.store_cached_property(key, target_mass, 50)
@@ -100,6 +105,8 @@ class MiningMind:
 
     def calculate_current_target_mass_for_mine(self, flag):
         ideal_mass = self.calculate_ideal_mass_for_mine(flag)
+        if not self.room.room.storage:
+            return ideal_mass
         sitting = flag.memory.sitting if flag.memory.sitting else 0
         if sitting > 1000:
             carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
@@ -171,6 +178,28 @@ class MiningMind:
         else:
             return fit_num_sections(needed, maximum)
 
+    def should_reserve(self, room_name):
+        flag_list = _.filter(flags.find_flags(room_name, flags.REMOTE_MINE), lambda f: f.memory.active)
+        if _.find(flag_list, lambda f: f.memory.sk_room):
+            return False
+        if len(flag_list) < 2 or self.room.room.energyCapacityAvailable < 1300:
+            return False
+
+    def open_spaces_around(self, flag):
+        if 'osa' not in flag.memory:
+            osa = 0
+            room = self.hive.get_room(flag.pos.roomName)
+            for x in range(flag.pos.x - 1, flag.pos.x + 2):
+                for y in range(flag.pos.y - 1, flag.pos.y + 2):
+                    if room:
+                        if movement.is_block_empty(room, x, y):
+                            osa += 1
+                    else:
+                        if Game.map.getTerrainAt(x, y, flag.pos.roomName) != 'wall':
+                            osa += 1
+            flag.memory.osa = osa
+        return flag.memory.osa
+
     def reserver_needed(self, flag):
         """
         Gets the spawn data for a reserver if a reserver is needed. Separate method so that early return statements can
@@ -178,7 +207,8 @@ class MiningMind:
         """
         room_name = flag.pos.roomName
 
-        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[room_name]:
+        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[room_name] \
+                or not self.should_reserve(room_name):
             return None
 
         if room_name in Game.rooms:
@@ -228,8 +258,13 @@ class MiningMind:
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.room_name
+            and self.room.room.energyCapacityAvailable >= 600
             # TODO: support links 2 blocks away in EnergyMiner.
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 1)
+        )
+        no_haulers = (
+            flag.pos.roomName == self.room.room_name
+            and (self.room.rcl < 4 or not self.room.room.storage)
         )
 
         miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
@@ -238,12 +273,31 @@ class MiningMind:
             # In order to have replacement miners correctly following the cached path and saving CPU, we no longer use
             # the generic "replacing" class, and instead just assign the new miner to the same source. The miner has
             # code to replace the old miner successfully through suicide itself.
+            # TODO: utility function
+            if self.room.rcl < 4:
+                if flag.memory.sk_room:
+                    work_mass_needed = 8
+                elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
+                    work_mass_needed = 5
+                else:
+                    work_mass_needed = 3
+                workers_needed = self.open_spaces_around(flag)
+            else:
+                work_mass_needed = None
+                workers_needed = None
             for miner_name in miners:
                 creep = Game.creeps[miner_name]
                 if not creep:
                     continue
                 if live_creep_utils.replacement_time(creep) > Game.time:
-                    break
+                    if work_mass_needed is None:
+                        break
+                    work_mass_needed -= spawning.work_count(creep)
+                    if work_mass_needed <= 0:
+                        break
+                    workers_needed -= 1
+                    if workers_needed <= 0:
+                        break
             else:
                 # We only need one miner, so let's just spawn a new one if there aren't any with replacement time left.
                 miner_needed = True
@@ -256,9 +310,12 @@ class MiningMind:
             elif flag.memory.sk_room:
                 base = creep_base_4500miner
                 num_sections = min(8, spawning.max_sections_of(self.room, base))
-            else:
+            elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
+            else:
+                base = creep_base_1500miner
+                num_sections = min(3, spawning.max_sections_of(self.room, base))
             if self.room.all_paved():
                 num_sections = spawning.ceil_sections(num_sections / 2, base)
             return {
@@ -274,7 +331,7 @@ class MiningMind:
         if reserver_needed:
             return reserver_needed
 
-        if miner_carry_no_haulers:
+        if miner_carry_no_haulers or no_haulers:
             return None
 
         current_noneol_hauler_mass = 0
@@ -323,6 +380,7 @@ class MiningMind:
     def next_mining_role(self, max_to_check=Infinity):
         if max_to_check <= 0: return None
         mines = self.active_mines
+        if len(mines) <= 0: return None
         known_nothing_needed = volatile_cache.setmem("rolechecked_mines")
         checked_count = 0
         for mining_flag in mines:

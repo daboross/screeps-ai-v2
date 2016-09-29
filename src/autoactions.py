@@ -358,8 +358,26 @@ def pickup_check_room(room):
     if not len(creeps):
         return
     for pile in energy:
+        smallest_capacity = Infinity
+        best = None
         for creep in creeps:
-            if creep.carryCapacity != 0 and creep.pos.isNearTo(pile.pos) and _.sum(creep.carry) < creep.carryCapacity \
+            if creep.carryCapacity != 0 and creep.pos.isNearTo(pile.pos) \
                     and 'wrapped' in creep and creep.wrapped.should_pickup(pile.resourceType):
-                creep.pickup(pile)
-                break
+                if 'picked_up' not in creep or pile.amount > creep.picked_up:
+                    empty = creep.carryCapacity - _.sum(creep.carry)
+                    if empty < smallest_capacity:
+                        best = creep
+                        smallest_capacity = empty
+                        # else:
+                        #     print("Creep at {} not wrapped, not picking up {} at {}".format(creep.pos, pile, pile.pos))
+                        #     if creep.wrapped:
+                        #         print("{}.should_pickup({}): {}".format(creep.wrapped, pile.resourceType,
+                        #                                                 creep.wrapped.should_pickup(pile.resourceType)))
+            # if not creep.wrapped.should_pickup(pile.resourceType):
+            #     print("Creep {} ({}) chose not to pickup {} at {}! (carryCapacity: {})"
+            #           .format(creep, creep.memory.role, pile, pile.pos, creep.carryCapacity))
+        if best is not None:
+            best.pickup(pile)
+            best.picked_up = pile.amount
+        # else:
+        #     print("No creeps picking up {} in {}!".format(pile, pile.pos.roomName))

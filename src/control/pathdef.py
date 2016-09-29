@@ -292,6 +292,11 @@ class HoneyTrails:
                     for y in range(pos.y - 1, pos.y + 2):
                         if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_multiplier:
                             cost_matrix.set(x, y, 20 * if_roads_multiplier)
+            elif stype == "this_is_a_source":  # and going to source:
+                for x in range(pos.x - 1, pos.x + 2):
+                    for y in range(pos.y - 1, pos.y + 2):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 7 * if_roads_multiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in room.find(FIND_STRUCTURES):

@@ -343,6 +343,10 @@ def is_block_empty(room, x, y):
         if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
+    for struct in room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
+        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+            return False
     return True
 
 

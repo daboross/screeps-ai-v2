@@ -1,5 +1,6 @@
 import speech
-from constants import recycle_time, role_recycling, role_upgrader
+from constants import recycle_time, role_recycling, role_upgrader, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS, \
+    role_builder
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement
@@ -142,6 +143,9 @@ class Upgrader(RoleBase):
             self.memory.role = role_recycling
             self.memory.last_role = role_upgrader
             return False
+        if self.home.overprioritize_building() and self.home.room.controller.ticksToDowngrade >= 500:
+            self.memory.role = role_builder
+            return False
         if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.filling = False
             self.finished_energy_harvest()
@@ -157,6 +161,7 @@ class Upgrader(RoleBase):
             return False
 
         if self.memory.filling:
+            self.build_swamp_roads()
             self.harvest_energy()
         else:
             target = self.home.room.controller
@@ -171,7 +176,8 @@ class Upgrader(RoleBase):
                     self.memory.filling = True
                     return True
             elif result == OK:
-                self.basic_move_to(target)
+                holding = _.sum(self.creep.carry)
+                self.force_basic_move_to(target, lambda c: _.sum(c.carry) < holding)
                 self.report(speech.upgrading_ok)
             else:
                 self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
@@ -181,6 +187,22 @@ class Upgrader(RoleBase):
                 else:
                     self.go_to_depot()
                     self.report(speech.upgrading_unknown_result)
+
+    def build_swamp_roads(self):
+        if not self.home.room.storage and self.creep.carry.energy > 0:
+            repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
+                            lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
+            if repair:
+                result = self.creep.repair(repair)
+                if result != OK:
+                    self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
+            else:
+                build = _.find(self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos),
+                               lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
+                if build:
+                    result = self.creep.build(build)
+                    if result != OK:
+                        self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
 
     def _calculate_time_to_replace(self):
         path = self.hive.honey.find_path(self.home.spawn, self.home.room.controller)

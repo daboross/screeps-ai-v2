@@ -29,7 +29,7 @@ def mem(key):
 
 def setmem(key):
     """
-    :rtype: utilities.screeps_constants.JSMSet
+    :rtype: utilities.screeps_constants.JSSet
     """
     v = volatile()
     if not v.has(key):
