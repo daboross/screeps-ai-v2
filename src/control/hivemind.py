@@ -862,16 +862,10 @@ class RoomMind:
         if not Memory.hostile_last_positions:
             Memory.hostile_last_positions = {}
 
-        sk_room = False
-        if self.hostile:
-            if self.room.controller:
-                return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
-            else:
-                sk_room = True
-
         remove = None
         for hostile_id, hostile_room, pos, owner, dead_at in Memory.hostiles:
-            if (hostile_room == self.room_name and not Game.getObjectById(hostile_id)) \
+            if (hostile_room == self.room_name and (not Game.getObjectById(hostile_id)
+                                                    or self.my and self.room.controller.safeMode)) \
                     or (not dead_at or Game.time > dead_at):
                 if remove:
                     remove.append(hostile_id)
@@ -880,6 +874,15 @@ class RoomMind:
         if remove:
             for hostile_id in remove:
                 military.delete_target(hostile_id)
+
+        sk_room = False
+        if self.hostile:
+            if self.room.controller:
+                return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
+            else:
+                sk_room = True
+        if self.my and self.room.controller.safeMode:
+            return
         new_hostiles = False
         targets = self.find(FIND_HOSTILE_CREEPS)
         for hostile in targets:
