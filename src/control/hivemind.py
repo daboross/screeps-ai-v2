@@ -300,6 +300,7 @@ class RoomMind:
         self._trying_to_get_full_storage_use = None
         self._full_storage_use = None
         self._building_paused = None
+        self._overprioritize_building = None
         self._target_remote_mining_operation_count = None
         self._target_remote_hauler_carry_mass = None
         self._first_target_remote_reserve_count = None
@@ -985,6 +986,14 @@ class RoomMind:
                     self._full_storage_use = False
         return self._full_storage_use
 
+    def being_bootstrapped(self):
+        if self.rcl >= 6 or not self.sponsor_name or self.spawn:
+            return False
+        sponsor = self.hive_mind.get_room(self.sponsor_name)
+        if not sponsor or not sponsor.my or not sponsor.spawn:
+            return False
+        return True
+
     def mining_ops_paused(self):
         if not self.full_storage_use:
             return False
@@ -1042,10 +1051,17 @@ class RoomMind:
         return self._building_paused
 
     def overprioritize_building(self):
-        return (self.room.energyCapacityAvailable < 550 or not self.spawn) \
-               and len(self.building.next_priority_construction_targets()) \
-               and self.get_open_source_spaces() < len(self.sources) * 2 \
-               and (self.room.controller.ticksToDowngrade > 100)
+        if self._overprioritize_building is None:
+            if self.spawn:
+                prioritize = ((self.room.energyCapacityAvailable < 550
+                               and self.get_open_source_spaces() < len(self.sources) * 2)
+                              or (self.rcl >= 3 and not len(self.defense.towers()))) \
+                             and len(self.building.next_priority_construction_targets()) \
+                             and (self.room.controller.ticksToDowngrade > 100)
+            else:
+                prioritize = not self.being_bootstrapped()
+            self._overprioritize_building = prioritize
+        return self._overprioritize_building
 
     def _any_closest_to_me(self, flag_type):
         return _.find(
