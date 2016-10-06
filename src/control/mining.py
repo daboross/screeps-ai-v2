@@ -4,7 +4,7 @@ import flags
 import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
     target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
-    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4500miner, creep_base_carry3000miner, \
+    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
     creep_base_1500miner
 from control import defense
 from control import live_creep_utils
@@ -185,6 +185,7 @@ class MiningMind:
             return False
         if len(flag_list) < 2 or self.room.room.energyCapacityAvailable < 1300:
             return False
+        return True
 
     def open_spaces_around(self, flag):
         if 'osa' not in flag.memory:
@@ -255,6 +256,14 @@ class MiningMind:
         else:
             return None
 
+    def get_ideal_miner_workmass_for(self, flag):
+        if flag.memory.sk_room:
+            return 7
+        elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
+            return 5
+        else:
+            return 3
+
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
@@ -279,13 +288,15 @@ class MiningMind:
             # code to replace the old miner successfully through suicide itself.
             # TODO: utility function
             if self.room.rcl < 4:
-                if flag.memory.sk_room:
-                    work_mass_needed = 8
-                elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
-                    work_mass_needed = 5
+                work_mass_needed = self.get_ideal_miner_workmass_for(flag)
+
+                # We don't want to do more than one miner in any remote mine due to remote haulers not having logic to
+                # go for the biggest energy pile instead of moving towards the source itself. We can still do this for
+                # local mines though, at low RCL levels.
+                if flag.pos.roomName == self.room.room_name:
+                    workers_needed = self.open_spaces_around(flag)
                 else:
-                    work_mass_needed = 3
-                workers_needed = self.open_spaces_around(flag)
+                    workers_needed = 1
             else:
                 work_mass_needed = None
                 workers_needed = None
@@ -310,10 +321,10 @@ class MiningMind:
         if miner_needed:
             if miner_carry_no_haulers:
                 base = creep_base_carry3000miner
-                num_sections = min(5, spawning.max_sections_of(self.room, base))
+                num_sections = min(3, spawning.max_sections_of(self.room, base))
             elif flag.memory.sk_room:
-                base = creep_base_4500miner
-                num_sections = min(8, spawning.max_sections_of(self.room, base))
+                base = creep_base_4000miner
+                num_sections = min(7, spawning.max_sections_of(self.room, base))
             elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
@@ -327,7 +338,7 @@ class MiningMind:
                 'base': base,
                 'num_sections': num_sections,
                 'targets': [
-                    [target_remote_mine_miner, flag_id.format(flag.name)],
+                    [target_remote_mine_miner, flag_id],
                 ]
             }
 

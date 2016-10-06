@@ -8,7 +8,7 @@ __pragma__('noalias', 'Infinity')
 creep_base_worker = "worker"
 creep_base_1500miner = "fast_small_miner"
 creep_base_3000miner = "fast_big_miner"
-creep_base_4500miner = "faster_bigger_miner"
+creep_base_4000miner = "faster_bigger_miner"
 creep_base_carry3000miner = "fast_miner_with_carry"
 creep_base_hauler = "med_hauler"
 creep_base_half_move_hauler = "hm_hauler"
@@ -97,7 +97,7 @@ default_roles = {
     creep_base_worker: role_spawn_fill_backup,
     creep_base_1500miner: role_miner,
     creep_base_3000miner: role_miner,
-    creep_base_4500miner: role_miner,
+    creep_base_4000miner: role_miner,
     creep_base_carry3000miner: role_miner,
     creep_base_hauler: role_hauler,
     creep_base_work_full_move_hauler: role_hauler,

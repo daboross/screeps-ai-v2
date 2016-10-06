@@ -19,7 +19,7 @@ initial_section = {
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
     creep_base_1500miner: [WORK, WORK, WORK],
     creep_base_3000miner: [WORK, WORK, WORK, WORK, WORK],
-    creep_base_4500miner: [WORK, WORK, WORK, WORK, WORK, WORK, WORK, WORK],
+    creep_base_4000miner: [WORK, WORK, WORK, WORK, WORK, WORK, WORK],
     creep_base_carry3000miner: [CARRY, WORK, WORK, WORK, WORK, WORK],
     creep_base_mammoth_miner: [MOVE, CARRY, WORK, WORK, WORK],
 }
@@ -34,7 +34,7 @@ scalable_sections = {
     creep_base_defender: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK],
     creep_base_1500miner: [MOVE],
     creep_base_3000miner: [MOVE],
-    creep_base_4500miner: [MOVE],
+    creep_base_4000miner: [MOVE],
     creep_base_carry3000miner: [MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
     creep_base_full_move_goader: [CARRY],
@@ -67,7 +67,7 @@ low_energy_sections = {
     creep_base_full_upgrader: [MOVE, CARRY, WORK],
 }
 
-low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4500miner]
+low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4000miner]
 
 
 def would_be_emergency(room):
@@ -212,15 +212,15 @@ def run(room, spawn):
         for i in range(0, num_work):
             parts.append(WORK)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
-    elif base is creep_base_4500miner:
+    elif base is creep_base_4000miner:
         parts = []
-        if energy < 850:
+        if energy < 750:
             print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
             num_work = math.floor((energy - 50) / 100)
             num_move = math.floor((energy - num_work * 100) / 50)
         else:
-            num_move = num_sections or 8
-            num_work = 8
+            num_move = num_sections or 7
+            num_work = 7
         for i in range(0, num_move):
             parts.append(MOVE)
         for i in range(0, num_work):
@@ -515,8 +515,8 @@ def find_base_type(creep):
         base = creep_base_1500miner
     elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 5:
         base = creep_base_3000miner
-    elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 8:
-        base = creep_base_4500miner
+    elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 7:
+        base = creep_base_4000miner
     elif part_counts[CARRY] == 1 and part_counts[MOVE] + part_counts[WORK] + 1 == total \
             and part_counts[MOVE] <= part_counts[WORK] <= 5:
         base = creep_base_carry3000miner
