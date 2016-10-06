@@ -1195,13 +1195,16 @@ class RoomMind:
         if self._target_spawn_fill_mass is None:
             if self.full_storage_use or self.are_all_big_miners_placed:
                 base = self.get_variable_base(role_spawn_fill)
-                # spawn_fill_backup = self.carry_mass_of(role_spawn_fill_backup)
                 tower_fill = self.carry_mass_of(role_tower_fill)
-                # Enough so that it takes only 4 trips for each creep to fill all extensions.
-                total_mass = spawning.ceil_sections(self.get_target_total_spawn_fill_mass(), base)
-                # Spawn fill backup used to be here, but they now completely shift to builders once all spawn fill have
-                # been created.
+                total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
+                if self.rcl < 4 or not self.room.storage:
+                    fill_size = fit_num_sections(total_mass,
+                                                 spawning.max_sections_of(self, creep_base_hauler), 0, 2)
+                    for flag in self.mining.local_mines:
+                        if flag.memory.sitting > 1000:
+                            total_mass += math.ceil(flag.memory.sitting / 500) * fill_size
                 self._target_spawn_fill_mass = max(0, total_mass - tower_fill)
+
             else:
                 self._target_spawn_fill_mass = 0
         return self._target_spawn_fill_mass
@@ -1212,6 +1215,8 @@ class RoomMind:
                 self._total_needed_spawn_fill_mass = 3
             else:
                 self._total_needed_spawn_fill_mass = math.pow(self.room.energyCapacityAvailable / 50.0 * 200, 0.3)
+                if len(self.mining.active_mines) < 2:  # This includes local sources.
+                    self._total_needed_spawn_fill_mass /= 2
         return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self):
