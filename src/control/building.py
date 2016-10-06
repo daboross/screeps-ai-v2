@@ -109,7 +109,7 @@ class ConstructionMind:
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
         else:
-            spawn_flag = flags.find_ms_flag(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
+            spawn_flag = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
             if len(spawn_flag):
                 spawn_pos = spawn_flag[0].pos
             else:
@@ -164,7 +164,7 @@ class ConstructionMind:
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
         else:
-            spawn_flag = flags.find_ms_flag(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
+            spawn_flag = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
             if len(spawn_flag):
                 spawn_pos = spawn_flag[0].pos
             else:
@@ -218,7 +218,7 @@ class ConstructionMind:
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
         else:
-            spawn_flag = flags.find_ms_flag(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
+            spawn_flag = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)
             if len(spawn_flag):
                 spawn_pos = spawn_flag[0].pos
             else:
@@ -386,7 +386,7 @@ class ConstructionMind:
                         elif site.progress / site.progressTotal < 0.2:
                             site.remove()
 
-            for flag in flags.find_ms_flag(room, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
+            for flag in flags.find_ms_flags(room, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
                 if not _.find(room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": STRUCTURE_ROAD}) \
                         and not _.find(room.find_at(FIND_CONSTRUCTION_SITES, flag.pos),
                                        {"structureType": STRUCTURE_ROAD}):

@@ -1,4 +1,3 @@
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -20,6 +19,7 @@ RESERVE_NOW = "top_priority_reserve"
 SPAWN_FILL_WAIT = "spawnfill_wait"
 LOCAL_MINE = "local_mine"
 SK_LAIR_SOURCE_NOTED = "avoid_moving_through"
+SLIGHTLY_AVOID = "slightly_avoid"
 SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
 MAIN_BUILD = "build"
@@ -59,6 +59,7 @@ DIR_TO_NO_EXIT_FLAG = {
 flag_definitions = {
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
     SK_LAIR_SOURCE_NOTED: (COLOR_BLUE, COLOR_WHITE),
+    SLIGHTLY_AVOID: (COLOR_BLUE, COLOR_GREY),
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
     SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
@@ -138,8 +139,26 @@ structure_type_to_flag_sub = {
     STRUCTURE_TERMINAL: SUB_TERMINAL,
 }
 
+_REFRESH_EVERY = 50
+
 _last_flag_len = 0
 _last_checked_flag_len = 0
+
+
+def refresh_flag_caches():
+    global _last_flag_len, _last_checked_flag_len
+    global _room_flag_cache, _room_flag_refresh_time
+    global _global_flag_refresh_time, _global_flag_cache
+    global _closest_flag_refresh_time, _closest_flag_cache
+    # TODO: make 50 here a constant, to agree with refresh times set below
+    refresh_time = Game.time + _REFRESH_EVERY
+    _room_flag_cache = new_map()
+    _room_flag_refresh_time = refresh_time
+    _global_flag_cache = new_map()
+    _global_flag_refresh_time = refresh_time
+    _closest_flag_cache = new_map()
+    _closest_flag_refresh_time = refresh_time
+    _last_flag_len = _.size(Game.flags)
 
 
 def __check_new_flags():
@@ -148,18 +167,9 @@ def __check_new_flags():
     global _global_flag_refresh_time, _global_flag_cache
     global _closest_flag_refresh_time, _closest_flag_cache
     if _last_checked_flag_len < Game.time:
-        length = Object.keys(Game.flags).length
+        length = _.size(Game.flags)
         if _last_flag_len != length:
-            # TODO: make 50 here a constant, to agree with refresh times set below
-            refresh_time = Game.time + 50
-            _room_flag_cache = new_map()
-            _room_flag_refresh_time = refresh_time
-            _global_flag_cache = new_map()
-            _global_flag_refresh_time = refresh_time
-            _closest_flag_cache = new_map()
-            _closest_flag_refresh_time = refresh_time
-            _last_flag_len = length
-        _last_checked_flag_len = Game.time
+            refresh_flag_caches()
 
 
 def move_flags():
@@ -177,7 +187,7 @@ def is_def(flag, flag_type):
 
 
 _room_flag_cache = new_map()
-_room_flag_refresh_time = Game.time + 50
+_room_flag_refresh_time = Game.time + _REFRESH_EVERY
 
 
 def __get_room_and_name(room):
@@ -193,7 +203,7 @@ def __get_cache(room_name, flag_type):
     global _room_flag_refresh_time, _room_flag_cache
     __check_new_flags()
     if Game.time > _room_flag_refresh_time:
-        _room_flag_refresh_time = Game.time + 50
+        _room_flag_refresh_time = Game.time + _REFRESH_EVERY
         _room_flag_cache = new_map()
 
     if _room_flag_cache.has(room_name) and _room_flag_cache.get(room_name).has(flag_type):
@@ -255,7 +265,7 @@ def find_by_main_with_sub(room, main_type):
     return flag_list
 
 
-def find_ms_flag(room, main_type, sub_type):
+def find_ms_flags(room, main_type, sub_type):
     type_name = "{}_{}".format(main_type, sub_type)
     room, room_name = __get_room_and_name(room)
     cached = __get_cache(room_name, "{}_{}".format(main_type, sub_type))
@@ -282,14 +292,14 @@ def find_ms_flag(room, main_type, sub_type):
 
 
 _global_flag_cache = new_map()
-_global_flag_refresh_time = Game.time + 50
+_global_flag_refresh_time = Game.time + _REFRESH_EVERY
 
 
 def find_flags_global(flag_type, reload=False):
     global _global_flag_refresh_time, _global_flag_cache
     __check_new_flags()
     if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + 50
+        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
         _global_flag_cache = new_map()
     if _global_flag_cache.has(flag_type) and not reload:
         return _global_flag_cache.get(flag_type)
@@ -308,7 +318,7 @@ def find_flags_ms_global(main_type, sub_type, reload=False):
     global _global_flag_refresh_time, _global_flag_cache
     __check_new_flags()
     if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + 50
+        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
         _global_flag_cache = new_map()
     if _global_flag_cache.has(type_name) and not reload:
         return _global_flag_cache.get(type_name)
@@ -327,7 +337,7 @@ def find_by_main_with_sub_global(main_type, reload=False):
     global _global_flag_refresh_time, _global_flag_cache
     __check_new_flags()
     if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + 50
+        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
         _global_flag_cache = new_map()
     # we're assuming that no MAIN type has the same identity as any full type
     if _global_flag_cache.has(main_type) and not reload:
@@ -345,7 +355,7 @@ def find_by_main_with_sub_global(main_type, reload=False):
 
 
 _closest_flag_cache = new_map()
-_closest_flag_refresh_time = Game.time + 50
+_closest_flag_refresh_time = Game.time + _REFRESH_EVERY
 
 
 def squared_distance(x1, y1, x2, y2):
@@ -388,8 +398,9 @@ def __create_flag(position, flag_type, primary, secondary):
     # even if all our spawns are dead!
     room = Game.rooms[position.roomName]
     if room:
-        result = room.createFlag(position, name, primary, secondary)
-        print("[flags] Created flag at {}: {}".format(position, result))
+        flag_name = room.createFlag(position, name, primary, secondary)
+        print("[flags] Created flag at {}: {}".format(position, flag_name))
+        return flag_name
     else:
         known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
         flag_name = known_position.createFlag(name, primary, secondary)
@@ -453,9 +464,6 @@ def look_for(room, position, main, sub=None):
             return []
         return _.find(room.find_at(FIND_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
-
-
-look_for = profiling.profiled(look_for, "flags.look_for")
 
 
 def random_digits():
