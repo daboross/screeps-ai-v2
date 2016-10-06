@@ -544,35 +544,47 @@ class ConstructionMind:
                 return
         return path.path[len(path) - 1]
 
-
-    def place_queue_flag_near(self, source):
-        if 'pos' in source:
-            source = source.pos
-        cache = volatile_cache.setmem("npcf") # newly placed calculated flags
-        cache_key = "qf_{}_{}_{}".format(source.x, source.y, source.roomName)
+    def place_queue_flag_near(self, source_flag):
+        target = source_flag.pos
+        cache = volatile_cache.setmem("npcf")  # newly placed calculated flags
+        cache_key = "qf_{}_{}_{}".format(target.x, target.y, target.roomName)
         if cache.has(cache_key):
             return
-        away_from = []
-        for source in self.room.sources:
-            away_from.append({'pos': source.pos, 'range': 5})
+        away_from = [{'pos': target, 'range': 5}]
+        for other_source in self.room.sources:
+            if not other_source.pos.isEqualTo(target.pos):
+                away_from.append({'pos': other_source.pos, 'range': 6})
         for spawn in self.room.spawns:
             away_from.append({'pos': spawn.pos, 'range': 4})
 
-        target = self.find_loc_near_away_from(source, away_from)
-        if target.inRangeTo(source, 10):
-            flags.create_flag(target, flags.SOURCE_QUEUE_START)
+        target = self.find_loc_near_away_from(target, away_from)
+        if target.inRangeTo(target, 10):
+            for flag in flags.find_flags(self.room, flags.SOURCE_QUEUE_START):
+                if not _.find(flags.find_flags(self.room, flags.LOCAL_MINE),
+                              lambda m: m.memory.queue == flag.name):
+                    flag.remove()
+            name = flags.create_flag(target, flags.SOURCE_QUEUE_START)
+            source_flag.memory.queue = name
+            flags.refresh_flag_caches()
         else:
             print("[{}][building] WARNING: Path away from source to place source queue start flag is too"
                   " far away! Path took us to {}, {} squares away from {}!"
-                  .format(self.room.room_name, target, target.getRangeTo(source), source))
+                  .format(self.room.room_name, target, target.getRangeTo(target), target))
         cache.add(cache_key)
 
     def place_depot_flag(self):
+        center = self.room.spawn
+        if not center:
+            center = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)[0]
+            if not center:
+                center = self.room.spawns[0]
+                if not center:
+                    return
         cache = volatile_cache.setmem("npcf")
         cache_key = "depot_{}".format(self.room.room_name)
         if cache.has(cache_key):
             return
-        away_from = []
+        away_from = [{'pos': center.pos, 'range': 4}]
         for source in self.room.sources:
             away_from.append({'pos': source.pos, 'range': 5})
         for spawn in self.room.spawns:
@@ -581,9 +593,14 @@ class ConstructionMind:
             away_from.append({'pos': mineral.pos, 'range': 4})
         for flag in flags.find_flags(self.room, flags.SOURCE_QUEUE_START):
             away_from.append({'pos': flag.pos, 'range': 4})
-        target = self.find_loc_near_away_from(self.room.spawn, away_from)
+        for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL):
+            away_from.append({'pos': flag.pos, 'range': 1})
+        for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART):
+            away_from.append({'pos': flag.pos, 'range': 1})
+        target = self.find_loc_near_away_from(center, away_from)
         flags.create_flag(target, flags.DEPOT)
         cache.add(cache_key)
+
 
 profiling.profile_whitelist(ConstructionMind, [
     "next_priority_construction_targets",
