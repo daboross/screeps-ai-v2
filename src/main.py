@@ -12,7 +12,7 @@ from control.hivemind import HiveMind
 from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
-from tools import profiling
+from tools import profiling, memory_info
 from utilities import consistency, global_cache, averages
 from utilities import movement
 from utilities import volatile_cache
@@ -215,6 +215,16 @@ def main():
 
 module.exports.loop = profiling.wrap_main(main)
 
+
+def clear_global_cache(name):
+    if not name:
+        return
+    for key in Object.keys(Memory.cache):
+        if name in key:
+            del Memory.cache[key]
+            print("[clear_global_cache] Cleared {}.".format(key))
+
+
 __pragma__('js', 'global').py = {
     "context": context,
     "consistency": consistency,
@@ -232,6 +242,8 @@ __pragma__('js', 'global').py = {
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
     "cpu_avg": averages.get_average_visual,
+    "cc": clear_global_cache,
+    "analyse_mem": lambda path: memory_info.analyse_memory(path)
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
