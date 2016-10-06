@@ -47,6 +47,7 @@ protect_with_ramparts = [
     STRUCTURE_SPAWN,
     STRUCTURE_POWER_SPAWN,
     STRUCTURE_TERMINAL,
+    STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
     STRUCTURE_EXTENSION,
 ]
@@ -427,6 +428,10 @@ class ConstructionMind:
         if last_run:
             return
 
+        if self.room.rcl < 3 or not len(self.room.defense.towers()):
+            self.room.store_cached_property("placed_ramparts", 1, 20)
+            return
+
         volatile = volatile_cache.volatile()
 
         site_count = len(Game.constructionSites)
@@ -435,6 +440,8 @@ class ConstructionMind:
         if site_count + sites_placed >= 90:
             return
 
+        print("[{}] Checking for structures without ramparts.".format(self.room.room_name))
+
         ramparts = new_set()
         need_ramparts = new_map()
 
@@ -442,29 +449,31 @@ class ConstructionMind:
             pos_key = structure.pos.x * 64 + structure.pos.y
             if structure.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
-            elif structure.structureType in protect_with_ramparts:
+            elif structure.structureType in protect_with_ramparts \
+                    and (structure.structureType != STRUCTURE_EXTENSION or len(self.room.mining.active_mines) > 1):
                 need_ramparts.set(pos_key, structure)
 
         for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
             pos_key = site.pos.x * 64 + site.pos.y
             if site.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
-            elif site.structureType in protect_with_ramparts:
-                need_ramparts.set(pos_key, site)
 
         # Need to make this a list in order to iterate it.
-        for pos_key, structure in list(need_ramparts.entries()):
+        for pos_key, structure in __pragma__('js', 'Array.from(need_ramparts.entries())'):
             if not ramparts.has(pos_key):
                 print("[{}][building] Protecting {} with a rampart."
                       .format(self.room.room_name, structure))
-                structure.pos.placeConstructionSite(STRUCTURE_RAMPART)
+                structure.pos.createConstructionSite(STRUCTURE_RAMPART)
                 sites_placed += 1
                 if site_count + sites_placed >= 100:
                     break
 
         volatile.set("construction_sites_placed", sites_placed)
 
-        self.room.store_cached_property("placed_ramparts", 1, random.randint(8000, 9000))
+        if (sites_placed - (volatile.get("construction_sites_placed") or 0)) > 0:
+            self.refresh_building_targets()
+
+        self.room.store_cached_property("placed_ramparts", 1, random.randint(500, 600))
 
     def re_place_home_ramparts(self):
         self.room.mem.cache.placed_ramparts.dead_at = Game.time + 1
