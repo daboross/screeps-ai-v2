@@ -18,6 +18,9 @@ def get(key):
     else:
         return None
 
+def has(key):
+    r = root()
+    return key in r
 
 def set(key, value, ttl):
     r = root()

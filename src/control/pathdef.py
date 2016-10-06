@@ -168,15 +168,170 @@ class HoneyTrails:
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
                         matrix.set(x, y, 2 * if_roads_multiplier)
 
-    def mark_sk_lairs(self, room_name, matrix, opts):
+    def mark_flags(self, room_name, matrix, opts):
         for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
             for x in range(flag.pos.x - 4, flag.pos.x + 5):
                 for y in range(flag.pos.y - 4, flag.pos.y + 5):
                     matrix.set(x, y, 255)
 
+        slightly_avoid = flags.find_flags(room_name, flags.SLIGHTLY_AVOID)
+        if len(slightly_avoid):
+            cost = 10 if opts['future_chosen'] else (4 if opts['roads'] else 2)
+            for flag in slightly_avoid:
+                if Game.map.getTerrainAt(flag.pos.x, flag.pos.y, room_name) != 'wall' \
+                        and matrix.get(flag.pos.x, flag.pos.y) < cost:
+                    matrix.set(flag.pos.x, flag.pos.y, cost)
+
+    def set_max_avoid(self, room_name, matrix, opts):
+        if opts['max_avoid']:
+            if opts['future_chosen']:
+                if_roads_multiplier = 5
+            elif opts['roads']:
+                if_roads_multiplier = 2
+            else:
+                if_roads_multiplier = 1
+            if room_name in opts['max_avoid']:
+                # print("Setting max_avoid in room {}".format(room_name))
+                for x in range(0, 49):
+                    for y in range(0, 49):
+                        if Game.map.getTerrainAt(x, y, room_name) != 'wall':
+                            matrix.set(x, y, if_roads_multiplier * 20)
+                return True
+            for direction, other_room in _.pairs(Game.map.describeExits(room_name)):
+                if other_room in opts['max_avoid']:
+                    # print("Setting max_avoid on the {} of room {}".format(
+                    #     "top" if direction == TOP
+                    #     else ("bottom" if direction == BOTTOM
+                    #           else "left" if direction == LEFT else (
+                    #         "right" if direction == RIGHT else direction
+                    #     )), room_name))
+                    if direction == TOP:
+                        for x in range(0, 49):
+                            if Game.map.getTerrainAt(x, 0, room_name) != 'wall':
+                                matrix.set(x, 0, 20 * if_roads_multiplier)
+                    elif direction == BOTTOM:
+                        for x in range(0, 49):
+                            if Game.map.getTerrainAt(x, 49, room_name) != 'wall':
+                                matrix.set(x, 49, 20 * if_roads_multiplier)
+                    elif direction == LEFT:
+                        for y in range(0, 49):
+                            if Game.map.getTerrainAt(0, y, room_name) != 'wall':
+                                matrix.set(0, y, 20 * if_roads_multiplier)
+                    elif direction == RIGHT:
+                        for y in range(0, 49):
+                            if Game.map.getTerrainAt(49, y, room_name) != 'wall':
+                                matrix.set(49, y, 20 * if_roads_multiplier)
+
+    def generate_serialized_cost_matrix(self, room_name):
+        if not global_cache.has("{}_cost_matrix_{}".format(room_name, 1)):
+            self.get_generic_cost_matrix(room_name, {'roads': False})
+        if not global_cache.has("{}_cost_matrix_{}".format(room_name, 2)):
+            self.get_generic_cost_matrix(room_name, {'roads': True})
+
+    def get_generic_cost_matrix(self, room_name, opts):
+        """
+        Gets a generic cost matrix, accepting slightly different options from find_path() methods
+        :param room_name: Room name to get the cost matrix for
+        :param opts: {'roads': True|False}
+        :return: A cost matrix
+        """
+        use_roads = opts['roads']
+        if_roads_multiplier = 2 if use_roads else 1
+
+        serialization_key = "{}_cost_matrix_{}".format(room_name, if_roads_multiplier)
+        serialized = global_cache.get(serialization_key)
+        if serialized:
+            cost_matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
+            self.set_max_avoid(room_name, cost_matrix, opts)
+            return cost_matrix
+
+        room = self.hive.get_room(room_name)
+        if not room:
+            return None
+
+        def wall_at(x, y):
+            return Game.map.getTerrainAt(x, y, room_name) == 'wall'
+
+        def road_at(x, y):
+            for s in room.find_at(FIND_STRUCTURES, x, y):
+                if s.structureType == STRUCTURE_ROAD:
+                    return True
+            for s in room.find_at(FIND_CONSTRUCTION_SITES, x, y):
+                if s.structureType == STRUCTURE_ROAD:
+                    return True
+            return False
+
+        cost_matrix = __new__(PathFinder.CostMatrix())
+
+        self.mark_exit_tiles(room_name, cost_matrix, opts)
+        self.mark_flags(room_name, cost_matrix, opts)
+
+        def set_matrix(stype, pos, planned):
+            if stype == STRUCTURE_ROAD or stype == STRUCTURE_RAMPART or stype == STRUCTURE_CONTAINER:
+                if stype == STRUCTURE_ROAD and use_roads \
+                        and not flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
+                    # TODO: this should really just be a method on top of this method to do this
+                    if cost_matrix.get(pos.x, pos.y) > 2:
+                        cost_matrix.set(pos.x, pos.y, cost_matrix.get(pos.x, pos.y) / 2)
+
+                        return  # Don't set roads to low-cost if they're already set to high-cost
+                    cost_matrix.set(pos.x, pos.y, 1)
+                return
+            cost_matrix.set(pos.x, pos.y, 255)
+            if (stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION or
+                        stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK):
+                for x in range(pos.x - 1, pos.x + 2):
+                    for y in range(pos.y - 1, pos.y + 2):
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 10 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 10 * if_roads_multiplier)
+            elif stype == STRUCTURE_CONTROLLER or stype == "this_is_a_source":
+                for x in range(pos.x - 3, pos.x + 4):
+                    for y in range(pos.y - 3, pos.y + 4):
+                        if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 5 * if_roads_multiplier)
+                for x in range(pos.x - 2, pos.x + 3):
+                    for y in range(pos.y - 2, pos.y + 3):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 7 * if_roads_multiplier)
+                for x in range(pos.x - 1, pos.x + 2):
+                    for y in range(pos.y - 1, pos.y + 2):
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 20 * if_roads_multiplier)
+            cost_matrix.set(pos.x, pos.y, 255)
+
+        for struct in room.find(FIND_STRUCTURES):
+            set_matrix(struct.structureType, struct.pos, False)
+        for site in room.find(FIND_CONSTRUCTION_SITES):
+            set_matrix(site.structureType, site.pos, True)
+        for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
+            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True)
+        for source in room.find(FIND_SOURCES):
+            set_matrix("this_is_a_source", source.pos, False)
+
+        # Make room for the link manager creep! This can cause problems if not included.
+        if room.my and room.room.storage and room.links.main_link:
+            ml = room.links.main_link
+            storage = room.room.storage
+            for x in range(ml.pos.x - 1, ml.pos.x + 2):
+                for y in range(ml.pos.y - 1, ml.pos.y + 2):
+                    if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
+                        cost_matrix.set(x, y, 255)
+
+        serialized = JSON.stringify(cost_matrix.serialize())
+        cache_for = 100 if room.my else 10000
+        global_cache.set(serialization_key, serialized, cache_for)
+
+        self.set_max_avoid(room_name, cost_matrix, opts)
+
+        return cost_matrix
+
     def _new_cost_matrix(self, room_name, origin, destination, opts):
         use_roads = opts['roads']
         future_chosen = opts['future_chosen']
+
+        if 'enemy_rooms' in Memory and room_name in Memory.enemy_rooms \
+                and room_name != origin.roomName and room_name != destination.roomName:
+            return False
 
         if future_chosen:
             if_roads_multiplier = 5
@@ -185,26 +340,31 @@ class HoneyTrails:
             if_roads_multiplier = 2 if use_roads else 1
             this_room_future_roads = None
         room = self.hive.get_room(room_name)
-        if not room:
-            if Memory.enemy_rooms and room_name in Memory.enemy_rooms \
-                    and room_name != origin.roomName and room_name != destination.roomName:
-                print("[honey] Avoiding room {}.".format(room_name))
-                return False
-            serialized_cost_matrix = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
-            if serialized_cost_matrix:
-                print("[honey] Using serialized cost matrix for room {}.".format(room_name))
-                return PathFinder.CostMatrix.deserialize(JSON.parse(serialized_cost_matrix))
+        if (room_name != origin.roomName and room_name != destination.roomName and not future_chosen) or not room:
+            if this_room_future_roads:
+                serialized = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
+                if serialized:
+                    print("[honey] Using serialized matrix for room {}.".format(room_name))
+                    matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
+                    self.set_max_avoid(room_name, matrix, opts)
+                    if this_room_future_roads:
+                        for pos in this_room_future_roads:
+                            matrix.set(pos.x, pos.y, 2)
+            else:
+                matrix = self.get_generic_cost_matrix(room_name, opts)
+                if matrix:
+                    print("[honey] Using generic matrix for room {}.".format(room_name))
+                    return matrix
+
             print("[honey] Using basic matrix for room {}.".format(room_name))
             matrix = __new__(PathFinder.CostMatrix())
             # Avoid stepping on exit tiles unnecessarily
             self.mark_exit_tiles(room_name, matrix, opts)
-            self.mark_sk_lairs(room_name, matrix, opts)
+            self.mark_flags(room_name, matrix, opts)
+            self.set_max_avoid(room_name, matrix, opts)
             return matrix
-        print("[honey] Calculating matrix for room {}.".format(room_name))
+        print("[honey] Calculating intricate matrix for room {}.".format(room_name))
 
-        # Python way doesn't work in JS :(
-        # structures_ignore = [s.structureType for s in self.room.find_at(FIND_STRUCTURES, origin)] + \
-        #                     [s.structureType for s in self.room.find_at(FIND_STRUCTURES, destination)]
         structures_ignore = []
         if origin.roomName == room_name:
             for s in room.find_at(FIND_STRUCTURES, origin):
@@ -224,7 +384,9 @@ class HoneyTrails:
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
-        self.mark_sk_lairs(room_name, cost_matrix, opts)
+        self.mark_flags(room_name, cost_matrix, opts)
+        if self.set_max_avoid(room_name, cost_matrix, opts):
+            return cost_matrix
 
         def wall_at(x, y):
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
@@ -293,6 +455,15 @@ class HoneyTrails:
                         if not wall_at(x, y) and cost_matrix.get(x, y) < 20 * if_roads_multiplier:
                             cost_matrix.set(x, y, 20 * if_roads_multiplier)
             elif stype == "this_is_a_source":  # and going to source:
+                if this_room_future_roads:
+                    for x in range(pos.x - 5, pos.x + 6):
+                        for y in range(pos.y - 5, pos.y + 6):
+                            if not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_multiplier:
+                                cost_matrix.set(x, y, 5 * if_roads_multiplier)
+                    for x in range(pos.x - 3, pos.x + 4):
+                        for y in range(pos.y - 3, pos.y + 4):
+                            if not wall_at(x, y) and cost_matrix.get(x, y) < 6 * if_roads_multiplier:
+                                cost_matrix.set(x, y, 6 * if_roads_multiplier)
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
                         if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_multiplier:
@@ -308,10 +479,6 @@ class HoneyTrails:
         for source in room.find(FIND_SOURCES):
             set_matrix("this_is_a_source", source.pos, False)
 
-        if this_room_future_roads:
-            for pos in this_room_future_roads:
-                cost_matrix.set(pos.x, pos.y, 2)
-
         # Make room for the link manager creep! This can cause problems if not included.
         if room.my and room.room.storage and room.links.main_link:
             ml = room.links.main_link
@@ -320,18 +487,26 @@ class HoneyTrails:
                 for y in range(ml.pos.y - 1, ml.pos.y + 2):
                     if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
                         cost_matrix.set(x, y, 255)
-        if not room.my:
+
+        if not room.my and future_chosen:  # Cache before adding this_room_future_roads costs
             serialized = JSON.stringify(cost_matrix.serialize())
             global_cache.set("{}_cost_matrix_{}".format(room_name, if_roads_multiplier), serialized, 10000)
 
+        if this_room_future_roads:
+            for pos in this_room_future_roads:
+                now = cost_matrix.get(pos.x, pos.y)
+                if now <= 4:
+                    cost_matrix.set(pos.x, pos.y, 2)
+                else:
+                    cost_matrix.set(pos.x, pos.y, now - 2)
         return cost_matrix
 
     def _get_callback(self, origin, destination, opts):
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
     def get_default_max_ops(self, origin, destination, opts):
-        linear_distance = movement.distance_room_pos(origin, destination)
-        ops = linear_distance * 100
+        linear_distance = movement.chebyshev_distance_room_pos(origin, destination)
+        ops = linear_distance * 200
         if opts["dfr"]:
             ops *= 5
         elif opts["use_roads"]:
@@ -349,6 +524,7 @@ class HoneyTrails:
                                                                                           "dfr": decided_future_roads})
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
             keep_for = opts["keep_for"] if "keep_for" in opts else 0
+            max_avoid = opts["avoid_rooms"] if "avoid_rooms" in opts else None
         else:
             roads_better = True
             ignore_swamp = False
@@ -358,6 +534,7 @@ class HoneyTrails:
             max_ops = self.get_default_max_ops(origin, destination, {"use_roads": roads_better,
                                                                      "dfr": decided_future_roads})
             keep_for = 0
+            max_avoid = None
 
         if origin.pos:
             origin = origin.pos
@@ -397,6 +574,7 @@ class HoneyTrails:
             "roomCallback": self._get_callback(origin, destination, {
                 "roads": roads_better,
                 "future_chosen": decided_future_roads,
+                "max_avoid": max_avoid,
             }),
             "maxRooms": max_rooms,
             "maxOps": max_ops,
@@ -404,6 +582,11 @@ class HoneyTrails:
 
         print("[honey] Calculated new path from {} to {} in {} ops.".format(
             origin, destination, result.ops))
+        if result.incomplete:
+            print("[honey] WARNING: Calculated incomplete path.")
+            if roads_better:
+                print("[honey] Trying recalculation without prefering roads.")
+                return self.get_serialized_path_obj(origin, destination, _.create(opts, {'use_roads': False}))
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
         # all of this to convert PathFinder results into a Room-compatible format.
         room_to_path_obj = pathfinder_path_to_room_to_path_obj(origin, result.path)
