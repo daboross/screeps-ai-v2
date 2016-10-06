@@ -6,6 +6,7 @@ from role_base import RoleBase
 from roles import building
 from roles import upgrading
 from tools import profiling
+from utilities import movement
 from utilities import volatile_cache
 from utilities.screeps_constants import *
 
@@ -22,11 +23,17 @@ class SpawnFill(building.Builder, Refill):
             return False
         if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.filling = False
-            self.targets.untarget_all(self)
+            if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
+                self.targets.untarget_all(self)
+            else:
+                return True
         elif not self.memory.filling and self.creep.carry.energy <= 0:
             self.memory.filling = True
             del self.memory.running
-            self.targets.untarget_all(self)
+            if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
+                self.targets.untarget_all(self)
+            else:
+                return True
 
         if self.memory.filling:
             return self.harvest_energy()
@@ -37,8 +44,8 @@ class SpawnFill(building.Builder, Refill):
                 elif self.memory.running == role_builder:
                     return building.Builder.run(self)
                 elif self.memory.running == "refill":
-                    return Refill.refill_creeps(self)
-                else:
+                    return self.refill_creeps()
+                elif self.memory.running != role_spawn_fill:
                     self.log("WARNING: Unknown running value: {}", self.memory.running)
                     del self.memory.running
             elif self.home.room.energyCapacityAvailable < 550 and self.home.room.energyAvailable < 300 \
@@ -48,7 +55,7 @@ class SpawnFill(building.Builder, Refill):
                     return building.Builder.run(self)
                 else:
                     self.memory.running = "refill"
-                    return Refill.refill_creeps(self)
+                    return self.refill_creeps()
             target = self.targets.get_new_target(self, target_spawn_deposit)
             if target:
                 if target.color:  # it's a spawn fill wait flag
@@ -66,7 +73,7 @@ class SpawnFill(building.Builder, Refill):
                         return True
                     if not self.home.room.storage:
                         self.memory.running = "refill"
-                        return Refill.refill_creeps(self)
+                        return self.refill_creeps()
                     if not self.creep.pos.isEqualTo(target.pos):
                         if self.creep.pos.isNearTo(target.pos):
                             self.basic_move_to(target)
@@ -79,9 +86,17 @@ class SpawnFill(building.Builder, Refill):
                         return True
                     else:
                         if not self.creep.pos.isNearTo(target.pos):
-                            self.move_to(target)
                             self.report(speech.spawn_fill_moving_to_target)
+                            if movement.chebyshev_distance_room_pos(self.pos, target) < 5 \
+                                    and 'nbm' not in self.memory:
+                                if self.force_basic_move_to(target, lambda c: c.memory.role != role_spawn_fill
+                                                            and c.memory.role != role_tower_fill):
+                                    return False
+                                else:
+                                    self.memory.nbm = True
+                            self.move_to(target)
                             return False
+                        del self.memory.nbm
 
                         result = self.creep.transfer(target, RESOURCE_ENERGY)
 
@@ -121,7 +136,7 @@ class SpawnFill(building.Builder, Refill):
                     return upgrading.Upgrader.run(self)
             if not self.home.room.storage:
                 self.memory.running = "refill"
-                return Refill.refill_creeps(self)
+                return self.refill_creeps()
 
         return False
 

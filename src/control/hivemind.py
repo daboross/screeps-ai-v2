@@ -52,6 +52,10 @@ def parse_xy_arguments(pos, optional_y):
             return pos.x, pos.y, pos.roomName
 
 
+def clamp_room_coord(coord):
+    return (coord if coord < 49 else 49) if coord > 0 else 0
+
+
 class HiveMind:
     """
     :type target_mind: control.targets.TargetMind
@@ -476,6 +480,24 @@ class RoomMind:
                 closest_element = element
                 closest_distance = distance
         return closest_element
+
+    def look_for_in_area_around(self, look_type, pos, look_range):
+        """
+        Runs Room.lookForAtArea(look_type, ..., true) on an area a specific range around the pos, ensuring to clamp
+        positions to relative room positions
+        :param look_type:
+        :param pos:
+        :param look_range:
+        :return:
+        """
+        if pos.pos:
+            pos = pos.pos
+        return self.room.lookForAtArea(look_type,
+                                       clamp_room_coord(pos.y - look_range),
+                                       clamp_room_coord(pos.x - look_range),
+                                       clamp_room_coord(pos.y + look_range),
+                                       clamp_room_coord(pos.x + look_range),
+                                       True)
 
     def _get_role_counts(self):
         if not self.mem.roles_alive:
