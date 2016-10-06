@@ -48,7 +48,7 @@ scalable_sections = {
     creep_base_full_move_power_attack: [MOVE, ATTACK],
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
     creep_base_half_move_hauler: [MOVE, CARRY, CARRY],
-    creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE]
+    creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE],
 }
 
 half_sections = {
@@ -157,7 +157,7 @@ def run(room, spawn):
                   .format(room.room_name, base))
             num_sections = 1
             role_obj.num_sections = 1
-        cost = cost_of_sections(base, num_sections, energy)
+        cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
         if not cost:
             print("[{}][spawning] ERROR: Unknown cost retrieved from cost_of_sections({}, {}, {}): {}"
                   .format(room.room_name, base, num_sections, energy, cost))
@@ -177,7 +177,9 @@ def run(room, spawn):
                 # Since the literal memory object is returned, this mutation will stick for until this creep has been
                 # spawned, or the target creep has been refreshed
                 num_sections = role_obj.num_sections = new_size
-                cost = cost_of_sections(base, num_sections, energy)
+                half_section = 1 if num_sections % 1 else 0
+                num_sections -= num_sections % 1
+                cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
         energy = cost
 
     if filled < energy:
@@ -398,7 +400,7 @@ def run(room, spawn):
         for i in range(0, num_sections):
             parts.append(MOVE)
     elif base is creep_base_full_upgrader:
-        if num_sections > 1:
+        if num_sections > 1 or half_section:
             parts = []
             for part in initial_section[base]:
                 parts.append(part)
@@ -470,7 +472,8 @@ def run(room, spawn):
     if result not in Game.creeps:
         print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
         if result == ERR_NOT_ENOUGH_RESOURCES:
-            print("[{}][spawning] Couldn't create body {} with energy {}!".format(room.room_name, parts, energy))
+            print("[{}][spawning] Couldn't create body {} with energy {} (target num_sections: {})!"
+                  .format(room.room_name, parts, energy, num_sections))
         elif result == ERR_INVALID_ARGS:
             if descriptive_level:
                 print("[{}][spawning] Produced invalid body array for creep type {} level {}: {}"
