@@ -113,7 +113,7 @@ default_roles = {
     creep_base_dismantler: role_simple_dismantle,
     creep_base_full_move_dismantler: role_simple_dismantle,
     creep_base_full_upgrader: role_upgrader,
-    creep_base_scout: role_recycling,
+    creep_base_scout: role_scout,
     creep_base_power_attack: role_power_attack,
     creep_base_full_move_power_attack: role_power_attack,
 }
