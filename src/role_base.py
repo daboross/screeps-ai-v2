@@ -5,7 +5,7 @@ from constants import target_source, recycle_time, role_recycling, PYFIND_REPAIR
     PYFIND_BUILDABLE_ROADS, target_closest_energy_site, role_miner
 from control import pathdef
 from tools import profiling
-from utilities import movement, global_cache
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -22,9 +22,19 @@ def find_reuse_path_value():
         return 13
 
 
+def add_roads(room_name, cost_matrix):
+    room = Game.rooms[room_name]
+    if not room:
+        return
+    for road in room.find(FIND_STRUCTURES):
+        if road.structureType == STRUCTURE_ROAD:
+            cost_matrix.set(road.pos.x, road.pos.y, 1)
+
+
 _REUSE = find_reuse_path_value()
 _DEFAULT_PATH_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE, "ignoreRoads": True}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE,
+                         "ignoreRoads": True, "costCallback": add_roads}
 
 
 class RoleBase:
@@ -168,7 +178,7 @@ class RoleBase:
         else:
             return _DEFAULT_PATH_OPTIONS
 
-    def _follow_path_to(self, target, set_rhp=False):
+    def _follow_path_to(self, target):
         if target.pos:
             target = target.pos
         if self.last_target:
@@ -179,8 +189,7 @@ class RoleBase:
         else:
             self.last_target = target
         if self.creep.pos.isNearTo(target):
-            self.creep.move(self.creep.pos.getDirectionTo(target))
-            return OK
+            return self.creep.move(self.creep.pos.getDirectionTo(target))
         checkpoint = self.last_checkpoint
         if not checkpoint:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
@@ -209,22 +218,10 @@ class RoleBase:
                 return self.creep.moveTo(target, self._move_options())
 
         path = self.hive.honey.find_path(checkpoint, target)
-        if set_rhp:
-            # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
-            global_cache.set("rhp_{}_{}_{}_{}_{}".format(
-                self.pos.roomName, checkpoint.x, checkpoint.y, target.x, target.y),
-                [checkpoint.x, checkpoint.y, target.x, target.y], 300)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         # TODO: this code should be able to space out creeps eventually
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
-            pos = self.creep.pos
-            if pos.x != 0 and pos.x != 49 and pos.y != 0 and pos.y != 49:
-                # This seems to only ever happen when the path accidentally includes an exit tile, in which case we'll
-                # probably find the path again shortly.
-                pass
-                # self.log("Uh-oh! We've lost the path from {} to {}.".format(self.last_checkpoint, target))
-
             return self.creep.moveTo(target, self._move_options())
         if result == OK:
             # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
@@ -236,35 +233,38 @@ class RoleBase:
             self.log("Invalid path found: {}".format(JSON.stringify(path)))
         return result
 
-    def move_to_with_queue(self, target, queue_flag_type, full_defined_path=False):
+    def move_to_local_source_with_queue(self, target):
+        if target.pos:
+            target = target.pos
+        flag = flags.find_closest_in_room(target, flags.LOCAL_MINE)
+        queue_name = flag.memory.queue
+        if not queue_name or queue_name not in Game.flags:
+            self.log("Trigger queue flag creation near {}.".format(flag))
+            room = self.hive.get_room(target.roomName)
+            if room and room.my:
+                room.building.place_queue_flag_near(flag)
+            return self.move_to(target, False)
+        return self.move_to_with_queue(target, Game.flags[queue_name])
+
+    def move_to_with_queue(self, target, queue_flag):
         if target.pos:
             target = target.pos
         if self.creep.pos.roomName != target.roomName:
-            return self.move_to(target, False, full_defined_path)
+            return self.move_to(target, False)
 
-        queue_flag = flags.find_closest_in_room(target, queue_flag_type)
-
-        if not queue_flag or queue_flag.pos.getRangeTo(target) > 10:
-            self.log("WARNING! Couldn't find queue flag of type {} close to {}.".format(queue_flag_type, target))
-            if queue_flag_type == flags.SOURCE_QUEUE_START:
-                room = self.hive.get_room(target.roomName)
-                if room and room.my:
-                    room.building.place_queue_flag_near(target)
-            return self.move_to(target, False, full_defined_path)
         if self.creep.pos.isEqualTo(queue_flag.pos):
             self.last_checkpoint = queue_flag.pos
-        if queue_flag.pos.isEqualTo(self.last_checkpoint) and target.roomName == self.last_checkpoint.roomName:
+        if (queue_flag.pos.isEqualTo(self.last_checkpoint)
+            or (self.last_checkpoint and self.last_checkpoint.isNearTo(target))) \
+                and target.roomName == self.last_checkpoint.roomName:
             return self._follow_path_to(target)  # this will precalculate a single path ignoring creeps, and move on it.
 
-        if full_defined_path:
-            result = self._follow_path_to(queue_flag)
-        else:
-            self.last_checkpoint = None
-            result = self.creep.moveTo(queue_flag, self._move_options())
-        if result == OK:
-            if self.creep.pos.isNearTo(queue_flag.pos) and \
-                    movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
-                self.last_checkpoint = queue_flag.pos
+        self.last_checkpoint = None
+        result = self.creep.moveTo(queue_flag, self._move_options())
+        # if result == OK:
+        #     if self.creep.pos.isNearTo(queue_flag.pos) and \
+        #             movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
+        #         self.last_checkpoint = queue_flag.pos
         return result
 
     def _try_move_to(self, pos, follow_defined_path=False):
@@ -272,30 +272,32 @@ class RoleBase:
 
         if here == pos:
             return OK
-
-        if here.roomName != pos.roomName:
-            exit_flag = movement.get_exit_flag_to(here.roomName, pos.roomName)
-            if exit_flag:
-                # pathfind to the flag instead
-                pos = exit_flag
-            else:
-                # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
-                # instead of the direct route using these flags.
-                no_exit_flag = movement.get_no_exit_flag_to(here.roomName, pos.roomName)
-                if not no_exit_flag:
-                    self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {})"
-                             .format(here.roomName, pos.roomName, pos))
-                self.last_checkpoint = None
-                return self.creep.moveTo(pos)  # no _DEFAULT_PATH_OPTIONS since we're doing multi-room here.
+        move_opts = self._move_options()
+        target_room = (pos.roomName or (pos.pos and pos.pos.roomName))
+        if here.roomName != target_room:
+            move_opts = _.create(move_opts, {'maxRooms': 16})
+            if movement.chebyshev_distance_room_pos(here, pos) > 50:
+                exit_flag = movement.get_exit_flag_to(here.roomName, target_room)
+                if exit_flag:
+                    # pathfind to the flag instead
+                    pos = exit_flag
+                else:
+                    # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
+                    # instead of the direct route using these flags.
+                    no_exit_flag = movement.get_no_exit_flag_to(here.roomName, target_room)
+                    if not no_exit_flag:
+                        self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {}, as a {})"
+                                 .format(here.roomName, target_room, JSON.stringify(pos), self.memory.role))
+                    self.last_checkpoint = None
         if follow_defined_path:
             # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
-            return self._follow_path_to(pos, True)
+            return self._follow_path_to(pos)
         else:
             self.last_checkpoint = None
-            return self.creep.moveTo(pos, self._move_options())
+            return self.creep.moveTo(pos, move_opts)
 
     def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
-        if target.pos:
+        if target.pos and (not target.range):
             pos = target.pos
         else:
             pos = target
@@ -394,13 +396,13 @@ class RoleBase:
 
         piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 3, source.pos)
         if len(piles) > 0:
-            pile = piles[0]
+            pile = _.max(piles, 'amount')
             if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(pile.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
-                self.move_to_with_queue(pile, flags.SOURCE_QUEUE_START, follow_defined_path)
+                self.move_to_local_source_with_queue(pile)
                 return False
             result = self.creep.pickup(pile)
             if result != OK:
@@ -416,7 +418,7 @@ class RoleBase:
                         and self.creep.pos.getRangeTo(container.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
-                self.move_to_with_queue(container, flags.SOURCE_QUEUE_START, follow_defined_path)
+                self.move_to_local_source_with_queue(container)
 
             result = self.creep.withdraw(container, RESOURCE_ENERGY)
             if result != OK:
@@ -435,7 +437,7 @@ class RoleBase:
                 if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
                     # Just get all you can - if this much has built up, it means something's blocking the queue...
                     self.move_to(miner)
-                self.move_to_with_queue(miner, flags.SOURCE_QUEUE_START, follow_defined_path)
+                self.move_to_local_source_with_queue(miner)
             return False  # waiting for the miner to gather energy.
 
         if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), lambda c: c.memory.role == role_miner):
@@ -654,6 +656,7 @@ class RoleBase:
             if not creep_cond(other):
                 return False
             other.move(pathdef.get_direction(self.pos.x - x, self.pos.y - y))
+            other._forced_move = True
         self.creep.move(pathdef.get_direction(x - self.pos.x, y - self.pos.y))
         return True
 
