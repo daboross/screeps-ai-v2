@@ -43,6 +43,7 @@ class MiningMind:
         self.hive = room.hive_mind
         self.targets = self.hive.target_mind
         self._available_mining_flags = None
+        self._local_mining_flags = None
         self._active_mining_flags = None
 
     def closest_deposit_point_to_mine(self, flag):
@@ -55,11 +56,21 @@ class MiningMind:
         # Even if we don't have a link manager active right now, we will soon if there is a main link
         if self.room.links.main_link:
             main_link_id = self.room.links.main_link.id
-            target = self.room.find_closest_by_range(
-                FIND_MY_STRUCTURES, flag,
-                lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE)
-                          and s.id != main_link_id
-            )
+            best_priority = Infinity
+            best = None
+            for structure in self.room.find(FIND_MY_STRUCTURES):
+                if structure.structureType == STRUCTURE_LINK:
+                    if structure.id == main_link_id:
+                        continue
+                    priority = movement.chebyshev_distance_room_pos(structure, flag)
+                elif structure.structureType == STRUCTURE_STORAGE:
+                    priority = movement.chebyshev_distance_room_pos(structure, flag) - 6
+                else:
+                    continue
+                if priority < best_priority:
+                    best_priority = priority
+                    best = structure
+            target = best
         elif self.room.room.storage:
             target = self.room.room.storage
         elif self.room.spawn:
@@ -73,6 +84,16 @@ class MiningMind:
         else:
             self.room.store_cached_property(key, target_id, 50)
         return target
+
+    def mine_priority(self, flag):
+        priority = self.distance_to_mine(flag)
+        if flag.pos.roomName == self.room.room_name:
+            priority -= 50
+        if flag.memory.sk_room:
+            priority -= 40
+        elif self.should_reserve(flag.pos.roomName):
+            priority -= 30
+        return priority
 
     def distance_to_mine(self, flag):
         deposit_point = self.closest_deposit_point_to_mine(flag)
@@ -129,8 +150,8 @@ class MiningMind:
                     flag.memory.sitting = 0
             del flag.memory.remote_miner_targeting
 
-    def get_available_mining_flags(self):
-        if self._available_mining_flags is None:
+    def get_local_mining_flags(self):
+        if self._local_mining_flags is None:
             result = []
             for source in self.room.sources:
                 flag = flags.look_for(self.room, source, flags.LOCAL_MINE)
@@ -149,7 +170,15 @@ class MiningMind:
                     flag.memory.sponsor = self.room.room_name
                     flag.memory.active = True
                 result.append(flag)
-            result = result.concat(_.sortBy(self.room.possible_remote_mining_operations, self.distance_to_mine))
+            self._local_mining_flags = result
+        return self._local_mining_flags
+
+    local_mines = property(get_local_mining_flags)
+
+    def get_available_mining_flags(self):
+        if self._available_mining_flags is None:
+            result = self.get_local_mining_flags() \
+                .concat(_.sortBy(self.room.possible_remote_mining_operations, self.mine_priority))
             self._available_mining_flags = result
         return self._available_mining_flags
 

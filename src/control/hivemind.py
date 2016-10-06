@@ -550,8 +550,8 @@ class RoomMind:
         if paving is None:
             if self.my:
                 # TODO: 2 maybe should be a constant?
-                paving = self.full_storage_use and self.get_max_mining_op_count() >= 1 \
-                         and len(self.mining.available_mines) >= 1
+                paving = self.get_max_mining_op_count() >= 1 and len(self.mining.available_mines) >= 1 + len(
+                    self.sources)
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
@@ -588,6 +588,7 @@ class RoomMind:
                         break
                 else:
                     unreachable_rooms = True  # Cache for less time
+                    paved = False
         # TODO: better remote mine-specific paving detection, so we can disable this shortcut
         if not paved and self.paving():
             paved = True
@@ -1084,7 +1085,7 @@ class RoomMind:
         sources = len(self.sources)
 
         if sources <= 1:
-            if self.rcl < 7:
+            if len(self.spawns) < 2:
                 return 3
             elif self.rcl == 7:
                 return 4
@@ -1094,7 +1095,7 @@ class RoomMind:
             else:
                 return 3
         else:
-            if self.rcl < 7:
+            if len(self.spawns) < 2:
                 return 2
             elif self.rcl == 7:
                 return 4

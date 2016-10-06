@@ -290,13 +290,17 @@ class ConstructionMind:
         if last_run_version and last_run_version == latest_key:
             return
         elif last_run_version == "missing_rooms":
-            missing_rooms = self.room.get_cached_property("pmr_missing_rooms")
             if Game.time % 30 != 3:
                 return  # don't check every tick
+            print("[{}] Checking missing rooms".format(self.room.room_name))
+            missing_rooms = self.room.get_cached_property("pmr_missing_rooms")
             for name in missing_rooms:
                 if Game.rooms[name]:
                     break  # Re-pave if we can now see a room we couldn't before!
+                else:
+                    print("[{}] Missing room {} still not visible...".format(self.room.room_name, name))
             else:
+                print("[{}] No missing rooms visible! {}".format(self.room.room_name, missing_rooms))
                 return
         elif last_run_version == "too_many_sites":
             if Game.time % 30 != 3:
@@ -337,9 +341,11 @@ class ConstructionMind:
         any_non_visible_rooms = False
         non_visible_rooms = None
 
-        def check_route(positions):
-            nonlocal  checked_positions_per_room, future_road_positions_per_room, path_count, \
+        def check_route(mine, positions):
+            nonlocal checked_positions_per_room, future_road_positions_per_room, path_count, \
                 placed_count, any_non_visible_rooms, non_visible_rooms
+            if mine.pos:
+                mine = mine.pos
             path_count += 1
             for pos in positions:
                 if checked_positions_per_room.has(pos.roomName):
@@ -369,7 +375,8 @@ class ConstructionMind:
                             and not len(room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
                         if placed_count + preexisting_count >= 100:
                             break
-                        room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
+                        if abs(pos.x - mine.x) > 1 or abs(pos.y - mine.y) > 1:
+                            room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
                         placed_count += 1
                     checked_positions.add(pos_key)
                     if pos.roomName in future_road_positions_per_room:
@@ -378,18 +385,22 @@ class ConstructionMind:
                         future_road_positions_per_room[pos.roomName] = [pos]
 
         for mine in self.room.mining.active_mines:
+            if mine.pos.roomName == self.room.room_name \
+                    and (self.room.rcl < 4 or not self.room.room.storage):
+                continue
             deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
             if not deposit_point:
-                continue  # This will be the case if we have no storage nor spawn. In that case, don't yet pave.
+                # If we have no storage nor spawn, don't pave.
+                continue
             # It's important to run check_route on this path before doing another path, since this updates the
             # future_road_positions_per_room object.
             self.hive.honey.clear_cached_path(deposit_point, mine)
-            check_route(self.hive.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
+            check_route(mine, self.hive.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
             self.hive.honey.clear_cached_path(mine, deposit_point)
-            check_route(self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
+            check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
             for spawn in self.room.spawns:
                 self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                check_route(self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
+                check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
 
         to_destruct = 0
         for room_name in checked_positions_per_room.keys():
@@ -455,7 +466,13 @@ class ConstructionMind:
             # Done!
 
     def re_place_mining_roads(self):
-        self.room.mem.cache.placed_mining_roads.dead_at = Game.time + 1
+        cache = self.room.mem.cache
+        if 'placed_mining_roads' in cache:
+            cache.placed_mining_roads.dead_at = Game.time + 1
+        if 'paving_here' in cache:
+            cache.paving_here.dead_at = Game.time + 1
+        if 'all_paved' in cache:
+            cache.all_paved.dead_at = Game.time + 1
 
     def place_home_ramparts(self):
         last_run = self.room.get_cached_property("placed_ramparts")
