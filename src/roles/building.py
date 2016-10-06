@@ -237,25 +237,24 @@ class Builder(upgrading.Upgrader):
             self.log("Unknown result from creep.dismantle({}): {}", target, result)
 
     def move_around_when_ok(self, target):
+        if self.creep._forced_move:
+            return
         nearby = self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos)
         other = _.find(nearby, lambda c: c.name != self.name)
         if other:
             if not self.basic_move_to(target):
                 found = False
-                for x in range(self.pos.x - 1, self.pos.x + 2):
-                    for y in range(self.pos.y - 1, self.pos.y + 2):
-                        for creep in nearby:
-                            if creep.pos.x == x and creep.pos.y == y:
-                                break
-                        else:
-                            if movement.is_block_empty(self.room, x, y):
-                                self.creep.move(pathdef.get_direction(x - self.pos.x, y - self.pos.y))
-                                found = True
-                                break
+                for x in range(min(1, self.pos.x - 1), max(49, self.pos.x + 2)):
+                    for y in range(min(1, self.pos.y - 1), max(49, self.pos.y + 2)):
+                        if movement.is_block_clear(self.room, x, y):
+                            self.creep.move(pathdef.get_direction(x - self.pos.x, y - self.pos.y))
+                            found = True
+                            break
                     if found:
                         break
                 if not found:
                     self.creep.move(pathdef.get_direction(other.pos.x - self.pos.x, other.pos.y - self.pos.y))
+                    print("Couldn't find somewhere to move to! D:")
 
 
 profiling.profile_whitelist(Builder, [

@@ -1024,6 +1024,11 @@ class RoomMind:
                 self.mem.upgrading_paused = True
         return not not self.mem.upgrading_paused
 
+    def upgrading_deprioritized(self):
+        return (self.upgrading_paused() or (self.rcl < 4 and len(self.subsidiaries))
+                or (not self.spawn and not self.being_bootstrapped())) \
+               and self.room.controller.ticksToDowngrade >= 1000
+
     def building_paused(self):
         if self._building_paused is None:
             if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
@@ -1272,7 +1277,7 @@ class RoomMind:
         else:
             worker_size = max(1, spawning.max_sections_of(self, base))
 
-        if self.upgrading_paused():
+        if self.upgrading_deprioritized():
             wm = 1
         elif self.overprioritize_building():
             return 0

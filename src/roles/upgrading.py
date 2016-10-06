@@ -1,3 +1,5 @@
+import math
+
 import speech
 from constants import recycle_time, role_recycling, role_upgrader, PYFIND_REPAIRABLE_ROADS, PYFIND_BUILDABLE_ROADS, \
     role_builder
@@ -149,9 +151,15 @@ class Upgrader(RoleBase):
         if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
             self.memory.filling = False
             self.finished_energy_harvest()
-        elif not self.memory.filling and self.creep.carry.energy <= 0:
+        elif not self.memory.filling and self.creep.carry.energy <= 0 \
+                and self.creep.getActiveBodyparts(CARRY) > self.creep.getActiveBodyparts(WORK):
+            # If we're a dedicated upgrader, just wait for a spawn filler to come give us more energy.
             self.memory.filling = True
             self.finished_energy_harvest()
+
+        if self.home.upgrading_deprioritized() and self.home.room.storage:
+            if self.empty_to_storage():
+                return False
 
         if not self.home.room.controller.my or (self.home.upgrading_paused()
                                                 and self.creep.room.controller.ticksToDowngrade >= 5000):
@@ -160,24 +168,42 @@ class Upgrader(RoleBase):
                 self.go_to_depot()
             return False
 
-        if self.memory.filling:
+        # When upgrading is deprioritized, and we're not paused, we should sit by the controller and wait for a hauler
+        # to bring us energy, if there is any energy spare. Otherwise we should just sit there, and wait.
+        if self.memory.filling and not self.home.upgrading_deprioritized():
             self.build_swamp_roads()
             self.harvest_energy()
         else:
             target = self.home.room.controller
             if not self.creep.pos.inRangeTo(target.pos, 3):
-                self.move_to(target)
+                self.build_swamp_roads()
+                self.move_to({'pos': target.pos, 'range': 3})
                 self.report(speech.upgrading_moving_to_controller)
                 return False
 
             result = self.creep.upgradeController(target)
             if result == ERR_NOT_ENOUGH_RESOURCES:
-                if not self.memory.filling:
+                if not self.memory.filling and self.creep.getActiveBodyparts(CARRY) \
+                        > self.creep.getActiveBodyparts(WORK):
                     self.memory.filling = True
                     return True
-            elif result == OK:
-                holding = _.sum(self.creep.carry)
-                self.force_basic_move_to(target, lambda c: _.sum(c.carry) < holding)
+            if result == OK or result == ERR_NOT_ENOUGH_RESOURCES:
+                if self.home.full_storage_use or self.home.role_count(role_upgrader) < 4:
+                    self.basic_move_to(target)
+                else:
+                    self_empty = self.creep.carryCapacity - _.sum(self.creep.carry)
+
+                    # empty_percent =  self_empty / self.creep.carryCapacity
+                    def can_move_over(other_creep):
+                        other_empty = other_creep.carryCapacity - _.sum(other_creep.carry)
+                        if other_empty > self_empty:
+                            self.creep.transfer(other_creep, RESOURCE_ENERGY, math.ceil((other_empty - self_empty) / 3))
+                            return True
+                        elif self_empty < other_empty:
+                            other_creep.transfer(self.creep, RESOURCE_ENERGY, math.ceil((self_empty - other_empty) / 3))
+                        return False
+
+                    self.force_basic_move_to(target, can_move_over)
                 self.report(speech.upgrading_ok)
             else:
                 self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
