@@ -33,20 +33,27 @@ class EnergyMiner(TransportPickup):
         if source_flag.memory.sponsor != self.home.room_name:
             self.memory.home = source_flag.memory.sponsor
 
-        if self.creep.hits < self.creep.hitsMax and (self.pos.roomName != self.home.room_name
-                                                     or self.pos.x > 40 or self.pos.y > 40
-                                                     or self.pos.x < 10 or self.pos.y < 10):
-            self.follow_energy_path(source_flag, self.home.spawn)
-            return
-        if self.creep.pos.getRangeTo(source_flag.pos) > 2:
+        if self.creep.hits < self.creep.hitsMax:
+            if self.home.defense.healing_capable() and (self.pos.roomName != self.home.room_name
+                                                        or self.pos.x > 40 or self.pos.y > 40
+                                                        or self.pos.x < 10 or self.pos.y < 10):
+                self.follow_energy_path(source_flag, self.home.spawn)
+                return
+            elif not self.creep.getActiveBodyparts(WORK):
+                self.creep.suicide()
+                return
+        distance_away = self.creep.pos.getRangeTo(source_flag.pos)
+        if distance_away > 2:
             if self.pos.roomName == source_flag.pos.roomName:
-                if self.pos.getRangeTo(source_flag.pos) <= 5:
-                    other_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
-                                         lambda c: c.getActiveBodyparts(WORK) >= 5
-                                                   and c.ticksToLive < self.creep.ticksToLive)
-                    if other_miner:
-                        other_miner.suicide()
-                        del self.memory._move
+                if distance_away <= 3:
+                    total_mass = self.home.mining.get_ideal_miner_workmass_for(source_flag)
+                    if self.creep.getActiveBodyparts(WORK) >= total_mass:
+                        other_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
+                                             lambda c: c.memory.role == role_miner
+                                                       and c.ticksToLive < self.creep.ticksToLive)
+                        if other_miner:
+                            other_miner.suicide()
+                            del self.memory._move
                 if self.memory.mmni:
                     self.creep.moveTo(source_flag)
                 else:
@@ -55,13 +62,17 @@ class EnergyMiner(TransportPickup):
                 if self.memory.last_pos == serialized_pos:
                     self.creep.moveTo(source_flag, {'reusePath': 0})
                     self.memory.mmni = True
-                self.memory.last_pos = serialized_pos
+                elif not self.creep.fatigue:
+                    self.memory.last_pos = serialized_pos
             else:
                 self.follow_energy_path(self.home.spawn, source_flag)
             self.report(speech.remote_miner_moving)
             return False
-        elif not self.creep.pos.isNearTo(source_flag.pos):
-            self.force_basic_move_to(source_flag.pos, lambda c: c.memory.role != role_miner)
+        elif distance_away > 1:
+            non_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
+                               lambda c: c.memory.role != role_miner)
+            if not non_miner or not self.force_basic_move_to(non_miner, lambda c: c.memory.role != role_miner):
+                self.move_to(source_flag.pos)
             return False
         if 'container_pos' not in self.memory:
             container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
@@ -91,7 +102,18 @@ class EnergyMiner(TransportPickup):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             self.report(speech.remote_miner_flag_no_source)
             return False
+        source = sources_list[0]
 
+        # if Game.time % 3 == 2:
+        #     ideal_work = source.energyCapacity / ENERGY_REGEN_TIME / HARVEST_POWER
+        #     current_work = self.creep.getActiveBodyparts(WORK)
+        #     extra_work = current_work - ideal_work
+        #     if extra_work != 0:
+        #         if extra_work < 0:
+        #             current_work = _.sum(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
+        #                                  lambda c: c.memory.role == role_miner and c.getActiveBodyparts(WORK))
+        #         if current_work > source.energy / (source.ticksToRegeneration - 1) / HARVEST_POWER:
+        #             return False  # skip a tick, to spread it out
         result = self.creep.harvest(sources_list[0])
         if result == OK:
             self.report(speech.remote_miner_ok)
@@ -111,15 +133,27 @@ class EnergyMiner(TransportPickup):
                         del self.memory.link
                         return False
             else:
-                # TODO: expand this to support 2-space away places using a middle-space-finding code like LinkManager's
-                link = _.find(self.room.find_in_range(FIND_MY_STRUCTURES, 1, source_flag.pos),
-                              {'structureType': STRUCTURE_LINK})
+                link = None
+                for x in range(source_flag.pos.x - 1, source_flag.pos.x + 2):
+                    for y in range(source_flag.pos.y - 1, source_flag.pos.y + 2):
+                        if movement.is_block_empty(self.room, x, y):
+                            link = _.find(
+                                self.room.find(FIND_MY_STRUCTURES),
+                                lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE)
+                                          and abs(s.pos.x - x) <= 1 and abs(s.pos.y - y) <= 1
+                            )
+                            if link:
+                                break
+                    if link:
+                        break
                 if link:
                     self.memory.link = link.id
                 else:
                     self.memory.link = None
+                    return False
             if self.creep.carry.energy + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
-                self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
+                if link.structureType == STRUCTURE_LINK:
+                    self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
                 self.creep.transfer(link, RESOURCE_ENERGY)
 
         return False

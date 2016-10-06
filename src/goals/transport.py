@@ -10,17 +10,18 @@ __pragma__('noalias', 'Infinity')
 
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
-        self.repair_nearby_roads()
         total_carried_now = _.sum(self.creep.carry)
         if self.memory.filling:
             target = pickup.pos
             if not self.creep.carryCapacity:
-                if self.creep.hits < self.creep.hitsMax:
+                if self.creep.hits < self.creep.hitsMax and self.home.defense.healing_capable():
                     self.follow_energy_path(pickup, fill)
                 else:
-                    self.log("WARNING: Remote hauler has no carry and is at full health!")
+                    self.log("All carry parts dead, committing suicide.")
                     self.creep.suicide()
                 return
+            if total_carried_now > 0 and not self.pos.inRangeTo(target, 2):
+                self.repair_nearby_roads()
             if total_carried_now >= self.creep.carryCapacity:
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
@@ -102,6 +103,8 @@ class TransportPickup(RoleBase):
                     self.memory.filling = False
                     self.follow_energy_path(pickup, fill)
         else:
+            if total_carried_now > self.creep.carryCapacity / 2:  # don't use up *all* the energy doing this
+                self.repair_nearby_roads()
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage
             elif total_carried_now <= 0:
@@ -249,5 +252,16 @@ class TransportPickup(RoleBase):
                             del self.memory.hbu
                         else:
                             self.memory.hbu = Game.time + 7
-            else:
+                elif not self.memory.filling and self.memory.standstill_for % 10 == 5:
+                    del self.memory.next_ppos
+                    found_mine = False
+                    for pos in self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName}):
+                        if pos.x == self.pos.x and pos.y == self.pos.y:
+                            found_mine = True
+                        elif found_mine:
+                            if movement.is_block_clear(self.room, pos.x, pos.y):
+                                self.memory.next_ppos = {"x": pos.x, "y": pos.y, "roomName": self.pos.roomName}
+                                self.creep.moveTo(__new__(RoomPosition(pos.x, pos.y, self.pos.roomName)))
+                                break
+            elif not self.creep.fatigue:
                 self.memory.last_pos = serialized_pos

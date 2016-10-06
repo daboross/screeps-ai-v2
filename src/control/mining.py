@@ -142,6 +142,8 @@ class MiningMind:
             room = self.hive.get_room(flag.pos.roomName)
             if room:
                 sitting = _.sum(room.find_in_range(FIND_DROPPED_RESOURCES, 1, flag.pos), 'amount')
+                if sitting > 1000 and flag.memory.sitting <= 1000:
+                    self.room.reset_planned_role()
                 flag.memory.sitting = sitting
             else:
                 if flag.memory.sitting > 0:
@@ -298,8 +300,7 @@ class MiningMind:
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.room_name
             and self.room.room.energyCapacityAvailable >= 600
-            # TODO: support links 2 blocks away in EnergyMiner.
-            and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 1)
+            and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
         )
         no_haulers = (
             flag.pos.roomName == self.room.room_name
