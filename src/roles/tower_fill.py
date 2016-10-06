@@ -20,6 +20,7 @@ class TowerFill(spawn_fill.SpawnFill):
             self.targets.untarget_all(self)
         elif not self.memory.filling and self.creep.carry.energy <= 0:
             self.memory.filling = True
+            del self.memory.running
             self.targets.untarget_all(self)
 
         if self.memory.filling:

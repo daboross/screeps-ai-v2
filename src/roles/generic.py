@@ -1,6 +1,7 @@
 import speech
 from constants import *
 from control import pathdef
+from goals.refill import Refill
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
@@ -110,7 +111,7 @@ class ReplacingExpendedCreep(RoleBase):
 profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
 
-class Recycling(RoleBase):
+class Recycling(Refill):
     def should_pickup(self, resource_type=None):
         return self.creep.ticksToLive > 100
 
@@ -132,6 +133,8 @@ class Recycling(RoleBase):
                 else:
                     self.move_to(storage)
                 return False
+            else:
+                return self.refill_creeps()
 
         self.report(speech.recycling)
         self.recycle_me()

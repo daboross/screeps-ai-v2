@@ -1,11 +1,15 @@
+import math
+
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
-    role_hauler, role_miner, role_recycling, role_upgrader
+    role_hauler, role_miner, role_recycling, role_upgrader, role_spawn_fill
 from goals.refill import Refill
 from goals.transport import TransportPickup
 from role_base import RoleBase
+from roles.spawn_fill import SpawnFill
 from tools import profiling
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -129,13 +133,17 @@ class EnergyMiner(TransportPickup):
             return -1
         path = self.hive.honey.find_path(self.home.spawn, source)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
-        return len(path) + _.size(self.creep.body) * 3 + 15
+        moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
+        if self.home.all_paved():
+            moves_every /= 2
+        moves_every = math.ceil(moves_every)
+        return len(path) / moves_every + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(EnergyMiner, ["run"])
 
 
-class EnergyHauler(TransportPickup, Refill):
+class EnergyHauler(TransportPickup, SpawnFill, Refill):
     def run(self):
         pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
@@ -169,9 +177,44 @@ class EnergyHauler(TransportPickup, Refill):
             else:
                 self.log("WARNING: Remote hauler in room with no storage nor spawn!")
                 return
-        if fill == self.home.spawn and self.pos.roomName == fill.pos.roomName \
-                and not self.memory.filling:
-            return Refill.refill_creeps(self)
+        if fill == self.home.spawn:
+            if self.pos.roomName == fill.pos.roomName:
+                if not self.memory.filling:
+                    if self.creep.getActiveBodyparts(WORK):
+                        construction_sites = self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos)
+                        if len(construction_sites):
+                            self.creep.build(_.max(construction_sites, 'progress'))
+                        else:
+                            repair_sites = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, self.pos),
+                                                    lambda s: s.hits < s.hitsMax
+                                                              and s.hits < self.home.get_min_sane_wall_hits)
+                            if len(repair_sites):
+                                self.creep.build(_.min(repair_sites, 'hits'))
+                            else:
+                                self.repair_nearby_roads()
+                    if self.memory.running == 'refill':
+                        return self.refill_creeps()
+                    elif self.memory.running == role_spawn_fill:
+                        return SpawnFill.run(self)
+                    else:
+                        if _.find(self.home.find(FIND_MY_STRUCTURES), lambda s:
+                                (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
+                        and s.energy < s.energyCapacity):
+                            self.memory.running = role_spawn_fill
+                            return SpawnFill.run(self)
+                        else:
+                            self.memory.running = 'refill'
+                            return self.refill_creeps()
+                elif self.creep.ticksToLive < 200 and self.creep.ticksToLive < self.path_length(fill, pickup) * 2:
+                    if self.creep.carry.energy > 0:
+                        self.memory.filling = False
+                        return self.refill_creeps()
+                    else:
+                        self.memory.last_role = self.memory.role
+                        self.memory.role = role_recycling
+                        return self.recycle_me()
+            else:
+                del self.memory.running
 
         return self.transport(pickup, fill)
 

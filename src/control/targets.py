@@ -309,6 +309,8 @@ class TargetMind:
             distance = movement.distance_room_pos(source.pos, creep.pos)
             current_work_force = self.workforce_of(target_source, source.id)
             priority = energy - current_work_force * 100 - distance * 2
+            if source.energy <= 0:
+                priority -= 200
             if priority > highest_priority:
                 best_source = source.id
                 highest_priority = priority
@@ -615,9 +617,9 @@ class TargetMind:
         stealing_from = None
         structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
                               lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN
-                                         or s.structureType == STRUCTURE_CONTAINER)
+                                         or s.structureType == STRUCTURE_CONTAINER or s.structureType == STRUCTURE_TOWER)
                                         and s.energy < s.energyCapacity and s.isActive())
-        creeps = _.filter(creep.home.find(FIND_MY_CREEPS),
+        creeps = _.filter(creep.home.creeps,
                           lambda c: (c.memory.role == role_upgrader or c.memory.role == role_builder)
                                     and c.carry.energy < c.carryCapacity)
         for structure in structures.concat(creeps):
@@ -626,20 +628,23 @@ class TargetMind:
                 continue
             current_carry = self.workforce_of(target_spawn_deposit, structure_id) \
                             + self.workforce_of(target_refill, structure_id)
-            capacity = (structure.energyCapacity or structure.carryCapacity or structure.storeCapacity) \
-                       - ((structure.store and structure.store.energy)
-                          or (structure.carry and structure.carry.energy)
-                          or structure.energy or 0)
-            if capacity <= 1:
+            empty = ((structure.energyCapacity or structure.carryCapacity or structure.storeCapacity)
+                     - ((structure.store and structure.store.energy)
+                        or (structure.carry and structure.carry.energy)
+                        or structure.energy or 0))
+            empty_percent = empty / (structure.energyCapacity or structure.carryCapacity or structure.storeCapacity) \
+                            * 30
+            if empty <= 2 and not structure.structureType:
                 continue
-            squared_distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-            distance = math.sqrt(squared_distance)
-            priority = distance - capacity
+            distance = movement.chebyshev_distance_room_pos(structure.pos, creep.creep.pos)
+            priority = distance - empty_percent
             if structure.memory and not structure.memory.filling:
-                priority -= 10
+                priority -= 15
+            elif structure.structureType:
+                priority -= 15
             if priority < best_priority:
-                max = capacity / 50
-                if not current_carry or current_carry < max:
+                max_work_mass = empty / 50
+                if not current_carry or current_carry < max_work_mass:
                     best_priority = priority
                     best_id = structure_id
                     stealing_from = None
@@ -647,11 +652,9 @@ class TargetMind:
                     targeting = self.reverse_targets[target_refill][structure_id]
                     if len(targeting):
                         for name in targeting:
-                            if not Game.creeps[name] or movement.distance_squared_room_pos(
-                                    Game.creeps[name].pos, structure.pos) > squared_distance* 2.25:
+                            if not Game.creeps[name] or movement.chebyshev_distance_room_pos(
+                                    Game.creeps[name].pos, structure.pos) > distance * 1.5:
                                 # If we're at least 1.5x closer than them, let's steal their place.
-                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
-                                # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
                                 best_priority = priority
                                 best_id = structure_id
                                 stealing_from = name
