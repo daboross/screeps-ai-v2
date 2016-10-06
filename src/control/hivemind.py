@@ -1623,6 +1623,11 @@ class RoomMind:
 
     def reset_planned_role(self):
         del self.mem.next_role
+        if not self.spawn:
+            sponsor = self.hive_mind.get_room(self.sponsor_name)
+            if sponsor and sponsor.spawn:
+                if _.sum(self.role_counts) < 3 and sponsor.next_role is None:
+                    sponsor.reset_planned_role()
 
     def plan_next_role(self):
         if not self.my:

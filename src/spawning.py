@@ -47,7 +47,8 @@ scalable_sections = {
     creep_base_mammoth_miner: [MOVE, WORK, WORK, WORK, WORK],
     creep_base_full_move_power_attack: [MOVE, ATTACK],
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
-    creep_base_half_move_hauler: [MOVE, CARRY, CARRY]
+    creep_base_half_move_hauler: [MOVE, CARRY, CARRY],
+    creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE]
 }
 
 half_sections = {
@@ -65,6 +66,7 @@ half_sections = {
 low_energy_sections = {
     creep_base_worker: [MOVE, MOVE, CARRY, WORK],
     creep_base_full_upgrader: [MOVE, CARRY, WORK],
+    creep_base_claiming: [MOVE, CLAIM, MOVE],
 }
 
 low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4000miner]
@@ -249,6 +251,11 @@ def run(room, spawn):
         for i in range(0, num_sections):
             parts.append(MOVE)
         descriptive_level = num_sections
+    elif base is creep_base_claiming:
+        if energy < 800:
+            parts = [MOVE, CLAIM, MOVE]
+        else:
+            parts = [MOVE, MOVE, MOVE, CLAIM, MOVE]
     elif base is creep_base_hauler:
         parts = []
         for i in range(0, num_sections):

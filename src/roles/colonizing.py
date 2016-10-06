@@ -19,7 +19,7 @@ class Colonist(MilitaryBase):
         if not self.memory.colonizing:
             closest_distance = Infinity
             closest_room_name = None
-            for room in self.hive.my_rooms:
+            for room in self.home.subsidiaries:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
                     distance = movement.distance_squared_room_pos(self.creep.pos,
                                                                   __new__(RoomPosition(25, 25, room.room_name)))
@@ -27,7 +27,7 @@ class Colonist(MilitaryBase):
                         closest_room_name = room.room_name
 
             if not closest_room_name:
-                for room in self.hive.my_rooms:
+                for room in self.home.subsidiaries:
                     if not len(room.spawns):
                         distance = movement.distance_squared_room_pos(self.creep.pos,
                                                                       __new__(RoomPosition(25, 25, room.room_name)))
@@ -43,6 +43,7 @@ class Colonist(MilitaryBase):
 
         if self.creep.room.name == colony:
             del self.memory.colonizing
+            sponsor = self.home
             self.memory.home = colony
             room = self.hive.get_room(colony)
             storage = room.room.storage
@@ -56,7 +57,7 @@ class Colonist(MilitaryBase):
                 enemy_storage_exhausted = True
             if room.role_count(role_upgrader) < 1 and not room.upgrading_paused():
                 self.memory.role = role_upgrader
-            elif room.rcl >= 5 and enemy_storage_exhausted:
+            elif enemy_storage_exhausted and (room.rcl >= 5 or room.rcl >= sponsor.rcl):
                 self.memory.role = role_builder
             else:
                 self.memory.role = role_upgrader
@@ -79,7 +80,7 @@ class Colonist(MilitaryBase):
 profiling.profile_whitelist(Colonist, ["run"])
 
 
-class Claim(RoleBase, MilitaryBase):
+class Claim(MilitaryBase):
     def run(self):
         if not self.memory.claiming:
             # TODO: turn this into a target for TargetMind
@@ -89,7 +90,7 @@ class Claim(RoleBase, MilitaryBase):
                 room = context.hive().get_room(flag.pos.roomName)
                 if not room or (not room.my and not room.room.controller.owner):
                     # claimable:
-                    distance = movement.distance_squared_room_pos(self.creep.pos, __new__(RoomPosition(
+                    distance = movement.chebyshev_distance_room_pos(self.creep.pos, __new__(RoomPosition(
                         25, 25, flag.pos.roomName)))
                     if distance < closest_distance:
                         closest_distance = distance
@@ -103,8 +104,13 @@ class Claim(RoleBase, MilitaryBase):
                 return False
 
         if self.creep.pos.roomName != self.memory.claiming:
-            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, self.memory.claiming)),
-                                      {'range': 15})
+            opts = {'range': 15}
+            if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) * 5 / 7:
+                opts.ignore_swamp = True
+                opts.use_roads = False
+            elif self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+                opts.use_roads = False
+            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, self.memory.claiming)), opts)
             return False
 
         target = self.creep.room.controller

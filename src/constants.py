@@ -16,6 +16,7 @@ creep_base_work_full_move_hauler = "fw_fm_hauler"
 creep_base_work_half_move_hauler = "fw_hm_hauler"
 creep_base_full_upgrader = "min_carry_worker"
 creep_base_reserving = "remote_reserve"
+creep_base_claiming = "strong_claim"
 creep_base_defender = "simple_defender"
 creep_base_mammoth_miner = "mammoth_miner"
 creep_base_half_move_healer = "hm_healer"
@@ -84,7 +85,7 @@ role_bases = {
     role_defender: creep_base_defender,
     role_cleanup: creep_base_hauler,
     role_colonist: creep_base_worker,
-    role_simple_claim: creep_base_reserving,
+    role_simple_claim: creep_base_claiming,
     role_room_reserve: creep_base_reserving,
     role_mineral_miner: creep_base_mammoth_miner,
     role_mineral_hauler: creep_base_hauler,
