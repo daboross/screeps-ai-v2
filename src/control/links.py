@@ -228,4 +228,5 @@ class LinkingMind:
             else:
                 self.link_creep.send_to_link(main_link.energyCapacity * 2 - main_link.energy)
 
+
 profiling.profile_whitelist(LinkingMind, ["tick_links"])

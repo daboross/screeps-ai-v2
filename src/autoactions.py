@@ -296,30 +296,6 @@ def run_away_check(creep):
 run_away_check = profiling.profiled(run_away_check, "autoactions.run_away_check")
 
 
-def pickup_check(creep):
-    """
-    :type creep: role_base.RoleBase
-    """
-    if creep.creep.carryCapacity and creep.should_pickup() and _.sum(creep.creep.carry) < creep.creep.carryCapacity:
-        energy = creep.room.find_in_range(FIND_DROPPED_RESOURCES, 1, creep.creep.pos)
-        if len(energy) > 0:
-            if len(energy) > 1:
-                energy = _.sortBy(energy, lambda e: e.amount)
-            for e in energy:
-                if creep.should_pickup(e.resourceType):
-                    creep.creep.pickup(e)
-                    break
-
-
-def mercy_check(creep):
-    """
-    :type creep: role_base.RoleBase
-    """
-    if creep.memory.role != role_scout and len(creep.creep.body) <= 1:
-        creep.creep.suicide()
-        return True
-
-
 def instinct_check(creep):
     """
     :type creep: role_base.RoleBase
@@ -331,10 +307,6 @@ def instinct_check(creep):
         return False
     if run_away_check(creep):
         return True
-    # if mercy_check(creep):
-    #     return True
-    # pickup_check(creep)
-    # transfer_check(creep)
     return False
 
 
@@ -362,16 +334,6 @@ def pickup_check_room(room):
                     if empty < smallest_capacity:
                         best = creep
                         smallest_capacity = empty
-                        # else:
-                        #     print("Creep at {} not wrapped, not picking up {} at {}".format(creep.pos, pile, pile.pos))
-                        #     if creep.wrapped:
-                        #         print("{}.should_pickup({}): {}".format(creep.wrapped, pile.resourceType,
-                        #                                                 creep.wrapped.should_pickup(pile.resourceType)))
-            # if not creep.wrapped.should_pickup(pile.resourceType):
-            #     print("Creep {} ({}) chose not to pickup {} at {}! (carryCapacity: {})"
-            #           .format(creep, creep.memory.role, pile, pile.pos, creep.carryCapacity))
         if best is not None:
             best.pickup(pile)
             best.picked_up = pile.amount
-        # else:
-        #     print("No creeps picking up {} in {}!".format(pile, pile.pos.roomName))

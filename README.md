@@ -78,6 +78,7 @@ Game.market.createOrder(ORDER_SELL, RESOURCE_HYDROGEN, x, 20000, "W49N25")
 for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game.rooms[name].controller || !Game.rooms[name].controller.my) { let mem = Memory.rooms[name]; delete mem.market; if (mem.cache && _.isEmpty(mem.cache)) { delete mem.cache; }; if (_.isEmpty(mem)) { delete Memory.rooms[name]; }}}
 JSON.stringify(Game.market.orders, null, 4)
 py.get_room("W49N25").minerals.fill_order('')
+for (let road of Game.rooms.E7N58.find(FIND_STRUCTURES)) { if (road.structureType == STRUCTURE_ROAD) { road.pos.cfms(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD);} }
 ```
 
 Planned market deals:
