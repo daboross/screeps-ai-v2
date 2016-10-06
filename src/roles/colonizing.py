@@ -4,8 +4,7 @@ import speech
 from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_simple_claim, \
     role_mineral_steal
 from goals.transport import TransportPickup
-from role_base import RoleBase
-from roles.military import MilitaryBase
+from roles.offensive import MilitaryBase
 from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *

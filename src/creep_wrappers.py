@@ -1,10 +1,11 @@
 from constants import *
-from roles import building
+from roles import building, defensive
 from roles import colonizing
 from roles import generic
-from roles import military
 from roles import minerals
 from roles import mining
+from roles import offensive
+from roles import exploring
 from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
@@ -25,7 +26,7 @@ role_classes = {
     role_miner: mining.EnergyMiner,
     role_hauler: mining.EnergyHauler,
     role_remote_mining_reserve: mining.RemoteReserve,
-    role_defender: military.RoleDefender,
+    role_defender: defensive.RoleDefender,
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
     role_colonist: colonizing.Colonist,
@@ -35,12 +36,12 @@ role_classes = {
     role_recycling: generic.Recycling,
     role_mineral_miner: minerals.MineralMiner,
     role_mineral_hauler: minerals.MineralHauler,
-    role_td_healer: military.TowerDrainHealer,
-    role_td_goad: military.TowerDrainer,
-    role_simple_dismantle: military.Dismantler,
-    role_scout: military.Scout,
-    role_power_attack: military.PowerAttack,
-    role_power_cleanup: military.PowerCleanup,
+    role_td_healer: offensive.TowerDrainHealer,
+    role_td_goad: offensive.TowerDrainer,
+    role_simple_dismantle: offensive.Dismantler,
+    role_scout: exploring.Scout,
+    role_power_attack: offensive.PowerAttack,
+    role_power_cleanup: offensive.PowerCleanup,
 }
 
 

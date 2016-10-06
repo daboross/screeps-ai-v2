@@ -117,6 +117,10 @@ def chebyshev_distance_room_pos(pos1, pos2):
     return max(abs(world_pos_1[0] - world_pos_2[0]), abs(world_pos_1[1] - world_pos_2[1]))
 
 
+def minimum_chebyshev_distance(comparison_pos, targets):
+    return _.min(targets, lambda p: chebyshev_distance_room_pos(comparison_pos, p))
+
+
 def distance_room_pos(room_pos_1, room_pos_2):
     """
     Gets the distance between two RoomPositions, taking into account room difference by parsing room names into x, y

@@ -6,6 +6,7 @@ from constants import creep_base_work_half_move_hauler, creep_base_work_full_mov
     target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
     creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4500miner, creep_base_carry3000miner, \
     creep_base_1500miner
+from control import defense
 from control import live_creep_utils
 from utilities import movement
 from utilities import volatile_cache
@@ -266,6 +267,9 @@ class MiningMind:
             flag.pos.roomName == self.room.room_name
             and (self.room.rcl < 4 or not self.room.room.storage)
         )
+
+        if len(defense.stored_hostiles_in(flag.pos.roomName)):
+            return None
 
         miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
         miner_needed = False

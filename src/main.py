@@ -6,9 +6,8 @@ import context
 import flags
 import spawning
 import speech
-import tower
 from constants import *
-from control import hivemind
+from control import hivemind, defense
 from control.hivemind import HiveMind
 from control.targets import TargetMind
 from creep_wrappers import wrap_creep
@@ -38,6 +37,8 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
             return
     try:
         if creep.spawning and creep.memory.role != role_temporary_replacing:
+            return
+        if creep.defense_override:
             return
         instance = wrap_creep(hive_mind, target_mind, room, creep)
         if not instance:
@@ -87,7 +88,7 @@ def run_room(target_mind, creeps_skipped, room):
     """
     try:
         context.set_room(room)
-        tower.run(room)
+        room.defense.tick()
         if not Memory.skipped_last_turn:
             room.precreep_tick_actions()
         if 'skipped_last_turn' in Memory and room.room_name in Memory.skipped_last_turn:
@@ -168,7 +169,9 @@ def main():
 
     hive_mind.poll_all_creeps()
     if Game.time % 5 == 1:
-        hive_mind.poll_hostiles()
+        defense.poll_hostiles(hive_mind)
+    elif Game.time % 25 == 7:
+        defense.cleanup_stored_hostiles()
 
     if not Memory.creeps:
         Memory.creeps = {}
@@ -215,6 +218,8 @@ module.exports.loop = profiling.wrap_main(main)
 __pragma__('js', 'global').py = {
     "context": context,
     "consistency": consistency,
+    "autoactions": autoactions,
+    "defense": defense,
     "movement": movement,
     "hivemind": hivemind,
     "flags": flags,

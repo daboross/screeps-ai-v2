@@ -31,7 +31,7 @@ scalable_sections = {
     creep_base_work_full_move_hauler: [MOVE, CARRY],
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
-    creep_base_defender: [CARRY, MOVE, ATTACK],
+    creep_base_defender: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK],
     creep_base_1500miner: [MOVE],
     creep_base_3000miner: [MOVE],
     creep_base_4500miner: [MOVE],
@@ -308,11 +308,14 @@ def run(room, spawn):
     elif base is creep_base_defender:
         parts = []
         # # MOVE, MOVE, ATTACK, TOUCH = one section = 190
-        # MOVE, ATTACK, CARRY = one section = 180
+        # MOVE, ATTACK, CARRY = one section = 180 [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK],
         for i in range(0, num_sections):
-            parts.append(CARRY)
-        for i in range(0, num_sections + half_section):
+            parts.append(TOUGH)
+        for i in range(0, math.floor(num_sections * 1.5)):
+            parts.append(MOVE)
+        for i in range(0, num_sections * 2 + half_section):
             parts.append(ATTACK)
+        for i in range(0, math.ceil(num_sections * 1.5) + half_section):
             parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_mammoth_miner:

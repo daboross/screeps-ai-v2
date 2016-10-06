@@ -1,6 +1,7 @@
 import context
 import flags
-from constants import INVADER_USERNAME, SK_USERNAME, role_scout
+from constants import INVADER_USERNAME
+from control import defense
 from control import pathdef
 from tools import profiling
 from utilities import volatile_cache, movement
@@ -17,20 +18,17 @@ def pathfinder_enemy_array_for_room(room_name):
         return cache.get(room_name)
 
     enemy_positions = []
-    if Memory.hostiles and len(Memory.hostiles):
-        for hostile, hostile_room, pos, owner in Memory.hostiles:
-            dx, dy = movement.inter_room_difference(hostile_room, room_name)
-            if abs(dx) <= 1 and abs(dy) <= 1:
-                if owner == SK_USERNAME:
-                    enemy_range = 4
-                elif owner == INVADER_USERNAME:
-                    enemy_range = 15
-                elif owner != "harmless":
-                    enemy_range = 7
-                else:
-                    continue
-                pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
-                enemy_positions.append({"pos": pos, "range": enemy_range})
+    for h in defense.stored_hostiles_near(room_name):
+        if h.user == INVADER_USERNAME:
+            enemy_range = 15
+        elif h.ranged:
+            enemy_range = 7
+        elif h.attack:
+            enemy_range = 5
+        else:
+            continue
+        pos = __new__(RoomPosition(h.pos & 0x3F, h.pos >> 6 & 0x3F, h.room))
+        enemy_positions.append({"pos": pos, "range": enemy_range})
 
     cache.set(room_name, enemy_positions)
     return enemy_positions
@@ -41,12 +39,9 @@ def room_hostile(room_name):
     if cache.has(room_name):
         return cache.get(room_name)
 
-    room_under_attack = False
-
-    for hostile, hostile_room, pos, owner in Memory.hostiles:
-        if hostile_room == room_name and owner != "Source Keeper":
-            room_under_attack = True
-            break
+    # This will only get "active" hostiles, which doesn't count source keepers, or non-ATTACK/RANGED_ATTACK creeps in
+    # owned rooms.
+    room_under_attack = len(defense.stored_hostiles_in(room_name))
 
     cache.set(room_name, room_under_attack)
     return room_under_attack
@@ -211,7 +206,7 @@ def run_away_check(creep):
     :type creep: role_base.RoleBase
     """
     if creep.creep.getActiveBodyparts(ATTACK) or creep.creep.getActiveBodyparts(RANGED_ATTACK) \
-            or (_.get(creep.creep.room, 'controller.my', False) and creep.creep.room.controller.safeMode):
+            or (creep.room.my and creep.creep.room.controller.safeMode):
         return False  # we're a defender, defenders don't run away!
     hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
     if not len(hostile_path_targets):
@@ -234,42 +229,41 @@ def run_away_check(creep):
         target = obj.pos
         safe = False
         for safe_pos in creep.memory._safe:
-            if movement.distance_squared_room_pos(safe_pos, target) < 4:
+            if movement.chebyshev_distance_room_pos(safe_pos, target) < 2:
                 safe = True
                 break
         if safe:
             continue
-        enemy_path = PathFinder.search(target, {"pos": creep.pos, range: 0}, {
-            "roomCallback": enemy_purposes_cost_matrix,
-            "maxRooms": 5,
-            "plainCost": 1,
-            "swampCost": 1,  # for speed purposes
-            "maxCost": 15,
-        })
-        if enemy_path.incomplete:
-            creep.memory._safe.push(target)
-            continue
+        if creep.room.my:
+            enemy_path = PathFinder.search(target, {"pos": creep.pos, "range": 1}, {
+                "roomCallback": enemy_purposes_cost_matrix,
+                "maxRooms": 5,
+                "plainCost": 1,
+                "swampCost": 1,  # for speed purposes
+                "maxCost": 10,
+            })
+            if enemy_path.incomplete:
+                creep.memory._safe.push(target)
+                continue
         any_unsafe = True
         target_range = obj.range
-        if not movement.distance_squared_room_pos(target, creep.creep.pos) > target_range * target_range:
+        if movement.chebyshev_distance_room_pos(target, creep.pos) <= target_range:
             break
     else:
-        if not any_unsafe:
+        if not any_unsafe or not creep.memory.running_now:
             return False
         # No targets in range, no need to do anything
         for obj in hostile_path_targets:
             target = obj.pos
             safe = False
             for safe_pos in creep.memory._safe:
-                if movement.distance_squared_room_pos(safe_pos, target) < 4:
+                if movement.chebyshev_distance_room_pos(safe_pos, target) < 2:
                     safe = True
                     break
             if safe:
                 continue
-            target_range = obj.range
-            if creep.memory.running_now:
-                target_range *= 1.2
-            if not movement.distance_squared_room_pos(target, creep.creep.pos) > (target_range) * (target_range):
+            target_range = obj.range * 1.2
+            if movement.chebyshev_distance_room_pos(target, creep.creep.pos) <= target_range:
                 return True  # Still cancel creep actions if we're semi-close, so as not to do back-and-forth.
         return False
 

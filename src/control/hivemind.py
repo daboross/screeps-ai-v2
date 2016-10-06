@@ -6,12 +6,12 @@ import spawning
 from constants import *
 from control import live_creep_utils
 from control.building import ConstructionMind
+from control.defense import RoomDefense
 from control.links import LinkingMind
 from control.minerals import MineralMind
 from control.mining import MiningMind
 from control.pathdef import HoneyTrails
 from role_base import RoleBase
-from roles import military
 from tools import profiling
 from utilities import consistency
 from utilities import movement
@@ -59,6 +59,7 @@ def clamp_room_coord(coord):
 class HiveMind:
     """
     :type target_mind: control.targets.TargetMind
+    :type honey: control.pathdef.HoneyTrails
     :type my_rooms: list[RoomMind]
     :type visible_rooms: list[RoomMind]
     """
@@ -162,10 +163,6 @@ class HiveMind:
                 closest_squared_distance = distance
                 closest_room = room
         return closest_room
-
-    def poll_hostiles(self):
-        for room in self.visible_rooms:
-            room.poll_hostiles()
 
     def poll_all_creeps(self):
         new_creep_lists = {}
@@ -274,6 +271,7 @@ class RoomMind:
             self.minerals = MineralMind(self)
         else:
             self.rcl = 0
+        self.defense = RoomDefense(self)
         self.subsidiaries = []
         self._remote_mining_operations = None
         self._sources = None
@@ -311,7 +309,9 @@ class RoomMind:
         self._spawns = None
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
-        if room.controller and room.controller.owner and not room.controller.my:
+        self.enemy = room.controller and room.controller.owner and not room.controller.my \
+                     and self.room.controller.owner.username not in Memory.meta.friends
+        if self.enemy:
             if not Memory.enemy_rooms:
                 Memory.enemy_rooms = []
             if room.name not in Memory.enemy_rooms:
@@ -876,66 +876,6 @@ class RoomMind:
     def reassign_roles(self):
         return consistency.reassign_room_roles(self)
 
-    def poll_hostiles(self):
-        if not Memory.hostiles:
-            Memory.hostiles = []
-        if not Memory.hostile_last_rooms:
-            Memory.hostile_last_rooms = {}
-        if not Memory.hostile_last_positions:
-            Memory.hostile_last_positions = {}
-
-        remove = None
-        for hostile_id, hostile_room, pos, owner, dead_at in Memory.hostiles:
-            if (hostile_room == self.room_name and (not Game.getObjectById(hostile_id)
-                                                    or self.my and self.room.controller.safeMode)) \
-                    or (not dead_at or Game.time > dead_at):
-                if remove:
-                    remove.append(hostile_id)
-                else:
-                    remove = [hostile_id]
-        if remove:
-            for hostile_id in remove:
-                military.delete_target(hostile_id)
-
-        sk_room = False
-        if self.hostile:
-            if self.room.controller:
-                return  # don't find hostile creeps in other players rooms... that's like, not a great plan...
-            else:
-                sk_room = True
-        if self.my and self.room.controller.safeMode:
-            return
-        new_hostiles = False
-        targets = self.find(FIND_HOSTILE_CREEPS)
-        for hostile in targets:
-            if sk_room and hostile.owner.username != INVADER_USERNAME and \
-                    (hostile.owner.username == SK_USERNAME or
-                         (hostile.getActiveBodyparts(ATTACK) == 0 and hostile.getActiveBodyparts(RANGED_ATTACK) == 0)):
-                continue
-            # TODO: overhaul hostile info storage
-            hostile_list = _.find(Memory.hostiles, lambda t: t[0] == hostile.id and t[1] == self.room_name)
-            if hostile_list:
-                hostile_list[2] = hostile.pos  # this is the only thing which would update
-            else:
-                if hostile.getActiveBodyparts(ATTACK) == 0 and hostile.getActiveBodyparts(RANGED_ATTACK) == 0:
-                    username = "harmless"
-                else:
-                    username = hostile.owner.username
-                Memory.hostiles.push([hostile.id, self.room_name, hostile.pos, username,
-                                      Game.time + hostile.ticksToLive + 1])
-                Memory.hostile_last_rooms[hostile.id] = self.room_name
-                new_hostiles = True
-            Memory.hostile_last_positions[hostile.id] = hostile.pos
-        if new_hostiles:
-            if self.my:
-                self.reset_planned_role()
-            else:
-                mining_flags = flags.find_flags(self, flags.REMOTE_MINE)
-                for flag in mining_flags:
-                    room = self.hive_mind.get_room(flag.memory.sponsor)
-                    if room:
-                        room.reset_planned_role()
-
     def get_name(self):
         return self.room.name
 
@@ -1160,35 +1100,32 @@ class RoomMind:
         :rtype: int
         """
         if (self._first_simple_target_defender_count if first else self._target_defender_count) is None:
-            hostile_count = 0
-            room_mine_to_protect = {}
-            if Memory.hostiles:
-                for hostile_id, hostile_room, hostile_pos, hostile_owner in Memory.hostiles:
-                    if hostile_owner == INVADER_USERNAME:  # TODO: ranged defenders to go against player attackers!
-                        if hostile_room not in room_mine_to_protect:
-                            if (not first or hostile_room == self.room_name) \
-                                    and (hostile_room != self.room_name or self.mem.alert_for > 20) \
-                                    and (hostile_room == self.room_name or
-                                                 self.hive_mind.get_closest_owned_room(hostile_room).room_name
-                                                 == self.room_name):
-                                room_mine_to_protect[hostile_room] = True
-                            else:
-                                room_mine_to_protect[hostile_room] = False
-                        if room_mine_to_protect[hostile_room]:
-                            hostile_count += 1
+            needed_local = math.ceil(_.sum(self.defense.dangerous_hostiles(),
+                                           lambda h: self.defense.danger_level(h) >= 2) / 3)
             if first:
-                self._first_simple_target_defender_count = hostile_count
+                self._first_simple_target_defender_count = needed_local
             else:
-                self._target_defender_count = hostile_count
+                invaded_rooms = new_map()
+                for h in self.defense.remote_hostiles():
+                    if h.user == INVADER_USERNAME:
+                        if invaded_rooms.has(h.room):
+                            invaded_rooms.set(h.room, invaded_rooms.get(h.room) + 1)
+                        else:
+                            invaded_rooms.set(h.room, 1)
+                needed_for_mines = _.sum(list(invaded_rooms.values()), lambda v: math.ceil(v / 3))
+                self._target_defender_count = needed_local + needed_for_mines
         return self._first_simple_target_defender_count if first else self._target_defender_count
 
     def get_target_colonist_work_mass(self):
-        worker_mass = spawning.max_sections_of(self, creep_base_worker)
-        hauler_mass = spawning.max_sections_of(self, creep_base_half_move_hauler)
         if not self._target_colonist_work_mass:
+            worker_mass = spawning.max_sections_of(self, creep_base_worker)
+            hauler_mass = spawning.max_sections_of(self, creep_base_half_move_hauler)
             needed = 0
             mineral_steal = 0
             for room in self.subsidiaries:
+                if _.find(room.defense.dangerous_hostiles(),
+                          lambda c: c.getActiveBodyparts(ATTACK) or c.getActiveBodyparts(RANGED_ATTACK)):
+                    continue
                 room_work_mass = 0
                 for role in Object.keys(room.work_mass_map):
                     room_work_mass += room.work_mass_map[role] \
@@ -1439,6 +1376,10 @@ class RoomMind:
         if next_role is not None:
             return next_role
 
+        defender = self._check_role_reqs([
+            [role_defender, self.get_target_simple_defender_count],
+        ])
+
         mining_role = self.mining.next_mining_role(len(self.sources))
         if mining_role is not None and mining_role.role == role_miner:
             return mining_role
@@ -1500,7 +1441,7 @@ class RoomMind:
                             spawning.max_sections_of(self, self.get_variable_base(role_upgrader))),
             role_defender:
                 lambda: self.get_target_simple_defender_count() *
-                        min(6, spawning.max_sections_of(self, creep_base_defender)),
+                        min(2, spawning.max_sections_of(self, creep_base_defender)),
             role_simple_claim:
                 lambda: 1,
             role_room_reserve:
