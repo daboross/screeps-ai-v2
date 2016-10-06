@@ -15,7 +15,7 @@ def reassign_room_roles(room):
     :type room: control.hivemind.RoomMind
     """
     if room.spawn and not room.role_count(role_spawn_fill) and not room.role_count(role_spawn_fill_backup) \
-            and not room.role_count(role_tower_fill) < 1:
+            and not room.role_count(role_tower_fill) and len(room.creeps):
         for creep in room.creeps:
             memory = creep.memory
             base = spawning.find_base_type(creep)
@@ -26,20 +26,14 @@ def reassign_room_roles(room):
                 memory.role = role_spawn_fill
                 break
         room.recalculate_roles_alive()
-
-    pass
-    # # Don't make all local haulers suicide if we have stopped making more because of economy failure!
-    # # We should be keeping them alive if that's the case!
-    # if room.get_target_local_hauler_mass() and room.carry_mass_of(role_local_hauler) \
-    #         > room.get_target_local_hauler_mass():
-    #     extra_local_haulers = room.extra_creeps_with_carry_in_role(role_local_hauler,
-    #                                                                room.get_target_local_hauler_mass())
-    #     if len(extra_local_haulers):
-    #         for name in extra_local_haulers:
-    #             if name in Memory.creeps:
-    #                 room.hive_mind.target_mind.untarget_all({"name": name})
-    #                 Memory.creeps[name].role = role_cleanup
-    #         room.recalculate_roles_alive()
+    if room.spawn and not room.role_count(role_miner) and not room.work_mass_of(role_spawn_fill) \
+            and not room.work_mass_of(role_spawn_fill_backup) and not room.work_mass_of(role_tower_fill) \
+            and len(room.creeps):
+        for creep in room.creeps:
+            memory = creep.memory
+            base = spawning.find_base_type(creep)
+            if base == creep_base_worker:
+                memory.role = role_spawn_fill_backup
 
 
 def clear_memory(room):
@@ -86,8 +80,7 @@ def get_next_replacement_time(room):
 
 
 def clear_cache():
-    for name in Object.keys(Memory.rooms):
-        mem = Memory.rooms[name]
+    for name, mem in _.pairs(Memory.rooms):
         if mem.cache:
             for key in Object.keys(mem.cache):
                 cache = mem.cache[key]
@@ -97,7 +90,7 @@ def clear_cache():
             if len(Object.keys(mem.cache)) <= 0:
                 del mem.cache
         if len(Object.keys(mem)) <= 0:
-            del Memory.rooms[mem]
+            del Memory.rooms[name]
     global_cache.cleanup()
 
 
