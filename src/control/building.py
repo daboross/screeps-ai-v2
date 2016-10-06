@@ -17,23 +17,33 @@ building_priorities = {
     STRUCTURE_LINK: 1,
     STRUCTURE_TOWER: 2,
     STRUCTURE_STORAGE: 3,
-    STRUCTURE_WALL: 4,
-    STRUCTURE_RAMPART: 5,
-    STRUCTURE_TERMINAL: 6,
+    # STRUCTURE_SPAWN when bootstrapping: 4
+    STRUCTURE_WALL: 5,
+    STRUCTURE_RAMPART: 6,
+    STRUCTURE_TERMINAL: 7,
 }
 rcl_lt4_priorities = {
     STRUCTURE_SPAWN: 0,
     STRUCTURE_TOWER: 1,
     STRUCTURE_EXTENSION: 2,
     STRUCTURE_ROAD: 3,
+    # STRUCTURE_SPAWN when bootstrapping: 4
     STRUCTURE_WALL: 11,
     STRUCTURE_RAMPART: 12,
 }
 default_priority = 10
 
 
-def get_priority(rcl, structure_type):
-    if rcl < 4:
+def get_priority(room, structure_type):
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    if not room.spawn and structure_type == STRUCTURE_SPAWN:
+        if room.being_bootstrapped():
+            return 4
+        else:
+            return -1
+    if room.rcl < 4:
         if structure_type in rcl_lt4_priorities:
             return rcl_lt4_priorities[structure_type]
     else:
@@ -70,22 +80,31 @@ class ConstructionMind:
     def toString(self):
         return "ConstructionMind[room: {}]".format(self.room.room_name)
 
-    def refresh_building_targets(self):
-        self.room.mem.cache.building_targets.dead_at = Game.time + 1
+    def refresh_building_targets(self, now=False):
+        if now:
+            del self.room.mem.cache.building_targets
+        else:
+            if 'building_targets' in self.room.mem.cache:
+                self.room.mem.cache.building_targets.dead_at = Game.time + 1
 
-    def refresh_repair_targets(self):
-        self.room.mem.cache.repair_targets.dead_at = Game.time + 1
+    def refresh_repair_targets(self, now=False):
+        if now:
+            del self.room.mem.cache.repair_targets
+            del self.room.mem.cache.big_repair_targets
+        else:
+            if 'repair_targets' in self.room.mem.cache:
+                self.room.mem.cache.repair_targets.dead_at = Game.time + 1
 
-        big_targets = self.room.get_cached_property("big_repair_targets")
-        if big_targets:
-            max_hits = self.room.max_sane_wall_hits
-            i = 0
-            while i < len(big_targets):
-                target = Game.getObjectById(big_targets[i])
-                if not target or target.hits >= min(target.hitsMax, max_hits):
-                    big_targets.splice(i, 1)
-                else:
-                    i += 1
+            big_targets = self.room.get_cached_property("big_repair_targets")
+            if big_targets:
+                max_hits = self.room.max_sane_wall_hits
+                i = 0
+                while i < len(big_targets):
+                    target = Game.getObjectById(big_targets[i])
+                    if not target or target.hits >= min(target.hitsMax, max_hits):
+                        big_targets.splice(i, 1)
+                    else:
+                        i += 1
 
     def refresh_destruction_targets(self):
         del self.room.mem.cache.destruct_targets
@@ -93,7 +112,9 @@ class ConstructionMind:
     def next_priority_construction_targets(self):
         targets = self.room.get_cached_property("building_targets")
         if targets is not None:
-            return targets
+            last_rcl = self.room.get_cached_property("bt_last_checked_rcl")
+            if last_rcl >= self.room.rcl:
+                return targets
 
         currently_existing = {}
         for s in self.room.find(FIND_STRUCTURES):
@@ -125,9 +146,14 @@ class ConstructionMind:
             and not _.find(self.room.find(FIND_MY_STRUCTURES), lambda s: s.structureType == STRUCTURE_TOWER)
         )
 
-        for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD),
-                                        lambda flag_tuple: movement.distance_squared_room_pos(spawn_pos,
-                                                                                              flag_tuple[0].pos)):
+        def flag_priority(flag_tuple):
+            struct_type = flags.flag_sub_to_structure_type[flag_tuple[1]]
+            return (
+                get_priority(self.room, struct_type) * 50
+                + movement.distance_squared_room_pos(spawn_pos, flag_tuple[0].pos)
+            )
+
+        for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD), flag_priority):
             structure_type = flags.flag_sub_to_structure_type[flag_type]
             if not structure_type:
                 print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
@@ -144,9 +170,13 @@ class ConstructionMind:
                 flag.pos.createConstructionSite(structure_type)
                 new_sites.append("flag-{}".format(flag.name))
                 currently_existing[structure_type] = (currently_existing[structure_type] or 0) + 1
+                # Don't go all-out and set construction sites for everything at once! That's a recipe to run into the
+                # 100-site limit.
+                if len(new_sites) >= 4:
+                    break
 
         sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
-                                        lambda s: get_priority(self.room.rcl, s.structureType) * 50
+                                        lambda s: get_priority(self.room, s.structureType) * 50
                                                   + movement.distance_room_pos(spawn_pos, s.pos))]
 
         if len(new_sites):
@@ -155,12 +185,15 @@ class ConstructionMind:
             self.room.store_cached_property("building_targets", new_sites.concat(sites), 1)
         else:
             self.room.store_cached_property("building_targets", sites, 100)
+        self.room.store_cached_property("bt_last_checked_rcl", self.room.rcl, 100)
         return self.room.get_cached_property("building_targets")
 
     def next_priority_repair_targets(self):
         structures = self.room.get_cached_property("repair_targets")
         if structures is not None:
-            return structures
+            last_rcl = self.room.get_cached_property("rt_last_checked_rcl")
+            if last_rcl >= self.room.rcl:
+                return structures
 
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
@@ -182,9 +215,10 @@ class ConstructionMind:
                                and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.8)
                                and not flags.look_for(self.room, s.pos, flags.MAIN_DESTRUCT,
                                                       flags.structure_type_to_flag_sub[s.structureType])),
-            lambda s: get_priority(self.room.rcl, s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
+            lambda s: get_priority(self.room, s.structureType) * 50 + movement.distance_room_pos(spawn_pos, s.pos))]
 
         self.room.store_cached_property("repair_targets", structures, 50)
+        self.room.store_cached_property("rt_last_checked_rcl", self.room.rcl, 50)
         return structures
 
     def next_priority_big_repair_targets(self):

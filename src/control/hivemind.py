@@ -225,9 +225,26 @@ _energy_to_pause_building = 14000
 _energy_to_resume_building = 28000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
-# 0 is rcl 1
-_rcl_to_sane_wall_hits = [100, 1000, 10 * 1000, 100 * 1000, 400 * 1000, 600 * 1000, 1000 * 1000, 10 * 1000 * 1000]
-_rcl_to_min_wall_hits = [100, 1000, 5 * 1000, 50 * 1000, 200 * 1000, 500 * 1000, 700 * 1000, 900 * 1000]
+_rcl_to_min_wall_hits = [
+    1,
+    1,
+    50 * 1000,
+    150 * 1000,
+    400 * 1000,
+    500 * 1000,
+    700 * 1000,
+    900 * 1000
+]
+_rcl_to_sane_wall_hits = [
+    2,
+    2,
+    80 * 1000,
+    300 * 1000,
+    500 * 1000,
+    600 * 1000,
+    1000 * 1000,
+    10 * 1000 * 1000
+]
 
 
 class RoomMind:
