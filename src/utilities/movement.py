@@ -2,6 +2,7 @@ import math
 
 import context
 import flags
+from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -68,6 +69,11 @@ def room_xy_to_name(room_x, room_y):
         "S" if room_y > 0 else "N",
         abs(room_y),
     )
+
+
+def is_room_highway_intersection(room_name):
+    x, y = parse_room_to_xy(room_name)
+    return x % 10 == 0 and y % 10 == 0
 
 
 def center_pos(room_name):
@@ -254,7 +260,7 @@ def path_distance(here, target, non_roads_two_movement=False):
                 path_len += len(path) + 1  # one to accommodate moving to the other room.
             elif room_mind:
                 for pos in path:
-                    if _.find(room_mind.find_at(FIND_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
+                    if _.find(room_mind.look_at(LOOK_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
                         path_len += 1
                     else:
                         path_len += 2
@@ -289,7 +295,7 @@ def path_distance(here, target, non_roads_two_movement=False):
             path_len += len(path)
         elif room_mind:
             for pos in path:
-                if _.find(room_mind.find_at(FIND_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
+                if _.find(room_mind.look_at(LOOK_STRUCTURES, pos), {'structureType': STRUCTURE_ROAD}):
                     path_len += 1
                 else:
                     path_len += 2
@@ -321,17 +327,28 @@ def is_block_clear(room, x, y):
         return False
     if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
         return False
-    if len(room.find_at(FIND_CREEPS, x, y)) != 0:
+    if len(room.look_at(LOOK_CREEPS, x, y)) != 0:
         return False
-    for struct in room.find_at(FIND_STRUCTURES, x, y):
+    for struct in room.look_at(LOOK_STRUCTURES, x, y):
         if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
-    for struct in room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
-        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
-                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+    for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+        if site.my and site.siteureType != STRUCTURE_RAMPART \
+                and site.siteureType != STRUCTURE_CONTAINER and site.siteureType != STRUCTURE_ROAD:
             return False
     return True
+
+
+is_block_clear = profiling.profiled(is_block_clear, 'movement.is_block_clear')
+
+
+def serialized_pos_to_pos_obj(room, xy):
+    return {'x': xy & 0x3F, 'y': xy >> 6 & 0x3F, 'roomName': room}
+
+
+def xy_to_serialized_int(x, y):
+    return x | y << 6
 
 
 def is_block_empty(room, x, y):
@@ -343,15 +360,18 @@ def is_block_empty(room, x, y):
         return False
     if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
         return False
-    for struct in room.find_at(FIND_STRUCTURES, x, y):
+    for struct in room.look_at(LOOK_STRUCTURES, x, y):
         if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
-    for struct in room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
-        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
-                and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
+    for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+        if site.my and site.siteureType != STRUCTURE_RAMPART \
+                and site.siteureType != STRUCTURE_CONTAINER and site.siteureType != STRUCTURE_ROAD:
             return False
     return True
+
+
+is_block_empty = profiling.profiled(is_block_empty, 'movement.is_block_empty')
 
 
 def get_entrance_for_exit_pos(exit_pos):
