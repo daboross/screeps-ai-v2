@@ -79,6 +79,9 @@ for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game
 JSON.stringify(Game.market.orders, null, 4)
 py.get_room("W49N25").minerals.fill_order('')
 for (let road of Game.rooms.E7N58.find(FIND_STRUCTURES)) { if (road.structureType == STRUCTURE_ROAD) { road.pos.cfms(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD);} }
+for (let creep of py.get_room("E9N47").creeps) { if (creep.memory.role == "builder") { py.context.targets().untarget_all(creep) } }
+_(py.get_room("E9N47").building.next_priority_repair_targets()).map(Game.getObjectById).filter().map('hits').value()
+JSON.stringify(_(py.get_room("E9N47").building.next_priority_repair_targets()).map(Game.getObjectById).filter().map(x => _.map(x.pos.lookFor(LOOK_STRUCTURES), 'structureType')).value(), null, 4)
 ```
 
 Planned market deals:
