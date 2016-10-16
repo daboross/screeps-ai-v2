@@ -330,15 +330,19 @@ class Builder(upgrading.Upgrader):
         other = _.find(nearby, lambda c: c.creep.name != self.name)
         if other:
             best = None
+            available = None
             for x in range(max(1, self.pos.x - 1), min(49, self.pos.x + 2)):
                 for y in range(max(1, self.pos.y - 1), min(49, self.pos.y + 2)):
-                    if movement.is_block_clear(self.room, x, y) \
-                            and max(abs(x - target.pos.x), abs(y - target.pos.y)) <= 3:
-                        if best is None or random.randint(0, 10) > 3:
-                            best = (x, y)
-
+                    if movement.is_block_clear(self.room, x, y):
+                        if max(abs(x - target.pos.x), abs(y - target.pos.y)) <= 3:
+                            if best is None or random.randint(0, 10) > 3:
+                                best = (x, y)
+                        elif available is None:
+                            available = (x, y)
             if best is not None:
                 self.creep.move(pathdef.get_direction(best[0] - self.pos.x, best[1] - self.pos.y))
+            elif available is not None:
+                self.creep.move(pathdef.get_direction(available[0] - self.pos.x, available[1] - self.pos.y))
             else:
                 self.log("Couldn't find somewhere to move to!")
 
