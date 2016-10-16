@@ -312,10 +312,17 @@ class HoneyTrails:
         if room.my and room.room.storage and room.links.main_link:
             ml = room.links.main_link
             storage = room.room.storage
-            for x in range(ml.pos.x - 1, ml.pos.x + 2):
-                for y in range(ml.pos.y - 1, ml.pos.y + 2):
-                    if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
-                        cost_matrix.set(x, y, 255)
+            if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
+                    and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
+                cost_matrix.set(ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255)
+            elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
+                    and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
+                cost_matrix.set((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255)
+            else:
+                for x in range(ml.pos.x - 1, ml.pos.x + 2):
+                    for y in range(ml.pos.y - 1, ml.pos.y + 2):
+                        if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
+                            cost_matrix.set(x, y, 255)
 
         serialized = JSON.stringify(cost_matrix.serialize())
         cache_for = 100 if room.my else 10000

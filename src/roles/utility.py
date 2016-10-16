@@ -22,7 +22,9 @@ class LinkManager(RoleBase):
             self.report(speech.link_manager_something_not_found)
             return False
         # Note: this does assume storage is directly within one space of the main link.
-        if not self.creep.pos.isNearTo(link) or not self.creep.pos.isNearTo(storage):
+        if 'station_pos' not in self.memory:
+            best_priority = 0
+            best = None
             for x in range(link.pos.x - 1, link.pos.x + 2):
                 for y in range(link.pos.y - 1, link.pos.y + 2):
                     if -1 <= x - storage.pos.x <= 1 and -1 <= y - storage.pos.y <= 1 \
@@ -30,7 +32,7 @@ class LinkManager(RoleBase):
                             and (link.pos.x != x or link.pos.y != y):
                         if not movement.is_block_empty(self.home, x, y):
                             continue
-                        creeps = self.home.find_at(FIND_CREEPS, x, y)
+                        creeps = self.home.look_at(LOOK_CREEPS, x, y)
                         if len(creeps) != 0:
                             creep = creeps[0]
                             if creep.memory.role == role_link_manager:
@@ -40,14 +42,22 @@ class LinkManager(RoleBase):
                                     self.creep.suicide()
                                     return False
                         pos = __new__(RoomPosition(x, y, self.home.room_name))
-                        break
-                else:
-                    continue
-                break
-            else:
+                        priority = 1
+                        if link.pos.x == storage.pos.x == pos.x:
+                            priority += 5
+                        elif link.pos.y == storage.pos.y == pos.y:
+                            priority += 5
+                        if priority >= best_priority:
+                            best = pos
+                            best_priority = priority
+            if best is None:
                 self.go_to_depot()
                 return False
-            self.move_to(pos)
+            self.memory.station_pos = best.x | best.y << 6
+        current_pos = (self.pos.x | self.pos.y << 6)
+        if current_pos != self.memory.station_pos:
+            self.move_to(__new__(RoomPosition(self.memory.station_pos & 0x3F,
+                                              self.memory.station_pos >> 6 & 0x3F, self.home.room_name)))
             self.report(speech.link_manager_moving)
             return False
 
@@ -83,7 +93,7 @@ class LinkManager(RoleBase):
 
     def ensure_no_minerals(self):
         storage = self.home.room.storage
-        if _.sum(self.creep.carry) > self.creep.carry.energy:
+        if self.carry_sum() > self.creep.carry.energy:
             for rtype in Object.keys(self.creep.carry):
                 if rtype != RESOURCE_ENERGY:
                     self.ensure_ok(self.creep.transfer(storage, rtype), "transfer", storage, rtype)
