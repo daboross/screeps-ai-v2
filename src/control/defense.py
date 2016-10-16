@@ -93,6 +93,15 @@ def cleanup_stored_hostiles():
                     danger.splice(i, 1)
 
 
+def does_need_urgent_repair(s):
+    return (s.structureType == STRUCTURE_ROAD and
+            (s.hits < ROAD_DECAY_AMOUNT * 3
+             or (Game.map.getTerrainAt(s.pos.x, s.pos.y, s.pos.roomName) == 'swamp'
+                 and s.hits < ROAD_DECAY_AMOUNT
+                 * CONSTRUCTION_COST_ROAD_SWAMP_RATIO * 3))) \
+           or (s.structureType == STRUCTURE_RAMPART and s.hits < RAMPART_DECAY_AMOUNT * 3)
+
+
 def stored_hostiles_near(room_name):
     """
     Finds all hostile information stored in memory in rooms adjacent to the given room, and in the given room itself.
@@ -480,6 +489,11 @@ class RoomDefense:
                 towers[0].heal(_.min(damaged, lambda c: movement.distance_squared_room_pos(c, towers[0])))
             else:
                 towers[0].heal(damaged[0])
+        elif Game.time % 7 == 0:
+            urgent_repair = _.find(self.room.find(FIND_STRUCTURES), does_need_urgent_repair)
+            if urgent_repair:
+                for tower in self.towers():
+                    tower.repair(urgent_repair)
 
     def alert(self):
         if self._cache.has('alert'):
@@ -502,6 +516,8 @@ class RoomDefense:
         alert = self.alert()
 
         if not alert:
+            if Game.time % 100 == 69:
+                self.set_ramparts(False)
             self.tower_heal()
             return
 
