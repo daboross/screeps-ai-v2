@@ -47,6 +47,7 @@ target_remote_mine_hauler = "remote_mine_hauler"
 target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
+target_home_flag = "hf"  # home flag
 target_single_flag2 = "sccf2"  # single creep, closest flag
 target_refill = "refill"
 target_rampart_defense = "rampart_def"
@@ -54,6 +55,7 @@ target_rampart_defense = "rampart_def"
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
 role_spawn_fill = "spawn_fill"
+role_upgrade_fill = "ufiller"
 role_builder = "builder"
 role_tower_fill = "tower_fill"
 role_miner = "remote_miner"
@@ -81,6 +83,7 @@ role_scout = "scout"
 role_bases = {
     role_spawn_fill_backup: creep_base_worker,
     role_spawn_fill: creep_base_hauler,
+    role_upgrade_fill: creep_base_hauler,
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_hauler,
     role_remote_mining_reserve: creep_base_reserving,
@@ -123,9 +126,9 @@ default_roles = {
     creep_base_rampart_defense: role_wall_defender,
 }
 
-PYFIND_REPAIRABLE_ROADS = 101  #"pyfind_repairable_roads"
-PYFIND_BUILDABLE_ROADS = 102  #"pyfind_buildable_roads"
-PYFIND_HURT_CREEPS = 103  #"pyfind_hurt_creeps"
+PYFIND_REPAIRABLE_ROADS = 1001  #"pyfind_repairable_roads"
+PYFIND_BUILDABLE_ROADS = 1002  #"pyfind_buildable_roads"
+PYFIND_HURT_CREEPS = 1003  #"pyfind_hurt_creeps"
 INVADER_USERNAME = "Invader"
 SK_USERNAME = "Source Keeper"
 
