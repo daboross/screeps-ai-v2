@@ -140,6 +140,9 @@ def main():
                 Memory.meta.auto_enable_profiling = True
             if bucket_tier <= 1:
                 Memory.meta.pause = True
+                hive_mind = HiveMind(TargetMind())
+                for room in hive_mind.my_rooms:
+                    room.defense.set_ramparts(True)
     Memory.meta.last_bucket = bucket_tier
 
     if Memory.meta.pause:
@@ -168,7 +171,7 @@ def main():
         consistency.clear_cache()
 
     hive_mind.poll_all_creeps()
-    if Game.time % 5 == 1:
+    if Game.time % 5 == 1 or _.size(Memory.hostiles):
         defense.poll_hostiles(hive_mind)
     elif Game.time % 25 == 7:
         defense.cleanup_stored_hostiles()
@@ -193,7 +196,7 @@ def main():
     else:
         rooms = hive_mind.my_rooms
         if Game.cpu.bucket <= 5000:
-            rooms = sorted(rooms, lambda r: -r.rcl)
+            rooms = sorted(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
             if Game.cpu.bucket <= 4000:
                 rooms = rooms[:len(rooms) - 1]
         for room in rooms:
