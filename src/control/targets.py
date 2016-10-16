@@ -66,7 +66,8 @@ class TargetMind:
             target_reserve_now: self._find_top_priority_reservable_room,
             target_closest_energy_site: self._find_closest_deposit_site,
             target_single_flag: self._find_closest_flag,
-            target_single_flag2: self._find_closest_flag,
+            target_single_flag2: self._find_closest_flag2,
+            target_home_flag: self._find_closest_home_flag,
             target_refill: self._find_refill_target,
             target_rampart_defense: self._find_new_defendable_wall,
         }
@@ -382,13 +383,17 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_construction_site(self, creep):
+    def _find_new_construction_site(self, creep, walls_only=False):
         """
         :type creep: role_base.RoleBase
         """
         smallest_work_force = Infinity
         best_id = None
-        for site_id in creep.home.building.next_priority_construction_targets():
+        if walls_only:
+            sites = creep.home.building.next_priority_high_value_construction_targets()
+        else:
+            sites = creep.home.building.next_priority_construction_targets()
+        for site_id in sites:
             if site_id.startsWith("flag-"):
                 max_work = _MAX_BUILDERS
             else:
@@ -414,38 +419,37 @@ class TargetMind:
         repair_targets = creep.home.building.next_priority_repair_targets()
         if not len(repair_targets):
             return None
-        closest_distance = Infinity
-        smallest_num_builders = Infinity
-        best_id = None
-        if len(repair_targets) <= 1:
+        # closest_distance = Infinity
+        # smallest_num_builders = Infinity
+        # best_id = None
+        if len(repair_targets) <= 1 and not len(creep.home.building.next_priority_construction_targets()):
             max_work = Infinity
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
-            if structure and structure.hits < structure.hitsMax * 0.9 and structure.hits < max_hits:
+            if not structure:
+                continue
+            this_hits_max = structure.hitsMax
+            if structure.structureType == STRUCTURE_WALL or structure.structureType == STRUCTURE_RAMPART:
+                this_hits_max = min(this_hits_max, max_hits)
+            if structure and structure.hits < this_hits_max * 0.9:
                 if max_work is Infinity:
                     current_max = Infinity
                 else:
-                    current_max = min(max_work,
-                                      math.ceil((min(max_hits, structure.hitsMax * 0.9) - structure.hits) / 50))
+                    current_max = min(max_work, math.ceil((this_hits_max * 0.9 - structure.hits) / 50))
                 current_workforce = self.workforce_of(target_repair, struct_id)
-                if not current_workforce or current_workforce < current_max \
-                        or current_workforce < smallest_num_builders + 1:
-                    distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
-                    if distance < closest_distance:
-                        smallest_num_builders = current_workforce
-                        closest_distance = distance
-                        best_id = struct_id
-        if not best_id and max_work is _MAX_REPAIR_WORKFORCE and len(repair_targets):
+                if not current_workforce or current_workforce < current_max:
+                    #     or current_workforce < smallest_num_builders + 1:
+                    # Already priority sorted
+                    return struct_id
+                    # distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+                    # if distance < closest_distance:
+                    #     smallest_num_builders = current_workforce
+                    #     closest_distance = distance
+                    #     best_id = struct_id
+        if max_work is _MAX_REPAIR_WORKFORCE and len(repair_targets):
             # TODO: do this through multiple best_id variables in the above loop, not like this.
             return self._find_new_repair_site(creep, max_hits, Infinity)
-        if best_id:
-            best = Game.getObjectById(best_id)
-            print("[targets][{}] Found new repair site in room {} with max_hits {} and max_work {}: {} (hits: {})"
-                  .format(creep.name, creep.home.room_name, max_hits, max_work, best, best.hits))
-        else:
-            print("[targets][{}] Didn't find new repair site in room {} with max_hits {} and max_work {}"
-                  .format(creep.name, creep.home.room_name, max_hits, max_work))
-        return best_id
+        return None
 
     def _find_new_big_repair_site(self, creep, max_hits):
         """
@@ -650,6 +654,40 @@ class TargetMind:
                     closest_flag = flag_id
         return closest_flag
 
+    def _find_closest_flag2(self, creep, flag_type, pos):
+        if not pos:
+            pos = creep.pos
+        elif pos.pos:
+            pos = pos.pos
+        closest_flag = None
+        closest_distance = Infinity
+        for flag in flags.find_flags_global(flag_type):
+            flag_id = "flag-{}".format(flag.name)
+            current = self.targets[target_single_flag2][flag_id]
+            if not current or current < 1:
+                distance = movement.distance_squared_room_pos(pos, flag.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_flag = flag_id
+        return closest_flag
+
+    def _find_closest_home_flag(self, creep, flag_type, pos):
+        if not pos:
+            pos = creep.pos
+        elif pos.pos:
+            pos = pos.pos
+        closest_flag = None
+        closest_distance = Infinity
+        for flag in flags.find_flags(creep.home, flag_type):
+            flag_id = "flag-{}".format(flag.name)
+            current = self.targets[target_home_flag][flag_id]
+            if not current or current < 1:
+                distance = movement.distance_squared_room_pos(pos, flag.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_flag = flag_id
+        return closest_flag
+
     def _find_refill_target(self, creep):
         """
         :type creep: role_base.RoleBase
@@ -665,26 +703,29 @@ class TargetMind:
         creeps = _.filter(creep.home.creeps,
                           lambda c: (c.memory.role == role_upgrader or c.memory.role == role_builder)
                                     and c.carry.energy < c.carryCapacity)
-        for structure in structures.concat(creeps):
+        extra = creep.home.get_extra_fill_targets()
+        for structure in structures.concat(extra).concat(creeps):
             structure_id = structure.id
             if volatile_cache.mem("extensions_filled").has(structure_id):
                 continue
             current_carry = self.workforce_of(target_spawn_deposit, structure_id) \
                             + self.workforce_of(target_refill, structure_id)
             empty = ((structure.energyCapacity or structure.carryCapacity or structure.storeCapacity)
-                     - ((structure.store and structure.store.energy)
-                        or (structure.carry and structure.carry.energy)
+                     - ((structure.store and _.sum(structure.store.energy))
+                        or (structure.carry and _.sum(structure.carry.energy))
                         or structure.energy or 0))
             empty_percent = empty / (structure.energyCapacity or structure.carryCapacity or structure.storeCapacity) \
                             * 30
-            if empty <= 2 and not structure.structureType:
+            if empty <= 0 or (empty <= 2 and not structure.structureType):
                 continue
             distance = movement.chebyshev_distance_room_pos(structure.pos, creep.creep.pos)
             priority = distance - empty_percent
             if structure.memory and not structure.memory.filling:
                 priority -= 15
+            elif structure.structureType == STRUCTURE_CONTAINER:
+                priority -= 40
             elif structure.structureType:
-                priority -= 15
+                priority -= 25
             if priority < best_priority:
                 max_work_mass = empty / 50
                 if not current_carry or current_carry < max_work_mass:

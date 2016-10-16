@@ -57,7 +57,8 @@ class Colonist(MilitaryBase):
                 enemy_storage_exhausted = True
             if room.role_count(role_upgrader) < 1 and not room.upgrading_paused():
                 self.memory.role = role_upgrader
-            elif enemy_storage_exhausted and (room.rcl >= 5 or room.rcl >= sponsor.rcl):
+            elif (enemy_storage_exhausted and (room.rcl >= 5 or room.rcl >= sponsor.rcl)) \
+                    or room.mem.prio_spawn or room.mem.prio_walls:
                 self.memory.role = role_builder
             else:
                 self.memory.role = role_upgrader
@@ -131,7 +132,12 @@ class Claim(MilitaryBase):
             return False
 
         self.creep.claimController(target)
-        target.room.memory.sponsor = self.home.room_name
+        room = self.hive.get_room(target.pos.roomName)
+        room.mem.sponsor = self.home.room_name
+        if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_walls', False):
+            room.mem.prio_walls = True
+        if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_spawn', False):
+            room.mem.prio_spawn = True
 
     def _calculate_time_to_replace(self):
         return 0
