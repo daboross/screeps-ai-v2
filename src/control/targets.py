@@ -3,6 +3,7 @@ import math
 import flags
 import spawning
 from constants import *
+from control import defense
 from tools import profiling
 from utilities import movement
 from utilities import volatile_cache
@@ -67,6 +68,7 @@ class TargetMind:
             target_single_flag: self._find_closest_flag,
             target_single_flag2: self._find_closest_flag,
             target_refill: self._find_refill_target,
+            target_rampart_defense: self._find_new_defendable_wall,
         }
 
     def __get_targets(self):
@@ -590,6 +592,46 @@ class TargetMind:
                         closest_distance = distance
                         closest_flag = flag_id
         return closest_flag
+
+    def _find_new_defendable_wall(self, creep):
+        """
+        :type creep: role_base.RoleBase
+        """
+        hostiles = defense.stored_hostiles_near(creep.home.room_name)
+
+        def priority(wall):
+            current_priority = 0
+            if len(hostiles):
+                closest_distance = 5000
+                for h in hostiles:
+                    distance = movement.chebyshev_distance_room_pos(
+                        movement.serialized_pos_to_pos_obj(h.room, h.pos), creep.pos)
+                    if distance < closest_distance:
+                        closest_distance = distance
+            else:
+                closest_distance = 5000
+            current_priority -= closest_distance * 50  # Closer = better
+            current_priority += max(abs(25 - wall.pos.x), abs(25 - wall.pos.y))  # Closer to edges = better
+            current_priority -= movement.chebyshev_distance_room_pos(creep, wall) / 50  # Closer = better
+            if _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_GREEN}):
+                if closest_distance <= 5:
+                    current_priority += 10000
+                current_priority += 10000  # Green flag = better
+            elif _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_RED}):
+                if closest_distance <= 5:
+                    current_priority += 10000
+                current_priority += 5000  # Red flag = better
+
+            return current_priority
+
+        value = _(creep.home.find(FIND_MY_STRUCTURES).concat(creep.home.find(FIND_MY_CONSTRUCTION_SITES))) \
+            .filter(lambda wall: wall.structureType == STRUCTURE_RAMPART
+                                 and movement.is_block_empty(creep.home, wall.pos.x, wall.pos.y)
+                                 and not self.targets[target_rampart_defense][wall.id]) \
+            .max(priority)
+        if value != -Infinity:
+            return value.id
+        return None
 
     def _find_closest_flag(self, creep, flag_type, pos):
         if not pos:

@@ -1,7 +1,7 @@
 import flags
 from constants import INVADER_USERNAME, SK_USERNAME
 from tools import profiling
-from utilities import movement
+from utilities import movement, hostile_utils, volatile_cache
 from utilities.screeps_constants import *
 from utilities.screeps_constants import new_set
 
@@ -36,18 +36,21 @@ def poll_hostiles(hive):
     if 'hostiles' not in Memory:
         Memory.hostiles = {}
     for room in hive.visible_rooms:
+        if hostile_utils.enemy_room(room.room_name):
+            continue
         targets = room.defense.dangerous_hostiles()
         if len(targets):
             danger = []
             for c in targets:
                 store = {
                     'user': c.owner.username,
-                    'pos': c.pos.x << 6 | c.pos.y,
+                    'pos': c.pos.x | c.pos.y << 6,
                     'room': c.pos.roomName,
                     'id': c.id,
                     'death': Game.time + c.ticksToLive,
                     'ranged': c.getActiveBodyparts(RANGED_ATTACK),
                     'attack': c.getActiveBodyparts(ATTACK),
+                    'offensive': hostile_utils.is_offensive(c),
                 }
                 danger.push(store)
                 Memory.hostiles[c.id] = store
@@ -77,7 +80,7 @@ def cleanup_stored_hostiles():
     Iterates through all hostile information stored in memory, removing any which are known to be dead.
     """
     for key, hostile in _.pairs(Memory.hostiles):
-        if hostile.death >= Game.time:
+        if hostile.death <= Game.time:
             del Memory.hostiles[key]
     for name, mem in _.pairs(Memory.rooms):
         if 'danger' in mem:
@@ -217,6 +220,15 @@ class RoomDefense:
             self._cache.set('any_broken_walls', broken)
             return broken
 
+    def this_room_mining_ops(self):
+        if self._cache.has("this_room_mining_ops"):
+            return self._cache.get("this_room_mining_ops")
+        else:
+            any_ops = not not _.find(flags.find_flags(self, flags.REMOTE_MINE),
+                                     lambda f: f.memory.active)
+            self._cache.set("this_room_mining_ops", any_ops)
+            return any_ops
+
     def healing_possible_on(self, hostile):
         """
         Looks for enemy healers directly around a hostile, and adds up the possible damage restored if all healers
@@ -236,6 +248,15 @@ class RoomDefense:
             hostile._possible_heal = healing_possible
             return healing_possible
 
+    def defenders_near(self, hostile):
+        if '_defenders_near' in hostile:
+            return hostile._defenders_near
+        else:
+            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1)
+            result = _.filter(nearby, lambda c: c.creep.my and c.creep.getActiveBodyparts(ATTACK))
+            hostile._defenders_near = result
+            return result
+
     def _calc_danger_level(self, hostile):
         """
         Internal function to calculate the raw danger level of a hostile. Use DefenseMind.danger_level(hostile) for a
@@ -252,27 +273,41 @@ class RoomDefense:
             return 2
         elif user == SK_USERNAME:
             return 0
-        elif user in Memory.meta.friends:
+        elif Memory.meta.friends.includes(user):
             return 0
         elif self.room.my:
-            if len(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1)) \
-                    and (hostile.getActiveBodyparts(ATTACK) or hostile.getActiveBodyparts(WORK)):
+            structs_near = len(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1))
+            if structs_near and hostile.getActiveBodyparts(WORK):
+                return 6
+            elif structs_near and hostile.getActiveBodyparts(ATTACK):
                 return 5
             elif hostile.getActiveBodyparts(RANGED_ATTACK):
                 return 4
             elif hostile.getActiveBodyparts(ATTACK):
-                if (self.any_broken_walls() or _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
-                                                      lambda obj: obj.creep.my)):
+                if (self.any_broken_walls() or structs_near or
+                        _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
+                               lambda obj: obj.creep.my)):
                     return 3
                 else:
                     return 2
-            else:
+            elif hostile.getActiveBodyparts(WORK):
+                return 2
+            elif 1 < hostile.pos.x < 48 and 1 < hostile.pos.y < 48:
+                # Specifically for E17N55, so we don't attack haulers who have wondered just on the room boundary
                 return 1
+            else:
+                return 0
         else:
             if hostile.getActiveBodyparts(RANGED_ATTACK):
                 return 4
             elif hostile.getActiveBodyparts(ATTACK):
                 return 1
+            elif _.find(hostile.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK):
+                return 0.7
+            elif hostile.getActiveBodyparts(CARRY) or hostile.getActiveBodyparts(WORK) and self.this_room_mining_ops():
+                return 0.5
+            elif hostile.getActiveBodyparts(TOUGH):
+                return 0.3
             else:
                 return 0
 
@@ -325,6 +360,8 @@ class RoomDefense:
             if len(hostiles):
                 if self.room.my:
                     protect = self.room.spawns.concat(self.towers())
+                    if self.room.room.storage:
+                        protect.push(self.room.room.storage)
                     # if len(protect):
                     #     center = movement.average_pos_same_room(protect)
                     # else:
@@ -335,11 +372,13 @@ class RoomDefense:
                         .filter(self.danger_level) \
                         .sortBy(lambda c:
                                 # Higher danger level = more important
-                                - self.danger_level(c)
+                                - self.danger_level(c) * 200
+                                # More defenders = more important
+                                - len(self.defenders_near(c)) * 100
                                 # Further away = less important
-                                + movement.minimum_chebyshev_distance(c, protect) / 50
+                                + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
                                 # More hits = less important
-                                + (c.hits + self.healing_possible_on(c)) / 5000
+                                - (c.hitsMax - c.hits - self.healing_possible_on(c)) / 50
                                 ) \
                         .value()
                 else:
@@ -493,14 +532,33 @@ class RoomDefense:
 
         hostiles = self.dangerous_hostiles()
         towers = self.towers()
+
+        if len(hostiles) and (len(towers) or len(self.room.creeps) or self.room.spawn):
+            print("[{}][defense] Found danger:{}".format(self.room.room_name,
+                                                         ["\n(a: {}, h: {}, hits: {}%, pos: {},{})"
+                                                         .format(h.getActiveBodyparts(ATTACK),
+                                                                 h.getActiveBodyparts(HEAL),
+                                                                 round(h.hits / h.hitsMax * 100),
+                                                                 h.pos.x,
+                                                                 h.pos.y) for h in hostiles]))
+
         if len(towers):
             tower_index = 0
             for hostile in hostiles:
                 # TODO: healer confusing logic here?
                 healing_possible = self.healing_possible_on(hostile)
-                if healing_possible > _.sum(towers.slice(tower_index),
-                                            lambda t: tower_damage(t.pos.getRangeTo(hostile))):
+                nearby_defenders = self.defenders_near(hostile)
+                attack_possible = _.sum(nearby_defenders, lambda c: (not c.creep.defense_override
+                                                                     and c.creep.getActiveBodyparts(ATTACK)) or 0) * 30 \
+                                  + _.sum(towers.slice(tower_index),
+                                          lambda t: tower_damage(t.pos.getRangeTo(hostile)))
+                if healing_possible > attack_possible:
+                    print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
+                          .format(self.room.room_name, hostile.pos, healing_possible, attack_possible))
                     continue
+                for my_defender in nearby_defenders:
+                    my_defender.creep.attack(hostile)
+                    my_defender.creep.defense_override = True
                 hits_left = hostile.hits + healing_possible
                 while tower_index < len(towers) and hits_left > 0:
                     tower = towers[tower_index]
@@ -509,6 +567,8 @@ class RoomDefense:
                     hits_left -= tower_damage(tower.pos.getRangeTo(hostile))
                 if tower_index >= len(towers):
                     break
+
+    broken_walls = property(any_broken_walls)
 
 
 profiling.profile_whitelist(RoomDefense, ["tick", "tower_heal"])

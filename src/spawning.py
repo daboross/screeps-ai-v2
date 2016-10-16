@@ -32,6 +32,7 @@ scalable_sections = {
     creep_base_work_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_reserving: [MOVE, CLAIM],
     creep_base_defender: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK],
+    creep_base_rampart_defense: [MOVE, ATTACK, ATTACK],
     creep_base_1500miner: [MOVE],
     creep_base_3000miner: [MOVE],
     creep_base_4000miner: [MOVE],
@@ -57,6 +58,7 @@ half_sections = {
     creep_base_half_move_hauler: [MOVE, CARRY],
     creep_base_full_upgrader: [MOVE, WORK],
     creep_base_defender: [ATTACK, MOVE],
+    creep_base_rampart_defense: [ATTACK, MOVE],
     creep_base_goader: [TOUGH, MOVE],
     creep_base_half_move_healer: [MOVE, HEAL],
     creep_base_power_attack: [MOVE, ATTACK],
@@ -152,7 +154,7 @@ def run(room, spawn):
     num_sections -= num_sections % 1  # This is so as to only create expected behavior with half-sections
 
     if num_sections is not None and base in scalable_sections:
-        if num_sections <= 0 or not num_sections:  # Catch NaN here too?
+        if (num_sections <= 0 or not num_sections) and not (num_sections is 0 and half_section):  # Catch NaN here too?
             print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!"
                   .format(room.room_name, base))
             num_sections = 1
@@ -197,10 +199,10 @@ def run(room, spawn):
         else:
             num_move = num_sections or 3
             num_work = 3
-            for i in range(0, num_move):
-                parts.append(MOVE)
-            for i in range(0, num_work):
-                parts.append(WORK)
+        for i in range(0, num_work):
+            parts.append(WORK)
+        for i in range(0, num_move):
+            parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_3000miner:
         parts = []
@@ -211,10 +213,10 @@ def run(room, spawn):
         else:
             num_move = num_sections or 5
             num_work = 5
-        for i in range(0, num_move):
-            parts.append(MOVE)
         for i in range(0, num_work):
             parts.append(WORK)
+        for i in range(0, num_move):
+            parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_4000miner:
         parts = []
@@ -225,10 +227,10 @@ def run(room, spawn):
         else:
             num_move = num_sections or 7
             num_work = 7
-        for i in range(0, num_move):
-            parts.append(MOVE)
         for i in range(0, num_work):
             parts.append(WORK)
+        for i in range(0, num_move):
+            parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_carry3000miner:
         if energy < 600:
@@ -249,9 +251,9 @@ def run(room, spawn):
     elif base is creep_base_reserving:
         parts = []
         for i in range(0, num_sections):
-            parts.append(CLAIM)
-        for i in range(0, num_sections):
             parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(CLAIM)
         descriptive_level = num_sections
     elif base is creep_base_claiming:
         if energy < 800:
@@ -327,6 +329,13 @@ def run(room, spawn):
         for i in range(0, math.ceil(num_sections * 1.5) + half_section):
             parts.append(MOVE)
         descriptive_level = num_sections
+    elif base is creep_base_rampart_defense:
+        parts = []
+        for i in range(0, num_sections + half_section):
+            parts.append(MOVE)
+        for i in range(0, num_sections * 2 + half_section):
+            parts.append(ATTACK)
+        descriptive_level = num_sections * 2 + half_section
     elif base is creep_base_mammoth_miner:
         parts = [MOVE]
         energy_counter = 50
@@ -545,6 +554,9 @@ def find_base_type(creep):
         base = creep_base_full_upgrader
     elif part_counts[MOVE] == total == 1:
         base = creep_base_scout
+    elif part_counts[ATTACK] / 2 == part_counts[MOVE] == total / 3 \
+            or (part_counts[ATTACK] - 1) / 2 == part_counts[MOVE] - 1 == (total - 2) / 3:
+        base = creep_base_rampart_defense
     else:
         print("[{}][{}] Creep has unknown body! {}".format(
             context.room().room_name, creep.name, JSON.stringify(part_counts)))

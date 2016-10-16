@@ -325,12 +325,14 @@ class RoomMind:
         self._max_sane_wall_hits = None
         self._conducting_siege = None
         self._spawns = None
+        # self._look_cache = new_map()
+        self._find_cache = new_map()
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         self.enemy = room.controller and room.controller.owner and not room.controller.my \
                      and self.room.controller.owner.username not in Memory.meta.friends
         if self.enemy:
-            if not Memory.enemy_rooms:
+            if 'enemy_rooms' not in Memory:
                 Memory.enemy_rooms = []
             if room.name not in Memory.enemy_rooms:
                 Memory.enemy_rooms.push(room.name)
@@ -1041,6 +1043,12 @@ class RoomMind:
                 self.mem.upgrading_paused = True
         return not not self.mem.upgrading_paused
 
+    def under_siege(self):
+        return not not self.mem.attack
+
+    def remotes_under_siege(self):
+        return (self.mem.attack and not self.mem.remotes_safe) or self.mem.remotes_attack
+
     def upgrading_deprioritized(self):
         return (self.upgrading_paused() or (self.rcl < 4 and len(self.subsidiaries))
                 or (not self.spawn and not self.being_bootstrapped())) \
@@ -1104,6 +1112,9 @@ class RoomMind:
         if not self.my:
             print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.room_name))
             return 0
+        if self.remotes_under_siege():
+            return 0
+
         sources = len(self.sources)
 
         if sources <= 1:
@@ -1118,14 +1129,14 @@ class RoomMind:
                 return 3
         else:
             if len(self.spawns) < 2:
-                return 2
+                return 3
             elif self.rcl == 7:
                 return 4
             elif self.mining_ops_paused():
                 # We only want to *actually* pause them at RCL8:
                 return 0
             else:
-                return 2
+                return 3
 
     def get_max_sane_wall_hits(self):
         """
@@ -1151,6 +1162,27 @@ class RoomMind:
                 self._target_link_managers = 0
         return self._target_link_managers
 
+    def get_target_wall_defender_count(self):
+        if self.under_siege():
+            rampart_count = _.sum(self.find(FIND_MY_STRUCTURES),
+                                  lambda s:
+                                  s.structureType == STRUCTURE_RAMPART
+                                  and movement.is_block_empty(self, s.pos.x, s.pos.y))
+            if len(defense.stored_hostiles_near(self.room_name)):  # Here or neighboring rooms
+                flag_count = _.sum(self.find(FIND_FLAGS),
+                                   lambda s:
+                                   s.color == COLOR_GREEN
+                                   and (s.secondaryColor == COLOR_GREEN
+                                        or s.secondaryColor == COLOR_RED))
+            else:
+                flag_count = _.sum(self.find(FIND_FLAGS),
+                                   lambda s:
+                                   s.color == COLOR_GREEN
+                                   and s.secondaryColor == COLOR_GREEN)
+            return min(rampart_count, flag_count)
+        else:
+            return 0
+
     def get_target_simple_defender_count(self, first=False):
         """
         :rtype: int
@@ -1173,6 +1205,8 @@ class RoomMind:
         return self._first_simple_target_defender_count if first else self._target_defender_count
 
     def get_target_colonist_work_mass(self):
+        if self.under_siege():
+            return 0
         if not self._target_colonist_work_mass:
             worker_mass = spawning.max_sections_of(self, creep_base_worker)
             hauler_mass = spawning.max_sections_of(self, creep_base_half_move_hauler)
@@ -1410,6 +1444,11 @@ class RoomMind:
         else:
             return None
 
+    def wall_defense(self):
+        return self._check_role_reqs([
+            [role_wall_defender, self.get_target_wall_defender_count],
+        ])
+
     def _next_needed_local_mining_role(self):
         if spawning.would_be_emergency(self):
             if not self.full_storage_use and not self.are_all_big_miners_placed:
@@ -1437,16 +1476,13 @@ class RoomMind:
         if next_role is not None:
             return next_role
 
-        defender = self._check_role_reqs([
-            [role_defender, self.get_target_simple_defender_count],
-        ])
-
         mining_role = self.mining.next_mining_role(len(self.sources))
         if mining_role is not None and mining_role.role == role_miner:
             return mining_role
 
         next_role = self._check_role_reqs([
             [role_tower_fill, self.get_target_tower_fill_mass, True],
+            [role_wall_defender, self.get_target_wall_defender_count],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
             [role_defender, self.get_target_simple_defender_count],
         ])
@@ -1503,6 +1539,7 @@ class RoomMind:
             role_defender:
                 lambda: self.get_target_simple_defender_count() *
                         min(2, spawning.max_sections_of(self, creep_base_defender)),
+            role_wall_defender: lambda: min(9, spawning.max_sections_of(self, creep_base_rampart_defense)),
             role_simple_claim:
                 lambda: 1,
             role_room_reserve:
@@ -1545,23 +1582,7 @@ class RoomMind:
             return role_bases[role]
 
     def _next_cheap_military_role(self):
-        for flag in flags.find_flags_global(flags.SCOUT):
-            if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
-                flag_id = "flag-{}".format(flag.name)
-                noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
-                if noneol_targeting_count < 1:
-                    print("[{}] ---------".format(self.room_name))
-                    print('[{}] Spawning new scout, targeting {}.'.format(self.room_name, flag))
-                    print("[{}] ---------".format(self.room_name))
-                    return {
-                        "role": role_scout,
-                        "base": creep_base_scout,
-                        "num_sections": 1,
-                        "targets": [
-                            [target_single_flag, flag_id],
-                        ]
-                    }
-        return None
+        return self.spawn_one_creep_per_flag(flags.SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
 
     def flags_without_target(self, flag_type):
         result = []  # TODO: yield
@@ -1625,7 +1646,7 @@ class RoomMind:
         #         room = self.hive_mind.get_room(flag.pos.roomName)
         #         if not room:
         #             continue
-        #         bank = room.find_at(FIND_STRUCTURES, flag.pos)[0]
+        #         bank = room.look_at(LOOK_STRUCTURES, flag.pos)[0]
         #         if bank and bank.hits < bank.hitsMax * 0.1:
         #             return self.get_spawn_for_flag(role_power_cleanup, creep_base_half_move_hauler,
         #                                            creep_base_hauler, flag)
@@ -1654,14 +1675,27 @@ class RoomMind:
     def plan_next_role(self):
         if not self.my:
             return None
-        funcs_to_try = [
-            self._next_needed_local_mining_role,
-            self._next_cheap_military_role,
-            self.mining.next_mining_role,
-            self._next_tower_breaker_role,
-            self._next_needed_local_role,
-            self.next_cheap_dismantle_goal,
-        ]
+        if self.mem.completely_sim_testing:
+            funcs_to_try = [
+                lambda: self._check_role_reqs([
+                    [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+                ]),
+                self.wall_defense,
+                self._next_cheap_military_role,
+                self._next_tower_breaker_role,
+                self._next_complex_defender,
+            ]
+        else:
+            funcs_to_try = [
+                self._next_needed_local_mining_role,
+                self.wall_defense,
+                self._next_cheap_military_role,
+                self.mining.next_mining_role,
+                self._next_complex_defender,
+                self._next_tower_breaker_role,
+                self._next_needed_local_role,
+                self.next_cheap_dismantle_goal,
+            ]
         next_role = None
         for func in funcs_to_try:
             next_role = func()

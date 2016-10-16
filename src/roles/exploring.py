@@ -1,5 +1,5 @@
 import flags
-from constants import target_single_flag
+from constants import target_single_flag, INVADER_USERNAME
 from roles.offensive import MilitaryBase
 from utilities import movement
 from utilities.screeps_constants import *
@@ -65,3 +65,51 @@ class Scout(MilitaryBase):
         else:
             self.follow_military_path(self.home.spawn, destination, {"ignore_swamp": True,
                                                                      "use_roads": False})
+        if self.pos.roomName == destination.pos.roomName and destination.memory.activate_attack_in:
+            if len(self.room.defense.dangerous_hostiles()) and _.find(self.room.defense.dangerous_hostiles(),
+                                                                      lambda h: h.owner.username != INVADER_USERNAME):
+                rooms_newly_activated = []
+                for name in destination.memory.activate_attack_in:
+                    activate_attack_in = self.hive.get_room(name)
+                    if activate_attack_in:
+                        if not activate_attack_in.mem.attack:
+                            activate_attack_in.mem.attack = True
+                            rooms_newly_activated.push(name)
+                    else:
+                        self.log("WARNING: Couldn't find room {} which flag {} is supposed to alert for attack."
+                                 .format(name, destination.name))
+                if len(rooms_newly_activated):
+                    with_mining_op_shutdowns = _.filter(rooms_newly_activated,
+                                                        lambda r: not _.get(Memory,
+                                                                            ["rooms", r, "remotes_safe"], False))
+                    hostiles = self.room.defense.dangerous_hostiles()
+                    message = (
+                        "\nDANGER: -----"
+                        "\nHostile belonging to player {} detected in room {}. Game time: {}"
+                        "\n"
+                        "\n{}"
+                        "\n"
+                        "\nThis has triggered active-defense mode in rooms {}{}."
+                        "\nDANGER: -----"
+                    ).format(
+                        hostiles[0].owner.username,
+                        self.pos.roomName,
+                        Game.time,
+                        "\n".join(["Found hostile with hits {}/{}, owner {}, body [{}]"
+                                  .format(h.hits, h.hitsMax, h.owner.username,
+                                          [("{}:{}".format(p.boost, p.type) if p.boost else p.type)
+                                           for p in h.body]) for h in hostiles]),
+                        rooms_newly_activated,
+                        (", and shut down mining operations in rooms {}".format(with_mining_op_shutdowns)
+                         if len(with_mining_op_shutdowns) else ""),
+                    )
+                    console.log(message)
+                    Game.notify(message)
+
+    def _calculate_time_to_replace(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.SCOUT)
+        if not target:
+            return -1
+        path_len = self.get_military_path_length(self.home.spawn, target, {"ignore_swamp": True,
+                                                                           "use_roads": False})
+        return path_len + 53  # Body size is always 1.

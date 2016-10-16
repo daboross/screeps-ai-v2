@@ -28,6 +28,7 @@ creep_base_full_move_dismantler = "fm_dismantle"
 creep_base_power_attack = "power_attack"
 creep_base_full_move_power_attack = "fm_power_attack"
 creep_base_scout = "scout"
+creep_base_rampart_defense = "rampart_defender"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room,
 # and away from enemies. (or improve scout)
@@ -48,6 +49,7 @@ target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
 target_single_flag2 = "sccf2"  # single creep, closest flag
 target_refill = "refill"
+target_rampart_defense = "rampart_def"
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -60,6 +62,7 @@ role_remote_mining_reserve = "remote_reserve_controller"
 role_link_manager = "link_manager"
 role_defender = "simple_defender"
 role_colonist = "basic_colonist"
+role_wall_defender = "melee_wall_defender"
 role_simple_claim = "simple_claim"
 role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
@@ -83,6 +86,7 @@ role_bases = {
     role_remote_mining_reserve: creep_base_reserving,
     role_link_manager: creep_base_hauler,
     role_defender: creep_base_defender,
+    role_wall_defender: creep_base_rampart_defense,
     role_cleanup: creep_base_hauler,
     role_colonist: creep_base_worker,
     role_simple_claim: creep_base_claiming,
@@ -116,6 +120,7 @@ default_roles = {
     creep_base_scout: role_scout,
     creep_base_power_attack: role_power_attack,
     creep_base_full_move_power_attack: role_power_attack,
+    creep_base_rampart_defense: role_wall_defender,
 }
 
 PYFIND_REPAIRABLE_ROADS = 101  #"pyfind_repairable_roads"
