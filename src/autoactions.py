@@ -354,6 +354,8 @@ def pickup_check_room(room):
     if not len(creeps):
         return
     for pile in energy:
+        if 'picked_up' in pile:
+            continue
         smallest_capacity = Infinity
         best = None
         for creep in creeps:

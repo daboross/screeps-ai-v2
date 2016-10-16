@@ -37,13 +37,19 @@ class TransportPickup(RoleBase):
                 self.follow_energy_path(fill, pickup)
                 return
 
-            energy = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)[0]
-            if energy:
+            piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
+            if len(piles):
+                if len(piles) > 1:
+                    energy = _.max(piles, 'amount')
+                else:
+                    energy = piles[0]
                 energy = energy.resource
                 if self.pos.isNearTo(energy):
                     result = self.creep.pickup(energy)
 
                     if result == OK:
+                        self.creep.picked_up = True
+                        energy.picked_up = True
                         if energy.amount > self.creep.carryCapacity - total_carried_now:
                             self.memory.filling = False
                             self.follow_energy_path(pickup, fill)
