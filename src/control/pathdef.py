@@ -383,9 +383,10 @@ class HoneyTrails:
         if destination.roomName == room_name:
             for s in room.look_at(LOOK_STRUCTURES, destination):
                 structures_ignore.append(s.structureType)
-        going_to_extension = STRUCTURE_EXTENSION in structures_ignore or STRUCTURE_SPAWN in structures_ignore
-        going_to_storage = STRUCTURE_STORAGE in structures_ignore or STRUCTURE_LINK in structures_ignore
-        going_to_controller = STRUCTURE_CONTROLLER in structures_ignore
+        going_to_extension = structures_ignore.includes(STRUCTURE_EXTENSION) or structures_ignore.includes(
+            STRUCTURE_SPAWN)
+        going_to_storage = structures_ignore.includes(STRUCTURE_STORAGE) or structures_ignore.includes(STRUCTURE_LINK)
+        going_to_controller = structures_ignore.includes(STRUCTURE_CONTROLLER)
         # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual
         # room. that allows this to work correctly for multi-room paths.
         going_to_source = (
@@ -675,12 +676,17 @@ class HoneyTrails:
 
         # TODO: do our own serialization format so this isn't neccessary
         for pos in path:
-            while pos.x < 0:
-                pos.x += 50
-            pos.x %= 50
-            while pos.y < 0:
-                pos.y += 50
-            pos.y %= 50
+            # while pos.x < 0:
+            #     pos.x += 50
+            # pos.x %= 50
+            # while pos.y < 0:
+            #     pos.y += 50
+            # pos.y %= 50
+            # TODO: use in-place %= operator after https://github.com/QQuick/Transcrypt/issues/134 is fixed.
+            # noinspection PyAugmentAssignment
+            pos.x = pos.x % 50
+            # noinspection PyAugmentAssignment
+            pos.y = pos.y % 50
         return path
 
     def clear_cached_path(self, origin, destination, opts=None):

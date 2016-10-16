@@ -250,7 +250,7 @@ class MineralMind:
             min_via_fulfillment = self.mem['total_energy_needed']
             return min(currently_have - 20000, max(10000, min_via_empty_to, min_via_fulfillment))
         else:
-            if mineral in self.my_mineral_deposit_minerals():
+            if self.my_mineral_deposit_minerals().includes(mineral):
                 return min(currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2)
 
             fulfilling = self.fulfilling[mineral]
@@ -330,7 +330,7 @@ class MineralMind:
                             else:
                                 vmem.set("market_orders_executed", 1)
                             break
-            elif mineral not in self.my_mineral_deposit_minerals():
+            elif not self.my_mineral_deposit_minerals().includes(mineral):
                 if len(self.fulfilling[mineral]):
                     self.log("Used up all of our {}: removing {} remaining orders!".format(
                         mineral, len(self.fulfilling[mineral])))

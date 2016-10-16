@@ -40,7 +40,7 @@ class ReplacingExpendedCreep(RoleBase):
         old_creep = Game.creeps[old_name]
 
         if not old_creep or not Memory.creeps[old_name] or Memory.creeps[old_name].role == role_recycling \
-                or role in let_live_roles:
+                or let_live_roles.includes(role):
             # self.log("Now switching to role {}, to replace past-dead {}.".format(
             #     self.memory.replacing_role, self.memory.replacing
             # ))
@@ -51,7 +51,7 @@ class ReplacingExpendedCreep(RoleBase):
             self.home.register_to_role(self)
             return
 
-        if role in immediately_replace_roles and not self.creep.spawning:
+        if immediately_replace_roles.includes(role) and not self.creep.spawning:
             Memory.creeps[old_creep.name] = {"role": role_recycling, "home": self.memory.home,
                                              "last_role": "replaced-{}".format(self.memory.role)}
             self.targets.untarget_all(old_creep)
@@ -72,7 +72,7 @@ class ReplacingExpendedCreep(RoleBase):
         if self.pos.isNearTo(old_creep.pos) and not self.creep.spawning:
             self.creep.move(pathdef.direction_to(self.pos, old_creep.pos))
             old_creep.move(pathdef.direction_to(old_creep.pos, self.pos))
-            mineral = _.findKey(old_creep.carry, lambda amount: amount > 0)
+            mineral = _.findKey(old_creep.carry)
             if mineral:
                 old_creep.transfer(self.creep, mineral)
 

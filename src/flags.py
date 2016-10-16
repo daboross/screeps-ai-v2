@@ -433,7 +433,7 @@ def create_ms_flag(position, main, sub):
 def rename_flags():
     for name in flag_definitions.keys():
         for flag in find_flags_global(name):
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_') ) \
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_')) \
                     and flag.name not in Memory.flags:
                 new_name = create_flag(flag.pos, name)
                 if Memory.flags[flag.name]:

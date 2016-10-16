@@ -339,11 +339,11 @@ class RoomMind:
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         self.enemy = room.controller and room.controller.owner and not room.controller.my \
-                     and self.room.controller.owner.username not in Memory.meta.friends
+                     and not Memory.meta.friends.includes(self.room.controller.owner.username)
         if self.enemy:
             if 'enemy_rooms' not in Memory:
                 Memory.enemy_rooms = []
-            if room.name not in Memory.enemy_rooms:
+            if not Memory.enemy_rooms.includes(self.room_name):
                 Memory.enemy_rooms.push(room.name)
         self.spawn = self.spawns[0] if self.spawns and len(self.spawns) else None
         if self.mem.sponsor:
@@ -386,7 +386,7 @@ class RoomMind:
             # this is patched in here because we pretty much never want to find hostile creeps besides like this:
             if parameter == FIND_HOSTILE_CREEPS and len(Memory.meta.friends):
                 result = self.room.find(FIND_HOSTILE_CREEPS, {
-                    "filter": lambda c: c.owner.username not in Memory.meta.friends
+                    "filter": lambda c: not Memory.meta.friends.includes(c.owner.username)
                 })
             elif parameter is PYFIND_REPAIRABLE_ROADS:
                 result = _.filter(self.find(FIND_STRUCTURES),

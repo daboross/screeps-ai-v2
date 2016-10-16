@@ -167,7 +167,7 @@ def run(room, spawn):
         if cost > energy:
             new_size = max_sections_of(room, base)
             if new_size <= 0:
-                if base in low_energy_dynamic:
+                if low_energy_dynamic.includes(base):
                     cost = energy
                 else:
                     print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1"

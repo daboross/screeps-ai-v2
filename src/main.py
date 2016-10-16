@@ -220,7 +220,7 @@ def clear_global_cache(name):
     if not name:
         return
     for key in Object.keys(Memory.cache):
-        if name in key:
+        if key.includes(name):
             del Memory.cache[key]
             print("[clear_global_cache] Cleared {}.".format(key))
 
