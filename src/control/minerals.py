@@ -149,7 +149,8 @@ class MineralMind:
         if not self._my_mineral_deposit_minerals:
             result = []
             for deposit in self.room.find(FIND_MINERALS):
-                if _.find(self.room.find_at(FIND_MY_STRUCTURES, deposit), {'structureType': STRUCTURE_EXTRACTOR}):
+                if _.find(self.room.look_at(LOOK_STRUCTURES, deposit),
+                          {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
                     result.append(deposit.mineralType)
             self._my_mineral_deposit_minerals = result
         return self._my_mineral_deposit_minerals
@@ -436,9 +437,9 @@ class MineralMind:
         for x in range(pos.x - 1, pos.x + 2):
             for y in range(pos.y - 1, pos.y + 2):
                 if movement.is_block_clear(self.room, x, y) \
-                        and not _.find(self.room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y),
+                        and not _.find(self.room.look_at(LOOK_CONSTRUCTION_SITES, x, y),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER) \
-                        and not _.find(self.room.find_at(FIND_STRUCTURES, x, y),
+                        and not _.find(self.room.look_at(LOOK_STRUCTURES, x, y),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER):
                     result = self.room.room.createConstructionSite(x, y, STRUCTURE_CONTAINER)
                     if result == OK:
@@ -454,8 +455,8 @@ class MineralMind:
             return 0
         # TODO: cache this
         mineral = self.room.find(FIND_MINERALS)[0]
-        if mineral and mineral.mineralAmount > 0 and _.find(self.room.find_at(FIND_MY_STRUCTURES, mineral),
-                                                            {'structureType': STRUCTURE_EXTRACTOR}):
+        if mineral and mineral.mineralAmount > 0 and _.find(self.room.look_at(LOOK_STRUCTURES, mineral),
+                                                            {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
             have_now = self.get_total_room_resource_counts()
             if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= 400000:
                 return 0

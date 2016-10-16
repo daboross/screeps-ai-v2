@@ -1,7 +1,6 @@
 import random
 
 import flags
-from constants import PYFIND_BUILDABLE_ROADS
 from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
@@ -365,14 +364,14 @@ class ConstructionMind:
 
                 # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
                 # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                pos_key = pos.x << 6 + pos.y
+                pos_key = pos.x | pos.y << 6
                 if not checked_positions.has(pos_key):
                     destruct_flag = flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
                     if destruct_flag:
                         destruct_flag.remove()
-                    if not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                    if not _.find(room.look_at(LOOK_STRUCTURES, pos.x, pos.y),
                                   {"structureType": STRUCTURE_ROAD}) \
-                            and not len(room.find_at(PYFIND_BUILDABLE_ROADS, pos.x, pos.y)):
+                            and not len(room.look_at(LOOK_CONSTRUCTION_SITES, pos.x, pos.y)):
                         if placed_count + preexisting_count >= 100:
                             break
                         if abs(pos.x - mine.x) > 1 or abs(pos.y - mine.y) > 1:
@@ -384,9 +383,10 @@ class ConstructionMind:
                     else:
                         future_road_positions_per_room[pos.roomName] = [pos]
 
-        for mine in self.room.mining.active_mines:
+        # Prioritize paths for far-away mines (last in the original array)
+        for mine in reversed(self.room.mining.active_mines):
             if mine.pos.roomName == self.room.room_name \
-                    and (self.room.rcl < 4 or not self.room.room.storage):
+                    and (self.room.rcl < 4 or not self.room.room.storage or not self.room.room.storage.storeCapacity):
                 continue
             deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
             if not deposit_point:
@@ -433,8 +433,8 @@ class ConstructionMind:
                             site.remove()
 
             for flag in flags.find_ms_flags(room, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
-                if not _.find(room.find_at(FIND_STRUCTURES, flag.pos), {"structureType": STRUCTURE_ROAD}) \
-                        and not _.find(room.find_at(FIND_CONSTRUCTION_SITES, flag.pos),
+                if not _.find(room.look_at(LOOK_STRUCTURES, flag.pos), {"structureType": STRUCTURE_ROAD}) \
+                        and not _.find(room.look_at(LOOK_CONSTRUCTION_SITES, flag.pos),
                                        {"structureType": STRUCTURE_ROAD}):
                     flag.remove()
 

@@ -118,8 +118,9 @@ default_roles = {
     creep_base_full_move_power_attack: role_power_attack,
 }
 
-PYFIND_REPAIRABLE_ROADS = "pyfind_repairable_roads"
-PYFIND_BUILDABLE_ROADS = "pyfind_buildable_roads"
+PYFIND_REPAIRABLE_ROADS = 101  #"pyfind_repairable_roads"
+PYFIND_BUILDABLE_ROADS = 102  #"pyfind_buildable_roads"
+PYFIND_HURT_CREEPS = 103  #"pyfind_hurt_creeps"
 INVADER_USERNAME = "Invader"
 SK_USERNAME = "Source Keeper"
 

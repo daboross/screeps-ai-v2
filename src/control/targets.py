@@ -336,9 +336,9 @@ class TargetMind:
         closest_distance = Infinity
         best_id = None
         stealing_from = None
-        structures = _.filter(creep.room.find(FIND_MY_STRUCTURES),
-                              lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN) \
-                                        and s.energy < s.energyCapacity and s.isActive())
+        structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
+                              lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
+                                        and s.energy < s.energyCapacity)
         if len(structures):
             for structure in structures:
                 structure_id = structure.id
@@ -617,8 +617,9 @@ class TargetMind:
         stealing_from = None
         structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
                               lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN
-                                         or s.structureType == STRUCTURE_CONTAINER or s.structureType == STRUCTURE_TOWER)
-                                        and s.energy < s.energyCapacity and s.isActive())
+                                         or s.structureType == STRUCTURE_CONTAINER
+                                         or s.structureType == STRUCTURE_TOWER)
+                                        and s.energy < s.energyCapacity)
         creeps = _.filter(creep.home.creeps,
                           lambda c: (c.memory.role == role_upgrader or c.memory.role == role_builder)
                                     and c.carry.energy < c.carryCapacity)

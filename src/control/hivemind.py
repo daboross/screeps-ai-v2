@@ -4,6 +4,7 @@ import creep_wrappers
 import flags
 import spawning
 from constants import *
+from control import defense
 from control import live_creep_utils
 from control.building import ConstructionMind
 from control.defense import RoomDefense
@@ -15,7 +16,6 @@ from role_base import RoleBase
 from tools import profiling
 from utilities import consistency
 from utilities import movement
-from utilities import volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -369,16 +369,15 @@ class RoomMind:
         self.mem.cache[name] = {"value": value, "dead_at": dead_at}
 
     def find(self, parameter):
-        cache = volatile_cache.mem(self.room_name)
-        if cache.has(parameter):
-            return cache.get(parameter)
+        if self._find_cache.has(parameter):
+            return self._find_cache.get(parameter)
         else:
             # this is patched in here because we pretty much never want to find hostile creeps besides like this:
             if parameter == FIND_HOSTILE_CREEPS and len(Memory.meta.friends):
                 result = self.room.find(FIND_HOSTILE_CREEPS, {
                     "filter": lambda c: c.owner.username not in Memory.meta.friends
                 })
-            elif parameter == PYFIND_REPAIRABLE_ROADS:
+            elif parameter is PYFIND_REPAIRABLE_ROADS:
                 result = _.filter(self.find(FIND_STRUCTURES),
                                   lambda s:
                                   (
@@ -387,8 +386,8 @@ class RoomMind:
                                       or (s.structureType == STRUCTURE_CONTAINER and
                                           not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))
                                   ) and s.hits < s.hitsMax)
-            elif parameter == PYFIND_BUILDABLE_ROADS:
-                result = _.filter(self.find(FIND_MY_CONSTRUCTION_SITES),
+            elif parameter is PYFIND_BUILDABLE_ROADS:
+                result = _.filter(self.find(FIND_CONSTRUCTION_SITES),
                                   lambda s:
                                   (
                                       s.structureType == STRUCTURE_ROAD
@@ -397,9 +396,12 @@ class RoomMind:
                                       s.structureType == STRUCTURE_CONTAINER
                                       and not flags.look_for(self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))
                                   )
+            elif parameter is PYFIND_HURT_CREEPS:
+                result = _.filter(self.find(FIND_MY_CREEPS),
+                                  lambda c: c.hits < c.hitsMax)
             else:
                 result = self.room.find(parameter)
-            cache.set(parameter, result)
+            self._find_cache.set(parameter, result)
             return result
 
     def find_at(self, find_type, pos, optional_y=None):
@@ -431,6 +433,21 @@ class RoomMind:
                 if element.pos.x == x and element.pos.y == y:
                     found.append(element)
         return found
+
+    def look_at(self, look_type, pos, optional_y=None):
+        x, y, room_name = parse_xy_arguments(pos, optional_y)
+        if room_name is not None and room_name != self.room_name:
+            room = self.hive_mind.get_room(room_name)
+            if room:
+                return room.look_at(look_type, x, y)
+            else:
+                return []
+        # ser = (x | y << 6) + look_type
+        # if self._look_cache.has(ser):
+        #     return self._look_cache.get(ser)
+        result = self.room.lookForAt(look_type, x, y)
+        # self._look_cache.set(ser, result)
+        return result
 
     def find_in_range(self, find_type, find_range, pos, optional_y=None):
         """
@@ -1696,4 +1713,6 @@ profiling.profile_whitelist(RoomMind, [
     "find_at",
     "find_in_range",
     "find_closest_by_range",
+    "look_at",
+    "look_for_in_area_around",
 ])

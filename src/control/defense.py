@@ -99,12 +99,13 @@ def stored_hostiles_near(room_name):
         [
             {
                 'user': c.owner.username,
-                'pos': c.pos.x << 6 | c.pos.y,
+                'pos': c.pos.x | c.pos.y << 6,
                 'room': c.pos.roomName,
                 'id': c.id,
                 'death': Game.time + c.ticksToLive,
                 'ranged': c.getActiveBodyparts(RANGED_ATTACK),
                 'attack': c.getActiveBodyparts(ATTACK),
+                'offensive': attack or ranged_attack active or inactive in c.body
             }, # ...
         ]
 
@@ -113,7 +114,12 @@ def stored_hostiles_near(room_name):
     :type room_name: str
     :rtype: list[dict[str, str | int]]
     """
+    cache = volatile_cache.mem("stored_hostiles_in")
+    if cache.has(room_name):
+        return cache.get(room_name)
     room_x, room_y = movement.parse_room_to_xy(room_name)
+    if room_x == 0 and room_y == 0 and room_name == 'sim':
+        return stored_hostiles_in(room_name)
     result = []
     # TODO: profile this against Game.map.describeExits (which does basically the same thing + a bit more)
     for x in range(room_x - 1, room_x + 2):
@@ -124,6 +130,7 @@ def stored_hostiles_near(room_name):
                 for c in mem.danger:
                     if Game.time < c.death:
                         result.push(c)
+    cache.set(room_name, result)
     return result
 
 
@@ -142,6 +149,7 @@ def stored_hostiles_in(room_name):
                 'death': Game.time + c.ticksToLive,
                 'ranged': c.getActiveBodyparts(RANGED_ATTACK),
                 'attack': c.getActiveBodyparts(ATTACK),
+                'offensive': attack or ranged_attack active or inactive in c.body
             }, # ...
         ]
 
@@ -355,6 +363,7 @@ class RoomDefense:
                 'death': Game.time + c.ticksToLive,
                 'ranged': c.getActiveBodyparts(RANGED_ATTACK),
                 'attack': c.getActiveBodyparts(ATTACK),
+                'offensive': attack or ranged_attack active or inactive in c.body
             }
 
 
@@ -398,9 +407,9 @@ class RoomDefense:
 
     def set_ramparts(self, defensive):
         for rampart in _.filter(self.room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_RAMPART}):
-            if defensive or _.find(self.room.room.lookForAt(LOOK_STRUCTURES, rampart.pos),
-                                   lambda
-                                           s: s.structureType != STRUCTURE_RAMPART and s.structureType != STRUCTURE_ROAD):
+            if defensive or _.find(self.room.look_at(LOOK_STRUCTURES, rampart.pos),
+                                   lambda s: s.structureType != STRUCTURE_RAMPART
+                                   and s.structureType != STRUCTURE_ROAD):
                 rampart.setPublic(False)
             else:
                 rampart.setPublic(True)
@@ -408,7 +417,7 @@ class RoomDefense:
     def tower_heal(self):
         damaged = _.filter(self.room.find(FIND_MY_CREEPS), lambda c: c.hits < c.hitsMax)
         if len(damaged):
-            towers = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER})
+            towers = self.towers()
             if not len(towers):
                 return
             if len(damaged) > 1 and len(towers) > 1:
@@ -438,7 +447,7 @@ class RoomDefense:
             return self._cache.get('alert')
         else:
             alert = self.room.mem.alert
-            if not alert and (self.room.my or Game.time % 3 == 1) and len(self.room.find(FIND_HOSTILE_CREEPS)):
+            if not alert and (self.room.my or Game.time % 3 == 1) and len(self.all_hostiles()):
                 self.set_ramparts(True)
                 self.room.mem.alert = alert = True
             self._cache.set('alert', alert)

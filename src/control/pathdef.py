@@ -253,10 +253,10 @@ class HoneyTrails:
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
         def road_at(x, y):
-            for s in room.find_at(FIND_STRUCTURES, x, y):
+            for s in room.look_at(LOOK_STRUCTURES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
-            for s in room.find_at(FIND_CONSTRUCTION_SITES, x, y):
+            for s in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
             return False
@@ -367,10 +367,10 @@ class HoneyTrails:
 
         structures_ignore = []
         if origin.roomName == room_name:
-            for s in room.find_at(FIND_STRUCTURES, origin):
+            for s in room.look_at(LOOK_STRUCTURES, origin):
                 structures_ignore.append(s.structureType)
         if destination.roomName == room_name:
-            for s in room.find_at(FIND_STRUCTURES, destination):
+            for s in room.look_at(LOOK_STRUCTURES, destination):
                 structures_ignore.append(s.structureType)
         going_to_extension = STRUCTURE_EXTENSION in structures_ignore or STRUCTURE_SPAWN in structures_ignore
         going_to_storage = STRUCTURE_STORAGE in structures_ignore or STRUCTURE_LINK in structures_ignore
@@ -378,8 +378,8 @@ class HoneyTrails:
         # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual
         # room. that allows this to work correctly for multi-room paths.
         going_to_source = (
-            (origin.roomName == room_name and len(room.find_at(FIND_SOURCES, origin)))
-            or (destination.roomName == room_name and len(room.find_at(FIND_SOURCES, destination)))
+            (origin.roomName == room_name and len(room.look_at(LOOK_SOURCES, origin)))
+            or (destination.roomName == room_name and len(room.look_at(LOOK_SOURCES, destination)))
         )
 
         cost_matrix = __new__(PathFinder.CostMatrix())
@@ -392,10 +392,10 @@ class HoneyTrails:
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
         def road_at(x, y):
-            for s in room.find_at(FIND_STRUCTURES, x, y):
+            for s in room.look_at(LOOK_STRUCTURES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
-            for s in room.find_at(FIND_CONSTRUCTION_SITES, x, y):
+            for s in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
             return False
@@ -605,9 +605,9 @@ class HoneyTrails:
                     break
                 if not room.my:
                     all_owned = False
-                if (not _.find(room.find_at(FIND_STRUCTURES, pos.x, pos.y),
+                if (not _.find(room.look_at(LOOK_STRUCTURES, pos.x, pos.y),
                                lambda s: s.structureType == STRUCTURE_ROAD)
-                    and not _.find(room.find_at(FIND_MY_CONSTRUCTION_SITES, pos.x, pos.y)),
+                    and not _.find(room.look_at(LOOK_CONSTRUCTION_SITES, pos.x, pos.y)),
                     lambda s: s.structureType == STRUCTURE_ROAD):
                     all_paved = False
 
