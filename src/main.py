@@ -105,13 +105,13 @@ def run_room(target_mind, creeps_skipped, room):
         else:
             for creep in room.creeps:
                 run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
-        room.links.tick_links()
-        if 'skipped_last_turn' not in Memory:
             room.building.place_remote_mining_roads()
             room.building.place_home_ramparts()
             for spawn in room.spawns:
                 spawning.run(room, spawn)
-        room.mining.poll_flag_energy_sitting()
+        room.links.tick_links()
+        if Game.time % 5 == 3:
+            room.mining.poll_flag_energy_sitting()
         room.minerals.tick_terminal()
     except:
         e = __except0__

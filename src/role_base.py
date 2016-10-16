@@ -490,24 +490,31 @@ class RoleBase:
         if self.creep.getActiveBodyparts(WORK) <= 0:
             return False
         if self.creep.carry.energy <= 0:
-            return
-        repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
+            return False
+        repair = _.filter(self.room.look_at(LOOK_STRUCTURES, self.creep.pos),
+                          lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax)
+        # repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
         if len(repair):
             if len(repair) > 1:
                 result = self.creep.repair(_.min(repair, lambda s: s.hits / s.hitsMax))
             else:
                 result = self.creep.repair(repair[0])
-            if result != OK:
+            if result == OK:
+                return True
+            else:
                 self.log("Unknown result from passingby-road-repair on {}: {}".format(repair, result))
         else:
-            build = self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos)
+            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)
             if len(build):
                 if len(build) > 1:
-                    result = self.creep.build(_.max(build, 'progress'))
+                    result = self.creep.build(_.max(build, lambda s: s.progress / s.progressTotal))
                 else:
                     result = self.creep.build(build[0])
-                if result != OK:
+                if result == OK:
+                    return True
+                else:
                     self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
+        return False
 
     def find_depot(self):
         depots = flags.find_flags(self.home, flags.DEPOT)

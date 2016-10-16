@@ -56,14 +56,16 @@ class MiningMind:
         # Even if we don't have a link manager active right now, we will soon if there is a main link
         if self.room.links.main_link:
             main_link_id = self.room.links.main_link.id
+            upgrader_link = self.room.get_upgrader_energy_struct()
+            upgrader_link_id = upgrader_link and upgrader_link.id or None
             best_priority = Infinity
             best = None
             for structure in self.room.find(FIND_MY_STRUCTURES):
-                if structure.structureType == STRUCTURE_LINK:
-                    if structure.id == main_link_id:
+                if structure.structureType == STRUCTURE_LINK and structure.energyCapacity > 0:
+                    if structure.id == main_link_id or structure.id == upgrader_link_id:
                         continue
                     priority = movement.chebyshev_distance_room_pos(structure, flag)
-                elif structure.structureType == STRUCTURE_STORAGE:
+                elif structure.structureType == STRUCTURE_STORAGE and structure.storeCapacity > 0:
                     priority = movement.chebyshev_distance_room_pos(structure, flag) - 6
                 else:
                     continue
@@ -71,7 +73,7 @@ class MiningMind:
                     best_priority = priority
                     best = structure
             target = best
-        elif self.room.room.storage:
+        elif self.room.room.storage and self.room.room.storage.storeCapacity > 0:
             target = self.room.room.storage
         elif self.room.spawn:
             target = self.room.spawn
@@ -79,10 +81,7 @@ class MiningMind:
             return None
 
         target_id = target.id
-        if not self.room.links.enabled_last_turn and self.room.links.main_link:
-            self.room.store_cached_property(key, target_id, 5)
-        else:
-            self.room.store_cached_property(key, target_id, 50)
+        self.room.store_cached_property(key, target_id, 50)
         return target
 
     def mine_priority(self, flag):
@@ -98,7 +97,10 @@ class MiningMind:
     def distance_to_mine(self, flag):
         deposit_point = self.closest_deposit_point_to_mine(flag)
         if deposit_point:
-            return len(self.hive.honey.find_path(deposit_point, flag))
+            if deposit_point.structureType == STRUCTURE_SPAWN:
+                return len(self.hive.honey.find_path(deposit_point, flag)) + 20
+            else:
+                return len(self.hive.honey.find_path(deposit_point, flag))
         else:
             # This will happen if we have no storage nor spawn
             return Infinity
@@ -109,17 +111,17 @@ class MiningMind:
         if target_mass:
             return target_mass
         # each carry can carry 50 energy.
-        carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
+        carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 5)
         room = Game.rooms[flag.pos.roomName]
         # With 1 added to have some leeway
         if room and room.controller and room.controller.my:
-            mining_per_tick = 11.0
+            mining_per_tick = 10.0
         elif flag.memory.sk_room or (room and not room.controller):
-            mining_per_tick = 16.0
+            mining_per_tick = 15.0
         elif self.should_reserve(flag.pos.roomName):
-            return 11.0
+            return 10.0
         else:
-            mining_per_tick = 6.0
+            mining_per_tick = 5.0
         produce_per_tick = mining_per_tick
         target_mass = math.ceil(produce_per_tick / carry_per_tick) + 1
         self.room.store_cached_property(key, target_mass, 50)
@@ -129,9 +131,9 @@ class MiningMind:
         ideal_mass = self.calculate_ideal_mass_for_mine(flag)
         if not self.room.room.storage:
             return ideal_mass
-        sitting = flag.memory.sitting if flag.memory.sitting else 0
+        sitting = self.energy_sitting_at(flag)
         if sitting > 1000:
-            carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1)
+            carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 10)
             # Count every 200 already there as an extra 1 production per turn
             return ideal_mass + min(math.ceil(sitting / 500 / carry_per_tick), ideal_mass)
         else:
@@ -142,15 +144,14 @@ class MiningMind:
             room = self.hive.get_room(flag.pos.roomName)
             if room:
                 sitting = _.sum(room.find_in_range(FIND_DROPPED_RESOURCES, 1, flag.pos), 'amount')
-                if sitting > 1000 and flag.memory.sitting <= 1000:
+                if sitting > 1000 >= flag.memory.sitting:
                     self.room.reset_planned_role()
                 flag.memory.sitting = sitting
-            else:
-                if flag.memory.sitting > 0:
-                    flag.memory.sitting -= 1
-                else:
-                    flag.memory.sitting = 0
+                flag.memory.sitting_set = Game.time
             del flag.memory.remote_miner_targeting
+
+    def energy_sitting_at(self, flag):
+        return max(0, flag.memory.sitting - (Game.time - flag.memory.sitting_set)) or 0
 
     def get_local_mining_flags(self):
         if self._local_mining_flags is None:
@@ -179,8 +180,8 @@ class MiningMind:
 
     def get_available_mining_flags(self):
         if self._available_mining_flags is None:
-            result = self.get_local_mining_flags() \
-                .concat(_.sortBy(self.room.possible_remote_mining_operations, self.mine_priority))
+            result = list(_(self.get_local_mining_flags())
+                          .concat(self.room.possible_remote_mining_operations).sortBy(self.mine_priority).value())
             self._available_mining_flags = result
         return self._available_mining_flags
 
@@ -211,10 +212,14 @@ class MiningMind:
             return fit_num_sections(needed, maximum)
 
     def should_reserve(self, room_name):
+        if self.room.room.energyCapacityAvailable < 1300:
+            return False
         flag_list = _.filter(flags.find_flags(room_name, flags.REMOTE_MINE), lambda f: f.memory.active)
         if _.find(flag_list, lambda f: f.memory.sk_room):
             return False
-        if len(flag_list) < 2 or self.room.room.energyCapacityAvailable < 1300:
+        if _.find(flag_list, lambda f: f.memory.do_reserve):
+            return True
+        if len(flag_list) < 2:
             return False
         return True
 
@@ -295,6 +300,20 @@ class MiningMind:
         else:
             return 3
 
+    def haulers_can_target_mine(self, flag):
+        # TODO: duplicated in get_next_needed_mining_role_for
+
+        miner_carry_no_haulers = (
+            flag.pos.roomName == self.room.room_name
+            and self.room.room.energyCapacityAvailable >= 600
+            and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
+        )
+        no_haulers = (
+            flag.pos.roomName == self.room.room_name
+            and (self.room.rcl < 4 or not self.room.room.storage)
+        )
+        return not miner_carry_no_haulers and not no_haulers
+
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
@@ -351,7 +370,7 @@ class MiningMind:
         if miner_needed:
             if miner_carry_no_haulers:
                 base = creep_base_carry3000miner
-                num_sections = min(3, spawning.max_sections_of(self.room, base))
+                num_sections = min(5, spawning.max_sections_of(self.room, base))
             elif flag.memory.sk_room:
                 base = creep_base_4000miner
                 num_sections = min(7, spawning.max_sections_of(self.room, base))
@@ -426,6 +445,8 @@ class MiningMind:
         if max_to_check <= 0: return None
         mines = self.active_mines
         if len(mines) <= 0: return None
+        if self.room.room.storage and self.room.room.storage.store.energy > self.room.room.storage.storeCapacity:
+            return None
         known_nothing_needed = volatile_cache.setmem("rolechecked_mines")
         checked_count = 0
         for mining_flag in mines:

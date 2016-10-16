@@ -578,8 +578,8 @@ class RoomMind:
         if paving is None:
             if self.my:
                 # TODO: 2 maybe should be a constant?
-                paving = self.get_max_mining_op_count() >= 1 and len(self.mining.available_mines) >= 1 + len(
-                    self.sources)
+                paving = (self.get_max_mining_op_count() >= 1 or self.room.storage) \
+                         and len(self.mining.available_mines) >= 1
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
@@ -1337,8 +1337,9 @@ class RoomMind:
                     fill_size = fit_num_sections(total_mass,
                                                  spawning.max_sections_of(self, creep_base_hauler), 0, 2)
                     for flag in self.mining.local_mines:
-                        if flag.memory.sitting > 1000:
-                            total_mass += math.ceil(flag.memory.sitting / 500) * fill_size
+                        sitting = self.mining.energy_sitting_at(flag)
+                        if sitting > 1000:
+                            total_mass += math.ceil(sitting / 500) * fill_size
                 self._target_spawn_fill_mass = max(0, total_mass - tower_fill)
 
             else:

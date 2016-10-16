@@ -1,6 +1,7 @@
 import flags
 from tools import profiling
 from utilities import global_cache
+from utilities import hostile_utils
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -336,9 +337,12 @@ class HoneyTrails:
         use_roads = opts['roads']
         future_chosen = opts['future_chosen']
 
-        if 'enemy_rooms' in Memory and room_name in Memory.enemy_rooms \
-                and room_name != origin.roomName and room_name != destination.roomName:
-            return False
+        if hostile_utils.enemy_room(room_name):
+            if room_name != origin.roomName and room_name != destination.roomName:
+                return False
+            else:
+                print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
+                      .format(origin, destination, room_name))
 
         if future_chosen:
             if_roads_multiplier = 5
@@ -463,18 +467,24 @@ class HoneyTrails:
                             cost_matrix.set(x, y, 20 * if_roads_multiplier)
             elif stype == "this_is_a_source":  # and going to source:
                 if this_room_future_roads:
-                    for x in range(pos.x - 5, pos.x + 6):
-                        for y in range(pos.y - 5, pos.y + 6):
-                            if not wall_at(x, y) and cost_matrix.get(x, y) < 5 * if_roads_multiplier:
-                                cost_matrix.set(x, y, 5 * if_roads_multiplier)
-                    for x in range(pos.x - 3, pos.x + 4):
-                        for y in range(pos.y - 3, pos.y + 4):
-                            if not wall_at(x, y) and cost_matrix.get(x, y) < 6 * if_roads_multiplier:
-                                cost_matrix.set(x, y, 6 * if_roads_multiplier)
+                    if room.my:
+                        for x in range(pos.x - 2, pos.x + 3):
+                            for y in range(pos.y - 2, pos.y + 3):
+                                if not wall_at(x, y) and cost_matrix.get(x, y) < 9 * if_roads_multiplier:
+                                    cost_matrix.set(x, y, 9 * if_roads_multiplier)
+                    else:
+                        for x in range(pos.x - 5, pos.x + 6):
+                            for y in range(pos.y - 5, pos.y + 6):
+                                if not wall_at(x, y) and cost_matrix.get(x, y) < 6 * if_roads_multiplier:
+                                    cost_matrix.set(x, y, 6 * if_roads_multiplier)
+                        for x in range(pos.x - 3, pos.x + 4):
+                            for y in range(pos.y - 3, pos.y + 4):
+                                if not wall_at(x, y) and cost_matrix.get(x, y) < 8 * if_roads_multiplier:
+                                    cost_matrix.set(x, y, 8 * if_roads_multiplier)
                 for x in range(pos.x - 1, pos.x + 2):
                     for y in range(pos.y - 1, pos.y + 2):
-                        if not wall_at(x, y) and cost_matrix.get(x, y) < 7 * if_roads_multiplier:
-                            cost_matrix.set(x, y, 7 * if_roads_multiplier)
+                        if not wall_at(x, y) and cost_matrix.get(x, y) < 13 * if_roads_multiplier:
+                            cost_matrix.set(x, y, 13 * if_roads_multiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in room.find(FIND_STRUCTURES):
@@ -490,10 +500,17 @@ class HoneyTrails:
         if room.my and room.room.storage and room.links.main_link:
             ml = room.links.main_link
             storage = room.room.storage
-            for x in range(ml.pos.x - 1, ml.pos.x + 2):
-                for y in range(ml.pos.y - 1, ml.pos.y + 2):
-                    if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
-                        cost_matrix.set(x, y, 255)
+            if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
+                    and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
+                cost_matrix.set(ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255)
+            elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
+                    and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
+                cost_matrix.set((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255)
+            else:
+                for x in range(ml.pos.x - 1, ml.pos.x + 2):
+                    for y in range(ml.pos.y - 1, ml.pos.y + 2):
+                        if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
+                            cost_matrix.set(x, y, 255)
 
         if not room.my and future_chosen:  # Cache before adding this_room_future_roads costs
             serialized = JSON.stringify(cost_matrix.serialize())

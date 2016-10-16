@@ -30,7 +30,7 @@ class EnergyMiner(TransportPickup):
             self.memory.last_role = role_miner
             self.report(speech.remote_miner_no_flag)
             return False
-        if source_flag.memory.sponsor != self.home.room_name:
+        if source_flag.memory.sponsor and source_flag.memory.sponsor != self.home.room_name:
             self.memory.home = source_flag.memory.sponsor
 
         if self.creep.hits < self.creep.hitsMax:
@@ -48,14 +48,14 @@ class EnergyMiner(TransportPickup):
                 if distance_away <= 3:
                     total_mass = self.home.mining.get_ideal_miner_workmass_for(source_flag)
                     if self.creep.getActiveBodyparts(WORK) >= total_mass:
-                        other_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
-                                             lambda c: c.memory.role == role_miner
-                                                       and c.ticksToLive < self.creep.ticksToLive)
+                        other_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
+                                             lambda c: c.creep.my and c.creep.memory.role == role_miner
+                                                       and c.creep.ticksToLive < self.creep.ticksToLive)
                         if other_miner:
-                            other_miner.suicide()
+                            other_miner.creep.suicide()
                             del self.memory._move
                 if self.memory.mmni:
-                    self.creep.moveTo(source_flag)
+                    self.creep.moveTo(source_flag, {'reusePath': 0})
                 else:
                     self.creep.moveTo(source_flag, {'ignoreCreeps': True})
                 serialized_pos = self.pos.x | (self.pos.y << 6)
@@ -69,8 +69,8 @@ class EnergyMiner(TransportPickup):
             self.report(speech.remote_miner_moving)
             return False
         elif distance_away > 1:
-            non_miner = _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, source_flag.pos),
-                               lambda c: c.memory.role != role_miner)
+            non_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
+                               lambda c: c.creep.memory.role != role_miner)
             if not non_miner or not self.force_basic_move_to(non_miner, lambda c: c.memory.role != role_miner):
                 self.move_to(source_flag.pos)
             return False
@@ -86,13 +86,13 @@ class EnergyMiner(TransportPickup):
                     self.memory.container_pos = biggest_pile.pos.x | (biggest_pile.pos.y << 6)
                 else:
                     self.memory.container_pos = None
-        if self.memory.container_pos:
+        if Game.time % 10 == 0 and self.memory.container_pos is not None:
             this_pos_to_check = self.pos.x | self.pos.y << 6  # Transcrypt does this incorrectly in an if statement.
             if this_pos_to_check != self.memory.container_pos:
                 pos = __new__(RoomPosition(self.memory.container_pos & 0x3F,
                                            self.memory.container_pos >> 6 & 0x3F, self.pos.roomName))
-                if _.find(self.room.find_at(FIND_MY_CREEPS, pos), lambda c: c.memory.role == role_miner
-                and c.ticksToLive > 15):
+                if _.find(self.room.look_at(LOOK_CREEPS, pos),
+                          lambda c: c.my and c.memory.role == role_miner and c.ticksToLive > 15):
                     self.memory.container_pos = self.pos.x | self.pos.y << 6
                 else:
                     self.basic_move_to(pos)
@@ -114,13 +114,13 @@ class EnergyMiner(TransportPickup):
         #                                  lambda c: c.memory.role == role_miner and c.getActiveBodyparts(WORK))
         #         if current_work > source.energy / (source.ticksToRegeneration - 1) / HARVEST_POWER:
         #             return False  # skip a tick, to spread it out
-        result = self.creep.harvest(sources_list[0])
+        result = self.creep.harvest(source)
         if result == OK:
             self.report(speech.remote_miner_ok)
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             self.report(speech.remote_miner_ner)
         else:
-            self.log("Unknown result from remote-mining-creep.harvest({}): {}", sources_list[0], result)
+            self.log("Unknown result from remote-mining-creep.harvest({}): {}", source, result)
             self.report(speech.remote_miner_unknown_result)
 
         if self.creep.carryCapacity:
@@ -129,7 +129,7 @@ class EnergyMiner(TransportPickup):
                     return False
                 else:
                     link = Game.getObjectById(self.memory.link)
-                    if link is None:
+                    if link is None or not self.pos.isNearTo(link):
                         del self.memory.link
                         return False
             else:
@@ -143,6 +143,7 @@ class EnergyMiner(TransportPickup):
                                           and abs(s.pos.x - x) <= 1 and abs(s.pos.y - y) <= 1
                             )
                             if link:
+                                self.memory.container_pos = x | y << 6
                                 break
                     if link:
                         break
@@ -178,6 +179,42 @@ profiling.profile_whitelist(EnergyMiner, ["run"])
 
 
 class EnergyHauler(TransportPickup, SpawnFill, Refill):
+    def run_local_refilling(self):
+        if not self.memory.filling:
+            if self.creep.getActiveBodyparts(WORK):
+                construction_sites = self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos)
+                if len(construction_sites):
+                    self.creep.build(_.max(construction_sites, 'progress'))
+                else:
+                    repair_sites = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, self.pos),
+                                            lambda s: s.hits < s.hitsMax
+                                                      and s.hits < self.home.get_min_sane_wall_hits)
+                    if len(repair_sites):
+                        self.creep.build(_.min(repair_sites, 'hits'))
+                    else:
+                        self.repair_nearby_roads()
+            if self.memory.running == 'refill':
+                return self.refill_creeps()
+            elif self.memory.running == role_spawn_fill:
+                return SpawnFill.run(self)
+            else:
+                if _.find(self.home.find(FIND_MY_STRUCTURES), lambda s:
+                        (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
+                and s.energy < s.energyCapacity):
+                    self.memory.running = role_spawn_fill
+                    return SpawnFill.run(self)
+                else:
+                    self.memory.running = 'refill'
+                    return self.refill_creeps()
+        elif self.creep.ticksToLive < 200 and self.creep.ticksToLive < self.path_length(fill, pickup) * 2:
+            if self.creep.carry.energy > 0:
+                self.memory.filling = False
+                return self.refill_creeps()
+            else:
+                self.memory.last_role = self.memory.role
+                self.memory.role = role_recycling
+                return self.recycle_me()
+
     def run(self):
         pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
@@ -190,7 +227,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             self.memory.last_role = role_hauler
             return
 
-        if _.sum(self.creep.carry) > self.creep.carry.energy:
+        if self.carry_sum() > self.creep.carry.energy:
             fill = self.home.room.storage
         else:
             fill = self.home.mining.closest_deposit_point_to_mine(pickup)
@@ -213,40 +250,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                 return
         if fill == self.home.spawn:
             if self.pos.roomName == fill.pos.roomName:
-                if not self.memory.filling:
-                    if self.creep.getActiveBodyparts(WORK):
-                        construction_sites = self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos)
-                        if len(construction_sites):
-                            self.creep.build(_.max(construction_sites, 'progress'))
-                        else:
-                            repair_sites = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, self.pos),
-                                                    lambda s: s.hits < s.hitsMax
-                                                              and s.hits < self.home.get_min_sane_wall_hits)
-                            if len(repair_sites):
-                                self.creep.build(_.min(repair_sites, 'hits'))
-                            else:
-                                self.repair_nearby_roads()
-                    if self.memory.running == 'refill':
-                        return self.refill_creeps()
-                    elif self.memory.running == role_spawn_fill:
-                        return SpawnFill.run(self)
-                    else:
-                        if _.find(self.home.find(FIND_MY_STRUCTURES), lambda s:
-                                (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
-                        and s.energy < s.energyCapacity):
-                            self.memory.running = role_spawn_fill
-                            return SpawnFill.run(self)
-                        else:
-                            self.memory.running = 'refill'
-                            return self.refill_creeps()
-                elif self.creep.ticksToLive < 200 and self.creep.ticksToLive < self.path_length(fill, pickup) * 2:
-                    if self.creep.carry.energy > 0:
-                        self.memory.filling = False
-                        return self.refill_creeps()
-                    else:
-                        self.memory.last_role = self.memory.role
-                        self.memory.role = role_recycling
-                        return self.recycle_me()
+                return self.run_local_refilling()
             else:
                 del self.memory.running
 

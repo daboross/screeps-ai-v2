@@ -531,6 +531,8 @@ class TargetMind:
         smallest_percentage = 1
         for flag in creep.home.mining.active_mines:
             flag_id = "flag-{}".format(flag.name)
+            if not creep.home.mining.haulers_can_target_mine(flag):
+                continue
             hauler_mass = self.workforce_of(target_remote_mine_hauler, flag_id)
             hauler_percentage = float(hauler_mass) / creep.home.mining.calculate_current_target_mass_for_mine(flag)
             too_long = creep.creep.ticksToLive < 2.2 * creep.home.mining.distance_to_mine(flag)
@@ -562,11 +564,14 @@ class TargetMind:
 
         # TODO: cache the closest deposit site to each mine site.
         if creep.home.links.enabled:
-            target = creep.home.find_closest_by_range(FIND_STRUCTURES, pos,
-                                                      lambda s: (s.structureType == STRUCTURE_LINK
-                                                                 or s.structureType == STRUCTURE_STORAGE)
-                                                                and s.id != creep.home.links.main_link.id)
-            if target:
+            target = _(creep.home.find(FIND_STRUCTURES)) \
+                .filter(lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE)
+                                  and s.id != creep.home.links.main_link.id) \
+                .min(lambda s:
+                     movement.chebyshev_distance_room_pos(pos, s.pos) +
+                     (0 if s.structureType == STRUCTURE_STORAGE else 10))
+
+            if target is not Infinity:
                 return target.id
             else:
                 return None
