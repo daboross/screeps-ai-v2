@@ -33,15 +33,19 @@ SUB_LINK = "link"
 SUB_EXTRACTOR = "extractor"
 SUB_TERMINAL = "terminal"
 SUB_ROAD = "road"
-SUB_CONTAINER = "container_destructonly"
+SUB_CONTAINER = "container"
 TD_H_H_STOP = "tdhhs"
 TD_H_D_STOP = "tdhts"
 TD_D_GOAD = "tddg"
 SCOUT = "scout_pit"
+RANGED_DEFENSE = "rdef"
 ATTACK_DISMANTLE = "tdad"
 RAID_OVER = "raid_over"
 ATTACK_POWER_BANK = "attack_power_bank"
 REAP_POWER_BANK = "reap_power_bank"
+WALL_DEFENSE_HIGH = "wdh"
+WALL_DEFENSE_MID = "wdm"
+UPGRADER_SPOT = "us"
 
 DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
@@ -57,23 +61,27 @@ DIR_TO_NO_EXIT_FLAG = {
 }
 
 flag_definitions = {
-    DEPOT: (COLOR_BLUE, COLOR_BLUE),
-    SK_LAIR_SOURCE_NOTED: (COLOR_BLUE, COLOR_WHITE),
-    SLIGHTLY_AVOID: (COLOR_BLUE, COLOR_GREY),
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
-    SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
+    DEPOT: (COLOR_BLUE, COLOR_BLUE),
+    SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),
+    UPGRADER_SPOT: (COLOR_BLUE, COLOR_GREEN),
+    SLIGHTLY_AVOID: (COLOR_BLUE, COLOR_GREY),
+    SK_LAIR_SOURCE_NOTED: (COLOR_BLUE, COLOR_WHITE),
     TD_H_H_STOP: (COLOR_CYAN, COLOR_RED),
     TD_H_D_STOP: (COLOR_CYAN, COLOR_PURPLE),
     TD_D_GOAD: (COLOR_CYAN, COLOR_BLUE),
     ATTACK_DISMANTLE: (COLOR_CYAN, COLOR_GREEN),
     RAID_OVER: (COLOR_CYAN, COLOR_YELLOW),
     SCOUT: (COLOR_CYAN, COLOR_BROWN),
+    RANGED_DEFENSE: (COLOR_CYAN, COLOR_CYAN),
     ATTACK_POWER_BANK: (COLOR_CYAN, COLOR_GREY),
     REAP_POWER_BANK: (COLOR_CYAN, COLOR_WHITE),
     REMOTE_MINE: (COLOR_GREEN, COLOR_CYAN),
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
-    RESERVE_NOW: (COLOR_GREEN, COLOR_RED),
+    RESERVE_NOW: (COLOR_GREEN, COLOR_GREY),
+    WALL_DEFENSE_HIGH: (COLOR_GREEN, COLOR_GREEN),
+    WALL_DEFENSE_MID: (COLOR_GREEN, COLOR_RED),  # conflict with RESERVE_NOW!
     NO_EXIT_NORTH: (COLOR_GREY, COLOR_RED),
     NO_EXIT_EAST: (COLOR_GREY, COLOR_PURPLE),
     NO_EXIT_SOUTH: (COLOR_GREY, COLOR_BLUE),
@@ -123,6 +131,7 @@ flag_sub_to_structure_type = {
     SUB_TOWER: STRUCTURE_TOWER,
     SUB_LINK: STRUCTURE_LINK,
     SUB_EXTRACTOR: STRUCTURE_EXTRACTOR,
+    SUB_CONTAINER: STRUCTURE_CONTAINER,
     SUB_ROAD: STRUCTURE_ROAD,
     SUB_TERMINAL: STRUCTURE_TERMINAL,
 }
@@ -135,6 +144,7 @@ structure_type_to_flag_sub = {
     STRUCTURE_TOWER: SUB_TOWER,
     STRUCTURE_LINK: SUB_LINK,
     STRUCTURE_EXTRACTOR: SUB_EXTRACTOR,
+    STRUCTURE_CONTAINER: SUB_CONTAINER,
     STRUCTURE_ROAD: SUB_ROAD,
     STRUCTURE_TERMINAL: SUB_TERMINAL,
 }
@@ -423,7 +433,8 @@ def create_ms_flag(position, main, sub):
 def rename_flags():
     for name in flag_definitions.keys():
         for flag in find_flags_global(name):
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or '_' not in flag.name):
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_') ) \
+                    and flag.name not in Memory.flags:
                 new_name = create_flag(flag.pos, name)
                 if Memory.flags[flag.name]:
                     if len(Memory.flags[flag.name]):
@@ -432,8 +443,8 @@ def rename_flags():
                 flag.remove()
     for main in main_to_flag_primary.keys():
         for flag, sub in find_by_main_with_sub_global(main):
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or '_' not in flag.name) \
-                    and (not Memory.flags[flag.name] or not len(Memory.flags[flag.name])):
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_')) \
+                    and flag.name not in Memory.flags:
                 new_name = create_ms_flag(flag.pos, main, sub)
                 if Memory.flags[flag.name]:
                     if len(Memory.flags[flag.name]):
@@ -451,7 +462,7 @@ def look_for(room, position, main, sub=None):
     if position.pos:
         position = position.pos
     if sub:
-        return _.find(room.find_at(FIND_FLAGS, position),
+        return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == main_to_flag_primary[main] and
                                 f.secondaryColor == sub_to_flag_secondary[sub])
     else:
@@ -462,7 +473,7 @@ def look_for(room, position, main, sub=None):
             # if there is no flag for a given structure, sub will be undefined, and thus this side will be called
             # and not the above branch.
             return []
-        return _.find(room.find_at(FIND_FLAGS, position),
+        return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
 
 
