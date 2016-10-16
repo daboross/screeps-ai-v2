@@ -40,6 +40,8 @@ class MineralMind:
         self.targets = self.hive.target_mind
         self.storage = room.room.storage
         self.terminal = room.room.terminal
+        self._has_no_terminal_or_storage = not (self.terminal and self.storage
+                                                and self.terminal.isActive() and self.storage.isActive())
         if self.has_no_terminal_or_storage():
             return
         self._target_mineral_counts = None
@@ -79,7 +81,8 @@ class MineralMind:
             self.mem.last_sold_at = {}
 
     def has_no_terminal_or_storage(self):
-        return not (self.terminal and self.storage and self.terminal.isActive() and self.storage.isActive())
+        return self._has_no_terminal_or_storage
+        # return not (self.terminal and self.storage and self.terminal.isActive() and self.storage.isActive())
 
     def note_mineral_hauler(self, name):
         self.room.mem.mineral_hauler = name
@@ -196,22 +199,22 @@ class MineralMind:
         if self._total_resource_counts:
             return self._total_resource_counts
         counts = {}
-        for rtype in Object.keys(self.storage.store):
+        for rtype, amount in _.pairs(self.storage.store):
             if rtype in counts:
-                counts[rtype] += self.storage.store[rtype]
+                counts[rtype] += amount
             else:
-                counts[rtype] = self.storage.store[rtype]
-        for rtype in Object.keys(self.terminal.store):
+                counts[rtype] = amount
+        for rtype, amount in _.pairs(self.terminal.store):
             if rtype in counts:
-                counts[rtype] += self.terminal.store[rtype]
+                counts[rtype] += amount
             else:
-                counts[rtype] = self.terminal.store[rtype]
+                counts[rtype] = amount
         creep_carry = self.mineral_hauler_carry()
-        for rtype in Object.keys(creep_carry):
+        for rtype, amount in _.pairs(creep_carry):
             if rtype in counts:
-                counts[rtype] += creep_carry[rtype]
+                counts[rtype] += amount
             else:
-                counts[rtype] = creep_carry[rtype]
+                counts[rtype] = amount
         self._total_resource_counts = counts
         return counts
 
@@ -268,16 +271,17 @@ class MineralMind:
                 return 0
 
     def tick_terminal(self):
-        if self.has_no_terminal_or_storage() or (
-                        Game.cpu.bucket < 4300 and not (Game.time % 1020 == 8 or Game.time % 765 == 3)):
+        if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (Game.time % 1020 == 8
+                                                                                 or Game.time % 765 == 3
+                                                                                 or Game.time % 595 == 15)):
             return
-        if self.room.mem.empty_to:
-            self.run_emptying_terminal()
         split = Game.time % 85
         if split == 8 and not _.isEmpty(self.fulfilling):
             self.run_fulfillment()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
             self.check_orders()
+        elif split == 15 and 'empty_to' in self.room.mem:
+            self.run_emptying_terminal()
 
     def find_emptying_mineral_and_cost(self):
         if self._next_mineral_to_empty is None:
