@@ -337,10 +337,10 @@ def run(room, spawn):
             parts.append(ATTACK)
         descriptive_level = num_sections * 2 + half_section
     elif base is creep_base_mammoth_miner:
-        parts = [MOVE]
-        energy_counter = 50
-        part_counter = 1
-        move_counter = 0
+        parts = [MOVE, CARRY]
+        energy_counter = 100
+        part_counter = 2
+        move_counter = 0.25
         # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like
         # this for now.
         for i in range(0, 2):
@@ -348,10 +348,10 @@ def run(room, spawn):
                 break
             if energy_counter >= energy - 50:
                 break
-            parts.append(CARRY)
-            energy_counter += 50
-            part_counter += 1
-            move_counter += 0.25
+            # parts.append(CARRY)
+            # energy_counter += 50
+            # part_counter += 1
+            # move_counter += 0.25
             for j in range(0, 25):
                 if move_counter >= 1:
                     if part_counter >= 50:
