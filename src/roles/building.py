@@ -337,7 +337,7 @@ class Builder(upgrading.Upgrader):
                         if max(abs(x - target.pos.x), abs(y - target.pos.y)) <= 3:
                             if best is None or random.randint(0, 10) > 3:
                                 best = (x, y)
-                        elif available is None:
+                        elif available is None or random.randint(0, 10) > 3:
                             available = (x, y)
             if best is not None:
                 self.creep.move(pathdef.get_direction(best[0] - self.pos.x, best[1] - self.pos.y))
