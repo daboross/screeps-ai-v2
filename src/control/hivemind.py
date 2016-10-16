@@ -1441,6 +1441,8 @@ class RoomMind:
                     self._target_upgrade_fill_work_mass = 0
                 else:
                     self._target_upgrade_fill_work_mass = 1
+            elif _.sum(target.store) >= target.storeCapacity * 0.5:
+                self._target_upgrade_fill_work_mass = 0
             else:
                 # TODO: dynamic calculation here
                 self._target_upgrade_fill_work_mass = min(8, spawning.max_sections_of(self, creep_base_hauler))
