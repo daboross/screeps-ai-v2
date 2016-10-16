@@ -234,12 +234,14 @@ class MineralHauler(RoleBase):
                 container = _(self.memory.containers).map(Game.getObjectById).max(lambda c: _.sum(c.store))
             else:
                 container = Game.getObjectById(self.memory.containers[0])
+            container_filled = _.sum(container.store)
             if self.creep.pos.isNearTo(container.pos):
-                resource = _.findKey(container.store)
-                if resource:
-                    self.creep.withdraw(container, resource)
-                elif self.carry_sum():
-                    del self.memory.state
+                if container_filled + self.carry_sum() >= self.creep.carryCapacity or not mineral.mineralAmount:
+                    resource = _.findKey(container.store)
+                    if resource:
+                        self.creep.withdraw(container, resource)
+                    elif self.carry_sum():
+                        del self.memory.state
             else:
                 self.move_to(container.pos)
 
