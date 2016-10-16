@@ -410,15 +410,24 @@ def run(room, spawn):
             parts.append(MOVE)
     elif base is creep_base_full_upgrader:
         if num_sections > 1 or half_section:
-            parts = []
-            for part in initial_section[base]:
-                parts.append(part)
-            for i in range(0, num_sections * 2 + half_section):
+            parts = [CARRY]
+            num_work = num_sections * 2 + half_section
+            num_move = num_sections + half_section + 1
+            for i in range(0, num_work):
                 parts.append(WORK)
-            for i in range(0, num_sections + half_section):
+            if num_work > 15:
+                # Technically the initial section always has 2 carry parts,
+                #  but let's not include this second one if we don't need to
+                parts.append(CARRY)
+            elif half_section:
+                # we have one fewer CARRY and one fewer work in the half section, so we can afford to have 1 less MOVE.
+                num_move -= 1
+            for i in range(0, num_move):
                 parts.append(MOVE)
+            descriptive_level = num_work
         else:
             parts = [MOVE, CARRY, WORK]
+            descriptive_level = "min"
     elif base is creep_base_power_attack:
         parts = []
         for i in range(0, num_sections):
@@ -524,11 +533,13 @@ def validate_role(role_obj):
 
 
 def find_base_type(creep):
+    if creep.creep:
+        creep = creep.creep
     part_counts = _.countBy(creep.body, lambda p: p.type)
     total = _.sum(part_counts)
-    if part_counts[WORK] == part_counts[CARRY] == part_counts[MOVE] / 2 == total / 4:
-        base = creep_base_worker
-    elif part_counts[WORK] == part_counts[CARRY] / 3 == part_counts[MOVE] / 4 == total / 8:
+    if part_counts[WORK] == part_counts[CARRY] == part_counts[MOVE] / 2 == total / 4 \
+            or part_counts[WORK] == part_counts[CARRY] / 3 == part_counts[MOVE] / 4 == total / 8 \
+            or part_counts[WORK] - 1 == part_counts[CARRY] / 3 == (part_counts[MOVE] - 1) / 4 == (total - 2) / 8:
         base = creep_base_worker
     elif part_counts[MOVE] + part_counts[WORK] == total and part_counts[MOVE] <= part_counts[WORK] <= 3:
         base = creep_base_1500miner
@@ -543,14 +554,17 @@ def find_base_type(creep):
         base = creep_base_hauler
     elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:
         base = creep_base_work_full_move_hauler
-    elif part_counts[WORK] == 1 and part_counts[MOVE] == (part_counts[CARRY] + 1) / 2 == total / 3:
+    elif (part_counts[WORK] == 1 and part_counts[MOVE] == (part_counts[CARRY] + 1) / 2 == total / 3) \
+            or (part_counts[WORK] == 1 and part_counts[MOVE] - 1 == (part_counts[CARRY]) / 2 == (total - 2) / 3):
         base = creep_base_work_half_move_hauler
     elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
     elif part_counts[ATTACK] == part_counts[TOUGH] == part_counts[MOVE] == total / 3:
         base = creep_base_defender
-    elif part_counts[MOVE] == total / 3 and part_counts[CARRY] == 2 and \
-                                    part_counts[WORK] + part_counts[MOVE] + part_counts[CARRY] == total:
+    elif (part_counts[MOVE] == total / 3 and part_counts[CARRY] == 2
+          and part_counts[WORK] + part_counts[MOVE] + part_counts[CARRY] == total) \
+            or (part_counts[MOVE] == (total - 1) / 3 + 1 and part_counts[CARRY] == 2
+                and part_counts[WORK] + part_counts[MOVE] + part_counts[CARRY] == total):
         base = creep_base_full_upgrader
     elif part_counts[MOVE] == total == 1:
         base = creep_base_scout
