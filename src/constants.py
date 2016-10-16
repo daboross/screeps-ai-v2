@@ -29,6 +29,7 @@ creep_base_power_attack = "power_attack"
 creep_base_full_move_power_attack = "fm_power_attack"
 creep_base_scout = "scout"
 creep_base_rampart_defense = "rampart_defender"
+creep_base_ranged_offense = "ranged_offensive"
 
 # TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room,
 # and away from enemies. (or improve scout)

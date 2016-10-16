@@ -29,7 +29,8 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and Game.cpu.bucket < 3000:
         role = creep.memory.role
         if not (role == role_spawn_fill or role == role_tower_fill
-                or role == role_link_manager or role == role_hauler or role == role_miner):
+                or role == role_link_manager or role == role_hauler or role == role_miner
+                or role == role_ranged_offense or role == role_wall_defender):
             if creeps_skipped[room.room_name]:
                 creeps_skipped[room.room_name].append(creep.name)
             else:
@@ -98,7 +99,8 @@ def run_room(target_mind, creeps_skipped, room):
             for creep in room.creeps:
                 role = creep.memory.role
                 if role == role_spawn_fill or role == role_tower_fill \
-                        or role == role_link_manager or role == role_hauler or role == role_miner:
+                        or role == role_link_manager or role == role_hauler or role == role_miner \
+                        or role == role_ranged_offense or role == role_wall_defender:
                     run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
             for name in Memory.skipped_last_turn[room.room_name]:
                 creep = Game.creeps[name]

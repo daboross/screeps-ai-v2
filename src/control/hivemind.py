@@ -1740,6 +1740,11 @@ class RoomMind:
     def _next_cheap_military_role(self):
         return self.spawn_one_creep_per_flag(flags.SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
 
+    def _next_complex_defender(self):
+        if self.room.energyCapacityAvailable >= 500:
+            return self.spawn_one_creep_per_flag(flags.RANGED_DEFENSE, role_ranged_offense,
+                                                 creep_base_ranged_offense, creep_base_ranged_offense)
+
     def flags_without_target(self, flag_type):
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
@@ -1759,24 +1764,32 @@ class RoomMind:
                     result.append(flag)
         return result
 
-    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag):
+    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag, max_sections=0):
         if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
             base = full_move_base
         else:
             base = half_move_base
-        return {
+        sections = spawning.max_sections_of(self, base)
+        if max_sections:
+            sections = min(sections, max_sections)
+        if flag.memory.size:
+            sections = min(sections, flag.memory.size)
+        obj = {
             "role": role,
             "base": base,
-            "num_sections": spawning.max_sections_of(self, base),
+            "num_sections": sections,
             "targets": [
                 [target_single_flag, "flag-{}".format(flag.name)],
             ]
         }
+        if 'boosted' in flag.memory and not flag.memory.boosted:
+            obj.memory = {'boosted': 2}
+        return obj
 
-    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base):
+    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0):
         flag_list = self.flags_without_target(flag_type)
         if len(flag_list):
-            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0])
+            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0], max_sections)
         return None
 
     def _next_tower_breaker_role(self):

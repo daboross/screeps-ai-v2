@@ -1,5 +1,5 @@
 from constants import *
-from roles import building, defensive
+from roles import building, defensive, smart_offensive
 from roles import colonizing
 from roles import exploring
 from roles import generic
@@ -29,6 +29,7 @@ role_classes = {
     role_remote_mining_reserve: mining.RemoteReserve,
     role_defender: defensive.RoleDefender,
     role_wall_defender: defensive.WallDefender,
+    role_ranged_offense: smart_offensive.KitingOffense,
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
     role_colonist: colonizing.Colonist,

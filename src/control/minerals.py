@@ -50,6 +50,10 @@ class MineralMind:
         self._removing_from_terminal = None
         self._adding_to_terminal = None
         self._my_mineral_deposit_minerals = None
+        self._labs = None
+        self._needed_in_lab1 = None
+        self._needed_in_lab2 = None
+        self._energy_needed_in_labs = None
         if 'market' not in room.mem:
             # Memory format:
             # market: {
@@ -194,6 +198,64 @@ class MineralMind:
             self._adding_to_terminal = adding
         return self._adding_to_terminal
 
+    def labs(self):
+        if self._labs is None:
+            self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
+        return self._labs
+
+    def amount_needed_in_lab1(self):
+        if self._needed_in_lab1 is None:
+            mineral = self.get_lab_target_mineral()
+            if mineral is None:
+                return 0
+            labs = _(self.labs()).filter(lambda x: x.mineralType == mineral or not x.mineralAmount)
+            capacity = labs.sum('mineralCapacity')
+            filled = labs.sum('mineralAmount')
+            empty = capacity - filled
+            available = self.get_total_room_resource_counts()[mineral] - filled
+            self._needed_in_lab1 = min(empty, available)
+        return self._needed_in_lab1
+
+    def amount_needed_in_lab2(self):
+        if self._needed_in_lab2 is None:
+            mineral = self.get_lab2_target_mineral()
+            if mineral is None:
+                return 0
+            labs = _(self.labs()).filter(lambda x: x.mineralType == mineral or not x.mineralAmount)
+            capacity = labs.sum('mineralCapacity')
+            filled = labs.sum('mineralAmount')
+            empty = capacity - filled
+            available = self.get_total_room_resource_counts()[mineral] - filled
+            self._needed_in_lab2 = min(empty, available)
+        return self._needed_in_lab2
+
+    def energy_needed_in_labs(self):
+        if self._energy_needed_in_labs is None:
+            mineral = self.get_lab_target_mineral()
+            if mineral is None:
+                return 0
+            labs = _(self.labs()).filter('mineralAmount')
+            capacity = labs.sum('energyCapacity')
+            filled = labs.sum('energy')
+            empty = capacity - filled
+            available = self.get_total_room_resource_counts()[RESOURCE_ENERGY] - filled
+            self._energy_needed_in_labs = min(empty, available)
+        return self._energy_needed_in_labs
+
+    def get_lab_target_mineral(self):
+        mineral = "XKHO2"
+        if _.find(self.labs(), lambda l: l.mineralType == mineral or not l.mineralType) \
+                and self.get_total_room_resource_counts()[mineral]:
+            return mineral
+        return None
+
+    def get_lab2_target_mineral(self):
+        mineral = "XLHO2"
+        if _.find(self.labs(), lambda l: l.mineralType == mineral or not l.mineralType) \
+                and self.get_total_room_resource_counts()[mineral]:
+            return mineral
+        return None
+
     def get_total_room_resource_counts(self):
         # TODO: store hauler name from last tick in memory, and use it instead of a passed argument
         if self._total_resource_counts:
@@ -215,6 +277,18 @@ class MineralMind:
                 counts[rtype] += amount
             else:
                 counts[rtype] = amount
+        for lab in self.room.find(FIND_MY_STRUCTURES):
+            if lab.structureType == STRUCTURE_LAB:
+                if lab.mineralAmount:
+                    if lab.mineralType in counts:
+                        counts[lab.mineralType] += lab.mineralAmount
+                    else:
+                        counts[lab.mineralType] = lab.mineralAmount
+                if lab.energy:
+                    if RESOURCE_ENERGY in counts:
+                        counts[RESOURCE_ENERGY] += lab.energy
+                    else:
+                        counts[RESOURCE_ENERGY] = lab.energy
         self._total_resource_counts = counts
         return counts
 
@@ -249,6 +323,8 @@ class MineralMind:
                 min_via_empty_to = 0
             min_via_fulfillment = self.mem['total_energy_needed']
             return min(currently_have - 20000, max(10000, min_via_empty_to, min_via_fulfillment))
+        elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
+            return 0
         else:
             if self.my_mineral_deposit_minerals().includes(mineral):
                 return min(currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2)
@@ -478,7 +554,8 @@ class MineralMind:
     def get_target_mineral_hauler_count(self):
         if self.has_no_terminal_or_storage():
             return 0
-        elif self.get_target_mineral_miner_count() or len(self.adding_to_terminal()):
+        elif self.get_target_mineral_miner_count() or len(self.adding_to_terminal()) or self.energy_needed_in_labs() \
+                or self.amount_needed_in_lab1() or self.amount_needed_in_lab2():
             # We don't really need to be spawning a new mineral hauler if we only need to remove things from the
             # terminal, and not add them.
             # or len(self.removing_from_terminal()):
