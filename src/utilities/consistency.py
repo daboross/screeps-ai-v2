@@ -26,9 +26,11 @@ def reassign_room_roles(room):
                 memory.role = role_spawn_fill
                 break
         room.recalculate_roles_alive()
-    if room.spawn and not room.role_count(role_miner) and not room.work_mass_of(role_spawn_fill) \
-            and not room.work_mass_of(role_spawn_fill_backup) and not room.work_mass_of(role_tower_fill) \
-            and len(room.creeps):
+    if not room.under_siege() and room.spawn and not room.role_count(role_miner) \
+            and not room.work_mass_of(role_spawn_fill) and not room.work_mass_of(role_spawn_fill_backup) \
+            and not room.work_mass_of(role_tower_fill) and len(room.creeps) \
+            and ((not room.role_count(role_spawn_fill) and not room.role_count(role_tower_fill))
+                 or (room.room.storage and not room.room.storage.storeCapacity)):
         for creep in room.creeps:
             memory = creep.memory
             base = spawning.find_base_type(creep)
