@@ -80,6 +80,9 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
         print(e.stack if e else "e == null?? {}".format(e))
 
 
+run_creep = profiling.profiled(run_creep, "main.run_creep")
+
+
 def run_room(target_mind, creeps_skipped, room):
     """
     :type target_mind: control.targets.TargetMind
@@ -122,13 +125,16 @@ def run_room(target_mind, creeps_skipped, room):
         print(e.stack if e else "e == null?? {}".format(e))
 
 
+run_room = profiling.profiled(run_room, "main.run_room")
+
+
 def main():
     averages.start_main_loop()
 
     if 'meta' not in Memory:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
 
-    bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate teir
+    bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate tier
     if bucket_tier != Memory.meta.last_bucket and bucket_tier:  # and bucket_tier to avoid problems in simulation
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
