@@ -45,6 +45,7 @@ class Colonist(MilitaryBase):
             del self.memory.colonizing
             sponsor = self.home
             self.memory.home = colony
+            del self.memory.calculated_replacement_time
             room = self.hive.get_room(colony)
             storage = room.room.storage
             if storage and not storage.my:
