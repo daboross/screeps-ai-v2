@@ -152,16 +152,17 @@ class MilitaryBase(RoleBase):
                     # basic pathfinding to get to our actual target.
                     self.move_to(target)
                     return
-            origin_midpoint = self.find_midpoint(self, origin)
-            if origin_midpoint is not None:
-                origin = origin_midpoint
-            dest_midpoint = self.find_midpoint(origin, target)
-            if dest_midpoint is not None:
-                if self.pos.roomName == dest_midpoint.roomName:
-                    origin = dest_midpoint
-                else:
-                    target = dest_midpoint
-                    path_opts.range = 10
+            pass
+            # origin_midpoint = self.find_midpoint(self, origin)
+            # if origin_midpoint is not None:
+            #     origin = origin_midpoint
+            # dest_midpoint = self.find_midpoint(origin, target)
+            # if dest_midpoint is not None:
+            #     if self.pos.roomName == dest_midpoint.roomName:
+            #         origin = dest_midpoint
+            #     else:
+            #         target = dest_midpoint
+            #         path_opts.range = 10
 
         path = self.hive.honey.find_path(origin, target, path_opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
@@ -203,7 +204,7 @@ class MilitaryBase(RoleBase):
                         origin, target, self.pos, new_target))
                     if movement.chebyshev_distance_room_pos(self.memory.lost_path_at, self.pos) < 5 \
                             and not self.pos.isEqualTo(new_target) \
-                            and not movement.get_entrance_for_exit_pos(new_target).isEqualTo(self.pos):
+                            and not self.pos.isEqualTo(movement.get_entrance_for_exit_pos(new_target)):
                         self.hive.honey.clear_cached_path(origin, target, path_opts)
                         del self.memory.off_path_for
                         del self.memory.lost_path_at
@@ -247,23 +248,29 @@ class MilitaryBase(RoleBase):
             self.memory.last_pos = serialized_pos
             del self.memory.standstill_for
 
-    def get_military_path(self, spawn, target, opts=None):
+    def get_military_path_length(self, spawn, target, opts=None):
+        if spawn.pos:
+            spawn = spawn.pos
+        if target.pos:
+            target = target.pos
         if opts:
             path_opts = opts
         else:
             path_opts = {}
-        if movement.distance_squared_room_pos(spawn, target) > math.pow(200, 2):
-            # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
-            intermediate = __new__(RoomPosition(25, 25, target.roomName))
-            target = intermediate
-            path_opts.max_ops = 30000
-            path_opts.max_rooms = 30
-            path_opts.use_roads = False
-        else:
-            path_opts.max_ops = 9000
-            path_opts.max_rooms = 15
-
-        return self.hive.honey.find_path(spawn, target, path_opts)
+        # if movement.distance_squared_room_pos(spawn, target) > math.pow(200, 2):
+        #     # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
+        #     intermediate = __new__(RoomPosition(25, 25, target.roomName))
+        #     path_opts.max_ops = 30000
+        #     path_opts.max_rooms = 30
+        #     path_opts.use_roads = False
+        #     path1 = self.hive.honey.find_path(spawn, intermediate, path_opts)
+        #     path2 = self.hive.honey.find_path(intermediate, target, path_opts)
+        #     return len(path1) + 20 + len(path2)
+        # else:
+        path_opts.max_ops = 9000
+        path_opts.max_rooms = 15
+        path1 = self.hive.honey.find_path(spawn, target, path_opts)
+        return len(path1)
 
 
 class TowerDrainHealer(MilitaryBase):
@@ -285,11 +292,9 @@ class TowerDrainHealer(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target)
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
@@ -350,11 +355,9 @@ class TowerDrainer(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target, {'avoid_rooms': [target.pos.roomName]})
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target, {'avoid_rooms': [target.pos.roomName]})
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
@@ -443,11 +446,9 @@ class Dismantler(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target)
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
@@ -517,11 +518,9 @@ class PowerAttack(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target)
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
@@ -636,9 +635,7 @@ class PowerCleanup(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, flags.REAP_POWER_BANK)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target)
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10

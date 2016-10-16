@@ -1,5 +1,6 @@
 import context
 import flags
+import role_base
 import speech
 from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_simple_claim, \
     role_mineral_steal
@@ -71,11 +72,9 @@ class Colonist(MilitaryBase):
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
-        path = self.get_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
@@ -106,13 +105,22 @@ class Claim(MilitaryBase):
                 return False
 
         if self.creep.pos.roomName != self.memory.claiming:
-            opts = {'range': 15}
-            if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) * 5 / 7:
-                opts.ignore_swamp = True
-                opts.use_roads = False
-            elif self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-                opts.use_roads = False
-            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, self.memory.claiming)), opts)
+            target = __new__(RoomPosition(25, 25, self.memory.claiming))
+            if movement.chebyshev_distance_room_pos(self.pos, target) > 50:
+                if 'checkpoint' not in self.memory or \
+                                movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                    self.memory.checkpoint = self.pos
+
+                opts = {'range': 15}
+                if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) * 5 / 7:
+                    opts.ignore_swamp = True
+                    opts.use_roads = False
+                elif self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+                    opts.use_roads = False
+                self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target, opts)
+            else:
+                self.creep.moveTo(target, {'reusePath': 2, 'ignoreRoads': True,
+                                           "costCallback": role_base.def_cost_callback})
             return False
 
         target = self.creep.room.controller
@@ -179,11 +187,9 @@ class ReserveNow(MilitaryBase):
         target = self.targets.get_new_target(self, target_reserve_now)
         if not target:
             return -1
-        path = self.get_military_path(self.home.spawn, target)
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            path_len = len(path)
-        else:
-            path_len = len(path) * 2
+        path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
