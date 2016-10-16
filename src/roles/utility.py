@@ -149,10 +149,10 @@ class Cleanup(SpawnFill):
             return False
         storage = self.creep.room.storage
 
-        if self.memory.filling and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+        if self.memory.filling and self.carry_sum() >= self.creep.carryCapacity:
             self.memory.filling = False
 
-        if not self.memory.filling and _.sum(self.creep.carry) <= 0:
+        if not self.memory.filling and self.carry_sum() <= 0:
             self.memory.filling = True
 
         if self.memory.filling:
@@ -163,14 +163,12 @@ class Cleanup(SpawnFill):
                 closest_distance = Infinity
                 for resource in resources:
                     if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
-
-                        if self.memory.last_energy_target:
-                            compressed_pos = resource.pos.x | (resource.pos.y << 6)
-                            if compressed_pos == self.memory.last_energy_target:
-                                closest = resource
-                                break
-                        if (resource.amount > 50 or
-                                    len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0):
+                        if len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0:
+                            if self.memory.last_energy_target:
+                                compressed_pos = resource.pos.x | (resource.pos.y << 6)
+                                if compressed_pos == self.memory.last_energy_target:
+                                    closest = resource
+                                    break
 
                             # we've confirmed now that this is a valid target! congrats.
                             distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
@@ -216,7 +214,7 @@ class Cleanup(SpawnFill):
                 self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
-            if _.sum(self.creep.carry) > self.creep.carry.energy:
+            if self.carry_sum() > self.creep.carry.energy:
                 target = storage
             else:
                 target = self.targets.get_new_target(self, target_closest_energy_site)

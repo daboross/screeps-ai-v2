@@ -118,9 +118,9 @@ class Recycling(Refill):
     def run(self):
         # flag to other creeps
         self.memory.filling = False
-        if _.sum(self.creep.carry) > 0:
+        if self.carry_sum() > 0:
             storage = self.home.room.storage
-            if storage:
+            if storage and _.sum(storage.store) < storage.storeCapacity:
                 if self.creep.pos.isNearTo(storage.pos):
                     for rtype in Object.keys(self.creep.carry):
                         if self.creep.carry[rtype] > 0:
