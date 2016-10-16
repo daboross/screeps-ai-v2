@@ -1,11 +1,11 @@
 from constants import *
 from roles import building, defensive
 from roles import colonizing
+from roles import exploring
 from roles import generic
 from roles import minerals
 from roles import mining
 from roles import offensive
-from roles import exploring
 from roles import spawn_fill
 from roles import tower_fill
 from roles import upgrading
@@ -59,6 +59,9 @@ def wrap_creep(hive_mind, target_mind, home, creep):
     """
     role = creep.memory.role
     if role in role_classes:
+        return role_classes[role](hive_mind, target_mind, home, creep)
+    elif role in old_role_names:
+        creep.memory.role = role = old_role_names[role]
         return role_classes[role](hive_mind, target_mind, home, creep)
     else:
         return None

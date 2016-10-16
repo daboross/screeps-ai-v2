@@ -58,13 +58,14 @@ role_spawn_fill = "spawn_fill"
 role_upgrade_fill = "ufiller"
 role_builder = "builder"
 role_tower_fill = "tower_fill"
-role_miner = "remote_miner"
-role_hauler = "remote_hauler"
+role_miner = "miner"
+role_hauler = "hauler"
 role_remote_mining_reserve = "remote_reserve_controller"
 role_link_manager = "link_manager"
 role_defender = "simple_defender"
-role_colonist = "basic_colonist"
 role_wall_defender = "melee_wall_defender"
+role_ranged_offense = "kiting_offense"
+role_colonist = "colonist"
 role_simple_claim = "simple_claim"
 role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
@@ -79,6 +80,13 @@ role_simple_dismantle = "simple_dismantler"
 role_power_attack = "attack_power"
 role_power_cleanup = "power_cleanup"
 role_scout = "scout"
+
+old_role_names = {
+    "ufiller": "upgrade_fill",
+    "remote_miner": "miner",
+    "remote_hauler": "hauler",
+    "basic_colonist": "colonist",
+}
 
 role_bases = {
     role_spawn_fill_backup: creep_base_worker,
