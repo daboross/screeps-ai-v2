@@ -1,10 +1,10 @@
 import math
 
 import flags
-from constants import target_source, recycle_time, role_recycling, PYFIND_REPAIRABLE_ROADS, \
-    PYFIND_BUILDABLE_ROADS, target_closest_energy_site, role_miner
+from constants import target_source, recycle_time, role_recycling, target_closest_energy_site, role_miner
 from control import pathdef
 from tools import profiling
+from utilities import hostile_utils
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -15,11 +15,11 @@ __pragma__('noalias', 'Infinity')
 
 def find_reuse_path_value():
     if Game.cpu.limit <= 10:
-        return 23
+        return 25
     elif Game.gcl.level >= _.sum(Game.rooms, lambda r: _.get(r, "controller.my", False)) * 2:
         return 3
     else:
-        return 13
+        return 15
 
 
 def add_roads(room_name, cost_matrix):
@@ -31,10 +31,49 @@ def add_roads(room_name, cost_matrix):
             cost_matrix.set(road.pos.x, road.pos.y, 1)
 
 
+def add_exits(room_name, cost_matrix):
+    for x in [0, 49]:
+        for y in range(0, 49):
+            terrain = Game.map.getTerrainAt(x, y, room_name)
+            if terrain != 'wall':
+                existing = cost_matrix.get(x, y)
+                if terrain == 'swamp':
+                    existing = max(existing, 5)
+                cost_matrix.set(x, y, max(existing + 3, 3))
+    for y in [0, 49]:
+        for x in range(0, 49):
+            terrain = Game.map.getTerrainAt(x, y, room_name)
+            if terrain != 'wall':
+                existing = cost_matrix.get(x, y)
+                if terrain == 'swamp':
+                    existing = max(existing, 5)
+                cost_matrix.set(x, y, max(existing + 3, 3))
+
+
+def add_sk(room_name, cost_matrix):
+    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+        for x in range(flag.pos.x - 4, flag.pos.x + 5):
+            for y in range(flag.pos.y - 4, flag.pos.y + 5):
+                cost_matrix.set(x, y, 255)
+
+
+def def_cost_callback(room_name, cost_matrix):
+    if hostile_utils.enemy_room(room_name):
+        for x in [0, 49]:
+            for y in range(0, 50):
+                cost_matrix.set(x, y, 255)
+        for y in [0, 49]:
+            for x in range(0, 50):
+                cost_matrix.set(x, y, 255)
+        return False
+    add_exits(room_name, cost_matrix)
+    add_roads(room_name, cost_matrix)
+    add_sk(room_name, cost_matrix)
+
+
 _REUSE = find_reuse_path_value()
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 1, "reusePath": _REUSE,
-                         "ignoreRoads": True, "costCallback": add_roads}
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "reusePath": _REUSE, "costCallback": def_cost_callback}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "reusePath": _REUSE, "ignoreRoads": True, "costCallback": def_cost_callback}
 
 
 class RoleBase:
@@ -134,8 +173,9 @@ class RoleBase:
 
     def _set_last_checkpoint(self, value):
         if value is None:
-            del self.memory.last_checkpoint
-            del self.memory.last_target
+            if 'last_checkpoint' in self.memory:
+                del self.memory.last_checkpoint
+                del self.memory.last_target
         else:
             if value.pos:
                 # we allow setting last checkpoint to a RoomObject and not just a RoomPosition.
@@ -239,18 +279,18 @@ class RoleBase:
         flag = flags.find_closest_in_room(target, flags.LOCAL_MINE)
         queue_name = flag.memory.queue
         if not queue_name or queue_name not in Game.flags:
-            self.log("Trigger queue flag creation near {}.".format(flag))
+            self.log("Triggering queue flag creation near {}.".format(flag))
             room = self.hive.get_room(target.roomName)
             if room and room.my:
                 room.building.place_queue_flag_near(flag)
-            return self.move_to(target, False)
+            return self.move_to(target)
         return self.move_to_with_queue(target, Game.flags[queue_name])
 
     def move_to_with_queue(self, target, queue_flag):
         if target.pos:
             target = target.pos
         if self.creep.pos.roomName != target.roomName:
-            return self.move_to(target, False)
+            return self.move_to(target)
 
         if self.creep.pos.isEqualTo(queue_flag.pos):
             self.last_checkpoint = queue_flag.pos
@@ -267,42 +307,39 @@ class RoleBase:
         #         self.last_checkpoint = queue_flag.pos
         return result
 
-    def _try_move_to(self, pos, follow_defined_path=False):
+    def _try_move_to(self, pos):
         here = self.creep.pos
 
         if here == pos:
             return OK
+        elif here.isNearTo(pos):
+            self.basic_move_to(pos)
+            return OK
         move_opts = self._move_options()
-        target_room = (pos.roomName or (pos.pos and pos.pos.roomName))
-        if here.roomName != target_room:
-            move_opts = _.create(move_opts, {'maxRooms': 16})
-            if movement.chebyshev_distance_room_pos(here, pos) > 50:
-                exit_flag = movement.get_exit_flag_to(here.roomName, target_room)
-                if exit_flag:
-                    # pathfind to the flag instead
-                    pos = exit_flag
-                else:
-                    # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
-                    # instead of the direct route using these flags.
-                    no_exit_flag = movement.get_no_exit_flag_to(here.roomName, target_room)
-                    if not no_exit_flag:
-                        self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {}, as a {})"
-                                 .format(here.roomName, target_room, JSON.stringify(pos), self.memory.role))
-                    self.last_checkpoint = None
-        if follow_defined_path:
-            # TODO: this is a semi-hacky thing to make road building work only for building remote miner roads
-            return self._follow_path_to(pos)
-        else:
-            self.last_checkpoint = None
-            return self.creep.moveTo(pos, move_opts)
+        # target_room = (pos.roomName or (pos.pos and pos.pos.roomName))
+        # if here.roomName != target_room:
+        #     move_opts = _.create(move_opts, {'maxRooms': 16})
+        #     if movement.chebyshev_distance_room_pos(here, pos) > 50:
+        #         exit_flag = movement.get_exit_flag_to(here.roomName, target_room)
+        #         if exit_flag:
+        #             # pathfind to the flag instead
+        #             pos = exit_flag
+        #         else:
+        #             # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
+        #             # instead of the direct route using these flags.
+        #             no_exit_flag = movement.get_no_exit_flag_to(here.roomName, target_room)
+        #             if not no_exit_flag:
+        #                 self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {}, as a {})"
+        #                          .format(here.roomName, target_room, JSON.stringify(pos), self.memory.role))
+        #             self.last_checkpoint = None
+        self.last_checkpoint = None
+        return self.creep.moveTo(pos, move_opts)
 
-    def move_to(self, target, same_position_ok=False, follow_defined_path=False, already_tried=0):
-        if target.pos and (not target.range):
-            pos = target.pos
-        else:
-            pos = target
+    def move_to(self, target):
         if self.creep.fatigue <= 0:
-            result = self._try_move_to(pos, follow_defined_path)
+            if target.pos:
+                target = target.pos
+            result = self._try_move_to(target)
 
             if result == ERR_NO_BODYPART:
                 # TODO: check for towers here, or use RoomMind to do that.
@@ -315,27 +352,15 @@ class RoleBase:
                 if not tower_here:
                     self.creep.suicide()
                     self.home.mem.meta.clear_next = 0  # clear next tick
-            elif result == ERR_NO_PATH:
-                # TODO: ERR_NO_PATH should probably get our attention - we should cache this status.
-                # for now it's fine though, as we aren't going over our CPU limit.
-                return
             elif result != OK:
                 if result != ERR_NOT_FOUND:
-                    self.log("WARNING: Unknown result from creep.moveByPath: {}", result)
+                    self.log("WARNING: Unknown result from creep.moveTo: {}", result)
 
-                if not already_tried:
-                    self.log("WARNING: Moving to another time!")
-                    self.move_to(target, same_position_ok, follow_defined_path, True)
-                else:
-                    self.log("WARNING: Failed to move from {} to {} twice.", self.creep.pos, pos)
-                    self.last_checkpoint = None
-                    self.creep.moveTo(pos, {"reusePath": 0})
-
-    def harvest_energy(self, follow_defined_path=False):
+    def harvest_energy(self):
         if self.home.full_storage_use:
             # Full storage use enabled! Just do that.
             storage = self.home.room.storage
-            if _.sum(self.creep.carry) == self.creep.carry.energy:  # don't do this if we have minerals
+            if self.carry_sum() == self.creep.carry.energy:  # don't do this if we have minerals
                 target = self.targets.get_new_target(self, target_closest_energy_site)
                 if not target:
                     target = storage
@@ -360,13 +385,12 @@ class RoleBase:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.filling = False
-                self.move_to(target, False, follow_defined_path)
+                self.move_to(target)
                 return False
 
-            for stype in Object.keys(self.creep.carry):
-                if stype != RESOURCE_ENERGY and self.creep.carry[stype] > 0:
-                    result = self.creep.transfer(target, stype)
-                    break
+            if self.carry_sum() > self.creep.carry.energy:
+                resource = _.findKey(self.creep.carry)
+                result = self.creep.transfer(target, resource)
             else:
                 result = self.creep.withdraw(target, RESOURCE_ENERGY)
 
@@ -391,7 +415,7 @@ class RoleBase:
             return False
 
         if source.pos.roomName != self.creep.pos.roomName:
-            self.move_to(source, False, follow_defined_path)
+            self.move_to(source)
             return False
 
         piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 3, source.pos)
@@ -449,7 +473,7 @@ class RoleBase:
             return False
 
         if not self.creep.pos.isNearTo(source.pos):
-            self.move_to(source, False, follow_defined_path)
+            self.move_to(source)
             return False
 
         result = self.creep.harvest(source)
@@ -464,7 +488,7 @@ class RoleBase:
 
     def repair_nearby_roads(self):
         if self.creep.getActiveBodyparts(WORK) <= 0:
-            return
+            return False
         if self.creep.carry.energy <= 0:
             return
         repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
@@ -485,7 +509,7 @@ class RoleBase:
                 if result != OK:
                     self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
 
-    def go_to_depot(self):
+    def find_depot(self):
         depots = flags.find_flags(self.home, flags.DEPOT)
         if len(depots):
             depot = depots[0].pos
@@ -499,9 +523,13 @@ class RoleBase:
                 depot = self.home.spawn.pos
             else:
                 depot = __new__(RoomPosition(25, 25, self.home.room_name))
+        return depot
+
+    def go_to_depot(self):
+        depot = self.find_depot()
         if not (self.pos.isEqualTo(depot) or (self.pos.isNearTo(depot)
                                               and not movement.is_block_clear(self.home, depot.x, depot.y))):
-            self.move_to(depot, True)
+            self.move_to(depot)
 
     def recycle_me(self):
         spawn = self.home.spawns[0]
@@ -523,7 +551,7 @@ class RoleBase:
                 self.go_to_depot()
 
     def empty_to_storage(self):
-        total = _.sum(self.creep.carry)
+        total = self.carry_sum()
         if total > 0:
             storage = self.home.room.storage
             if storage:
@@ -553,7 +581,7 @@ class RoleBase:
     #     if self.home.room.energyAvailable < min(self.home.room.energyCapacityAvailable / 2.0, )
 
     def move_around(self, target):
-        if Game.time % 5 < 3:
+        if Game.time % 7 < 4:
             self.move_around_clockwise(target)
         else:
             self.move_around_counter_clockwise(target)
@@ -590,7 +618,7 @@ class RoleBase:
         if target.pos:
             target = target.pos
         if self.pos.isEqualTo(target):
-            return True
+            return False
         adx = target.x - self.pos.x
         ady = target.y - self.pos.y
         dx = Math.sign(adx)
@@ -642,17 +670,20 @@ class RoleBase:
             return False
         if Game.map.getTerrainAt(x, y, self.room.room.name) == 'wall':
             return False
-        for struct in self.room.find_at(FIND_STRUCTURES, x, y):
+        for struct in self.room.look_at(LOOK_STRUCTURES, x, y):
             if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
                     and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
                 return False
-        for struct in self.room.find_at(FIND_MY_CONSTRUCTION_SITES, x, y):
-            if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+        for struct in self.room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+            if struct.my and struct.structureType != STRUCTURE_RAMPART \
                     and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
                 return False
-        creeps = self.room.find_at(FIND_CREEPS, x, y)
+        creeps = self.room.look_at(LOOK_CREEPS, x, y)
         if len(creeps):
             other = creeps[0]
+            if not other or not other.my:
+                print("{} has length, but {}[0] == {}!".format(creeps, creeps, other))
+                return False
             if not creep_cond(other):
                 return False
             other.move(pathdef.get_direction(self.pos.x - x, self.pos.y - y))
@@ -707,7 +738,7 @@ class RoleBase:
         return False
 
     def report(self, task_array, *args):
-        if not Memory.meta.quiet or task_array[1]:
+        if Game.cpu.bucket >= 6000 and (not Memory.meta.quiet or task_array[1]):
             time = Game.time
             if len(args):
                 stuff = task_array[0][time % len(task_array[0])].format(*args)
@@ -730,6 +761,11 @@ class RoleBase:
     def should_pickup(self, resource_type=None):
         return resource_type is None or resource_type == RESOURCE_ENERGY
 
+    def carry_sum(self):
+        if '_carry_sum' not in self.creep:
+            self.creep._carry_sum = _.sum(self.creep.carry)
+        return self.creep._carry_sum
+
     def toString(self):
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.room_name)
 
@@ -742,4 +778,5 @@ profiling.profile_whitelist(RoleBase, [
     "move_to",
     "harvest_energy",
     "is_next_block_clear",
+    "repair_nearby_roads",
 ])
