@@ -125,7 +125,10 @@ class HiveMind:
             else:
                 if not flag.memory.active:
                     continue
-                sponsor = self.get_room(flag.memory.sponsor)
+                if 'sponsor' in flag.memory:
+                    sponsor = self.get_room(flag.memory.sponsor)
+                else:
+                    sponsor = self.get_room(flag.name.split('_')[0])
                 if not sponsor:
                     print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
                         flag.name, flag.memory.sponsor
@@ -1279,11 +1282,25 @@ class RoomMind:
                 if _.find(room.defense.dangerous_hostiles(),
                           lambda c: c.getActiveBodyparts(ATTACK) or c.getActiveBodyparts(RANGED_ATTACK)):
                     continue
+                distance = len(self.hive_mind.honey.find_path(
+                    self.spawn, __new__(RoomPosition(25, 25, room.room_name)), {'range': 15}))
                 room_work_mass = 0
+                rt_map = room.rt_map
                 for role in Object.keys(room.work_mass_map):
-                    room_work_mass += room.work_mass_map[role] \
-                                      - room.work_mass_of_replacements_currently_needed_for(role)
-                needed += max(0, worker_mass * 3 - room_work_mass)
+                    room_work_mass += room.work_mass_map[role]
+                    # manual copy of work_mass_of_replacements_currently_needed_for which accounts for distance to room
+                    if role in rt_map and len(rt_map[role]):
+                        for creep, replacement_time in rt_map[role]:
+                            if Game.creeps[creep] and not Memory.creeps[creep].replacement \
+                                    and replacement_time + distance <= Game.time:
+                                room_work_mass -= spawning.work_count(Game.creeps[creep])
+                            else:
+                                break  # this is sorted
+                if room.room.storage:
+                    target = min(10, 5 + room.room.storage.store.energy / 20 * 1000) * worker_mass
+                else:
+                    target = 5 * worker_mass
+                needed += max(0, target - room_work_mass)
                 if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store.energy \
                         and room.room.storage.storeCapacity <= 0:
                     mineral_steal += hauler_mass
@@ -1508,13 +1525,14 @@ class RoomMind:
     def get_target_simple_claim_count(self):
         if self._target_simple_claim_count is None:
             count = 0
-            for flag in flags.find_flags_global(flags.CLAIM_LATER):
-                room = self.hive_mind.get_room(flag.pos.roomName)
-                if not room or (not room.my and not room.room.controller.owner):
-                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
-                        # there's a closer room, let's not claim here.
-                        continue
-                    count += 1
+            if self.room.energyCapacityAvailable >= 650:
+                for flag in flags.find_flags_global(flags.CLAIM_LATER):
+                    room = self.hive_mind.get_room(flag.pos.roomName)
+                    if not room or (not room.my and not room.room.controller.owner):
+                        if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
+                            # there's a closer room, let's not claim here.
+                            continue
+                        count += 1
             self._target_simple_claim_count = count
         return self._target_simple_claim_count
 
@@ -1683,7 +1701,7 @@ class RoomMind:
             role_room_reserve:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
-                lambda: min(10, spawning.max_sections_of(self, creep_base_worker)),
+                lambda: spawning.max_sections_of(self, creep_base_worker),
             role_builder: lambda: min(8, spawning.max_sections_of(self, creep_base_worker)),
             role_mineral_miner:
                 lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
@@ -1724,7 +1742,16 @@ class RoomMind:
     def flags_without_target(self, flag_type):
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
-            if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+            if flag.memory.sponsor:
+                ours = flag.memory.sponsor == self.room_name
+            else:
+                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
+                possible_sponsor = str(flag.name).split('_')[0]
+                if possible_sponsor in Game.rooms:
+                    ours = possible_sponsor == self.room_name
+                else:
+                    ours = self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name
+            if ours:
                 flag_id = "flag-{}".format(flag.name)
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
                 if noneol_targeting_count < 1:
@@ -1746,8 +1773,9 @@ class RoomMind:
         }
 
     def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base):
-        for flag in self.flags_without_target(flag_type):
-            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag)
+        flag_list = self.flags_without_target(flag_type)
+        if len(flag_list):
+            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0])
         return None
 
     def _next_tower_breaker_role(self):
