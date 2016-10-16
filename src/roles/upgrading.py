@@ -4,7 +4,7 @@ import flags
 import spawning
 import speech
 from constants import recycle_time, role_recycling, role_upgrader, role_builder, creep_base_worker, role_upgrade_fill, \
-    role_link_manager, target_single_flag, target_home_flag
+    role_link_manager, target_home_flag
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
