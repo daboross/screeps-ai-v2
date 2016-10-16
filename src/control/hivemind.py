@@ -105,6 +105,8 @@ class HiveMind:
             self.find_my_rooms()
         return self._all_rooms
 
+    __pragma__('fcall')
+
     def get_room(self, room_name):
         """
         Gets a visible room given its room name.
@@ -113,6 +115,8 @@ class HiveMind:
         if self._all_rooms is None:
             self.find_visible_rooms()
         return self._room_to_mind[room_name]
+
+    __pragma__('nofcall')
 
     def poll_remote_mining_flags(self):
         flag_list = flags.find_flags_global(flags.REMOTE_MINE)
@@ -144,6 +148,8 @@ class HiveMind:
             else:
                 room._remote_mining_operations = []
 
+    __pragma__('fcall')
+
     def get_closest_owned_room(self, current_room_name):
         current_room = self.get_room(current_room_name)
         if current_room and current_room.my:
@@ -166,6 +172,8 @@ class HiveMind:
                 closest_squared_distance = distance
                 closest_room = room
         return closest_room
+
+    __pragma__('nofcall')
 
     def poll_all_creeps(self):
         new_creep_lists = {}
@@ -350,6 +358,8 @@ class RoomMind:
             self.sponsor_name = self.mem.sponsor
         else:
             self.sponsor_name = None
+
+    __pragma__('fcall')
 
     def _get_mem(self):
         return self.room.memory
@@ -1212,6 +1222,8 @@ class RoomMind:
 
     def get_min_sane_wall_hits(self):
         return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
+
+    __pragma__('nofcall')
 
     def get_target_link_manager_count(self):
         """

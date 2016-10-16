@@ -25,6 +25,8 @@ bottom_prices = {
     RESOURCE_LEMERGIUM: 0.95,
 }
 
+__pragma__('fcall')
+
 
 # TODO: expand this for local dedicated mining as well as the remote mining
 class MineralMind:
@@ -562,3 +564,6 @@ class MineralMind:
             return 1
         else:
             return 0
+
+
+__pragma__('nofcall')

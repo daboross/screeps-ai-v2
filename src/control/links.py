@@ -8,6 +8,8 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
+__pragma__('fcall')
+
 
 class LinkingMind:
     """
@@ -228,5 +230,7 @@ class LinkingMind:
             else:
                 self.link_creep.send_to_link(main_link.energyCapacity * 2 - main_link.energy)
 
+
+__pragma__('nofcall')
 
 profiling.profile_whitelist(LinkingMind, ["tick_links"])

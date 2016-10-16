@@ -133,6 +133,9 @@ def direction_to(origin, destination):
     return direction
 
 
+__pragma__('fcall')
+
+
 class HoneyTrails:
     """
     :type hive: control.hivemind.HiveMind
@@ -731,6 +734,8 @@ class HoneyTrails:
                     final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
 
+
+__pragma__('nofcall')
 
 profiling.profile_whitelist(HoneyTrails, [
     "find_path",

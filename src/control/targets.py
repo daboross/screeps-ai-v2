@@ -32,6 +32,9 @@ def _mass_count(name):
     return max(work, carry)
 
 
+__pragma__('fcall')
+
+
 class TargetMind:
     def __init__(self):
         if not Memory.targets:
@@ -754,6 +757,8 @@ class TargetMind:
 
         return best_id
 
+
+__pragma__('nofcall')
 
 profiling.profile_whitelist(TargetMind, [
     "_find_new_target",

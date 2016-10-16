@@ -194,6 +194,8 @@ class RoomDefense:
         self.room = room
         self._cache = new_map()
 
+    __pragma__('fcall')
+
     def _hive(self):
         return self.room.hive_mind
 
@@ -394,6 +396,8 @@ class RoomDefense:
                     hostiles = _.filter(hostiles, self.danger_level)
             self._cache.set('active_hostiles', hostiles)
             return hostiles
+
+    __pragma__('nofcall')
 
     def remote_hostiles(self):
         """

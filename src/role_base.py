@@ -103,6 +103,8 @@ class RoleBase:
             self.memory = memory
         self._room = None
 
+    __pragma__('fcall')
+
     def get_name(self):
         return self.creep.name
 
@@ -217,6 +219,8 @@ class RoleBase:
             return _IGNORE_ROADS_OPTIONS
         else:
             return _DEFAULT_PATH_OPTIONS
+
+    __pragma__('nofcall')
 
     def _follow_path_to(self, target):
         if target.pos:
@@ -668,6 +672,8 @@ class RoleBase:
                 return True
         return False
 
+    __pragma__('fcall')
+
     def _try_force_move_to(self, x, y, creep_cond=lambda x: True):
         """
         Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
@@ -697,6 +703,8 @@ class RoleBase:
             other._forced_move = True
         self.creep.move(pathdef.get_direction(x - self.pos.x, y - self.pos.y))
         return True
+
+    __pragma__('nofcall')
 
     def force_basic_move_to(self, target, creep_cond=lambda x: True):
         """
@@ -765,6 +773,8 @@ class RoleBase:
         else:
             print("[{}][{}] {}".format(self.home.room_name, self.name, format_string))
 
+    __pragma__('fcall')
+
     def should_pickup(self, resource_type=None):
         return resource_type is None or resource_type == RESOURCE_ENERGY
 
@@ -775,6 +785,8 @@ class RoleBase:
 
     def toString(self):
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.room_name)
+
+    __pragma__('nofcall')
 
 
 profiling.profile_whitelist(RoleBase, [
