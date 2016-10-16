@@ -383,11 +383,11 @@ class Dismantler(MilitaryBase):
                     self.go_to_depot()
                 return
             if self.creep.pos.isNearTo(target.pos):
-                struct = self.room.find_at(FIND_STRUCTURES, target.pos)[0]
+                struct = self.room.look_at(LOOK_STRUCTURES, target.pos)[0]
                 if struct:
                     self.creep.dismantle(struct)
                 else:
-                    site = self.room.find_at(FIND_CONSTRUCTION_SITES, target.pos)[0]
+                    site = self.room.look_at(LOOK_CONSTRUCTION_SITES, target.pos)[0]
                     if site:
                         self.basic_move_to(site)
                     elif target.memory.dismantle_all:
@@ -497,7 +497,7 @@ class PowerAttack(MilitaryBase):
                     self.go_to_depot()
         else:
             if self.creep.pos.isNearTo(target.pos):
-                struct = self.room.find_at(FIND_STRUCTURES, target.pos)[0]
+                struct = self.room.look_at(LOOK_STRUCTURES, target.pos)[0]
                 if struct:
                     self.creep.attack(struct)
                 else:
@@ -538,10 +538,10 @@ class PowerCleanup(MilitaryBase):
                 self.log("PowerAttack has no target!")
                 self.go_to_depot()
             return
-        if self.memory.filling and _.sum(self.creep.carry) >= self.creep.carryCapacity:
+        if self.memory.filling and self.carry_sum() >= self.creep.carryCapacity:
             self.memory.filling = False
 
-        if not self.memory.filling and _.sum(self.creep.carry) <= 0:
+        if not self.memory.filling and self.carry_sum() <= 0:
             self.memory.filling = True
 
         storage = self.home.room.storage
@@ -578,7 +578,7 @@ class PowerCleanup(MilitaryBase):
             if not pile:
                 del self.memory.last_energy_target
                 if not _.find(self.room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_POWER_BANK}):
-                    if _.sum(self.creep.carry) >= 0:
+                    if self.carry_sum() >= 0:
                         self.memory.filling = False
                     else:
                         target.remove()
