@@ -27,7 +27,10 @@ class SpawnFill(building.Builder, Refill):
                 self.targets.untarget_all(self)
             else:
                 return True
-        elif not self.memory.filling and self.creep.carry.energy <= 0:
+        elif not self.memory.filling and (self.creep.carry.energy <= 0 or
+                                              (self.creep.carry.energy <= 20
+                                               and self.home.room.storage and movement.chebyshev_distance_room_pos(
+                                                  self.pos, self.home.room.storage) < 5)):
             self.memory.filling = True
             del self.memory.running
             if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
@@ -90,7 +93,7 @@ class SpawnFill(building.Builder, Refill):
                             if movement.chebyshev_distance_room_pos(self.pos, target) < 5 \
                                     and 'nbm' not in self.memory:
                                 if self.force_basic_move_to(target, lambda c: c.memory.role != role_spawn_fill
-                                                            and c.memory.role != role_tower_fill):
+                                and c.memory.role != role_tower_fill):
                                     return False
                                 else:
                                     self.memory.nbm = True
@@ -128,16 +131,18 @@ class SpawnFill(building.Builder, Refill):
                 return building.Builder.run(self)
             elif self.memory.role == role_spawn_fill_backup:
                 if _.find(self.room.building.next_priority_construction_targets(), lambda s:
-                        s.structureType == STRUCTURE_EXTENSION):
+                        s.structureType == STRUCTURE_EXTENSION) or self.home.upgrading_deprioritized():
                     self.memory.running = role_builder
                     return building.Builder.run(self)
                 else:
                     self.memory.running = role_upgrader
                     return upgrading.Upgrader.run(self)
-            if not self.home.room.storage:
+            elif not self.home.room.storage or self.home.room.storage.storeCapacity <= 0:
                 self.memory.running = "refill"
                 return self.refill_creeps()
-
+            elif self.creep.carry.energy < self.creep.carryCapacity:
+                self.memory.filling = True
+                return self.harvest_energy()
         return False
 
     def should_pickup(self, resource_type=None):

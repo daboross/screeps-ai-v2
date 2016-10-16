@@ -47,13 +47,14 @@ class Refill(RoleBase):
         if target:
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)
-                other = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, self.pos),
-                               lambda c: c.name != self.name
-                                         and (c.memory.role == role_builder or c.memory.role == role_upgrader)
-                                         and _.sum(c.carry) < c.carryCapacity)
+                other = _.find(self.home.find_in_range(FIND_MY_STRUCTURES, 1, self.pos),
+                               lambda c: (c.energyCapacity and c.energy < c.energyCapacity)
+                                         or (c.storeCapacity and _.sum(c.store) < c.storeCapacity))
                 if not other:
-                    other = _.find(self.home.find_in_range(FIND_MY_STRUCTURES, 1, self.pos),
-                                   lambda c: c.energy < c.energyCapacity)
+                    other = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                                   lambda c: c.name != self.name
+                                             and (c.memory.role == role_builder or c.memory.role == role_upgrader)
+                                             and _.sum(c.carry) < c.carryCapacity)
                 if other:
                     result = self.creep.transfer(other, RESOURCE_ENERGY)
                     if result == ERR_NOT_ENOUGH_RESOURCES:
@@ -106,7 +107,7 @@ class Refill(RoleBase):
                 for obj in self.home.look_for_in_area_around(LOOK_STRUCTURES, 1, self.pos):
                     structure = obj.structure
                     if structure.structureType == STRUCTURE_EXTENSION or structure.structureType == STRUCTURE_SPAWN:
-                        empty_percent = 0.1 (structure.energyCapacity - structure.energy) / structure.energyCapacity
+                        empty_percent = 0.1 * (structure.energyCapacity - structure.energy) / structure.energyCapacity
                         if empty_percent > 0.1 and empty_percent > min_cap:
                             other = structure
                             min_cap = empty_percent

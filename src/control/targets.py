@@ -375,12 +375,13 @@ class TargetMind:
                             stealing_from = None
             if stealing_from is not None:
                 self._unregister_targeter(target_spawn_deposit, stealing_from)
-        else:
-            flag_list = flags.find_flags(creep.room, flags.SPAWN_FILL_WAIT)
+        elif creep.home.full_storage_use:
+            flag_list = flags.find_flags(creep.home, flags.SPAWN_FILL_WAIT)
             if len(flag_list):
-                best_id = _.min(_.map(flag_list, lambda f: "flag-{}".format(f.name)),
-                                lambda fid: self.reverse_targets[target_spawn_deposit][fid] or 0)
-
+                best_id = _(flag_list).map(lambda f: "flag-{}".format(f.name)) \
+                    .min(lambda fid: self.reverse_targets[target_spawn_deposit][fid] or 0)
+                if best_id is Infinity:
+                    best_id = None
         return best_id
 
     def _find_new_construction_site(self, creep, walls_only=False):
@@ -761,6 +762,7 @@ profiling.profile_whitelist(TargetMind, [
     "_find_new_harvester_deposit_site",
     "_find_new_repair_site",
     "_find_new_big_repair_site",
+    "_find_new_spawn_fill_site",
     "_find_new_tower",
     "_find_new_remote_miner_mine",
     "_find_new_remote_hauler_mine",
