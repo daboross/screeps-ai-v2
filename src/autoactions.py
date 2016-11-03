@@ -1,5 +1,8 @@
+import random
+
 import context
 import flags
+import role_base
 from constants import INVADER_USERNAME
 from control import defense
 from control import pathdef
@@ -12,24 +15,34 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 
+def is_room_mostly_safe(room_name):
+    room = context.hive().get_room(room_name)
+    if not room or not room.my:
+        return False
+    if room.defense.broken_walls or room.being_bootstrapped():
+        return False
+    return True
+
+
 def pathfinder_enemy_array_for_room(room_name):
     cache = volatile_cache.mem("enemy_lists")
     if cache.has(room_name):
         return cache.get(room_name)
-    my = _.get(Game, ['rooms', room_name, 'controller', 'my'], False) \
-         and not _.get(context.hive().get_room(room_name), ['defense', 'broken_walls'], True)
+    my = is_room_mostly_safe(room_name)
     enemy_positions = []
     for h in defense.stored_hostiles_near(room_name):
-        if not _.get(Game.rooms, [h.room, 'controller', 'my'], False) \
-                or _.get(context.hive().get_room(h.room), ['defense', 'broken_walls'], True):
-            if my:
-                enemy_range = 10
+        if not is_room_mostly_safe(room_name):
+            if h.user == INVADER_USERNAME:
+                if my:
+                    enemy_range = 2
+                else:
+                    enemy_range = 5
             elif h.ranged or h.attack:
-                enemy_range = 20
+                enemy_range = 10
             else:
                 continue
         elif h.user == INVADER_USERNAME:
-            enemy_range = 3
+            enemy_range = 5
         elif h.ranged:
             enemy_range = 7
         elif h.attack:
@@ -39,7 +52,7 @@ def pathfinder_enemy_array_for_room(room_name):
 
         pos = __new__(RoomPosition(h.pos & 0x3F, h.pos >> 6 & 0x3F, h.room))
         # NOTE: here we multiply by two, so that when we pass this array to the PathFinder we'll get a better path.
-        enemy_positions.append({"pos": pos, "range": enemy_range * 2})
+        enemy_positions.append({"pos": pos, "range": enemy_range * 4})
 
     cache.set(room_name, enemy_positions)
     return enemy_positions
@@ -124,6 +137,7 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
 
     if not new_to_use_as_base:
         cache.set(room_name, cost_matrix)
+    role_base.add_exits(room_name, cost_matrix)
     return cost_matrix
 
 
@@ -174,7 +188,7 @@ def get_cached_away_path(creep, targets):
     if '_away_path' in creep.memory and creep.memory._away_path.reset > Game.time:
         return Room.deserializePath(creep.memory._away_path.path)
     else:
-        path = get_path_away(creep.creep.pos, targets)
+        path = get_path_away(creep.pos, targets)
         creep.memory._away_path = {"reset": Game.time + 10, "path": Room.serializePath(path)}
         return path
 
@@ -187,7 +201,10 @@ def instinct_do_heal(creep):
         return
     damaged = None
     most_damage = 0
-    for ally in creep.room.find_in_range(FIND_MY_CREEPS, 1, creep.creep.pos):
+    for ally_obj in creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1):
+        ally = ally_obj.creep
+        if not ally.my and not Memory.meta.friends.includes(ally.owner.username):
+            continue
         damage = ally.hitsMax - ally.hits
         if damage > most_damage:
             most_damage = damage
@@ -221,46 +238,12 @@ def instinct_do_attack(creep):
         creep.creep.attack(best)
 
 
-def anything_bad_in(room):
+def run_away_check(creep, hostile_path_targets):
     """
-    :type room: control.hivemind.RoomMind
+    :type creep: Creep
     """
-    room_name = room.room_name
-    v = volatile_cache.mem("anything_bad_in")
-    if v.has(room_name):
-        return v.get(room_name)
-    else:
-        if room.my and room.room.controller.safeMode:
-            bad = False
-        # NO idea what this was supposed to do...
-        # elif creep.home.under_siege() and not creep.home.remotes_under_siege():
-        #     bad = False
-        elif len(defense.stored_hostiles_near(room_name)):
-            bad = True
-        else:
-            bad = False
-        v.set(room_name, bad)
-        return bad
 
-
-def run_away_check(creep):
-    """
-    :type creep: role_base.RoleBase
-    """
-    if not anything_bad_in(creep.room):
-        if Game.time % 50 == 41 and '_away_path' in creep.memory:
-            del creep.memory._away_path
-            del creep.memory._safe
-            del creep.memory._safe_from
-        return False
-    if creep.creep.fatigue > 0 or len(creep.creep.body) <= 1 \
-            or _.find(creep.creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK or p.type == HEAL) \
-            or not creep.creep.hasActiveBodyparts(MOVE):
-        return False
-
-    hostile_path_targets = pathfinder_enemy_array_for_room(creep.creep.pos.roomName)
-
-    check_path = creep.room.my and not creep.room.being_bootstrapped()
+    check_path = is_room_mostly_safe(creep.pos.roomName)
 
     if check_path and not creep.memory._safe or not creep.memory._safe_from \
             or movement.chebyshev_distance_room_pos(creep.memory._safe_from, creep.pos) > 2:
@@ -273,7 +256,8 @@ def run_away_check(creep):
         target_range = obj.range
         # NOTE: target_range here is twice what we actually want, so that when passing to PathFinder we get a better
         # path. See NOTE above.
-        if movement.chebyshev_distance_room_pos(target, creep.pos) > target_range * 0.5 + 3:
+        distance = movement.chebyshev_distance_room_pos(target, creep.pos)
+        if distance > target_range * 0.25 + 1:
             continue
         if check_path:
             safe = False
@@ -295,19 +279,21 @@ def run_away_check(creep):
                 continue
 
         distance = movement.chebyshev_distance_room_pos(target, creep.pos)
-        if distance <= target_range * 0.5:
+        if distance <= target_range * 0.25:
             break
-        elif distance <= target_range * 0.5 + 3:
+        else:
+            # elif distance <= target_range * 0.25 + 1: # We check this above
             any_unsafe = True
     else:
-        return any_unsafe  # if we're between target_range and target_range + 3, just pause
+        return any_unsafe and random.randint(0, 3) < 3  # if we're between target_range and target_range + 1, just pause
 
     path = get_cached_away_path(creep, hostile_path_targets)
 
     if len(path):
-        creep.last_checkpoint = None  # we're moving manually here
+        del creep.last_checkpoint
+        del creep.last_target
         del creep.memory.was_on_the_path
-        result = creep.creep.moveByPath(path)
+        result = creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:
             # del creep.memory._away_path
             # path = get_cached_away_path(creep, hostile_path_targets)
@@ -316,7 +302,8 @@ def run_away_check(creep):
             # happen with the newly-generated path too.
             return True
         if result != OK:
-            creep.log("Unknown result from moving when running away: {}".format(result))
+            print("[{}][{}] Unknown result from moving when running away: {}".format(creep.memory.home,
+                                                                                     creep.name, result))
         return True
     else:
         # we're a safe distance away from all enemies
@@ -343,6 +330,38 @@ def instinct_check(creep):
 instinct_check = profiling.profiled(instinct_check, "autoactions.instinct_check")
 
 
+def running_check_room(room):
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    if room.my and room.room.controller.safeMode:
+        return
+    my_creeps = room.find(FIND_MY_CREEPS)
+    if not len(my_creeps):
+        return
+    if not len(room.defense.dangerous_hostiles()):
+        return
+
+    hostile_path_targets = pathfinder_enemy_array_for_room(room.room_name)
+
+    for creep in my_creeps:
+        if creep.fatigue > 0 or len(creep.body) <= 1 \
+                or _.find(creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK or p.type == HEAL) \
+                or not creep.hasActiveBodyparts(MOVE):
+            continue
+        overridden = run_away_check(creep, hostile_path_targets)
+        if overridden:
+            creep.defense_override = True
+
+
+def cleanup_running_memory():
+    for creep in _.values(Game.creeps):
+        if not creep.defense_override and '_away_path' in creep.memory or '_safe' in creep.memory:
+            del creep.memory._away_path
+            del creep.memory._safe
+            del creep.memory._safe_from
+
+
 def pickup_check_room(room):
     """
     :type room: control.hivemind.RoomMind
@@ -356,16 +375,14 @@ def pickup_check_room(room):
     for pile in energy:
         if 'picked_up' in pile:
             continue
-        smallest_capacity = Infinity
-        best = None
+        left = pile.amount
         for creep in creeps:
             if creep.carryCapacity != 0 and creep.pos.isNearTo(pile.pos) \
                     and 'wrapped' in creep and creep.wrapped.should_pickup(pile.resourceType):
                 if 'picked_up' not in creep:
                     empty = creep.carryCapacity - _.sum(creep.carry)
-                    if empty < smallest_capacity:
-                        best = creep
-                        smallest_capacity = empty
-        if best is not None:
-            best.pickup(pile)
-            best.picked_up = True
+                    creep.pickup(pile)
+                    creep.picked_up = True
+                    left -= empty
+                    if left <= 0:
+                        break

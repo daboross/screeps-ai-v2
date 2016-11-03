@@ -334,8 +334,8 @@ def is_block_clear(room, x, y):
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
     for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
-        if site.my and site.siteureType != STRUCTURE_RAMPART \
-                and site.siteureType != STRUCTURE_CONTAINER and site.siteureType != STRUCTURE_ROAD:
+        if site.my and site.structureType != STRUCTURE_RAMPART \
+                and site.structureType != STRUCTURE_CONTAINER and site.structureType != STRUCTURE_ROAD:
             return False
     return True
 
@@ -420,4 +420,4 @@ def average_pos_same_room(targets):
         sum_y += target.y
     x_avg = sum_x / len(targets)
     y_avg = sum_y / len(targets)
-    return __new__(RoomPosition(x_avg, y_avg, room_name))
+    return __new__(RoomPosition(round(x_avg), round(y_avg), room_name))

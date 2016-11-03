@@ -95,7 +95,6 @@ def clear_cache():
             del Memory.rooms[name]
     global_cache.cleanup()
 
-
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
 
 clear_memory = profiling.profiled(clear_memory, "consistency.clear_memory")

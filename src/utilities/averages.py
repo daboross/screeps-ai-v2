@@ -40,7 +40,7 @@ def get_average(name, count=None):
         sum = 0
         for x in tick_array:
             sum += x
-        return round(sum / len(tick_array) * 100) / 100
+        return display_num(sum / len(tick_array))
 
 
 def get_average_range(name, start, end):
@@ -50,14 +50,14 @@ def get_average_range(name, start, end):
     sum = 0
     for i in range(len(tick_array) - end, len(tick_array) - start):
         sum += tick_array[i]
-    return round(sum / len(tick_array) * 100) / 100
+    return display_num(sum / len(tick_array))
 
 
-def get_bucket_trend(end, start):
-    tick_array = Memory.cpu_usage and Memory.cpu_usage["bucket"]
-    if not tick_array or not end < start < len(tick_array):
+def get_bucket_trend(end_ago, start_ago):
+    tick_array = _.get(Memory, 'cpu_usage.bucket', [])
+    if not (end_ago < start_ago < len(tick_array)):
         return "not enough data"
-    value = tick_array[start] - tick_array[end]
+    value = tick_array[len(tick_array) - 1 - end_ago] - tick_array[len(tick_array) - 1 - start_ago]
     if value > 0:
         return "+{}".format(value)
     else:
@@ -105,3 +105,145 @@ def get_average_visual():
             get_bucket_trend(0, 1000),
         )
     )
+
+
+###
+# Creep role recording
+###
+
+_recording_now = False
+_single_record_start = None
+_main_loop_record_start = None
+_averages = None
+
+
+def prep_recording():
+    global _recording_now, _averages
+    _averages = Memory['_averages']
+    if not _averages:
+        _averages = Memory['_averages'] = {}
+    _recording_now = not not _averages['_recording_now']
+
+
+def start_recording():
+    Memory['_averages']['_recording_now'] = True
+
+
+def stop_recording():
+    Memory['_averages']['_recording_now'] = False
+
+
+def reset_records():
+    Memory['_averages'] = {}
+
+
+def start_record():
+    if _recording_now:
+        global _single_record_start
+        _single_record_start = Game.cpu.getUsed()
+
+
+def finish_record(identity):
+    if _recording_now and _single_record_start is not None:
+        end = Game.cpu.getUsed()
+        if identity in _averages:
+            _averages[identity].calls += 1
+            _averages[identity].time += end - _single_record_start
+        else:
+            _averages[identity] = {
+                'calls': 1,
+                'time': end - _single_record_start,
+            }
+
+
+def start_main_record():
+    if _recording_now:
+        global _main_loop_record_start
+        _main_loop_record_start = Game.cpu.getUsed()
+
+
+def finish_main_record():
+    if _recording_now and _main_loop_record_start is not None:
+        end = Game.cpu.getUsed()
+        if '_main' in _averages:
+            _averages['_main'] += end - _main_loop_record_start
+        else:
+            _averages['_main'] = end - _main_loop_record_start
+        if '_ticks' in _averages:
+            _averages['_ticks'] += 1
+        else:
+            _averages['_ticks'] = 1
+
+
+def record_memory_amount(time):
+    if _recording_now:
+        if 'memory.init' in _averages:
+            _averages['memory.init'].calls += 1
+            _averages['memory.init'].time += time
+        else:
+            _averages['memory.init'] = {
+                'calls': 1,
+                'time': time,
+            }
+
+
+# `(a / b).toFixed(2)` is incorrectly translated to `a / b.toFixed(2)` instead of `(a / b).toFixed(2)`
+def display_num(num, val=2):
+    """
+    :type num:  float
+    """
+    return num.toFixed(val)
+
+
+def output_records_full():
+    rows = ["time\tcalls\ttime/t\tcalls/t\taverage\tname"]
+    total_time_in_records = 0
+    for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
+        if identity == '_recording_now' or identity == '_ticks' or identity == '_main':
+            continue
+        total_time_in_records += obj.time
+        rows.push("\n{}\t{}\t{}\t{}\t{}\t{}".format(
+            display_num(obj.time),
+            display_num(obj.calls, 1),
+            display_num(obj.time / _averages['_ticks']),
+            display_num(obj.calls / _averages['_ticks']),
+            display_num(obj.time / obj.calls),
+            identity,
+        ))
+    missing_time = _averages['_main'] - total_time_in_records
+    rows.push("\n{}\t{}\t{}\t{}\t{}\t{}".format(
+        display_num(missing_time),
+        display_num(_averages['_ticks']),
+        display_num(missing_time / _averages['_ticks']),
+        display_num(1),
+        display_num(missing_time / _averages['_ticks']),
+        'unprofiled',
+    ))
+    return "".join(rows)
+
+
+def output_records():
+    if not _averages['_ticks']:
+        return "no data collected"
+    rows = ["time/t\tcalls/t\taverage\tname"]
+    total_time_in_records = 0
+    for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
+        if identity == '_recording_now' or identity == '_ticks' or identity == '_main':
+            continue
+
+        total_time_in_records += obj.time
+
+        rows.push("\n{}\t{}\t{}\t{}".format(
+            display_num(obj.time / _averages['_ticks']),
+            display_num(obj.calls / _averages['_ticks'], 1),
+            display_num(obj.time / obj.calls),
+            identity,
+        ))
+    missing_time = _averages['_main'] + _averages['memory.init'].time - total_time_in_records
+    rows.push("\n{}\t{}\t{}\t{}".format(
+        display_num(missing_time / _averages['_ticks']),
+        display_num(1, 1),
+        display_num(missing_time / _averages['_ticks']),
+        'unprofiled',
+    ))
+    return "".join(rows)
