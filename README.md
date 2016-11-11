@@ -93,7 +93,16 @@ py.get_room("W49N25").minerals.fulfill_market_order('W50N20', 'H', 100 * 1000, '
 py.get_room("W49N25").minerals.fulfill_market_order('E24S21', 'H', 6500, '57da2bacc35ad09c28417c3d');
 py.get_room("W49N25").minerals.fulfill_market_order('W28S13', 'H', 27082, '57ddd8a09f7906ce03b5d3e1')
 py.get_room("W49N25").minerals.fulfill_market_order('W40N40', 'H', 284380, '57e4232ab62fb4be21b2a15f')
-
+_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets()._register_new_targeter("extra_repair_site", c.name, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
 TODO: creep 'setting_up' memory variable which is set on spawn or on replacing or on autoactions move
 
-TODO: "last_half_section" variable in spawning.py, and allowance for a 0.5 addition to how big a creep should be.
+Game.market.createOrder(ORDER_BUY, "XKHO2", 23, 3000, "E15N52")
+
+py.context.targets()._register_new_targeter("rampart_def", "2366", "57fe2bc3985c67b3701c90c5")
+_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets()._register_new_targeter("extra_repair_site", c.name, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
+Memory.rooms.E17N55.cache.building_targets = []; Memory.rooms.E17N55.non_wall_construction_targets = [];
+_(py.get_room("E17N55").building.next_priority_repair_targets()).map(Game.getObjectById).filter().map(s => `${s.hits}:${s.structureType}`).value()
+for (let room of py.hive().my_rooms) { console.log(`${room.room_name}: def: ${!!room.mem.prepping_defenses}, pause: ${!!room.mem.pause}`) }
+_(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.roomName} has ${' and '.join(_(x.minerals.get_total_room_resource_counts).map(v, r => `${v} ${r}`))}.`
+_(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.room_name} has ${x.minerals.get_total_room_resource_counts()['XLHO2'] || 0} XLHO2 and ${x.minerals.get_total_room_resource_counts()['XKHO2'] || 0} XKHO2`).value()
+JSON.stringify(_.countBy(py.flags.find_flags_global(py.flags.ATTACK_POWER_BANK), 'pos.roomName'))
