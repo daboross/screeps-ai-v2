@@ -381,8 +381,10 @@ def pickup_check_room(room):
                     and 'wrapped' in creep and creep.wrapped.should_pickup(pile.resourceType):
                 if 'picked_up' not in creep:
                     empty = creep.carryCapacity - _.sum(creep.carry)
-                    creep.pickup(pile)
-                    creep.picked_up = True
-                    left -= empty
-                    if left <= 0:
-                        break
+                    result = creep.pickup(pile)
+                    if result == OK:
+                        creep.cancelOrder('withdraw')
+                        creep.picked_up = True
+                        left -= empty
+                        if left <= 0:
+                            break
