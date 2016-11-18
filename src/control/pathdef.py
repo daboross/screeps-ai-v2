@@ -652,6 +652,22 @@ class HoneyTrails:
         global_cache.set(key, serialized_path_obj, keep_for)
         return serialized_path_obj
 
+    def find_serialized_path(self, origin, destination, opts=None):
+        if opts and "current_room" in opts:
+            current_room = opts["current_room"]
+            if current_room:
+                if current_room.room: current_room = current_room.room
+                if current_room.name: current_room = current_room.name
+        else:
+            current_room = "full"
+
+        serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
+
+        if current_room in serialized_path_obj:
+            return serialized_path_obj[current_room]
+        else:
+            return ''
+
     def find_path(self, origin, destination, opts=None):
         if opts and "current_room" in opts:
             current_room = opts["current_room"]
@@ -663,7 +679,7 @@ class HoneyTrails:
 
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
-        if current_room not in serialized_path_obj:
+        if serialized_path_obj is None or current_room not in serialized_path_obj:
             return []
         try:
             path = Room.deserializePath(serialized_path_obj[current_room])

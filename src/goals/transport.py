@@ -175,14 +175,14 @@ class TransportPickup(RoleBase):
         #     self.log("Following path from {} to {}!".format(origin, target))
         if origin.isNearTo(target):
             origin = self.home.spawn.pos
-        path = self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName})
+        path = self.hive.honey.find_serialized_path(origin, target, {'current_room': self.pos.roomName})
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
             if self.pos.isNearTo(target):
                 self.basic_move_to(target)
                 return
-            if not self.memory.next_ppos or self.memory.off_path_for > 100:
+            if not self.memory.next_ppos or self.memory.off_path_for > 10:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target)
                 closest = None
@@ -192,7 +192,8 @@ class TransportPickup(RoleBase):
                         room = self.hive.get_room(pos.roomName)
                         if room and not movement.is_block_clear(room, pos.x, pos.y):
                             continue  # Don't try and target where the miner is right now!
-                    distance = movement.distance_room_pos(self.pos, pos) - index  # subtract how far we are on the path!
+                    # subtract how far we are on the path!
+                    distance = movement.distance_room_pos(self.pos, pos) - index * 0.7
                     if pos.roomName != self.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -221,6 +222,9 @@ class TransportPickup(RoleBase):
                     self.log("Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}".format(
                         self.pos.roomName, JSON.stringify(path, 0, 4)))
                     self.hive.honey.clear_cached_path(origin, target)
+            elif self.pos.isNearTo(new_target):
+                self.basic_move_to(new_target)
+                return
             else:
                 del self.memory.tried_new_next_ppos
             self.move_to(new_target)
