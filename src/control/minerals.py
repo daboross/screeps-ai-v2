@@ -11,18 +11,20 @@ __pragma__('noalias', 'Infinity')
 _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
 
 sell_at_prices = {
-    RESOURCE_OXYGEN: 2.1,
-    RESOURCE_HYDROGEN: 2.1,
-    RESOURCE_ZYNTHIUM: 2.3,
-    RESOURCE_UTRIUM: 2.4,
-    RESOURCE_LEMERGIUM: 2.5,
+    RESOURCE_OXYGEN: 2.0,
+    RESOURCE_HYDROGEN: 2.0,
+    RESOURCE_ZYNTHIUM: 2.0,
+    RESOURCE_UTRIUM: 2.0,
+    RESOURCE_LEMERGIUM: 2.0,
+    RESOURCE_KEANIUM: 2.0,
 }
 bottom_prices = {
-    RESOURCE_OXYGEN: 0.88,
+    RESOURCE_OXYGEN: 1.0,
     RESOURCE_HYDROGEN: 1.2,
-    RESOURCE_ZYNTHIUM: 0.88,
-    RESOURCE_UTRIUM: 0.88,
-    RESOURCE_LEMERGIUM: 0.95,
+    RESOURCE_KEANIUM: 1.2,
+    RESOURCE_ZYNTHIUM: 0.2,
+    RESOURCE_UTRIUM: 0.2,
+    RESOURCE_LEMERGIUM: 0.2,
 }
 
 __pragma__('fcall')
@@ -210,7 +212,10 @@ class MineralMind:
             mineral = self.get_lab_target_mineral()
             if mineral is None:
                 return 0
-            labs = _(self.labs()).filter(lambda x: x.mineralType == mineral or not x.mineralAmount)
+            all_labs = _(self.labs())
+            labs = all_labs.filter(lambda x: x.mineralType == mineral)
+            if not labs.size():
+                labs = all_labs.filter(lambda x: not x.mineralAmount)
             capacity = labs.sum('mineralCapacity')
             filled = labs.sum('mineralAmount')
             empty = capacity - filled
@@ -223,7 +228,10 @@ class MineralMind:
             mineral = self.get_lab2_target_mineral()
             if mineral is None:
                 return 0
-            labs = _(self.labs()).filter(lambda x: x.mineralType == mineral or not x.mineralAmount)
+            all_labs = _(self.labs())
+            labs = all_labs.filter(lambda x: x.mineralType == mineral)
+            if not labs.size():
+                labs = all_labs.filter(lambda x: not x.mineralAmount)
             capacity = labs.sum('mineralCapacity')
             filled = labs.sum('mineralAmount')
             empty = capacity - filled
@@ -477,12 +485,25 @@ class MineralMind:
                 to_check = _.min(current_sell_orders, 'price')
                 self.mem.last_sold_at[mineral] = to_check.price
                 if to_check.remainingAmount < _SINGLE_MINERAL_FULFILLMENT_MAX:
-                    self.log("Extending sell order for {} at price {} from {} to {} minerals."
-                             .format(mineral, to_check.price, to_check.remainingAmount,
-                                     _SINGLE_MINERAL_FULFILLMENT_MAX))
-                    Game.market.extendOrder(to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX - to_check.remainingAmount)
+                    if to_check.remainingAmount <= 100:
+                        # TODO: duplicated when creating a new order.
+                        if mineral in self.mem.last_sold_at:
+                            price = min(max(1.0, sell_at_prices[mineral] - 1.5, self.mem.last_sold_at[mineral] + 0.1),
+                                        sell_at_prices[mineral])
+                        else:
+                            price = sell_at_prices[mineral]
+                        self.log("Increasing price on sell order for {} from {} to {}.".format(
+                            mineral, to_check.price, price))
+                        Game.market.changeOrderPrice(to_check.id, price)
+                        Game.market.extendOrder(to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX
+                                                - to_check.remainingAmount)
+                    else:
+                        self.log("Extending sell order for {} at price {} from {} to {} minerals."
+                                 .format(mineral, to_check.price, to_check.remainingAmount,
+                                         _SINGLE_MINERAL_FULFILLMENT_MAX))
+                        Game.market.extendOrder(to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX - to_check.remainingAmount)
                     self.mem.last_sold[mineral] = Game.time
-                elif self.mem.last_sold[mineral] < Game.time - 1000 and to_check.price \
+                elif self.mem.last_sold[mineral] < Game.time - 10000 and to_check.price \
                         > bottom_prices[mineral] + 0.01:  # market prices can't always be changed to an exact precision
                     new_price = max(bottom_prices[mineral], to_check.price - 0.1)
                     self.log("Reducing price on sell order for {} from {} to {}"
@@ -565,5 +586,30 @@ class MineralMind:
         else:
             return 0
 
+    def mineral_report(self):
+        minstrings = []
+        for mineral, amount in _.pairs(self.get_total_room_resource_counts()):
+            if mineral == RESOURCE_ENERGY:
+                continue
+            minstrings.append("{} {}".format(amount, mineral))
+        orderstrings = []
+        for mineral, target_list in _.pairs(self.fulfilling):
+            for order in target_list:
+                if order.order_id:
+                    orderstrings.push("a market order {} for {} {} to {}".format(
+                        order.order_id, order.amount, mineral, order.room))
+                else:
+                    orderstrings.push("an order for {} {} to {}".format(
+                        order.amount, mineral, order.room))
+        if len(minstrings):
+            if len(orderstrings):
+                return "{} has {}, and is fulfilling {}".format(
+                    self.room.room_name, ', '.join(minstrings), ', '.join(orderstrings))
+            else:
+                return "{} has {}".format(self.room.room_name, ', '.join(minstrings))
+        elif len(orderstrings):
+            return "{} is empty, and is fulfilling {}".format(self.room.room_name, ', '.join(orderstrings))
+        else:
+            return "{} is empty."
 
 __pragma__('nofcall')

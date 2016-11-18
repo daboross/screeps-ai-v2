@@ -207,6 +207,22 @@ class HiveMind:
             else:
                 room._creeps = new_creep_lists[name]
 
+    def mineral_report(self):
+        result = []
+        tally = {}
+        for room in self.my_rooms:
+            if room.minerals and not room.minerals.has_no_terminal_or_storage():
+                result.append(room.minerals.mineral_report())
+                for mineral, amount in _.pairs(room.minerals.get_total_room_resource_counts()):
+                    if mineral in tally:
+                        tally[mineral] += amount
+                    else:
+                        tally[mineral] = amount
+        result.push("totals:\t{}".format(
+            "\t".join(["{} {}".format(amount, mineral) for mineral, amount in _.pairs(tally)])
+        ))
+        return "\n".join(result)
+
     def toString(self):
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.room_name for room in self.my_rooms]))
 
