@@ -17,6 +17,7 @@ creep_base_work_half_move_hauler = "fw_hm_hauler"
 creep_base_full_upgrader = "min_carry_worker"
 creep_base_reserving = "remote_reserve"
 creep_base_claiming = "strong_claim"
+creep_base_claim_attack = "claim_attack"
 creep_base_defender = "simple_defender"
 creep_base_mammoth_miner = "mammoth_miner"
 creep_base_half_move_healer = "hm_healer"
@@ -134,6 +135,7 @@ default_roles = {
     creep_base_power_attack: role_power_attack,
     creep_base_full_move_power_attack: role_power_attack,
     creep_base_rampart_defense: role_wall_defender,
+    creep_base_claim_attack: role_simple_claim,
 }
 
 PYFIND_REPAIRABLE_ROADS = 1001  #"pyfind_repairable_roads"

@@ -328,7 +328,6 @@ class RoomMind:
         self._first_target_cleanup_mass = None
         self._target_colonist_work_mass = None
         self._target_mineral_steal_mass = None
-        self._target_simple_claim_count = None
         self._target_room_reserve_count = None
         self._target_spawn_fill_mass = None
         self._target_td_healer_count = None
@@ -1531,20 +1530,6 @@ class RoomMind:
                 mass += max(1, min(5, spawning.max_sections_of(self, creep_base_hauler))) * 0.75
         return math.ceil(mass)
 
-    def get_target_simple_claim_count(self):
-        if self._target_simple_claim_count is None:
-            count = 0
-            if self.room.energyCapacityAvailable >= 650:
-                for flag in flags.find_flags_global(flags.CLAIM_LATER):
-                    room = self.hive_mind.get_room(flag.pos.roomName)
-                    if not room or (not room.my and not room.room.controller.owner):
-                        if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
-                            # there's a closer room, let's not claim here.
-                            continue
-                        count += 1
-            self._target_simple_claim_count = count
-        return self._target_simple_claim_count
-
     def get_target_room_reserve_count(self):
         if self._target_room_reserve_count is None:
             count = 0
@@ -1624,7 +1609,6 @@ class RoomMind:
         #     return self._check_role_reqs([
         #         [role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, True],
         #     ])
-
         next_role = self._check_role_reqs([
             [role_defender, lambda: self.get_target_simple_defender_count(True)],
             [role_link_manager, self.get_target_link_manager_count],
@@ -1670,7 +1654,6 @@ class RoomMind:
         requirements = [
             [role_upgrade_fill, self.get_target_upgrade_fill_mass, True],
             [role_upgrader, self.get_target_upgrader_work_mass, False, True],
-            [role_simple_claim, self.get_target_simple_claim_count],
             [role_room_reserve, self.get_target_room_reserve_count],
             # TODO: a "first" argument to this which checks energy, then do another one at the end of remote.
             [role_colonist, self.get_target_colonist_work_mass, False, True],
@@ -1705,8 +1688,6 @@ class RoomMind:
                 lambda: self.get_target_simple_defender_count() *
                         min(2, spawning.max_sections_of(self, creep_base_defender)),
             role_wall_defender: lambda: min(9, spawning.max_sections_of(self, creep_base_rampart_defense)),
-            role_simple_claim:
-                lambda: 1,
             role_room_reserve:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
@@ -1752,6 +1733,34 @@ class RoomMind:
         if self.room.energyCapacityAvailable >= 500:
             return self.spawn_one_creep_per_flag(flags.RANGED_DEFENSE, role_ranged_offense,
                                                  creep_base_ranged_offense, creep_base_ranged_offense)
+
+    def _next_claim(self):
+        if self.room.energyCapacityAvailable >= 650:
+            flag_list = self.flags_without_target(flags.CLAIM_LATER)
+
+            def _needs_claim(flag):
+                if Memory.enemy_rooms.includes(flag.pos.roomName) and self.room.energyCapacityAvailable < 650 * 5:
+                    return False
+                elif flag.pos.roomName not in Game.rooms:
+                    return True
+                else:
+                    room = Game.rooms[flag.pos.roomName]
+                    if not room.controller or room.controller.my:
+                        return False
+                    elif room.controller.owner and self.room.energyCapacityAvailable < 650 * 5:
+                        return False
+                    else:
+                        return True
+
+            needed = _.find(flag_list, _needs_claim)
+            if needed:
+                if Memory.enemy_rooms.includes(needed.pos.roomName):
+                    return self.get_spawn_for_flag(role_simple_claim, creep_base_claim_attack,
+                                                   creep_base_claim_attack, needed)
+                else:
+                    return self.get_spawn_for_flag(role_simple_claim, creep_base_claiming,
+                                                   creep_base_claiming, needed, 1)
+        return None
 
     def flags_without_target(self, flag_type):
         result = []  # TODO: yield
@@ -1896,6 +1905,7 @@ class RoomMind:
                 self.mining.next_mining_role,
                 self._next_tower_breaker_role,
                 self._next_needed_local_role,
+                self._next_claim,
             ]
         next_role = None
         for func in funcs_to_try:

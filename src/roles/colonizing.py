@@ -3,7 +3,7 @@ import flags
 import role_base
 import speech
 from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_simple_claim, \
-    role_mineral_steal
+    role_mineral_steal, target_single_flag
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
 from tools import profiling
@@ -64,7 +64,7 @@ class Colonist(MilitaryBase):
                 self.memory.role = role_builder
             else:
                 self.memory.role = role_upgrader
-            meta = self.hive.get_room(colony).mem.meta
+            meta = room.mem.meta
             if meta:
                 meta.clear_next = 0  # clear next tick
         else:
@@ -83,55 +83,34 @@ profiling.profile_whitelist(Colonist, ["run"])
 
 class Claim(MilitaryBase):
     def run(self):
-        if not self.memory.claiming:
-            # TODO: turn this into a target for TargetMind
-            closest_distance = Infinity
-            closest_room = None
-            for flag in flags.find_flags_global(flags.CLAIM_LATER):
-                room = context.hive().get_room(flag.pos.roomName)
-                if not room or (not room.my and not room.room.controller.owner):
-                    # claimable:
-                    distance = movement.chebyshev_distance_room_pos(self.creep.pos, __new__(RoomPosition(
-                        25, 25, flag.pos.roomName)))
-                    if distance < closest_distance:
-                        closest_distance = distance
-                        closest_room = flag.pos.roomName
-            if closest_room:
-                self.memory.claiming = closest_room
-            else:
-                self.log("ERROR: Claim can't find room to claim!")
-                self.memory.role = role_recycling
-                self.memory.last_role = role_simple_claim
-                return False
+        claim_flag = self.targets.get_new_target(self, target_single_flag, flags.CLAIM_LATER)
+        if not claim_flag:
+            self.recycle_me()
+            return
+        if self.creep.pos.roomName != claim_flag.pos.roomName:
+            target = claim_flag.pos
+            if 'checkpoint' not in self.memory or \
+                            movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                self.memory.checkpoint = self.pos
 
-        if self.creep.pos.roomName != self.memory.claiming:
-            target = __new__(RoomPosition(25, 25, self.memory.claiming))
-            if movement.chebyshev_distance_room_pos(self.pos, target) > 50:
-                if 'checkpoint' not in self.memory or \
-                                movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
-                    self.memory.checkpoint = self.pos
-
-                opts = {'range': 15}
-                if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) * 5 / 7:
-                    opts.ignore_swamp = True
-                    opts.use_roads = False
-                elif self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-                    opts.use_roads = False
-                self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target, opts)
-            else:
-                self.creep.moveTo(target, {'reusePath': 2, 'ignoreRoads': True,
-                                           "costCallback": role_base.def_cost_callback})
+            opts = {'range': 15}
+            if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) * 5 / 7:
+                opts.ignore_swamp = True
+                opts.use_roads = False
+            elif self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
+                opts.use_roads = False
+            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target, opts)
             return False
 
         target = self.creep.room.controller
         if not target:
             self.log("ERROR: Claim can't find controller in room {}!".format(self.creep.room.name))
-            del self.memory.claiming
+            self.targets.untarget_all(self)
             return True
 
         if target.my:
             self.memory.home = self.creep.room.name
-            del self.memory.claiming
+            self.targets.untarget_all(self)
             # I guess we can try and claim something else, if we have the life? otherwise this will go and activate the
             # recycle code.
             return True
@@ -140,7 +119,10 @@ class Claim(MilitaryBase):
             self.move_to(target)
             return False
 
-        self.creep.claimController(target)
+        if target.owner:
+            self.creep.attackController(target)
+        else:
+            self.creep.claimController(target)
         room = self.hive.get_room(target.pos.roomName)
         room.mem.sponsor = self.home.room_name
         if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_walls', False):
@@ -149,7 +131,14 @@ class Claim(MilitaryBase):
             room.mem.prio_spawn = True
 
     def _calculate_time_to_replace(self):
-        return 0
+        if self.creep.getActiveBodyparts(CLAIM) > 1:
+            target = self.targets.get_new_target(self, target_single_flag, flags.CLAIM_LATER)
+            if not target:
+                return -1
+            path_len = self.get_military_path_length(self.home.spawn, target)
+            return path_len + _.size(self.creep.body) * 3
+        else:
+            return 0
 
 
 class ReserveNow(MilitaryBase):
