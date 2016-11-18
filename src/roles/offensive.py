@@ -6,6 +6,7 @@ from constants import target_single_flag, role_td_healer, target_single_flag2
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.mining import EnergyHauler
+from utilities import hostile_utils
 from utilities import movement
 from utilities.movement import center_pos, room_xy_to_name, parse_room_to_xy
 from utilities.screeps_constants import *
@@ -88,8 +89,8 @@ class MilitaryBase(RoleBase):
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if movement.distance_squared_room_pos(origin, target) > math.pow(200, 2):
-            path_opts.max_ops = 30000
-            path_opts.max_rooms = 30
+            path_opts.max_ops = movement.chebyshev_distance_room_pos(origin, target) * 150
+            path_opts.max_rooms = math.ceil(movement.chebyshev_distance_room_pos(origin, target) / 5)
             path_opts.use_roads = False
             # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
             if to_home:
@@ -137,9 +138,9 @@ class MilitaryBase(RoleBase):
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if movement.distance_squared_room_pos(origin, target) > math.pow(200, 2):
-            path_opts.max_ops = 30000
-            path_opts.max_rooms = 30
-            path_opts.use_roads = False
+            path_opts.max_ops = movement.chebyshev_distance_room_pos(origin, target) * 150
+            path_opts.max_rooms = math.ceil(movement.chebyshev_distance_room_pos(origin, target) / 5)
+
             # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
             if to_home:
                 intermediate = __new__(RoomPosition(25, 25, origin.roomName))
@@ -155,22 +156,24 @@ class MilitaryBase(RoleBase):
                     self.move_to(target)
                     return
             pass
-            # origin_midpoint = self.find_midpoint(self, origin)
-            # if origin_midpoint is not None:
-            #     origin = origin_midpoint
-            # dest_midpoint = self.find_midpoint(origin, target)
-            # if dest_midpoint is not None:
-            #     if self.pos.roomName == dest_midpoint.roomName:
-            #         origin = dest_midpoint
-            #     else:
-            #         target = dest_midpoint
-            #         path_opts.range = 10
+            origin_midpoint = self.find_midpoint(self, origin)
+            if origin_midpoint is not None:
+                origin = origin_midpoint
+            dest_midpoint = self.find_midpoint(origin, target)
+            if dest_midpoint is not None:
+                if self.pos.roomName == dest_midpoint.roomName:
+                    origin = dest_midpoint
+                else:
+                    target = dest_midpoint
+                    path_opts.range = 10
 
         path = self.hive.honey.find_path(origin, target, path_opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
-            if not self.memory.next_ppos:
+            if self.memory.manual:
+                self.move_to(target)
+            elif not self.memory.next_ppos:
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, path_opts)
                 closest = None
                 closest_distance = Infinity
@@ -184,32 +187,37 @@ class MilitaryBase(RoleBase):
                     if closest.isEqualTo(self.pos):
                         self.log("WARNING: ERR_NOT_FOUND when actually still on military path! Path retrieved:\n{}"
                                  "\nPos: {}.".format(path, self.pos))
+                        if movement.chebyshev_distance_room_pos(self.pos, target) <= 50:
+                            self.memory.manual = True
+                            self.move_to(target)
+                            return
                 else:
                     self.log("WARNING: Couldn't find closest position on path from {} to {} near {}!"
                              "\nMoving manually... (all pos: {})"
                              .format(origin, target, self.pos, all_positions))
                     self.memory.next_ppos = target
             mtarget = self.memory.next_ppos
-            new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
-            self.creep.moveTo(new_target)
-            if self.pos.isEqualTo(new_target):
-                del self.memory.next_ppos
-            if not self.memory.off_path_for:
-                self.memory.off_path_for = 1
-                self.memory.lost_path_at = self.pos
-            else:
-                if not self.memory.lost_path_at:
+            if mtarget:
+                new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
+                self.move_to(new_target)
+                if self.pos.isEqualTo(new_target):
+                    del self.memory.next_ppos
+                if not self.memory.off_path_for:
+                    self.memory.off_path_for = 1
                     self.memory.lost_path_at = self.pos
-                self.memory.off_path_for += 1
-                if self.memory.off_path_for > 10:
-                    self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {}".format(
-                        origin, target, self.pos, new_target))
-                    if movement.chebyshev_distance_room_pos(self.memory.lost_path_at, self.pos) < 5 \
-                            and not self.pos.isEqualTo(new_target) \
-                            and not self.pos.isEqualTo(movement.get_entrance_for_exit_pos(new_target)):
-                        self.hive.honey.clear_cached_path(origin, target, path_opts)
-                        del self.memory.off_path_for
-                        del self.memory.lost_path_at
+                else:
+                    if not self.memory.lost_path_at:
+                        self.memory.lost_path_at = self.pos
+                    self.memory.off_path_for += 1
+                    if self.memory.off_path_for > 10:
+                        self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {}".format(
+                            origin, target, self.pos, new_target))
+                        if movement.chebyshev_distance_room_pos(self.memory.lost_path_at, self.pos) < 5 \
+                                and not self.pos.isEqualTo(new_target) \
+                                and not self.pos.isEqualTo(movement.get_entrance_for_exit_pos(new_target)):
+                            self.hive.honey.clear_cached_path(origin, target, path_opts)
+                            del self.memory.off_path_for
+                            del self.memory.lost_path_at
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
         else:
@@ -269,8 +277,8 @@ class MilitaryBase(RoleBase):
         #     path2 = self.hive.honey.find_path(intermediate, target, path_opts)
         #     return len(path1) + 20 + len(path2)
         # else:
-        path_opts.max_ops = 9000
-        path_opts.max_rooms = 15
+        path_opts.max_ops = movement.chebyshev_distance_room_pos(spawn, target) * 150
+        path_opts.max_rooms = math.ceil(movement.chebyshev_distance_room_pos(spawn, target) / 5)
         path1 = self.hive.honey.find_path(spawn, target, path_opts)
         return len(path1)
 
@@ -367,10 +375,10 @@ class Dismantler(MilitaryBase):
     def run(self):
         if self.memory.dismantling and self.creep.hits < self.creep.hitsMax / 2:
             self.memory.dismantling = False
-            self.targets.untarget_all(self)
+            self.targets.untarget(self, target_single_flag2)
         if not self.memory.dismantling and self.creep.hits >= self.creep.hitsMax:
             self.memory.dismantling = True
-            self.targets.untarget_all(self)
+            self.targets.untarget(self, target_single_flag2)
 
         if self.memory.dismantling:
             target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
@@ -392,7 +400,7 @@ class Dismantler(MilitaryBase):
                     site = self.room.look_at(LOOK_CONSTRUCTION_SITES, target.pos)[0]
                     if site:
                         self.basic_move_to(site)
-                    elif target.memory.dismantle_all:
+                    elif 'dismantle_all' not in target.memory or target.memory.dismantle_all:
                         new_target_site = self.room.find_closest_by_range(FIND_HOSTILE_CONSTRUCTION_SITES, target.pos)
                         new_structure = self.room.find_closest_by_range(
                             FIND_STRUCTURES, target.pos, lambda s: s.structureType != STRUCTURE_ROAD
@@ -416,13 +424,19 @@ class Dismantler(MilitaryBase):
                         target.remove()
             else:
                 if self.pos.roomName == target.pos.roomName:
-                    result = self.creep.moveTo(target, {"ignoreDestructibleStructures": True})
-                    if result != OK and result != ERR_TIRED:
-                        self.log("Unknown result from creep.moveTo({}): {}".format(target, result))
+                    self.move_to(target)
                 else:
-                    self.follow_military_path(self.home.spawn, target)
+                    if 'checkpoint' not in self.memory or \
+                                    movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                        self.memory.checkpoint = self.pos
+                    if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
+                        self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
+                                                                                         self.home.room_name))
+
+                    self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
+                                              target)
         else:
-            target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_D_STOP)
+            target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP)
             if not target:
                 if len(flags.find_flags(self.home, flags.RAID_OVER)):
                     if self.creep.ticksToLive < 300:

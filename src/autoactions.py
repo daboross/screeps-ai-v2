@@ -3,7 +3,7 @@ import random
 import context
 import flags
 import role_base
-from constants import INVADER_USERNAME
+from constants import INVADER_USERNAME, role_simple_dismantle
 from control import defense
 from control import pathdef
 from tools import profiling
@@ -347,6 +347,9 @@ def running_check_room(room):
     for creep in my_creeps:
         if creep.fatigue > 0 or len(creep.body) <= 1 \
                 or _.find(creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK or p.type == HEAL) \
+                or (creep.memory.role == role_simple_dismantle
+                    and creep.memory.home in Game.rooms
+                    and room.hive_mind.get_room(creep.memory.home).conducting_siege()) \
                 or not creep.hasActiveBodyparts(MOVE):
             continue
         overridden = run_away_check(creep, hostile_path_targets)

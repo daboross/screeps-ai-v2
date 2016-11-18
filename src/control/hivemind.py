@@ -1169,15 +1169,27 @@ class RoomMind:
         return self._overprioritize_building
 
     def _any_closest_to_me(self, flag_type):
-        return _.find(
-            flags.find_flags_global(flag_type),
-            lambda f: self.hive_mind.get_closest_owned_room(f.pos.roomName).room_name == self.room_name
-        )
+        for flag in flags.find_flags_global(flag_type):
+            if 'sponsor' in flag.memory:
+                if flag.memory.sponsor == self.room_name:
+                    return True
+            else:
+                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
+                possible_sponsor = str(flag.name).split('_')[0]
+                if possible_sponsor in Game.rooms:
+                    if possible_sponsor == self.room_name:
+                        return True
+                else:
+                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                        return True
+
+        return False
 
     def conducting_siege(self):
         if self._conducting_siege is None:
             self._conducting_siege = Game.cpu.bucket > 4500 and not not (
-                (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK))
+                (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK)
+                 or self._any_closest_to_me(flags.ATTACK_DISMANTLE))
                 and self._any_closest_to_me(flags.TD_H_H_STOP) and self._any_closest_to_me(flags.TD_H_D_STOP)
             )
         return self._conducting_siege
