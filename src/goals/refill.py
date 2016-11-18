@@ -47,25 +47,26 @@ class Refill(RoleBase):
         if target:
             if not self.creep.pos.isNearTo(target.pos):
                 self.move_to(target)
-                other = _.find(self.home.find_in_range(FIND_MY_STRUCTURES, 1, self.pos),
-                               lambda c: (c.energyCapacity and c.energy < c.energyCapacity)
-                                         or (c.storeCapacity and _.sum(c.store) < c.storeCapacity))
-                if not other:
-                    other = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, self.pos),
-                                   lambda c: c.name != self.name
-                                             and (c.memory.role == role_builder or c.memory.role == role_upgrader)
-                                             and _.sum(c.carry) < c.carryCapacity)
-                if other:
-                    result = self.creep.transfer(other, RESOURCE_ENERGY)
-                    if result == ERR_NOT_ENOUGH_RESOURCES:
-                        self.memory.filling = True
-                        return True
-                    elif result != OK:
-                        self.log("Unknown result from passingby refill.transfer({}): {}", other, result)
-                return False
+                if Game.cpu.bucket >= 4000:
+                    other = _.find(self.home.find_in_range(FIND_MY_STRUCTURES, 1, self.pos),
+                                   lambda c: (c.energyCapacity and c.energy < c.energyCapacity)
+                                             or (c.storeCapacity and _.sum(c.store) < c.storeCapacity))
+                    if not other:
+                        other = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                                       lambda c: c.name != self.name
+                                                 and (c.memory.role == role_builder or c.memory.role == role_upgrader)
+                                                 and _.sum(c.carry) < c.carryCapacity)
+                    if other:
+                        result = self.creep.transfer(other, RESOURCE_ENERGY)
+                        if result == ERR_NOT_ENOUGH_RESOURCES:
+                            self.memory.filling = True
+                            return True
+                        elif result != OK:
+                            self.log("Unknown result from passingby refill.transfer({}): {}", other, result)
+                    return False
 
             latched = False
-            if self.creep.getActiveBodyparts(WORK) and target.memory and not target.filling:
+            if self.creep.hasActiveBodyparts(WORK) and target.memory and not target.filling:
                 # Let's latch on and work on whatever they're working on
                 role = target.memory.role
                 result = None

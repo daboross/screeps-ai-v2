@@ -3,7 +3,7 @@ import math
 import flags
 import speech
 from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
-    role_hauler, role_miner, role_recycling, role_upgrader, role_spawn_fill
+    role_hauler, role_miner, role_recycling, role_spawn_fill
 from goals.refill import Refill
 from goals.transport import TransportPickup
 from role_base import RoleBase
@@ -60,8 +60,10 @@ class EnergyMiner(TransportPickup):
                     self.creep.moveTo(source_flag, {'ignoreCreeps': True})
                 serialized_pos = self.pos.x | (self.pos.y << 6)
                 if self.memory.last_pos == serialized_pos:
-                    self.creep.moveTo(source_flag, {'reusePath': 0})
-                    self.memory.mmni = True
+                    self.memory.sf = (self.memory.sf or 0) + 1
+                    if self.memory.sf >= 5:
+                        self.creep.moveTo(source_flag, {'reusePath': 0})
+                        self.memory.mmni = True
                 elif not self.creep.fatigue:
                     self.memory.last_pos = serialized_pos
             else:
@@ -134,6 +136,7 @@ class EnergyMiner(TransportPickup):
                         return False
             else:
                 link = None
+                any_without_upgrade = False
                 for x in range(source_flag.pos.x - 1, source_flag.pos.x + 2):
                     for y in range(source_flag.pos.y - 1, source_flag.pos.y + 2):
                         if movement.is_block_empty(self.room, x, y):
@@ -144,8 +147,11 @@ class EnergyMiner(TransportPickup):
                             )
                             if link:
                                 self.memory.container_pos = x | y << 6
-                                break
-                    if link:
+                                if not flags.look_for(self.room, __new__(RoomPosition(x, y, self.pos.roomName)),
+                                                      flags.UPGRADER_SPOT):
+                                    any_without_upgrade = True
+                                    break
+                    if link and any_without_upgrade:
                         break
                 if link:
                     self.memory.link = link.id
@@ -179,9 +185,9 @@ profiling.profile_whitelist(EnergyMiner, ["run"])
 
 
 class EnergyHauler(TransportPickup, SpawnFill, Refill):
-    def run_local_refilling(self):
+    def run_local_refilling(self, pickup, fill):
         if not self.memory.filling:
-            if self.creep.getActiveBodyparts(WORK):
+            if self.creep.getActiveBodyparts(WORK) and Game.cpu.bucket >= 4000:
                 construction_sites = self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos)
                 if len(construction_sites):
                     self.creep.build(_.max(construction_sites, 'progress'))
@@ -216,6 +222,9 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                 return self.recycle_me()
 
     def run(self):
+        debug = self.memory.debug
+        if debug:
+            self.log("Running energy filling!")
         pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
@@ -235,10 +244,6 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                     not self.home.links.enabled:
                 fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
 
-            if fill and fill.pos.getRangeTo(self.home.room.controller) <= 3.0 \
-                    and self.home.role_count(role_upgrader) > 3:
-                fill = self.home.room.storage  # if there's a large upgrader party, let's not stop there.
-
         if not fill:
             self.log("WARNING: Couldn't find fill site!")
             if self.home.room.storage:
@@ -248,9 +253,9 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             else:
                 self.log("WARNING: Remote hauler in room with no storage nor spawn!")
                 return
-        if fill == self.home.spawn:
+        if fill == self.home.spawn and not self.memory.filling:
             if self.pos.roomName == fill.pos.roomName:
-                return self.run_local_refilling()
+                return self.run_local_refilling(pickup, fill)
             else:
                 del self.memory.running
 
@@ -272,17 +277,18 @@ class RemoteReserve(TransportPickup):
     def find_claim_room(self):
         claim_room = self.memory.claiming
         if claim_room:
-            if Memory.reserving[claim_room] != self.name:
-                if Memory.reserving[claim_room] in Game.creeps:
-                    creep = Game.creeps[Memory.reserving[claim_room]]
-                    if not creep.spawning:
-                        if self.creep.ticksToLive > creep.ticksToLive:
-                            Memory.reserving[claim_room] = self.name
-                        elif self.pos.roomName != claim_room or \
-                                        creep.pos.getRangeTo(self.creep.room.controller.pos) < 4:
-                            self.creep.suicide()
-                else:
-                    Memory.reserving[claim_room] = self.name
+            if Game.time % 100 == 49:
+                if Memory.reserving[claim_room] != self.name:
+                    if Memory.reserving[claim_room] in Game.creeps:
+                        creep = Game.creeps[Memory.reserving[claim_room]]
+                        if not creep.spawning:
+                            if self.creep.ticksToLive > creep.ticksToLive:
+                                Memory.reserving[claim_room] = self.name
+                            elif self.pos.roomName != claim_room or \
+                                            creep.pos.getRangeTo(self.creep.room.controller.pos) < 4:
+                                self.creep.suicide()
+                    else:
+                        Memory.reserving[claim_room] = self.name
             return claim_room
         self.log("WARNING: Calculating new reserve target for remote mining reserver!")
         if not Memory.reserving:
@@ -323,10 +329,6 @@ class RemoteReserve(TransportPickup):
             self.creep.suicide()
             return
 
-        if Game.rooms[claim_room] and not Game.rooms[claim_room].controller:
-            del self.memory.claiming
-            return True
-
         if self.creep.pos.roomName != claim_room:
             if Game.rooms[claim_room]:
                 target = Game.rooms[claim_room].controller.pos
@@ -336,6 +338,10 @@ class RemoteReserve(TransportPickup):
             return
 
         controller = self.room.room.controller
+
+        if not controller:
+            del self.memory.claiming
+            return True
 
         if controller.reservation and controller.reservation.ticksToEnd > 4999:
             if self.creep.pos.isNearTo(controller.pos):
@@ -353,16 +359,9 @@ class RemoteReserve(TransportPickup):
             self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",
                      controller.reservation.username)
         else:
-            if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
-                # claim this!
-                self.creep.claimController(controller)
-                controller.room.memory.sponsor = self.home.room_name
-            else:
-                self.creep.reserveController(controller)
-                if controller.reservation:
-                    controller.room.memory.rea = Game.time + controller.reservation.ticksToEnd
-                else:
-                    controller.room.memory.rea = Game.time + self.creep.getActiveBodyparts(CLAIM)
+            self.creep.reserveController(controller)
+            if controller.reservation:
+                controller.room.memory.rea = Game.time + controller.reservation.ticksToEnd
 
     def _calculate_time_to_replace(self):
         room = self.find_claim_room()

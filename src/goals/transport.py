@@ -1,3 +1,4 @@
+from constants import role_miner, role_hauler
 from control import pathdef
 from role_base import RoleBase
 from tools import profiling
@@ -8,14 +9,22 @@ __pragma__("noalias", "name")
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
+repair_roads_this_tick = False
+repair_roads_tick_num = 0
+
 
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
+        debug = self.memory.debug
         total_carried_now = self.carry_sum()
         if self.memory.filling:
+            if debug:
+                self.log("Filling")
             target = pickup.pos
             if not self.creep.carryCapacity:
                 if self.creep.hits < self.creep.hitsMax and self.home.defense.healing_capable():
+                    if debug:
+                        self.log("Heading home to heal")
                     self.follow_energy_path(pickup, fill)
                 else:
                     self.log("All carry parts dead, committing suicide.")
@@ -26,24 +35,33 @@ class TransportPickup(RoleBase):
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
                 self.memory.filling = False
                 self.follow_energy_path(pickup, fill)
+                if debug:
+                    self.log("Full, heading back")
                 return
             if 'hbu' in self.memory:
                 if Game.time > self.memory.hbu:
                     del self.memory.hbu
                 elif not self.creep._forced_move:
+                    if debug:
+                        self.log("HBU! for {} more ticks", self.memory.hbu - Game.time)
                     self.follow_energy_path(pickup, fill)
                     return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
+                if debug:
+                    self.log("Heading out (from {} to {})", fill, pickup)
+                if total_carried_now:
+                    self.repair_nearby_roads()
                 self.follow_energy_path(fill, pickup)
                 return
+            if debug:
+                self.log("Now near target (filling).")
 
             piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
             if len(piles):
                 if len(piles) > 1:
-                    energy = _.max(piles, 'amount')
+                    energy = _.max(piles, 'resource.amount').resource
                 else:
-                    energy = piles[0]
-                energy = energy.resource
+                    energy = piles[0].resource
                 if self.pos.isNearTo(energy):
                     result = self.creep.pickup(energy)
 
@@ -51,6 +69,8 @@ class TransportPickup(RoleBase):
                         self.creep.picked_up = True
                         energy.picked_up = True
                         if energy.amount > self.creep.carryCapacity - total_carried_now:
+                            # If there is a road needing repairing here, let's not start moving until we have energy to
+                            # repair with (i.e. next tick).
                             self.memory.filling = False
                             self.follow_energy_path(pickup, fill)
                         elif Game.time % 6 == 1 and self.creep.ticksToLive < 10 + self.path_length(fill, pickup):
@@ -83,12 +103,7 @@ class TransportPickup(RoleBase):
 
                     if amount > self.creep.carryCapacity - total_carried_now:
                         self.memory.filling = False
-                        # If there is a road needing repairing here, let's not start moving until we have energy to
-                        # repair with (i.e. next tick).
-                        if not _.find(self.room.look_at(LOOK_STRUCTURES, self.creep.pos),
-                                      lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax) \
-                                and not len(self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)):
-                            self.follow_energy_path(pickup, fill)
+                        self.follow_energy_path(pickup, fill)
                 else:
                     if self.pos.isNearTo(target):
                         self.creep.move(pathdef.direction_to(self.pos, container))
@@ -130,15 +145,17 @@ class TransportPickup(RoleBase):
                 self.follow_energy_path(pickup, fill)
                 return
 
-            is_link = fill.structureType == STRUCTURE_LINK or fill.structureType == STRUCTURE_SPAWN
-            for mtype in Object.keys(self.creep.carry):
-                amount = self.creep.carry[mtype]
-                if amount > 0 and (not is_link or mtype == RESOURCE_ENERGY):
-                    result = self.creep.transfer(fill, mtype)
-                    if result != OK and result != ERR_FULL:
-                        self.log("Unknown result from transport-creep.transfer({}, {}): {}".format(fill, mtype, result))
-                        amount = 0
-                    break
+            energy_only = fill.structureType == STRUCTURE_LINK or fill.structureType == STRUCTURE_SPAWN
+            if energy_only:
+                resource = RESOURCE_ENERGY
+            else:
+                resource = _.findKey(self.creep.carry)
+            amount = self.creep.carry[resource]
+            if resource and amount:
+                result = self.creep.transfer(fill, resource)
+                if result != OK and result != ERR_FULL:
+                    self.log("Unknown result from transport-creep.transfer({}, {}): {}".format(fill, resource, result))
+                    amount = 0
             else:
                 if self.creep.ticksToLive < 2.2 * self.path_length(fill, pickup):
                     self.creep.suicide()
@@ -147,7 +164,7 @@ class TransportPickup(RoleBase):
                 self.follow_energy_path(fill, pickup)
                 return
 
-            if is_link:
+            if energy_only:
                 empty = fill.energyCapacity - fill.energy
             else:
                 empty = fill.storeCapacity - _.sum(fill.store)
@@ -255,14 +272,17 @@ class TransportPickup(RoleBase):
                 else:
                     self.memory.standstill_for = 1
                 if self.memory.standstill_for % 2 == 0:  # after two ticks, and then every two ticks after that.
-                    if not _.some(self.creep.body, {"type": WORK}) and \
+                    if self.memory.role != role_miner and \
                             _.find(self.room.find_in_range(FIND_MY_CREEPS, 10, self.pos),
-                                   lambda c: _.some(c.body, {"type": WORK})):
+                                   lambda c: c.memory.role == role_miner):
                         if 'hbu' in self.memory:
                             del self.memory.hbu
                         else:
                             self.memory.hbu = Game.time + 7
-                elif not self.memory.filling and self.memory.standstill_for % 10 == 5:
+                elif self.memory.standstill_for % 10 == 5 and \
+                        (not self.memory.filling
+                         or not _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
+                                       lambda c: c.memory.role != role_hauler and c.memory.role != role_miner)):
                     del self.memory.next_ppos
                     found_mine = False
                     for pos in self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName}):

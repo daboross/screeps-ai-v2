@@ -57,7 +57,7 @@ class MiningMind:
             if target:
                 return target
         # Even if we don't have a link manager active right now, we will soon if there is a main link
-        if self.room.links.main_link:
+        if self.room.links.main_link and flag.pos.roomName == self.room.room_name:
             main_link_id = self.room.links.main_link.id
             upgrader_link = self.room.get_upgrader_energy_struct()
             upgrader_link_id = upgrader_link and upgrader_link.id or None
@@ -68,8 +68,10 @@ class MiningMind:
                     if structure.id == main_link_id or structure.id == upgrader_link_id:
                         continue
                     priority = movement.chebyshev_distance_room_pos(structure, flag)
+                    if priority <= 2:
+                        priority -= 14
                 elif structure.structureType == STRUCTURE_STORAGE and structure.storeCapacity > 0:
-                    priority = movement.chebyshev_distance_room_pos(structure, flag) - 6
+                    priority = movement.chebyshev_distance_room_pos(structure, flag) - 10
                 else:
                     continue
                 if priority < best_priority:
@@ -122,7 +124,7 @@ class MiningMind:
         elif flag.memory.sk_room or (room and not room.controller):
             mining_per_tick = 15.0
         elif self.should_reserve(flag.pos.roomName):
-            return 10.0
+            mining_per_tick = 10.0
         else:
             mining_per_tick = 5.0
         produce_per_tick = mining_per_tick
@@ -134,26 +136,33 @@ class MiningMind:
         ideal_mass = self.calculate_ideal_mass_for_mine(flag)
         if not self.room.room.storage:
             return ideal_mass
-        sitting = self.energy_sitting_at(flag)
-        if sitting > 1000:
-            carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 10)
-            # Count every 200 already there as an extra 1 production per turn
-            return ideal_mass + min(math.ceil(sitting / 500 / carry_per_tick), ideal_mass)
-        else:
-            return ideal_mass
+        # sitting = self.energy_sitting_at(flag)
+        # if sitting > 1000:
+        #     carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 10)
+        #     # Count every 200 already there as an extra 1 production per turn
+        #     return ideal_mass + min(math.ceil(sitting / 500 / carry_per_tick), ideal_mass)
+        # else:
+        return ideal_mass
 
     def poll_flag_energy_sitting(self):
         for flag in self.available_mines:
-            room = self.hive.get_room(flag.pos.roomName)
-            if room:
-                sitting = _.sum(room.find_in_range(FIND_DROPPED_RESOURCES, 1, flag.pos), 'amount')
-                if sitting > 1000 >= flag.memory.sitting:
-                    self.room.reset_planned_role()
-                flag.memory.sitting = sitting
-                flag.memory.sitting_set = Game.time
-            del flag.memory.remote_miner_targeting
+            if 'sitting' in flag.memory and flag.memory.sitting < Game.time - flag.memory.sitting_set \
+                    and Game.time - flag.memory.sitting_set > 10:
+                del flag.memory.sitting
+                del flag.memory.sitting_set
+                del flag.memory.remote_miner_targeting
 
     def energy_sitting_at(self, flag):
+        if 'sitting' not in flag.memory or Game.time > flag.memory.sitting_set + 10:
+            room = self.hive.get_room(flag.pos.roomName)
+            if room:
+                flag.memory.sitting = _.sum(room.look_for_in_area_around(LOOK_RESOURCES, flag, 1),
+                                            'resource.amount')
+            elif 'sitting_set' in flag.memory:
+                flag.memory.sitting = max(0, flag.memory.sitting + flag.memory.sitting_set - Game.time)
+            else:
+                flag.memory.sitting = 0
+            flag.memory.sitting_set = Game.time
         return max(0, flag.memory.sitting - (Game.time - flag.memory.sitting_set)) or 0
 
     def get_local_mining_flags(self):
@@ -183,8 +192,17 @@ class MiningMind:
 
     def get_available_mining_flags(self):
         if self._available_mining_flags is None:
-            result = list(_(self.get_local_mining_flags())
-                          .concat(self.room.possible_remote_mining_operations).sortBy(self.mine_priority).value())
+            if self.room.any_remotes_under_siege():
+                result = list(_(self.get_local_mining_flags())
+                              .concat(self.room.possible_remote_mining_operations)
+                              .filter(lambda f: not self.room.remote_under_siege(f))
+                              .sortBy(self.mine_priority)
+                              .value())
+            else:
+                result = list(_(self.get_local_mining_flags())
+                              .concat(self.room.possible_remote_mining_operations)
+                              .sortBy(self.mine_priority)
+                              .value())
             self._available_mining_flags = result
         return self._available_mining_flags
 
@@ -201,16 +219,21 @@ class MiningMind:
     active_mines = property(get_active_mining_flags)
 
     def calculate_creep_num_sections_for_mine(self, flag):
-        if self.room.all_paved():
+        double = False
+        if flag.pos.roomName == self.room.room_name:
+            maximum = spawning.max_sections_of(self.room, creep_base_hauler)
+        elif self.room.all_paved():
             maximum = spawning.max_sections_of(self.room, creep_base_work_half_move_hauler)
+            double = True
         elif self.room.paving():
             maximum = spawning.max_sections_of(self.room, creep_base_work_full_move_hauler)
         else:
             maximum = spawning.max_sections_of(self.room, creep_base_hauler)
         needed = self.calculate_ideal_mass_for_mine(flag)
-        if self.room.all_paved():
-            # Each section has twice the carry, and the initial section has half the carry of one regular section.
-            return fit_num_sections(needed / 2, maximum, 0.5)
+        if double:
+            # Each section has twice the carry, -and the initial section has half the carry of one regular section.-
+            # as of 2016/11/02, we have WWM initial sections, not CWM
+            return fit_num_sections(needed / 2, maximum)
         else:
             return fit_num_sections(needed, maximum)
 
@@ -269,7 +292,7 @@ class MiningMind:
         if room_name in Memory.rooms and 'rea' in Memory.rooms[room_name]:
             ticks_to_end = Memory.rooms[room_name].rea - Game.time
             if ticks_to_end >= 1000:
-                max_sections = min(7, spawning.max_sections_of(self.room, creep_base_reserving))
+                max_sections = min(5, spawning.max_sections_of(self.room, creep_base_reserving))
                 if 5000 - ticks_to_end < max_sections * 600:
                     return None
 
@@ -412,7 +435,9 @@ class MiningMind:
             else:
                 eol_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
-            if self.room.all_paved():
+            if flag.pos.roomName == self.room.room_name:
+                base = creep_base_hauler
+            elif self.room.all_paved():
                 base = creep_base_work_half_move_hauler
             elif self.room.paving():
                 # TODO: better all_paved detection *per mine* (all_paved currently is always set to paving() value)
