@@ -1,3 +1,118 @@
+"""
+Flag colors:
+
+Red:
+    Red: DESTRUCT_WALL
+    Purple: DESTRUCT_RAMPART
+    Blue: DESTRUCT_EXTENSION
+    Cyan: DESTRUCT_SPAWN
+    Green: DESTRUCT_TOWER
+    Yellow: DESTRUCT_STORAGE
+    Orange: DESTRUCT_LINK
+    Brown: DESTRUCT_EXTRACTOR
+    Grey: DESTRUCT_TERMINAL
+    White: DESTRUCT_ROAD
+Purple:
+    Red: CONSTRUCT_WALL
+    Purple: CONSTRUCT_RAMPART
+    Blue: CONSTRUCT_EXTENSION
+    Cyan: CONSTRUCT_SPAWN
+    Green: CONSTRUCT_TOWER
+    Yellow: CONSTRUCT_STORAGE
+    Orange: CONSTRUCT_LINK
+    Brown: CONSTRUCT_EXTRACTOR
+    Grey: CONSTRUCT_TERMINAL
+    White: CONSTRUCT_ROAD
+Blue:
+    Red: SOURCE_QUEUE_START
+    Purple: LOCAL_MINE
+    Blue: DEPOT
+    Cyan: SPAWN_FILL_WAIT
+    Green: UPGRADER_SPOT
+    Yellow:
+    Orange:
+    Brown:
+    Grey: SLIGHTLY_AVOID
+    White: SK_LAIR_SOURCE_NOTED
+Cyan:
+    Red: TD_H_H_STOP        - TowerDrain Healing Healer Stop
+    Purple: TD_H_D_STOP     - Tower Drain Healing Damaged Stop
+    Blue: TD_D_GOAD         - Tower Drain Goading Stop
+    Cyan: RANGED_DEFENSE    - Kiting defender spot
+    Green: ATTACK_DISMANTLE - Dismantler Spot
+    Yellow: RAID_OVER       - Raid Over Notice
+    Orange:
+    Brown: SCOUT            - Scout Here
+    Grey: ATTACK_POWER_BANK - Power bank attacker spot
+    White: REAP_POWER_BANK  - Power bank carrier spot
+Green:
+    Red: WALL_DEFENSE_MID   - Lower priority rampart defender
+    Purple: CLAIM_LATER     - Controller to claim
+    Blue:
+    Cyan: REMOTE_MINE       - Remote mine source
+    Green: WALL_DEFENSE_HIGH- High priority rampart defender
+    Yellow:
+    Orange:
+    Brown:
+    Grey: RESERVE_NOW       - Controller to reserve
+    White:
+Yellow:
+    Red:
+    Purple:
+    Blue:
+    Cyan:
+    Green:
+    Yellow:
+    Orange:
+    Brown:
+    Grey:
+    White:
+Orange:
+    Red:
+    Purple:
+    Blue:
+    Cyan:
+    Green:
+    Yellow:
+    Orange:
+    Brown:
+    Grey:
+    White:
+Brown:
+    Red:
+    Purple:
+    Blue:
+    Cyan:
+    Green:
+    Yellow:
+    Orange:
+    Brown:
+    Grey:
+    White:
+Grey:
+    Red: NO_EXIT_NORTH
+    Purple: NO_EXIT_EAST
+    Blue: NO_EXIT_SOUTH
+    Cyan: NO_EXIT_WEST
+    Green:
+    Yellow:
+    Orange:
+    Brown:
+    Grey:
+    White:
+White:
+    Red: EXIT_NORTH
+    Purple: EXIT_EAST
+    Blue: EXIT_SOUTH
+    Cyan: EXIT_WEST
+    Green: REROUTE              - Portal marked for current use (hardcoded name: `reroute`)
+    Yellow: REROUTE_DESTINATION - Destination of a reroute (hardcoded name: `reroute_destination`)
+    Orange:
+    Brown:
+    Grey:
+    White: ENERGY_GRAB      - Energy grab spot
+"""
+
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
