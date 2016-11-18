@@ -586,8 +586,10 @@ class RoomMind:
         if paving is None:
             if self.my:
                 # TODO: 2 maybe should be a constant?
-                paving = (self.get_max_mining_op_count() >= 1 or self.room.storage) \
-                         and len(self.mining.available_mines) >= 1
+                paving = (self.room.storage or self.spawn) and \
+                         (self.get_max_mining_op_count() >= 1 or self.room.storage) \
+                         and len(self.mining.available_mines) >= 1 \
+                         and self.room.energyCapacityAvailable >= 600
             else:
                 paving = False
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):

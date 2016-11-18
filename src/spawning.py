@@ -13,7 +13,8 @@ __pragma__('noalias', 'Infinity')
 
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, MOVE],
-    creep_base_work_half_move_hauler: [CARRY, WORK, MOVE],
+    creep_base_work_half_move_hauler: [WORK, WORK, MOVE],  # for swamp roads.
+    # TODO: separate "repair station" creeps triggered by lookFor during moveByPath
     creep_base_goader: [ATTACK, MOVE, TOUGH],
     creep_base_full_move_goader: [ATTACK, MOVE],
     creep_base_full_upgrader: [MOVE, CARRY, CARRY],
@@ -562,10 +563,10 @@ def find_base_type(creep):
         base = creep_base_carry3000miner
     elif part_counts[CARRY] == part_counts[MOVE] == total / 2:
         base = creep_base_hauler
-    elif part_counts[WORK] == 1 and part_counts[MOVE] == part_counts[CARRY] + 1 == total / 2:
+    elif part_counts[WORK] == 2 and part_counts[MOVE] == part_counts[CARRY] + 2 == total / 2:
         base = creep_base_work_full_move_hauler
-    elif (part_counts[WORK] == 1 and part_counts[MOVE] == (part_counts[CARRY] + 1) / 2 == total / 3) \
-            or (part_counts[WORK] == 1 and part_counts[MOVE] - 1 == (part_counts[CARRY]) / 2 == (total - 2) / 3):
+    elif (part_counts[WORK] == 2 and part_counts[MOVE] == (part_counts[CARRY] + 2) / 2 == total / 3) \
+            or (part_counts[WORK] == 2 and part_counts[MOVE] - 2 == (part_counts[CARRY]) / 2 == (total - 3) / 3):
         base = creep_base_work_half_move_hauler
     elif part_counts[CLAIM] == part_counts[MOVE] == total / 2:
         base = creep_base_reserving
