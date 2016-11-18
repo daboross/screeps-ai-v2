@@ -17,7 +17,7 @@ __pragma__('noalias', 'Infinity')
 
 class SpawnFill(building.Builder, Refill):
     def run(self):
-        if self.creep.ticksToLive < recycle_time:
+        if self.creep.ticksToLive < recycle_time and not self.home.under_siege():
             self.memory.role = role_recycling
             self.memory.last_role = role_spawn_fill
             return False
@@ -53,7 +53,7 @@ class SpawnFill(building.Builder, Refill):
                     del self.memory.running
             elif self.home.room.energyCapacityAvailable < 550 and self.home.room.energyAvailable < 300 \
                     and self.home.next_role is None:
-                if self.creep.getActiveBodyparts(WORK):
+                if self.creep.hasActiveBodyparts(WORK):
                     self.memory.running = role_builder
                     return building.Builder.run(self)
                 else:
@@ -92,8 +92,8 @@ class SpawnFill(building.Builder, Refill):
                             self.report(speech.spawn_fill_moving_to_target)
                             if movement.chebyshev_distance_room_pos(self.pos, target) < 5 \
                                     and 'nbm' not in self.memory:
-                                if self.force_basic_move_to(target, lambda c: c.memory.role != role_spawn_fill
-                                and c.memory.role != role_tower_fill):
+                                if self.force_basic_move_to(target, lambda c: (c.memory.role != role_spawn_fill
+                                and c.memory.role != role_tower_fill) or not c.carry.energy):
                                     return False
                                 else:
                                     self.memory.nbm = True
