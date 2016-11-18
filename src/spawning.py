@@ -41,7 +41,7 @@ scalable_sections = {
     creep_base_4000miner: [MOVE],
     creep_base_carry3000miner: [MOVE],
     creep_base_goader: [MOVE, TOUGH, TOUGH],
-    creep_base_full_move_goader: [CARRY],
+    creep_base_full_move_goader: [MOVE, TOUGH, CARRY, CARRY],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
     creep_base_full_move_healer: [MOVE, HEAL],
     creep_base_dismantler: [WORK, WORK, MOVE],
@@ -53,6 +53,7 @@ scalable_sections = {
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
     creep_base_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE],
+    creep_base_claim_attack: [MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM],
 }
 
 half_sections = {
@@ -66,6 +67,7 @@ half_sections = {
     creep_base_half_move_healer: [MOVE, HEAL],
     creep_base_power_attack: [MOVE, ATTACK],
     creep_base_dismantler: [MOVE, WORK],
+    creep_base_claim_attack: [MOVE, MOVE, TOUGH, HEAL],
 }
 
 low_energy_sections = {
@@ -263,6 +265,20 @@ def run(room, spawn):
             parts = [MOVE, CLAIM, MOVE]
         else:
             parts = [MOVE, MOVE, MOVE, CLAIM, MOVE]
+    elif base is creep_base_claim_attack:
+        parts = []
+        for i in range(0, half_section):
+            parts.append(TOUGH)
+        for i in range(0, num_sections * 5):
+            parts.append(CLAIM)
+        for i in range(0, num_sections * 5 + half_section * 2):
+            parts.append(MOVE)
+        for i in range(0, half_section):
+            parts.append(HEAL)
+        if half_section:
+            descriptive_level = 'claim:{}-heal:{}'.format(num_sections * 5, half_section)
+        else:
+            descriptive_level = 'claim:{}'.format(num_sections)
     elif base is creep_base_hauler:
         parts = []
         for i in range(0, num_sections):
@@ -390,23 +406,35 @@ def run(room, spawn):
             parts.append(MOVE)
     elif base is creep_base_full_move_goader:
         parts = []
-        for i in range(0, num_sections):
+        for i in range(0, num_sections * 2):
             parts.append(CARRY)
+        for i in range(0, num_sections):
+            parts.append(TOUGH)
         parts.append(ATTACK)
-        parts.append(MOVE)
+        for i in range(0, num_sections + 1):  # extra move in initial section
+            parts.append(MOVE)
     elif base is creep_base_half_move_healer:
         parts = []
-        for i in range(0, num_sections):
-            parts.append(HEAL)
-        for i in range(0, num_sections + half_section):
+        total_heal = num_sections * 2 + half_section
+        total_move = num_sections + half_section
+        for i in range(0, math.floor(total_move / 2)):
             parts.append(MOVE)
-        for i in range(0, num_sections + half_section):
+        for i in range(0, math.floor(total_heal / 2)):
+            parts.append(HEAL)
+        for i in range(0, math.ceil(total_move / 2)):
+            parts.append(MOVE)
+        for i in range(0, math.ceil(total_heal / 2)):
             parts.append(HEAL)
     elif base is creep_base_full_move_healer:
         parts = []
-        for i in range(0, num_sections):
-            parts.append(HEAL)
+        for i in range(0, math.floor(num_sections / 2)):
             parts.append(MOVE)
+        for i in range(0, math.floor(num_sections / 2)):
+            parts.append(HEAL)
+        for i in range(0, math.ceil(num_sections / 2)):
+            parts.append(MOVE)
+        for i in range(0, math.ceil(num_sections / 2)):
+            parts.append(HEAL)
     elif base is creep_base_dismantler:
         parts = []
         for i in range(0, num_sections * 2 + half_section):
