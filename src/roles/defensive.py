@@ -97,21 +97,31 @@ class WallDefender(RoleBase):
     def run(self):
         target = self.targets.get_new_target(self, target_rampart_defense)
         if not target:
-            target = self.home.find_closest_by_range(FIND_HOSTILE_CREEPS, self)
-        if not self.creep.pos.isEqualTo(target.pos):
-            self.creep.moveTo(target)
+            self.log("WARNING: No wall to defend!")
+        if target:
+            if not self.creep.pos.isEqualTo(target.pos):
+                self.creep.moveTo(target)
+            elif not _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
+                            lambda s: s.structureType == STRUCTURE_RAMPART):
+                self.move_to(self.pos.findClosestByRange(FIND_MY_STRUCTURES,
+                                                         {'filter': lambda s: s.structureType == STRUCTURE_RAMPART
+                                                                              and not len(s.pos.lookFor(LOOK_CREEPS))}))
+                return
         all_hostiles = self.room.defense.all_hostiles()
         highest_priority = _.find(all_hostiles, lambda f: f.pos.isNearTo(self.pos))  # hostiles are already sorted
 
         if highest_priority:
             self.creep.attack(highest_priority)
-        elif not len(all_hostiles):
-            if (Game.time * 2 + self.creep.ticksToLive) % 50 == 0:
-                self.targets.untarget(self, target_rampart_defense)
-                if not self.room.mem.attack:
+        else:
+            tcheck = (Game.time * 2 + self.creep.ticksToLive) % 50
+            if tcheck <= 5:  # In case the enemies are bouncing in and out - let's give a good window to find a new wall
+                if not self.room.mem.attack and not len(all_hostiles):
                     self.memory.role = role_recycling
                     self.memory.last_role = role_wall_defender
                     return False
+                elif self.pos.isEqualTo(target.pos) and len(all_hostiles):
+                    # TODO: in this case, look for a specific wall which has hostiles next to it! don't just blindly re-choose
+                    self.targets.untarget(self, target_rampart_defense)
 
 
 profiling.profile_whitelist(RoleDefender, ["run"])
