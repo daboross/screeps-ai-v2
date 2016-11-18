@@ -2,6 +2,7 @@ import math
 
 import random
 
+import flags
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
     role_builder, target_destruction_site, role_upgrader
@@ -84,6 +85,15 @@ class Builder(upgrading.Upgrader):
             else:
                 # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
                 # source faster!
+                if self.home.mem.tons:
+                    closest = self.pos.findClosestByRange(FIND_DROPPED_ENERGY, {'filter': lambda x: x.amount
+                                                                                                    >= self.creep.carryCapacity})
+                    if closest:
+                        if not self.pos.isNearTo(closest):
+                            self.move_to(closest)
+                            return
+                    else:
+                        del self.home.mem.tons
                 self.build_swamp_roads()
                 return self.harvest_energy()
         else:
@@ -115,6 +125,16 @@ class Builder(upgrading.Upgrader):
                     return self.execute_construction_target(target)
                 else:
                     del self.memory.la
+            elif sc_last_action == 'f':
+                target = self.home.room.storage
+                if target:
+                    if self.pos.isNearTo(target):
+                        resource = _.findKey(self.creep.carry)
+                        self.creep.transfer(target, resource)
+                    else:
+                        self.move_to(target)
+                else:
+                    del self.memory.la
             else:
                 target = self.targets.get_existing_target(self, target_repair)
                 if target:
@@ -143,7 +163,23 @@ class Builder(upgrading.Upgrader):
                     return self.execute_repair_target(wall, 5000, target_repair)
 
             if not self.home.spawn and (not self.home.being_bootstrapped() or self.home.mem.prio_spawn):
-                target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN})
+                target = None
+                if self.home.rcl >= 4:
+                    if self.home.room.storage and self.home.mem.tons:
+                        self.memory.la = 'f'
+                    elif self.home.mem.tons:
+                        target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_STORAGE})
+                        if not target:
+                            storage = flags.find_ms_flags(self.home, flags.MAIN_BUILD, flags.SUB_STORAGE)[0]
+                            if storage and len(self.home.look_at(LOOK_RESOURCES, storage)):
+                                site = self.home.look_at(LOOK_CONSTRUCTION_SITES, storage)[0]
+                                if not site:
+                                    storage.pos.createConstructionSite(STRUCTURE_STORAGE)
+                                    return
+                                else:
+                                    target = site
+                if not target:
+                    target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN})
                 if target:
                     self.targets._register_new_targeter(target_construction, self.name, target.id)
                     self.memory.la = 'c'
