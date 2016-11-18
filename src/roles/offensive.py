@@ -69,6 +69,16 @@ class MilitaryBase(RoleBase):
         #     ))
         return best_midpoint
 
+    def _using_reroute(self, origin, target):
+        if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
+            reroute_start = Game.flags['reroute']
+            reroute_destination = Game.flags['reroute_destination']
+            if movement.chebyshev_distance_room_pos(origin, reroute_start) \
+                    + movement.chebyshev_distance_room_pos(reroute_destination, target) \
+                    < movement.chebyshev_distance_room_pos(origin, target):
+                return True
+        return False
+
     def recalc_military_path(self, origin, target, opts=None):
         # TODO: separate the majority of the code this shares with follow_military_path into a new module
         if opts and "to_home" in opts:
@@ -106,16 +116,17 @@ class MilitaryBase(RoleBase):
                     # basic pathfinding to get to our actual target.
                     self.move_to(target)
                     return
-            origin_midpoint = self.find_midpoint(self, origin)
-            if origin_midpoint is not None:
-                origin = origin_midpoint
-            dest_midpoint = self.find_midpoint(origin, target)
-            if dest_midpoint is not None:
-                if self.pos.roomName == dest_midpoint.roomName:
-                    origin = dest_midpoint
-                else:
-                    target = dest_midpoint
-                    path_opts.range = 10
+            if not self._using_reroute(origin, target):
+                origin_midpoint = self.find_midpoint(self, origin)
+                if origin_midpoint is not None:
+                    origin = origin_midpoint
+                dest_midpoint = self.find_midpoint(origin, target)
+                if dest_midpoint is not None:
+                    if self.pos.roomName == dest_midpoint.roomName:
+                        origin = dest_midpoint
+                    else:
+                        target = dest_midpoint
+                        path_opts.range = 10
         self.hive.honey.clear_cached_path(origin, target, path_opts)
 
     # TODO: A lot of this is copied directly (and shared with) transport.TransportPickup
@@ -137,7 +148,8 @@ class MilitaryBase(RoleBase):
         if opts:
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
-        if movement.distance_squared_room_pos(origin, target) > math.pow(200, 2):
+        if movement.distance_squared_room_pos(origin, target) > math.pow(200, 2) \
+                and not self._using_reroute(origin, target):
             path_opts.max_ops = movement.chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(movement.chebyshev_distance_room_pos(origin, target) / 5)
 

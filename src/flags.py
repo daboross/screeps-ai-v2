@@ -47,6 +47,8 @@ REAP_POWER_BANK = "reap_power_bank"
 WALL_DEFENSE_HIGH = "wdh"
 WALL_DEFENSE_MID = "wdm"
 UPGRADER_SPOT = "us"
+REROUTE = "portal_reroute"
+REROUTE_DESTINATION = "portal_reroute_destination"
 
 DIR_TO_EXIT_FLAG = {
     TOP: EXIT_NORTH,
@@ -92,6 +94,8 @@ flag_definitions = {
     EXIT_EAST: (COLOR_WHITE, COLOR_PURPLE),
     EXIT_SOUTH: (COLOR_WHITE, COLOR_BLUE),
     EXIT_WEST: (COLOR_WHITE, COLOR_CYAN),
+    REROUTE: (COLOR_WHITE, COLOR_GREEN),
+    REROUTE_DESTINATION: (COLOR_WHITE, COLOR_YELLOW),
 }
 
 main_to_flag_primary = {
@@ -459,7 +463,7 @@ def look_for(room, position, main, sub=None):
     """
     :type room: control.hivemind.RoomMind
     """
-    if not room.find_at:
+    if not room.look_at:
         raise ValueError("Invalid room argument")
     if position.pos:
         position = position.pos
