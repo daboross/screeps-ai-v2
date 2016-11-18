@@ -27,7 +27,7 @@ def add_roads(room_name, cost_matrix):
     if not room:
         return
     for road in room.find(FIND_STRUCTURES):
-        if road.structureType == STRUCTURE_ROAD:
+        if road.structureType == STRUCTURE_ROAD and not cost_matrix.get(road.pos.x, road.pos.y):
             cost_matrix.set(road.pos.x, road.pos.y, 1)
 
 
@@ -48,6 +48,22 @@ def add_exits(room_name, cost_matrix):
                 if terrain == 'swamp':
                     existing = max(existing, 5)
                 cost_matrix.set(x, y, max(existing + 3, 3))
+    for x in [1, 48]:
+        for y in range(0, 49):
+            terrain = Game.map.getTerrainAt(x, y, room_name)
+            if terrain != 'wall':
+                existing = cost_matrix.get(x, y)
+                if terrain == 'swamp':
+                    existing = max(existing, 5)
+                cost_matrix.set(x, y, max(existing + 2, 2))
+    for y in [1, 48]:
+        for x in range(0, 49):
+            terrain = Game.map.getTerrainAt(x, y, room_name)
+            if terrain != 'wall':
+                existing = cost_matrix.get(x, y)
+                if terrain == 'swamp':
+                    existing = max(existing, 5)
+                cost_matrix.set(x, y, max(existing + 2, 2))
 
 
 def add_sk(room_name, cost_matrix):
@@ -57,8 +73,8 @@ def add_sk(room_name, cost_matrix):
                 cost_matrix.set(x, y, 255)
 
 
-def def_cost_callback(room_name, cost_matrix):
-    if hostile_utils.enemy_room(room_name):
+def def_cost_callback(room_name, cost_matrix, target_room=None):
+    if hostile_utils.enemy_room(room_name) and room_name != target_room:
         for x in [0, 49]:
             for y in range(0, 50):
                 cost_matrix.set(x, y, 255)
@@ -70,10 +86,13 @@ def def_cost_callback(room_name, cost_matrix):
     add_roads(room_name, cost_matrix)
     add_sk(room_name, cost_matrix)
 
+def get_def_cost_callback(target_room):
+    return lambda room_name, cost_matrix: def_cost_callback(room_name, cost_matrix, target_room)
 
 _REUSE = find_reuse_path_value()
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "reusePath": _REUSE, "costCallback": def_cost_callback}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "reusePath": _REUSE, "ignoreRoads": True, "costCallback": def_cost_callback}
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "costCallback": def_cost_callback}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "ignoreRoads": True,
+                         "costCallback": def_cost_callback}
 
 
 class RoleBase:
