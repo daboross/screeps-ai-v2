@@ -233,7 +233,8 @@ def main():
     averages.finish_record('hive.poll-creeps')
     if Game.time % 5 == 1 or not _.isEmpty(Memory.hostiles):
         averages.start_record()
-        defense.poll_hostiles(hive_mind)
+        # NOTE: this also runs running-away checks!
+        defense.poll_hostiles(hive_mind, autoactions.running_check_room)
         averages.finish_record('defense.poll-hostiles')
     if Game.time % 25 == 7:
         averages.start_record()
@@ -248,20 +249,6 @@ def main():
     averages.start_record()
     hive_mind.find_my_rooms()
     averages.finish_record('hive.poll-rooms')
-
-    averages.start_record()
-    try:
-        for room in hive_mind.visible_rooms:
-            autoactions.running_check_room(room)
-    except:
-        e = __except0__
-        Game.notify("Error executing run-away-checks!\n{}".format(
-            e.stack if e else "e: {}".format(e)
-        ), 10)
-        print("[hive] Error running run-away-checks!")
-        print(e.stack if e else "e: {}".format(e))
-
-    averages.finish_record('auto.runaway')
 
     creeps_skipped = {}
     if 'skipped_last_turn' in Memory:

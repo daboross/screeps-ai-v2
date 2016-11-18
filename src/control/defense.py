@@ -26,12 +26,14 @@ def tower_damage(range):
     return (25 - range) * 30
 
 
-def poll_hostiles(hive):
+def poll_hostiles(hive, run_away_checks):
     """
     Iterates through all visible rooms, adding any hostiles found to memory.
 
     :param hive: The hive mind to iterate through visible rooms of
     :type hive: control.hivemind.HiveMind
+    :param run_away_checks: A function of RoomMind to call for each room with hostiles in it
+    :type run_away_checks: callable(RoomMind)
     """
     if 'hostiles' not in Memory:
         Memory.hostiles = {}
@@ -50,6 +52,7 @@ def poll_hostiles(hive):
                     'death': Game.time + c.ticksToLive,
                     'ranged': c.getActiveBodyparts(RANGED_ATTACK),
                     'attack': c.getActiveBodyparts(ATTACK),
+                    'heal': c.getActiveBodyparts(HEAL),
                     'offensive': hostile_utils.is_offensive(c),
                 }
                 danger.push(store)
@@ -63,15 +66,15 @@ def poll_hostiles(hive):
                         if sponsor:
                             sponsor.reset_planned_role()
             room.mem.danger = danger
+            try:
+                run_away_checks(room)
+            except:
+                msg = "[hive] Error running run-away-checks in {}!\n{}".format(
+                    room.room_name, __except0__.stack if __except0__ else 'e: {}'.format(__except0__)
+                )
+                print(msg)
+                Game.notify(msg)
         elif room.room_name in Memory.rooms:
-            if 'danger' in room.mem:
-                if room.my:
-                    room.reset_planned_role()
-                else:
-                    for flag in flags.find_flags(room, flags.REMOTE_MINE):
-                        sponsor = hive.get_room(flag.memory.sponsor)
-                        if sponsor:
-                            sponsor.reset_planned_role()
             del room.mem.danger
 
 
@@ -126,7 +129,7 @@ def stored_hostiles_near(room_name):
     :type room_name: str
     :rtype: list[dict[str, str | int]]
     """
-    cache = volatile_cache.mem("stored_hostiles_in")
+    cache = volatile_cache.mem("stored_hostiles_near")
     if cache.has(room_name):
         return cache.get(room_name)
     room_x, room_y = movement.parse_room_to_xy(room_name)
@@ -170,6 +173,9 @@ def stored_hostiles_in(room_name):
     :type room_name: str
     :rtype: list[dict[str, str | int]]
     """
+    cache = volatile_cache.mem("stored_hostiles_in")
+    if cache.has(room_name):
+        return cache.get(room_name)
     result = []
     mem = Memory.rooms[room_name]
     if mem is not undefined and 'danger' in mem:
@@ -178,6 +184,7 @@ def stored_hostiles_in(room_name):
                 result.push(c)
         if not len(result):
             del mem.danger
+    cache.set(room_name, result)
     return result
 
 
@@ -315,7 +322,7 @@ class RoomDefense:
                 return 1
             elif _.find(hostile.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK):
                 return 0.7
-            elif hostile.getActiveBodyparts(CARRY) or hostile.getActiveBodyparts(WORK) and self.this_room_mining_ops():
+            elif (hostile.hasBodyparts(CARRY) or hostile.hasBodyparts(WORK)) and self.this_room_mining_ops():
                 return 0.5
             elif hostile.getActiveBodyparts(TOUGH):
                 return 0.3
