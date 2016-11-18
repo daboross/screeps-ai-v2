@@ -248,12 +248,18 @@ class Builder(upgrading.Upgrader):
     def execute_construction_target(self, target):
         if not target.structureType and target.color:
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
-            # available targets. Let's ask for a new target, so as to allow it to update the targets list.
-            # this seems like an OK way to do this!
-            self.home.building.refresh_building_targets()
-            self.targets.untarget(self, target_construction)
-            self.move_to(target)
-            return False
+            # available targets.
+            site = _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES), 'my')
+            if site:
+                self.targets._register_new_targeter(target_construction, self.name, site.id)
+                target = site
+            else:
+                self.log("WARNING: Couldn't find site for flag at {}! Refreshing building targets..."
+                         .format(target.pos))
+                self.home.building.refresh_building_targets()
+                self.targets.untarget(self, target_construction)
+                self.move_to(target)
+                return False
         self.report(speech.building_build_target, target.structureType)
         if not self.creep.pos.inRangeTo(target.pos, 3):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the

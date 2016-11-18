@@ -237,24 +237,24 @@ _energy_to_resume_building = 28000
 _min_stored_energy_to_draw_from_before_refilling = 20000
 
 _rcl_to_min_wall_hits = [
-    1,
-    20 * 1000,
-    50 * 1000,
-    150 * 1000,
-    400 * 1000,
-    500 * 1000,
-    700 * 1000,
-    900 * 1000
+    1,  # RCL 1
+    20 * 1000,  # RCL 2
+    50 * 1000,  # RCL 3
+    150 * 1000,  # RCL 4
+    500 * 1000,  # RCL 5
+    1000 * 1000,  # RCL 6
+    3 * 1000 * 1000,  # RCL 7
+    10 * 1000 * 1000,  # RCL 8
 ]
 _rcl_to_sane_wall_hits = [
-    2,
-    40 * 1000,
-    80 * 1000,
-    300 * 1000,
-    500 * 1000,
-    600 * 1000,
-    1000 * 1000,
-    10 * 1000 * 1000
+    2,  # RCL 1
+    40 * 1000,  # RCL 2
+    80 * 1000,  # RCL 3
+    250 * 1000,  # RCL 4
+    1000 * 1000,  # RCL 5
+    1500 * 1000,  # RCL 6
+    5 * 1000 * 1000,  # RCL 7
+    50 * 1000 * 1000  # RCL 8
 ]
 
 
@@ -338,7 +338,6 @@ class RoomMind:
         self._target_upgrader_work_mass = None
         self._target_upgrade_fill_work_mass = None
         self._total_needed_spawn_fill_mass = None
-        self._builder_use_first_only = False
         self._max_sane_wall_hits = None
         self._conducting_siege = None
         self._spawns = None
@@ -1220,6 +1219,13 @@ class RoomMind:
         """
         return _rcl_to_sane_wall_hits[self.rcl - 1] or 0  # 1-to-0-based index
 
+    def get_max_rampart_extension_hits(self):
+        """
+        Er, TODO: make this a lot cleaner
+        :return:
+        """
+        return 100 * 1000
+
     def get_min_sane_wall_hits(self):
         return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
 
@@ -1369,55 +1375,43 @@ class RoomMind:
         return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self):
-        no_repair_above = self.max_sane_wall_hits * 0.8
-
-        def not_road(id):
-            thing = Game.getObjectById(id)
-            return thing is not None and thing.structureType != STRUCTURE_ROAD
-
-        def is_relatively_decayed(id):
-            thing = Game.getObjectById(id)
-            return thing is not None and thing.hits <= thing.hitsMax * 0.6 and thing.hits <= no_repair_above \
-                   and (thing.structureType != STRUCTURE_ROAD or thing.hits <= thing.hitsMax * 0.3)
-
-        if self.rcl < 8:
-            if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
-                worker_size = 1
-            else:
-                worker_size = max(3, min(8, spawning.max_sections_of(self, creep_base_worker)))
-        else:
-            worker_size = max(5, spawning.max_sections_of(self, creep_base_worker))
         if not self.building_paused():
-            extra = 0
-            if self.room.storage:
-                if self.mem.prepping_defenses:
-                    # purposefully a smaller threshold than upgrading has
-                    overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
-                                   self.room.storage.store.energy - 100 * 1000)
-                else:
-                    overflow = min(_.sum(self.room.storage.store) - 500 * 1000,
-                                   self.room.storage.store.energy - 150 * 1000)
-                if not self.room.storage.storeCapacity:
-                    overflow = self.room.storage.store.energy
-                if overflow > 0:
-                    # TODO: utility method for "empty storage asap"
-                    if not self.room.storage.storeCapacity:
-                        extra = min(25, math.floor(overflow / (20 * 1000))) * worker_size
+            base_num = self.building.get_target_num_builders()
+            if base_num > 0:
+                extra = 0
+                if self.room.storage:
+                    if self.mem.prepping_defenses:
+                        # purposefully a smaller threshold than upgrading has
+                        overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
+                                       self.room.storage.store.energy - 100 * 1000)
                     else:
-                        extra = min(5, math.floor(overflow / (20 * 1000))) * worker_size
-            total = _.sum(self.building.next_priority_construction_targets(), not_road) \
-                    + _.sum(self.building.next_priority_repair_targets(), is_relatively_decayed)
-            if total > 0:
-                if total < 4:
-                    return extra + worker_size
-                elif total < 12:
-                    return extra + 2 * worker_size
+                        overflow = min(_.sum(self.room.storage.store) - 500 * 1000,
+                                       self.room.storage.store.energy - 150 * 1000)
+                    if not self.room.storage.storeCapacity:
+                        overflow = self.room.storage.store.energy
+                    if overflow > 0:
+                        # TODO: utility method for "empty storage asap"
+                        if not self.room.storage.storeCapacity:
+                            extra = min(25, math.floor(overflow / (20 * 1000)))
+                        else:
+                            extra = min(5, math.floor(overflow / (20 * 1000)))
+                    elif overflow < -100 * 1000 and base_num > 2:
+                        base_num = 2
+                if self.rcl < 8:
+                    if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
+                        worker_size = 1
+                    else:
+                        worker_size = max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
+                    return (base_num + extra) * worker_size
                 else:
-                    return extra + 3 * worker_size
-            else:
-                total = _.sum(self.building.next_priority_big_repair_targets(), is_relatively_decayed)
-                if total > 0:
-                    return extra + worker_size
+                    if extra > 0:
+                        worker_size = spawning.max_sections_of(self, creep_base_worker)
+                        return (base_num + extra) * worker_size
+                    else:
+                        # Since we have a constant 15-part upgader going at RCL8, workers have to be more of the
+                        # 'scaling' factor.
+                        worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
+                        return 1 * worker_size
         return 0
 
     def get_open_source_spaces(self):
