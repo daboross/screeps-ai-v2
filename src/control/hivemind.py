@@ -1118,7 +1118,8 @@ class RoomMind:
         if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
             return False
         # TODO: constant here and below in upgrader_work_mass
-        if self.conducting_siege() and self.room.storage.store.energy < 500 * 1000:
+        if self.conducting_siege() and (self.room.storage.store.energy < 100 * 1000 or (
+                        self.rcl < 7 and self.room.storage.store.energy < 500 * 1000)):
             return True  # Don't upgrade while we're taking someone down.
         if self.rcl >= 8:
             if self.mem.upgrading_paused and self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading:
@@ -1164,7 +1165,7 @@ class RoomMind:
         if self._building_paused is None:
             if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
                 self._building_paused = False
-            elif self.conducting_siege():
+            elif self.conducting_siege() and self.rcl < 7:
                 self._building_paused = True  # Don't build while we're taking someone down.
             else:
                 if self.mem.building_paused and self.room.storage.store.energy > _energy_to_resume_building:
@@ -1236,24 +1237,24 @@ class RoomMind:
 
         if sources <= 1:
             if len(self.spawns) < 2:
-                return 3
+                return 5
             elif self.rcl == 7:
-                return 4
+                return 7
             elif self.mining_ops_paused():
                 # We only want to *actually* pause them at RCL8:
                 return 0
             else:
-                return 3
+                return 9
         else:
             if len(self.spawns) < 2:
-                return 3
+                return 5
             elif self.rcl == 7:
-                return 4
+                return 6
             elif self.mining_ops_paused():
                 # We only want to *actually* pause them at RCL8:
                 return 0
             else:
-                return 3
+                return 9
 
     def get_max_sane_wall_hits(self):
         """
@@ -1325,11 +1326,17 @@ class RoomMind:
                 invaded_rooms = new_map()
                 for h in self.defense.remote_hostiles():
                     if h.user == INVADER_USERNAME:
-                        if invaded_rooms.has(h.room):
-                            invaded_rooms.set(h.room, invaded_rooms.get(h.room) + 1)
+                        if h.heal:
+                            need = 8
+                        elif h.ranged and not h.attack:
+                            need = -100  # Don't try to defend against kiting invaders
                         else:
-                            invaded_rooms.set(h.room, 1)
-                needed_for_mines = _.sum(list(invaded_rooms.values()), lambda v: math.ceil(v / 3))
+                            need = 1
+                        if invaded_rooms.has(h.room):
+                            invaded_rooms.set(h.room, invaded_rooms.get(h.room) + need)
+                        else:
+                            invaded_rooms.set(h.room, need)
+                needed_for_mines = _.sum(list(invaded_rooms.values()), lambda v: max(0, math.ceil(v / 3)))
                 self._target_defender_count = needed_local + needed_for_mines
         return self._first_simple_target_defender_count if first else self._target_defender_count
 
@@ -1343,7 +1350,7 @@ class RoomMind:
             mineral_steal = 0
             for room in self.subsidiaries:
                 if _.find(room.defense.dangerous_hostiles(),
-                          lambda c: c.getActiveBodyparts(ATTACK) or c.getActiveBodyparts(RANGED_ATTACK)):
+                          lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
                     continue
                 distance = len(self.hive_mind.honey.find_path(
                     self.spawn, __new__(RoomPosition(25, 25, room.room_name)), {'range': 15}))
@@ -1361,8 +1368,10 @@ class RoomMind:
                                 break  # this is sorted
                 if room.room.storage:
                     target = min(10, 5 + room.room.storage.store.energy / 20 * 1000) * worker_mass
-                else:
+                elif len(room.sources) >= 2:
                     target = 5 * worker_mass
+                else:
+                    target = 10
                 needed += max(0, target - room_work_mass)
                 if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store.energy \
                         and room.room.storage.storeCapacity <= 0:
@@ -1482,6 +1491,17 @@ class RoomMind:
             self.mem.oss = oss
         return self.mem.oss
 
+    def get_open_source_spaces_around(self, source):
+        key = 'oss-{}'.format(source.id)
+        if key not in self.mem:
+            oss = 0
+            for x in range(source.pos.x - 1, source.pos.x + 2):
+                for y in range(source.pos.y - 1, source.pos.y + 2):
+                    if movement.is_block_empty(self, x, y):
+                        oss += 1
+            self.mem[key] = oss
+        return self.mem[key]
+
     def get_target_upgrade_fill_mass(self):
         if self._target_upgrade_fill_work_mass is None:
             target = self.get_upgrader_energy_struct()
@@ -1492,7 +1512,7 @@ class RoomMind:
                     self._target_upgrade_fill_work_mass = 0
                 else:
                     self._target_upgrade_fill_work_mass = 1
-            elif _.sum(target.store) >= target.storeCapacity * 0.5:
+            elif _.sum(target.store) >= target.storeCapacity * 0.5 and self.role_count(role_upgrader) <= 1:
                 self._target_upgrade_fill_work_mass = 0
             else:
                 # TODO: dynamic calculation here
@@ -1682,9 +1702,10 @@ class RoomMind:
 
         next_role = self._check_role_reqs([
             [role_tower_fill, self.get_target_tower_fill_mass, True],
-            [role_wall_defender, self.get_target_wall_defender_count],
             [role_spawn_fill, self.get_target_spawn_fill_mass, True],
+            [role_wall_defender, self.get_target_wall_defender_count],
             [role_defender, self.get_target_simple_defender_count],
+            [role_colonist, self.get_target_colonist_work_mass, False, True],
         ])
         if next_role is not None:
             return next_role
@@ -2002,14 +2023,80 @@ class RoomMind:
 
 
 profiling.profile_whitelist(RoomMind, [
-    "recalculate_roles_alive",
-    "precreep_tick_actions",
-    "poll_hostiles",
-    "plan_next_role",
     "find",
     "find_at",
+    "look_at",
     "find_in_range",
     "find_closest_by_range",
-    "look_at",
     "look_for_in_area_around",
+    "register_to_role",
+    "recalculate_roles_alive",
+    "get_next_replacement_name",
+    "next_x_to_die_of_role",
+    "extra_creeps_with_carry_in_role",
+    "extra_creeps_with_work_in_role",
+    "register_new_replacing_creep",
+    "replacements_currently_needed_for",
+    "count_noneol_creeps_targeting",
+    "carry_mass_of_replacements_currently_needed_for",
+    "work_mass_of_replacements_currently_needed_for",
+    "precreep_tick_actions",
+    "reassign_roles",
+    "get_position",
+    "get_sources",
+    "get_spawns",
+    "get_creeps",
+    "get_upgrader_energy_struct",
+    "get_extra_fill_targets",
+    "get_work_mass",
+    "get_if_all_big_miners_are_placed",
+    "get_trying_to_get_full_storage_use",
+    "get_full_storage_use",
+    "being_bootstrapped",
+    "mining_ops_paused",
+    "upgrading_deprioritized",
+    "building_paused",
+    "overprioritize_building",
+    "_any_closest_to_me",
+    "conducting_siege",
+    "get_target_link_manager_count",
+    "get_target_wall_defender_count",
+    "get_target_simple_defender_count",
+    "get_target_colonist_work_mass",
+    "get_target_mineral_steal_mass",
+    "get_target_spawn_fill_backup_carry_mass",
+    "get_target_spawn_fill_mass",
+    "get_target_total_spawn_fill_mass",
+    "get_target_builder_work_mass",
+    "get_open_source_spaces",
+    "get_target_upgrade_fill_mass",
+    "get_target_upgrader_work_mass",
+    "get_upgrader_size",
+    "get_target_tower_fill_mass",
+    "get_target_room_reserve_count",
+    "get_next_spawn_fill_body_size",
+    "_check_role_reqs",
+    "wall_defense",
+    "_next_needed_local_mining_role",
+    "_next_needed_local_role",
+    "get_max_sections_for_role",
+    "get_variable_base",
+    "_next_cheap_military_role",
+    "_next_complex_defender",
+    "flags_without_target",
+    "get_spawn_for_flag",
+    "spawn_one_creep_per_flag",
+    "_next_tower_breaker_role",
+    "next_cheap_dismantle_goal",
+    "plan_next_role",
+    # "recalculate_roles_alive",
+    # "precreep_tick_actions",
+    # "poll_hostiles",
+    # "plan_next_role",
+    # "find",
+    # "find_at",
+    # "find_in_range",
+    # "find_closest_by_range",
+    # "look_at",
+    # "look_for_in_area_around",
 ])

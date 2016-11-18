@@ -356,7 +356,10 @@ class RoleBase:
         #                          .format(here.roomName, target_room, JSON.stringify(pos), self.memory.role))
         #             self.last_checkpoint = None
         self.last_checkpoint = None
-        return self.creep.moveTo(pos, move_opts)
+        result = self.creep.moveTo(pos, move_opts)
+        if result == -2:
+            self.basic_move_to(pos)
+        return result
 
     def move_to(self, target):
         if self.creep.fatigue <= 0:
@@ -376,8 +379,11 @@ class RoleBase:
                     self.creep.suicide()
                     self.home.mem.meta.clear_next = 0  # clear next tick
             elif result != OK:
-                if result != ERR_NOT_FOUND:
-                    self.log("WARNING: Unknown result from creep.moveTo: {}", result)
+                if result != ERR_NOT_FOUND and (result != ERR_NO_PATH or (self.pos.x != 49 and self.pos.y != 49
+                                                                          and self.pos.x != 0 and self.pos.y != 0)):
+                    self.log("WARNING: Unknown result from ({} at {}:{},{}).moveTo({}:{},{}): {}",
+                             self.memory.role, self.pos.roomName, self.pos.x, self.pos.y,
+                             target.roomName, target.x, target.y, result)
 
     def harvest_energy(self):
         if self.home.full_storage_use:
@@ -431,7 +437,7 @@ class RoleBase:
 
         source = self.targets.get_new_target(self, target_source)
         if not source:
-            if self.creep.getActiveBodyparts(WORK):
+            if self.creep.hasActiveBodyparts(WORK):
                 self.log("Wasn't able to find a source!")
                 self.finished_energy_harvest()
             self.go_to_depot()
@@ -452,7 +458,10 @@ class RoleBase:
                 self.move_to_local_source_with_queue(pile)
                 return False
             result = self.creep.pickup(pile)
-            if result != OK:
+            if result == OK:
+                self.creep.picked_up = True
+                pile.picked_up = True
+            else:
                 self.log("Unknown result from creep.pickup({}): {}", pile, result)
             return False
 
@@ -490,11 +499,16 @@ class RoleBase:
         if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), lambda c: c.memory.role == role_miner):
             self.go_to_depot()
             return False
-        if not self.creep.getActiveBodyparts(WORK):
+        if not self.creep.hasActiveBodyparts(WORK):
             self.go_to_depot()
             self.finished_energy_harvest()
             return False
 
+        if source.energy <= 2 and Game.time % 10 == 5 and source.ticksToRegeneration >= 50:
+            if _.find(self.home.sources, lambda s: s.energy > 0):
+                self.targets.untarget(self, target_source)
+            elif self.creep.carry.energy >= 100:
+                self.memory.filling = False
         if not self.creep.pos.isNearTo(source.pos):
             self.move_to(source)
             return False
@@ -510,33 +524,30 @@ class RoleBase:
         self.targets.untarget(self, target_closest_energy_site)
 
     def repair_nearby_roads(self):
-        if self.creep.getActiveBodyparts(WORK) <= 0:
+        if not self.creep.hasActiveBodyparts(WORK):
             return False
         if self.creep.carry.energy <= 0:
             return False
-        repair = _.filter(self.room.look_at(LOOK_STRUCTURES, self.creep.pos),
-                          lambda s: s.structureType == STRUCTURE_ROAD and s.hits < s.hitsMax)
-        # repair = self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos)
-        if len(repair):
-            if len(repair) > 1:
-                result = self.creep.repair(_.min(repair, lambda s: s.hits / s.hitsMax))
-            else:
-                result = self.creep.repair(repair[0])
-            if result == OK:
-                return True
-            else:
-                self.log("Unknown result from passingby-road-repair on {}: {}".format(repair, result))
-        else:
-            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)
-            if len(build):
-                if len(build) > 1:
-                    result = self.creep.build(_.max(build, lambda s: s.progress / s.progressTotal))
-                else:
-                    result = self.creep.build(build[0])
+        road = _.find(self.room.look_at(LOOK_STRUCTURES, self.creep.pos),
+                      lambda s: s.structureType == STRUCTURE_ROAD)
+        if road:
+            if road.hits < road.hitsMax and road.hitsMax - road.hits \
+                    >= REPAIR_POWER * self.creep.getActiveBodyparts(WORK):
+                result = self.creep.repair(road)
                 if result == OK:
                     return True
                 else:
-                    self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
+                    self.log("Unknown result from passingby-road-repair on {}: {}".format(road, result))
+        else:
+            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)
+            if len(build):
+                build = _.find(build, lambda s: s.structureType == STRUCTURE_ROAD)
+                if build:
+                    result = self.creep.build(build)
+                    if result == OK:
+                        return True
+                    else:
+                        self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
         return False
 
     def find_depot(self):
@@ -651,6 +662,11 @@ class RoleBase:
             return False
         adx = target.x - self.pos.x
         ady = target.y - self.pos.y
+        if target.roomName != self.pos.roomName:
+            room1x, room1y = movement.parse_room_to_xy(self.pos.roomName)
+            room2x, room2y = movement.parse_room_to_xy(target.roomName)
+            adx += (room2x - room1x) * 50
+            ady += (room2y - room1y) * 50
         dx = Math.sign(adx)
         dy = Math.sign(ady)
         if dx and dy:

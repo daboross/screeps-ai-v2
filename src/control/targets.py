@@ -305,16 +305,21 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         has_work = not not creep.creep.getActiveBodyparts(WORK)
+        any_miners = not not creep.home.role_count(role_miner)
         highest_priority = -Infinity
         best_source = None
         for source in creep.home.find(FIND_SOURCES):
             if not has_work and not _.find(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
                                            lambda c: c.memory.role == role_miner):
                 continue
-            energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
             distance = movement.distance_room_pos(source.pos, creep.pos)
             current_work_force = self.workforce_of(target_source, source.id)
-            priority = energy - current_work_force * 100 - distance * 2
+            if any_miners:
+                energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                priority = energy - current_work_force * 100 - distance * 2
+            else:
+                oss = creep.home.get_open_source_spaces_around(source)
+                priority = oss * 10 - 100 * current_work_force / oss - distance
             if source.energy <= 0:
                 priority -= 200
             if priority > highest_priority:
@@ -414,6 +419,10 @@ class TargetMind:
             elif current_work < smallest_work_force:
                 best_id = site_id
                 smallest_work_force = current_work
+        if not best_id and len(sites):
+            creep.home.building.refresh_building_targets(True)
+            # TODO: Infinite loop warning!!!
+            return self._find_new_construction_site(creep, walls_only)
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits, max_work=_MAX_REPAIR_WORKFORCE):
@@ -428,13 +437,21 @@ class TargetMind:
         # best_id = None
         if len(repair_targets) <= 1 and not len(creep.home.building.next_priority_construction_targets()):
             max_work = Infinity
+        extension_spots = creep.home.building.where_be_extensions()
+        extension_rampart_max_hits = creep.home.get_max_rampart_extension_hits()
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
             if not structure:
                 continue
+            # TODO: merge this logic with ConstructionMind _efficiently!_
             this_hits_max = structure.hitsMax
-            if structure.structureType == STRUCTURE_WALL or structure.structureType == STRUCTURE_RAMPART:
+            if structure.structureType == STRUCTURE_WALL:
                 this_hits_max = min(this_hits_max, max_hits)
+            elif structure.structureType == STRUCTURE_RAMPART:
+                if extension_spots.includes(movement.xy_to_serialized_int(structure.pos.x, structure.pos.y)):
+                    this_hits_max = min(this_hits_max, max_hits, extension_rampart_max_hits)
+                else:
+                    this_hits_max = min(this_hits_max, max_hits)
             if structure and structure.hits < this_hits_max * 0.9:
                 if max_work is Infinity:
                     current_max = Infinity
@@ -497,8 +514,8 @@ class TargetMind:
         """
         most_lacking = 0
         best_id = None
-        for tower in creep.room.find(FIND_MY_STRUCTURES):
-            if tower.structureType != STRUCTURE_TOWER or tower.energy >= tower.energyCapacity * 0.9:
+        for tower in creep.room.defense.towers():
+            if tower.energy >= tower.energyCapacity * 0.9:
                 continue
             # 50 per carry part, but we don't know if it's full. this is a safe compromise
             carry_targeting = self.workforce_of(target_tower_fill, tower.id) * 25
@@ -555,32 +572,20 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        # --Called once per creep in the entire lifetime-- < NOT TRUE, we are now resetting all targets multiple times
-        # in a creep's lifetime.
-        # if creep.home.links.enabled:
-        #     target = creep.creep.pos.findClosestByPath(FIND_STRUCTURES, {
-        #         "filter": lambda s: s.structureType == STRUCTURE_LINK
-        #                             or s.structureType == STRUCTURE_STORAGE
-        #     })
 
         if not pos:
             pos = creep.pos
-
-        # TODO: cache the closest deposit site to each mine site.
-        if creep.home.links.enabled:
-            target = _(creep.home.find(FIND_STRUCTURES)) \
-                .filter(lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE)
-                                  and s.id != creep.home.links.main_link.id) \
-                .min(lambda s:
-                     movement.chebyshev_distance_room_pos(pos, s.pos) +
-                     (0 if s.structureType == STRUCTURE_STORAGE else 10))
-
-            if target is not Infinity:
-                return target.id
-            else:
-                return None
-        elif creep.home.room.storage:
-            return creep.home.room.storage.id
+        if creep.home.full_storage_use:
+            best = creep.home.room.storage
+            # Still usually prefer storage over any links, unless a lot longer distance (>13 more away)
+            best_priority = movement.chebyshev_distance_room_pos(pos, best.pos) - 13
+            if creep.home.links.enabled:
+                for struct in creep.home.links.links:
+                    priority = movement.chebyshev_distance_room_pos(pos, struct.pos)
+                    if priority < best_priority:
+                        best = struct
+                        best_priority = priority
+            return best.id
         else:
             return None
 
@@ -626,7 +631,11 @@ class TargetMind:
             current_priority -= closest_distance * 50  # Closer = better
             current_priority += max(abs(25 - wall.pos.x), abs(25 - wall.pos.y))  # Closer to edges = better
             current_priority -= movement.chebyshev_distance_room_pos(creep, wall) / 50  # Closer = better
-            if _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_GREEN}):
+            if closest_distance <= 1:
+                current_priority += 15000
+            elif closest_distance <= 3:
+                current_priority += 12500
+            elif _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_GREEN}):
                 if closest_distance <= 5:
                     current_priority += 10000
                 current_priority += 10000  # Green flag = better
