@@ -66,15 +66,17 @@ class Scout(MilitaryBase):
             self.follow_military_path(self.home.spawn, destination, {"ignore_swamp": True,
                                                                      "use_roads": False})
         if self.pos.roomName == destination.pos.roomName and destination.memory.activate_attack_in:
-            if len(self.room.defense.dangerous_hostiles()) and _.find(self.room.defense.dangerous_hostiles(),
-                                                                      lambda h: h.owner.username != INVADER_USERNAME):
+            if len(self.room.defense.dangerous_hostiles()) and _.sum(self.room.defense.dangerous_hostiles(),
+                                                                     lambda h: h.owner.username != INVADER_USERNAME
+                                                                                and _.sum(h.body, lambda p: p.type == ATTACK
+                                                                                                            or p.type == RANGED_ATTACK
+                                                                                                            or p.type == HEAL)) >= 10:
                 rooms_newly_activated = []
                 for name in destination.memory.activate_attack_in:
                     activate_attack_in = self.hive.get_room(name)
                     if activate_attack_in:
-                        if not activate_attack_in.mem.attack:
-                            activate_attack_in.mem.attack = True
-                            rooms_newly_activated.push(name)
+                        activate_attack_in.defense.activate_live_defenses()
+                        rooms_newly_activated.push(name)
                     else:
                         self.log("WARNING: Couldn't find room {} which flag {} is supposed to alert for attack."
                                  .format(name, destination.name))

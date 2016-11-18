@@ -271,7 +271,9 @@ class RoomDefense:
             return hostile._defenders_near
         else:
             nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1)
-            result = _.filter(nearby, lambda c: c.creep.my and c.creep.getActiveBodyparts(ATTACK))
+            result = _.filter(nearby, lambda c: c.creep.my and c.creep.hasActiveBodyparts(ATTACK)
+                                                and _.find(c.creep.pos.lookFor(LOOK_STRUCTURES),
+                                                           lambda s: s.structureType == STRUCTURE_RAMPART))
             hostile._defenders_near = result
             return result
 
@@ -453,6 +455,16 @@ class RoomDefense:
             self._cache.set('remote_active_hostiles', hostiles)
             return hostiles
 
+    def activate_live_defenses(self):
+        if not self.room.mem.attack:
+            self.room.mem.attack = True
+        self.room.mem.attack_until = Game.time + 10 * 1000
+        self.room.reset_planned_role()
+        message = "{} activating live defenses.".format(self.room.room_name)
+        Game.notify(message)
+        console.log(message)
+        # TODO: place / manipulate RED/GREEN and GREEN/GREEN flags depending on where the hostiles were found.
+
     def towers(self):
         if self._cache.has('towers'):
             return self._cache.get('towers')
@@ -529,18 +541,36 @@ class RoomDefense:
         if not alert:
             if Game.time % 100 == 69:
                 self.set_ramparts(False)
+                if self.room.mem.attack:
+                    if self.room.mem.attack_until:
+                        if Game.time > self.room.mem.attack_until:
+                            del self.room.mem.attack
+                            del self.room.mem.attack_until
+                            message = "{}: disabling active defenses.".format(self.room.room_name)
+                            Game.notify(message)
+                            console.log(message)
+                    else:
+                        self.room.mem.attack_until = Game.time + 10 * 1000
             self.tower_heal()
             return
 
-        for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
-                .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
-            wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
-                          lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
-            if not wall:
-                self.room.building.refresh_building_targets(True)
-            elif wall.hits < self.room.get_min_sane_wall_hits:
-                self.room.building.refresh_repair_targets(True)
-        self.room.building.next_priority_construction_targets()
+        if self.room.mem.attack:
+            self.room.mem.attack_until = Game.time + 10 * 1000
+
+        if Game.time % 5 == 1:
+            for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
+                    .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
+                wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
+                              lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
+                if not wall:
+                    if len(self.room.find(FIND_MY_CONSTRUCTION_SITES)) < 15 \
+                            and not _.find(self.room.room.lookForAt(LOOK_CONSTRUCTION_SITES, flag),
+                                           lambda s: s.structureType == STRUCTURE_WALL
+                                           or s.structureType == STRUCTURE_RAMPART):
+                        self.room.building.refresh_building_targets(True)
+                elif wall.hits < self.room.get_min_sane_wall_hits:
+                    self.room.building.refresh_repair_targets(True)
+            self.room.building.next_priority_construction_targets()
 
         if not len(self.all_hostiles()):
             if not (self.room.mem.alert_for < 0):
@@ -560,16 +590,24 @@ class RoomDefense:
         hostiles = self.dangerous_hostiles()
         towers = self.towers()
 
-        if len(hostiles) and (len(towers) or len(self.room.creeps) or self.room.spawn):
-            print("[{}][defense] Found danger:{}".format(self.room.room_name,
-                                                         ["\n(a: {}, h: {}, hits: {}%, pos: {},{})"
-                                                         .format(h.getActiveBodyparts(ATTACK),
-                                                                 h.getActiveBodyparts(HEAL),
-                                                                 round(h.hits / h.hitsMax * 100),
-                                                                 h.pos.x,
-                                                                 h.pos.y) for h in hostiles]))
+        # if len(hostiles) and (len(towers) or self.room.spawn):
+        #     print("[{}][defense] Found danger:{}".format(
+        #         self.room.room_name, ["\n(a: {}, h: {}, w: {}, r: {}, hits: {}%, pos: {},{}, prio: {})"
+        #                                   .format(h.getActiveBodyparts(ATTACK),
+        #                                           h.getActiveBodyparts(HEAL),
+        #                                           h.getActiveBodyparts(WORK),
+        #                                           h.getActiveBodyparts(RANGED_ATTACK),
+        #                                           round(h.hits / h.hitsMax * 100),
+        #                                           h.pos.x, h.pos.y,
+        #                                           self.danger_level(h)) for h in hostiles]))
 
         if len(towers):
+            if Game.time % 3 == 1:
+                damaged_warriors = _.filter(self.room.find(FIND_MY_CREEPS),
+                                            lambda c: c.hasBodyparts(ATTACK) and c.hits < c.hitsMax)
+                if len(damaged_warriors):
+                    for tower in towers:
+                        tower.heal(damaged_warriors[0])
             tower_index = 0
             for hostile in hostiles:
                 # TODO: healer confusing logic here?
