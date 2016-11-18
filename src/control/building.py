@@ -488,6 +488,8 @@ class ConstructionMind:
         return target_list
 
     def place_remote_mining_roads(self):
+        if Game.time % 30 != 3:
+            return
         current_method_version = 23
         latest_key = "{}-{}-{}".format(current_method_version, self.room.rcl, len(self.room.mining.active_mines))
         last_run_version = self.room.get_cached_property("placed_mining_roads")
@@ -519,6 +521,10 @@ class ConstructionMind:
             return
         else:
             volatile_cache.mem("run_once").set("place_remote_mining_roads", True)
+
+        single_mine_num = self.room.get_cached_property("run_only_mine")
+        if single_mine_num is None and len(self.room.mining.active_mines) > 5:
+            single_mine_num = 0
 
         # stagger updates after a version change.
         # Really don't do this often either - this is an expensive operation.
@@ -584,24 +590,74 @@ class ConstructionMind:
                     else:
                         future_road_positions_per_room[pos.roomName] = [pos]
 
-        # Prioritize paths for far-away mines (last in the original array)
-        for mine in reversed(self.room.mining.active_mines):
-            if mine.pos.roomName == self.room.room_name \
-                    and (self.room.rcl < 4 or not self.room.room.storage or not self.room.room.storage.storeCapacity):
-                continue
-            deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
-            if not deposit_point:
-                # If we have no storage nor spawn, don't pave.
-                continue
-            # It's important to run check_route on this path before doing another path, since this updates the
-            # future_road_positions_per_room object.
-            self.hive.honey.clear_cached_path(deposit_point, mine)
-            check_route(mine, self.hive.honey.list_of_room_positions_in_path(deposit_point, mine, road_opts))
-            self.hive.honey.clear_cached_path(mine, deposit_point)
-            check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
-            for spawn in self.room.spawns:
-                self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
+        if single_mine_num is not None:
+            mines = list(reversed(self.room.mining.active_mines))
+            if single_mine_num < len(mines):
+                mine = mines[single_mine_num]
+                target = None
+                if mine.pos.roomName != self.room.room_name or (self.room.rcl >= 4 and self.room.room.storage
+                                                                and self.room.room.storage.storeCapacity):
+
+                    deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
+                    if deposit_point:
+                        target = self.room.get_cached_property("run_only_mine_target_num") or 0
+                        if target == 0:
+                            self.hive.honey.clear_cached_path(deposit_point, mine)
+                            check_route(mine, reversed(self.hive.honey.list_of_room_positions_in_path(
+                                deposit_point, mine, road_opts)))
+                        elif target == 1:
+                            self.hive.honey.clear_cached_path(mine, deposit_point)
+                            check_route(mine, self.hive.honey.list_of_room_positions_in_path(
+                                mine, deposit_point, road_opts))
+                        elif target == 2:
+                            for spawn in self.room.spawns:
+                                self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
+                                check_route(mine, self.hive.honey.list_of_room_positions_in_path(
+                                    mine, spawn, spawn_road_opts))
+
+                if (target is None) or (placed_count + preexisting_count < 100 and not any_non_visible_rooms):
+                    if target is not None and target < 2:
+                        self.room.store_cached_property("run_only_mine_target_num", target + 1, 500)
+                    else:
+                        self.room.store_cached_property("run_only_mine_target_num", 0, 500)
+                        self.room.store_cached_property("run_only_mine", single_mine_num + 1, 500)
+                print("[{}][building] Searched target {}/3 of mine {}/{} for remote mining roads.".format(
+                    self.room.room_name, target, single_mine_num + 1, len(mines)))
+                return
+            print("[{}][building] Finished searching all mines one at a time!".format(self.room.room_name))
+            self.room.store_cached_property("run_only_mine", 0, 0)
+            del self.room.mem.cache['run_only_mine_target_num']
+
+        else:
+            try:
+                # Prioritize paths for far-away mines (last in the original array)
+                for mine in reversed(self.room.mining.active_mines):
+                    if mine.pos.roomName == self.room.room_name \
+                            and (self.room.rcl < 4 or not self.room.room.storage
+                                 or not self.room.room.storage.storeCapacity):
+                        continue
+
+                    deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
+                    if not deposit_point:
+                        # If we have no storage nor spawn, don't pave.
+                        continue
+                    # It's important to run check_route on this path before doing another path, since this updates the
+                    # future_road_positions_per_room object.
+                    self.hive.honey.clear_cached_path(deposit_point, mine)
+                    check_route(mine,
+                                reversed(self.hive.honey.list_of_room_positions_in_path(deposit_point, mine,
+                                                                                        road_opts)))
+                    self.hive.honey.clear_cached_path(mine, deposit_point)
+                    check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
+                    for spawn in self.room.spawns:
+                        self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
+                        check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
+            except:
+                if not __except0__:
+                    # we've run out of CPU!
+                    self.room.store_cached_property("run_only_mine", 0, 100)
+                __pragma__('js', 'throw __except0__;')
+                raise __except0__
 
         to_destruct = 0
         for room_name in checked_positions_per_room.keys():

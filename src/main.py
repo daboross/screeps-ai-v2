@@ -267,8 +267,14 @@ def main():
         if Game.gcl.level > 1 and Game.cpu.bucket <= 4000:
             rooms = sorted(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
             rooms = rooms[:len(rooms) - 1]
+        used_start = Game.cpu.getUsed()
         for room in rooms:
             run_room(target_mind, creeps_skipped, room)
+            if Game.cpu.getUsed() - used_start >= 250:
+                Game.notify("Used >= 250 CPU this tick! Skipping the rest of the the turn.", 10)
+                print("[main] Used >= 250 CPU this tick! Skipping everything else.")
+                return
+
     averages.start_record()
     for room in hive_mind.visible_rooms:
         autoactions.pickup_check_room(room)
