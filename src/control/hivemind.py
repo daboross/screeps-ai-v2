@@ -1813,8 +1813,16 @@ class RoomMind:
             return role_obj
         role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE, role_simple_dismantle, creep_base_dismantler,
                                                  creep_base_full_move_dismantler)
+
         if role_obj:
             return role_obj
+
+        role_obj = self.spawn_one_creep_per_flag(flags.ENERGY_GRAB, role_energy_grab, creep_base_hauler,
+                                                 creep_base_hauler)
+
+        if role_obj:
+            return role_obj
+
         role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
                                                  creep_base_full_move_power_attack)
         if role_obj:
@@ -1841,8 +1849,14 @@ class RoomMind:
         return None
 
     def next_cheap_dismantle_goal(self):
-        if self.conducting_siege():
+        if self.conducting_siege() or self.under_siege():
             return
+
+        role_obj = self.spawn_one_creep_per_flag(flags.ENERGY_GRAB, role_energy_grab, creep_base_hauler,
+                                                 creep_base_hauler)
+
+        if role_obj:
+            return role_obj
 
         role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE,
                                                  role_simple_dismantle,
@@ -1877,11 +1891,11 @@ class RoomMind:
                 self._next_needed_local_mining_role,
                 self.wall_defense,
                 self._next_cheap_military_role,
-                self.mining.next_mining_role,
+                self.next_cheap_dismantle_goal,
                 self._next_complex_defender,
+                self.mining.next_mining_role,
                 self._next_tower_breaker_role,
                 self._next_needed_local_role,
-                self.next_cheap_dismantle_goal,
             ]
         next_role = None
         for func in funcs_to_try:

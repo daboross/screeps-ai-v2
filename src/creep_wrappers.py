@@ -45,6 +45,7 @@ role_classes = {
     role_scout: exploring.Scout,
     role_power_attack: offensive.PowerAttack,
     role_power_cleanup: offensive.PowerCleanup,
+    role_energy_grab: offensive.EnergyGrab,
 }
 
 

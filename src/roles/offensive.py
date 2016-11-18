@@ -3,7 +3,9 @@ import math
 import autoactions
 import flags
 from constants import target_single_flag, role_td_healer, target_single_flag2
+from goals.transport import TransportPickup
 from role_base import RoleBase
+from roles.mining import EnergyHauler
 from utilities import movement
 from utilities.movement import center_pos, room_xy_to_name, parse_room_to_xy
 from utilities.screeps_constants import *
@@ -447,6 +449,55 @@ class Dismantler(MilitaryBase):
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target)
+        if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
+            path_len *= 2
+        return path_len + _.size(self.creep.body) * 3 + 10
+
+
+class EnergyGrab(TransportPickup, EnergyHauler):
+    def run(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.ENERGY_GRAB)
+        if not target:
+            if 'recycling_from' not in self.memory:
+                target = self.memory.recycling_from = self.pos
+            else:
+                target = _.create(RoomPosition.prototype, self.memory.recycling_from)
+            if not self.pos.isNearTo(self.home.spawn):
+                return self.follow_energy_path(target, self.home.spawn)
+            else:
+                return self.recycle_me()
+
+        fill = self.home.room.storage or self.home.spawn
+
+        if self.memory.filling and (
+                        Game.time * 2 + self.creep.ticksToLive) % 5 and self.pos.roomName == target.pos.roomName:
+            piles = self.room.look_at(LOOK_RESOURCES, target)
+            if not len(piles) and not _.find(self.room.look_at(LOOK_STRUCTURES, target),
+                                             lambda s: s.structureType == STRUCTURE_CONTAINER and s.store.energy):
+                new_target = self.room.find_closest_by_range(FIND_STRUCTURES, target.pos,
+                                                             lambda s: s.structureType == STRUCTURE_CONTAINER
+                                                                       and s.store.energy)
+                if not new_target:
+                    new_target = self.room.find_closest_by_range(FIND_DROPPED_RESOURCES, target.pos)
+                if new_target:
+                    target.setPosition(new_target.pos)
+                    return False
+                else:
+                    target.remove()
+                    return False
+        elif fill == self.home.spawn and not self.memory.filling:
+            if self.pos.roomName == fill.pos.roomName:
+                return self.run_local_refilling(target, fill)
+            else:
+                del self.memory.running
+
+        return self.transport(target, fill)
+
+    def _calculate_time_to_replace(self):
+        target = self.targets.get_new_target(self, target_single_flag, flags.ENERGY_GRAB)
+        if not target:
+            return -1
+        path_len = self.path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
