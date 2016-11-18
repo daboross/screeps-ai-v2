@@ -129,6 +129,6 @@ def wrap_main(main_func):
     if enabled and not custom:
         if not initialized:
             init()
-        return module_profiler.wrap(main_func)
+        return lambda: module_profiler.wrap(main_func)
     else:
         return main_func

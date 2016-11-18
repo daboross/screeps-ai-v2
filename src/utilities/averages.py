@@ -18,8 +18,8 @@ def clean_and_prepare_memory_array(name):
     array = Memory.cpu_usage[name]
     if array is undefined:
         Memory.cpu_usage[name] = []
-    elif len(array) > 1200:
-        Memory.cpu_usage[name] = array.slice(len(array) - 1000)
+    elif len(array) > 400:
+        Memory.cpu_usage[name] = array.slice(len(array) - 300)
 
 
 def end_main_loop():

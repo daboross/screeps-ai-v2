@@ -10,6 +10,9 @@ def init_memory():
 
 
 init_memory()
+
+require("perf")()
+
 import math
 
 import autoactions
@@ -32,7 +35,6 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-require("perf")()
 
 
 def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
