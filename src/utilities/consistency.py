@@ -83,7 +83,7 @@ def get_next_replacement_time(room):
 
 def clear_cache():
     for name, mem in _.pairs(Memory.rooms):
-        if mem.cache:
+        if 'cache' in mem:
             for key in Object.keys(mem.cache):
                 cache = mem.cache[key]
                 if Game.time > cache.dead_at or (cache.ttl_after_use
@@ -91,9 +91,35 @@ def clear_cache():
                     del mem.cache[key]
             if len(Object.keys(mem.cache)) <= 0:
                 del mem.cache
-        if len(Object.keys(mem)) <= 0:
+        if 'rea' in mem and mem.rea <= Game.time:
+            del mem.rea
+        if _.isEmpty(mem):
             del Memory.rooms[name]
+    for name, mem in _.pairs(Memory.flags):
+        if _.isEmpty(mem):
+            del Memory.flags[name]
+        elif name not in Game.flags and (
+            (not name.includes('_') and name.includes('Flag')) or name.includes('local_mine')):
+            del Memory.flags[name]
+            print('[consistency] Clearing flag {}\'s memory: {}'.format(name, JSON.stringify(mem)))
     global_cache.cleanup()
+
+
+def clear_all_dead(hive):
+    for room in hive.my_rooms:
+        clear_memory(room)
+        room.recalculate_roles_alive()
+        room.reset_planned_role()
+
+    for name, mem in _.pairs(Memory.creeps):
+        if name not in Game.creeps:
+            print('[consistency] Clearing rouge creep: {} ({})'.format(name, mem.home))
+            del Memory.creeps[name]
+    for name, targets in _.pairs(_.get(Memory, 'targets.targeters_using')):
+        if name not in Game.creeps:
+            print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
+            hive.target_mind._unregister_all(name)
+
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
 
