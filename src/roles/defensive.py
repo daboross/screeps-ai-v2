@@ -1,6 +1,7 @@
 import role_base
 from constants import INVADER_USERNAME, target_rampart_defense, role_recycling, role_wall_defender
 from role_base import RoleBase
+from roles.offensive import MilitaryBase
 from tools import profiling
 from utilities import hostile_utils
 from utilities import movement
@@ -22,7 +23,7 @@ def avoid_hostile_rooms_costmatrix(room_name, cost_matrix):
     return cost_matrix
 
 
-class RoleDefender(RoleBase):
+class RoleDefender(MilitaryBase):
     def should_pickup(self, resource_type=None):
         return False
 
@@ -38,9 +39,11 @@ class RoleDefender(RoleBase):
                     closest_distance = distance
             if not best_id:
                 for mem_hostile in self.home.defense.remote_hostiles():
-                    distance = movement.distance_squared_room_pos(self.pos, {
-                        'x': mem_hostile.pos & 0x3F, 'y': mem_hostile.pos >> 6 & 0x3F, 'roomName': mem_hostile.room,
-                    })
+                    distance = movement.distance_squared_room_pos(self.pos,
+                                                                  movement.serialized_pos_to_pos_obj(mem_hostile.room,
+                                                                                                     mem_hostile.pos))
+                    if mem_hostile.ranged and not mem_hostile.attack:
+                        distance += 1000  # Don't go after kiting attackers
                     if distance < closest_distance:
                         best_id = mem_hostile.id
                         closest_distance = distance
@@ -57,13 +60,20 @@ class RoleDefender(RoleBase):
             return True
 
         hostile_room = hostile_info.room
+        hostile_pos = movement.serialized_pos_to_pos_obj(hostile_room, hostile_info.pos)
 
         if self.pos.roomName != hostile_room:
-            self.creep.moveTo(__new__(RoomPosition(25, 25, hostile_room)), {
-                'ignoreRoads': True,
-                'costCallback': avoid_hostile_rooms_costmatrix,
-            })
+            if 'checkpoint' not in self.memory or \
+                            movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                self.memory.checkpoint = self.pos
+            if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
+                self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
+                                                                                 self.home.room_name))
+
+            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
+                                      _.create(RoomPosition.prototype, hostile_pos), {'range': 1})
             return False
+
 
         target = Game.getObjectById(target_id)
 
