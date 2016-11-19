@@ -1376,6 +1376,8 @@ class RoomMind:
                 if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store.energy \
                         and room.room.storage.storeCapacity <= 0:
                     mineral_steal += hauler_mass
+            if Game.cpu.bucket < 4000:
+                needed = 0
             self._target_colonist_work_mass = needed
             self._target_mineral_steal_mass = mineral_steal
         return self._target_colonist_work_mass
