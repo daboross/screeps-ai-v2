@@ -36,7 +36,6 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 
-
 def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and (Game.cpu.bucket < 3000 and
                                                           (Game.gcl.level > 1 or Game.cpu.bucket < 1000)):
@@ -270,9 +269,8 @@ def main():
         used_start = Game.cpu.getUsed()
         for room in rooms:
             run_room(target_mind, creeps_skipped, room)
-            if Game.cpu.getUsed() - used_start >= 250:
-                Game.notify("Used >= 250 CPU this tick! Skipping the rest of the the turn.", 10)
-                print("[main] Used >= 250 CPU this tick! Skipping everything else.")
+            if Game.cpu.getUsed() - used_start >= 400:
+                print("[main] Used >= 400 CPU this tick! Skipping everything else.")
                 return
 
     averages.start_record()
