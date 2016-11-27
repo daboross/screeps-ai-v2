@@ -17,22 +17,31 @@ def pathfinder_path_to_room_to_path_obj(origin, input):
     last_room = None
     current_path = None
     last_x, last_y = origin.x, origin.y
+    reroute_end_dx, reroute_end_dy = None, None
     for pos in input:
         if last_room != pos.roomName:
             current_path = []
             # this is passed by reference, so we just set it here
             result_obj[pos.roomName] = current_path
             last_room = pos.roomName
-        dx = pos.x - last_x
-        dy = pos.y - last_y
-        if dx == -49:
-            dx = 1
-        elif dx == 49:
-            dx = -1
-        if dy == -49:
-            dy = 1
-        elif dy == 49:
-            dy = -1
+        if reroute_end_dx is not None:
+            dx = reroute_end_dx
+            dy = reroute_end_dy
+            reroute_end_dx, reroute_end_dy = None, None
+        else:
+            dx = pos.x - last_x
+            dy = pos.y - last_y
+            if dx == -49:
+                dx = 1
+            elif dx == 49:
+                dx = -1
+            if dy == -49:
+                dy = 1
+            elif dy == 49:
+                dy = -1
+            if pos.endOfReroute:
+                reroute_end_dx = dx
+                reroute_end_dy = dy
         if dx < -1 or dx > 1:
             print("[honey][pathfinder_to_regular_path] dx found from {} to {}: {}".format(
                 last_x, pos.x, dx
@@ -41,13 +50,13 @@ def pathfinder_path_to_room_to_path_obj(origin, input):
             print("[honey][pathfinder_to_regular_path] dy found from {} to {}: {}".format(
                 last_y, pos.y, dy
             ))
-        last_x = pos.x
-        last_y = pos.y
         direction = get_direction(dx, dy)
         if direction is None:
             print("[honey][pathfinder_to_regular_path] Unknown direction for pos: {},{}, last: {},{}".format(
                 pos.x, pos.y, last_x, last_y))
             return None
+        last_x = pos.x
+        last_y = pos.y
         item = {
             'x': pos.x,
             'y': pos.y,
@@ -567,7 +576,9 @@ class HoneyTrails:
                 path1 = self._get_raw_path(origin, reroute_start)
                 if not len(path1) or (path1[len(path1) - 1].isNearTo(reroute_start.pos)
                                       and not path1[len(path1) - 1].isEqualTo(reroute_start.pos)):
-                    path1.push(reroute_start.pos)
+                    pos = __new__(RoomPosition(reroute_start.pos.x, reroute_start.pos.y, reroute_start.pos.roomName))
+                    pos.endOfReroute = True
+                    path1.push(pos)
                 path2 = self._get_raw_path(reroute_destination, destination)
                 return path1.concat(path2)
 
