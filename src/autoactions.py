@@ -350,7 +350,8 @@ def running_check_room(room):
                 or (creep.memory.role == role_simple_dismantle
                     and creep.memory.home in Game.rooms
                     and room.hive_mind.get_room(creep.memory.home).conducting_siege()) \
-                or not creep.hasActiveBodyparts(MOVE):
+                or not creep.hasActiveBodyparts(MOVE) \
+                or (creep.memory.role == role_miner and _.find(creep.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART}):
             continue
         overridden = run_away_check(creep, hostile_path_targets)
         if overridden:

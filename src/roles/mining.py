@@ -135,29 +135,42 @@ class EnergyMiner(TransportPickup):
                         del self.memory.link
                         return False
             else:
+                all_possible_links = _.filter(
+                    self.room.find(FIND_MY_STRUCTURES),
+                    lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
+                               ) and abs(s.pos.x - source_flag.pos.x) <= 2 and abs(s.pos.y - source_flag.pos.y) <= 2)
+                best_priority = 0  # 1-3
+                best_spot = None
                 link = None
-                any_without_upgrade = False
                 for x in range(source_flag.pos.x - 1, source_flag.pos.x + 2):
                     for y in range(source_flag.pos.y - 1, source_flag.pos.y + 2):
                         if movement.is_block_empty(self.room, x, y):
-                            link = _.find(
-                                self.room.find(FIND_MY_STRUCTURES),
-                                lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE)
-                                          and abs(s.pos.x - x) <= 1 and abs(s.pos.y - y) <= 1
-                            )
-                            if link:
-                                self.memory.container_pos = x | y << 6
+                            link_here = _.find(all_possible_links, lambda s: abs(s.pos.x - x) <= 1
+                                                                             and abs(s.pos.y - y) <= 1)
+                            if link_here:
                                 if not flags.look_for(self.room, __new__(RoomPosition(x, y, self.pos.roomName)),
                                                       flags.UPGRADER_SPOT):
-                                    any_without_upgrade = True
+                                    if _.find(self.room.look_at(LOOK_STRUCTURES, x, y),
+                                              lambda s: s.structureType == STRUCTURE_RAMPART):
+                                        priority_here = 3
+                                    else:
+                                        priority_here = 2
+                                else:
+                                    priority_here = 1
+                                if priority_here > best_priority:
+                                    best_priority = priority_here
+                                    best_spot = x | y << 6
+                                    link = link_here
+                                if best_priority >= 3:
                                     break
-                    if link and any_without_upgrade:
+                    if best_priority >= 3:
                         break
                 if link:
                     self.memory.link = link.id
+                    self.memory.container_pos = best_spot
                 else:
                     self.memory.link = None
-                    return False
+                return False
             if self.creep.carry.energy + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
                 if link.structureType == STRUCTURE_LINK:
                     self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
