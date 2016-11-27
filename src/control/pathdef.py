@@ -609,7 +609,7 @@ class HoneyTrails:
             ))
             if roads_better:
                 print("[honey] Trying recalculation without prefering roads.")
-                return self.get_serialized_path_obj(origin, destination, _.create(opts, {'use_roads': False}))
+                return self._get_raw_path(origin, destination, _.create(opts, {'use_roads': False}))
             if len(result.path) > 15:
                 path_start = path.slice(0, -10)
                 midpoint = path_start[len(path_start) - 1]

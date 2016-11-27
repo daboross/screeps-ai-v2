@@ -211,7 +211,10 @@ class MilitaryBase(RoleBase):
             mtarget = self.memory.next_ppos
             if mtarget:
                 new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
-                self.move_to(new_target)
+                if self.pos.isNearTo(new_target):
+                    self.creep.move(self.pos.getDirectionTo(new_target))
+                else:
+                    self.move_to(new_target)
                 if self.pos.isEqualTo(new_target):
                     del self.memory.next_ppos
                 if not self.memory.off_path_for:
@@ -230,6 +233,7 @@ class MilitaryBase(RoleBase):
                             self.hive.honey.clear_cached_path(origin, target, path_opts)
                             del self.memory.off_path_for
                             del self.memory.lost_path_at
+                            del self.memory.next_ppos
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
         else:
