@@ -3,7 +3,7 @@ import random
 import context
 import flags
 import role_base
-from constants import INVADER_USERNAME, role_simple_dismantle
+from constants import INVADER_USERNAME, role_simple_dismantle, role_miner
 from control import defense
 from control import pathdef
 from tools import profiling
@@ -351,7 +351,7 @@ def running_check_room(room):
                     and creep.memory.home in Game.rooms
                     and room.hive_mind.get_room(creep.memory.home).conducting_siege()) \
                 or not creep.hasActiveBodyparts(MOVE) \
-                or (creep.memory.role == role_miner and _.find(creep.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART}):
+                or (creep.memory.role == role_miner and _.find(creep.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART})):
             continue
         overridden = run_away_check(creep, hostile_path_targets)
         if overridden:
