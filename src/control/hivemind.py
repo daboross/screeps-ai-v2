@@ -996,16 +996,17 @@ class RoomMind:
                         self._upgrader_source = structure
                         return structure
             structure = None
-            if self.room.storage and self.room.storage.pos.inRangeTo(self.room.controller, 4):
-                structure = self.room.storage
-            else:
-                all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
-                if all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
-                    structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
-                        .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
-                elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
-                    structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
-                        .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+            if self.room.storage and not self.being_bootstrapped():
+                if self.room.storage.pos.inRangeTo(self.room.controller, 4):
+                    structure = self.room.storage
+                else:
+                    all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
+                    if all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
+                        structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                    elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
+                        structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
             if structure:
                 structure_id = structure.id
             else:
