@@ -106,6 +106,7 @@ for (let room of py.hive().my_rooms) { console.log(`${room.room_name}: def: ${!!
 _(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.roomName} has ${' and '.join(_(x.minerals.get_total_room_resource_counts).map(v, r => `${v} ${r}`))}.`
 _(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.room_name} has ${x.minerals.get_total_room_resource_counts()['XLHO2'] || 0} XLHO2 and ${x.minerals.get_total_room_resource_counts()['XKHO2'] || 0} XKHO2`).value()
 JSON.stringify(_.countBy(py.flags.find_flags_global(py.flags.ATTACK_POWER_BANK), 'pos.roomName'))
+Game.rooms.E56N21.find(FIND_MY_CREEPS).forEach(c => c.memory.role = py.constants.role_builder)
 
 py.get_room("E11N34").minerals.fill_order('5828da30dcfc6b7f21ea02d7')
 py.get_room("E11N34").minerals.fill_order('5828a31d6a473c1f6cea64af')
