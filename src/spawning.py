@@ -24,6 +24,7 @@ initial_section = {
     creep_base_carry3000miner: [CARRY, WORK, WORK, WORK, WORK, WORK],
     creep_base_mammoth_miner: [MOVE, CARRY, WORK, WORK, WORK],
     creep_base_ranged_offense: [MOVE, HEAL],
+    creep_base_3h: [MOVE, MOVE, MOVE, HEAL, HEAL, HEAL],
 }
 
 # TODO: limit goader and healer in RoomMind
@@ -36,6 +37,7 @@ scalable_sections = {
     creep_base_defender: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK],
     creep_base_rampart_defense: [MOVE, ATTACK, ATTACK],
     creep_base_ranged_offense: [MOVE, RANGED_ATTACK],
+    creep_base_3h: [MOVE, RANGED_ATTACK],
     creep_base_1500miner: [MOVE],
     creep_base_3000miner: [MOVE],
     creep_base_4000miner: [MOVE],
@@ -68,6 +70,7 @@ half_sections = {
     creep_base_power_attack: [MOVE, ATTACK],
     creep_base_dismantler: [MOVE, WORK],
     creep_base_claim_attack: [MOVE, MOVE, TOUGH, HEAL],
+    creep_base_3h: [MOVE, MOVE, TOUGH, TOUGH],
 }
 
 low_energy_sections = {
@@ -362,6 +365,17 @@ def run(room, spawn):
         for i in range(0, 1 + num_sections):
             parts.append(MOVE)
         parts.append(HEAL)
+        descriptive_level = num_sections
+    elif base is creep_base_3h:
+        parts = []
+        for i in range(0, half_section * 2):
+            parts.append(TOUGH)
+        for i in range(0, num_sections):
+            parts.append(RANGED_ATTACK)
+        for i in range(0, 3 + 2 * half_section + num_sections):
+            parts.append(MOVE)
+        for i in range(0, 3):
+            parts.append(HEAL)
         descriptive_level = num_sections
     elif base is creep_base_mammoth_miner:
         parts = [MOVE, CARRY]

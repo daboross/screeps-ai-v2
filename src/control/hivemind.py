@@ -1808,8 +1808,16 @@ class RoomMind:
 
     def _next_complex_defender(self):
         if self.room.energyCapacityAvailable >= 500:
-            return self.spawn_one_creep_per_flag(flags.RANGED_DEFENSE, role_ranged_offense,
-                                                 creep_base_ranged_offense, creep_base_ranged_offense)
+            flag_list = self.flags_without_target(flags.RANGED_DEFENSE)
+
+            if len(flag_list):
+                flag = flag_list[0]
+                if flag.name in Memory.flags and flag.memory.heal:
+                    base = creep_base_3h
+                else:
+                    base = creep_base_ranged_offense
+                return self.get_spawn_for_flag(role_ranged_offense, base, base, flag, 0)
+            return None
 
     def _next_claim(self):
         if self.room.energyCapacityAvailable >= 650:
