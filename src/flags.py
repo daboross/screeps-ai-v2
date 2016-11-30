@@ -281,7 +281,6 @@ def refresh_flag_caches():
     global _room_flag_cache, _room_flag_refresh_time
     global _global_flag_refresh_time, _global_flag_cache
     global _closest_flag_refresh_time, _closest_flag_cache
-    # TODO: make 50 here a constant, to agree with refresh times set below
     refresh_time = Game.time + _REFRESH_EVERY
     _room_flag_cache = new_map()
     _room_flag_refresh_time = refresh_time
@@ -552,9 +551,13 @@ def create_ms_flag(position, main, sub):
 
 
 def rename_flags():
+    refresh_flag_caches()
     for name in flag_definitions.keys():
         for flag in find_flags_global(name):
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_')) \
+            if Game.cpu.getUsed() > 400:
+                refresh_flag_caches()
+                return "Used too much CPU!"
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or not flag.name.includes('_')) \
                     and flag.name not in Memory.flags:
                 new_name = create_flag(flag.pos, name)
                 if Memory.flags[flag.name]:
@@ -564,7 +567,10 @@ def rename_flags():
                 flag.remove()
     for main in main_to_flag_primary.keys():
         for flag, sub in find_by_main_with_sub_global(main):
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or flag.name.includes('_')) \
+            if Game.cpu.getUsed() > 400:
+                refresh_flag_caches()
+                return "Used too much CPU!"
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or not flag.name.includes('_')) \
                     and flag.name not in Memory.flags:
                 new_name = create_ms_flag(flag.pos, main, sub)
                 if Memory.flags[flag.name]:
@@ -572,6 +578,7 @@ def rename_flags():
                         Memory.flags[new_name] = Memory.flags[flag.name]
                     del Memory.flags[flag.name]
                 flag.remove()
+    refresh_flag_caches()
 
 
 def look_for(room, position, main, sub=None):
