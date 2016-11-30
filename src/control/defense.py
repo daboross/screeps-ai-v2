@@ -376,7 +376,10 @@ class RoomDefense:
             self._cache.set('active_hostiles', hostiles)
             return hostiles
         else:
-            hostiles = self.all_hostiles()
+            if self.room.my and self.room.room.controller.safeMode > 1000:
+                hostiles = []
+            else:
+                hostiles = self.all_hostiles()
             if len(hostiles):
                 if self.room.my:
                     protect = self.room.spawns.concat(self.towers())

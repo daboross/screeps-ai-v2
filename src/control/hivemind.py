@@ -1350,8 +1350,9 @@ class RoomMind:
             needed = 0
             mineral_steal = 0
             for room in self.subsidiaries:
-                if _.find(room.defense.dangerous_hostiles(),
-                          lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
+                if not room.room.controller.safeMode \
+                        and _.find(room.defense.dangerous_hostiles(),
+                                   lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
                     continue
                 distance = len(self.hive_mind.honey.find_path(
                     self.spawn, __new__(RoomPosition(25, 25, room.room_name)), {'range': 15}))
