@@ -488,7 +488,7 @@ class ConstructionMind:
         return target_list
 
     def place_remote_mining_roads(self):
-        if (Game.time + self.room.room_name.charCodeAt(0)) % 30 != 3:
+        if (Game.time + self.room.room_name.charCodeAt(0)) % 30 != 3 or Game.cpu.bucket < 4500:
             return
         current_method_version = 23
         latest_key = "{}-{}-{}".format(current_method_version, self.room.rcl, len(self.room.mining.active_mines))
