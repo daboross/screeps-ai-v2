@@ -161,7 +161,7 @@ class MilitaryBase(RoleBase):
                 intermediate = __new__(RoomPosition(25, 25, target.roomName))
                 if self.pos.roomName != intermediate.roomName:
                     target = intermediate
-                    path_opts.range = 10
+                    path_opts.range = max(path_opts.range or 0, 10)
                 else:
                     # If we're this far away, let's just get to the room using a cached path and then do
                     # basic pathfinding to get to our actual target.
@@ -177,7 +177,7 @@ class MilitaryBase(RoleBase):
                     origin = dest_midpoint
                 else:
                     target = dest_midpoint
-                    path_opts.range = 10
+                    path_opts.range = max(path_opts.range or 0, 10)
 
         path = self.hive.honey.find_path(origin, target, path_opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going

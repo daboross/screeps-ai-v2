@@ -68,11 +68,11 @@ class Colonist(MilitaryBase):
             if meta:
                 meta.clear_next = 0  # clear next tick
         else:
-            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
+            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 20})
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
-        path_len = self.get_military_path_length(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 15})
+        path_len = self.get_military_path_length(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 20})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
