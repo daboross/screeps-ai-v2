@@ -1,16 +1,12 @@
 import math
 
-import random
-
 import flags
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
     role_builder, target_destruction_site, role_upgrader
-from control import pathdef
 from role_base import RoleBase
 from roles import upgrading
 from tools import profiling
-from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -168,7 +164,8 @@ class Builder(upgrading.Upgrader):
                     if self.home.room.storage and self.home.mem.tons:
                         self.memory.la = 'f'
                     elif self.home.mem.tons:
-                        target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_STORAGE})
+                        target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES),
+                                        {'structureType': STRUCTURE_STORAGE})
                         if not target:
                             storage = flags.find_ms_flags(self.home, flags.MAIN_BUILD, flags.SUB_STORAGE)[0]
                             if storage and len(self.home.look_at(LOOK_RESOURCES, storage)):
@@ -271,7 +268,7 @@ class Builder(upgrading.Upgrader):
 
         result = self.creep.repair(target)
         if result == OK:
-            self.move_around_when_ok(target)
+            pass
         elif result == ERR_INVALID_TARGET:
             self.targets.untarget(self, ttype)
             self.home.building.refresh_repair_targets()
@@ -309,7 +306,6 @@ class Builder(upgrading.Upgrader):
 
         result = self.creep.build(target)
         if result == OK:
-            self.move_around_when_ok(target)
             if target.structureType == STRUCTURE_WALL or target.structureType == STRUCTURE_RAMPART:
                 self.memory.building_walls_at = target.pos.x | (target.pos.y << 6)
         elif result == ERR_INVALID_TARGET:
@@ -356,37 +352,6 @@ class Builder(upgrading.Upgrader):
                     else:
                         self.log("Unknown result from btb-transfer({}, {}, {}): {}", refill_target, RESOURCE_ENERGY,
                                  amount, result)
-
-    def move_around_when_ok(self, target):
-        nearby = None
-        if self.home.role_count(role_builder) > 10:
-            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
-            self.refill_nearby(nearby)
-
-        if self.creep._forced_move:
-            return
-
-        if nearby is None:
-            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
-
-        other = _.find(nearby, lambda c: c.creep.name != self.name)
-        if other:
-            best = None
-            available = None
-            for x in range(max(1, self.pos.x - 1), min(49, self.pos.x + 2)):
-                for y in range(max(1, self.pos.y - 1), min(49, self.pos.y + 2)):
-                    if movement.is_block_clear(self.room, x, y):
-                        if max(abs(x - target.pos.x), abs(y - target.pos.y)) <= 3:
-                            if best is None or random.randint(0, 10) > 3:
-                                best = (x, y)
-                        elif available is None or random.randint(0, 10) > 3:
-                            available = (x, y)
-            if best is not None:
-                self.creep.move(pathdef.get_direction(best[0] - self.pos.x, best[1] - self.pos.y))
-            elif available is not None:
-                self.creep.move(pathdef.get_direction(available[0] - self.pos.x, available[1] - self.pos.y))
-            else:
-                self.log("Couldn't find somewhere to move to!")
 
 
 profiling.profile_whitelist(Builder, [

@@ -87,7 +87,7 @@ class RoleDefender(MilitaryBase):
             return True
 
         self.creep.moveTo(target, {'reusePath': 2, 'ignoreRoads': True,
-                                   "costCallback": role_base.def_cost_callback})
+                                   "costCallback": role_base.get_def_cost_callback(hostile_room, self.creep)})
 
     def _calculate_time_to_replace(self):
         return 0  # never live-replace a defender.

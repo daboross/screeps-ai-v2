@@ -90,13 +90,6 @@ class SpawnFill(building.Builder, Refill):
                     else:
                         if not self.creep.pos.isNearTo(target.pos):
                             self.report(speech.spawn_fill_moving_to_target)
-                            if movement.chebyshev_distance_room_pos(self.pos, target) < 5 \
-                                    and 'nbm' not in self.memory:
-                                if self.force_basic_move_to(target, lambda c: (c.memory.role != role_spawn_fill
-                                and c.memory.role != role_tower_fill) or not c.carry.energy):
-                                    return False
-                                else:
-                                    self.memory.nbm = True
                             self.move_to(target)
                             return False
                         del self.memory.nbm

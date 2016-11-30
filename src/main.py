@@ -28,12 +28,14 @@ from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling, memory_info
-from utilities import averages, consistency, global_cache, hostile_utils, movement, volatile_cache
+from utilities import averages, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+
+walkby_move.apply_move_prototype()
 
 
 def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):

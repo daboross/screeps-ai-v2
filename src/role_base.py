@@ -4,7 +4,7 @@ import flags
 from constants import target_source, recycle_time, role_recycling, target_closest_energy_site, role_miner
 from control import pathdef
 from tools import profiling
-from utilities import hostile_utils
+from utilities import hostile_utils, walkby_move
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -73,7 +73,7 @@ def add_sk(room_name, cost_matrix):
                 cost_matrix.set(x, y, 255)
 
 
-def def_cost_callback(room_name, cost_matrix, target_room=None):
+def def_cost_callback(room_name, cost_matrix, target_room=None, me=None):
     if hostile_utils.enemy_room(room_name) and room_name != target_room:
         for x in [0, 49]:
             for y in range(0, 50):
@@ -82,17 +82,20 @@ def def_cost_callback(room_name, cost_matrix, target_room=None):
             for x in range(0, 50):
                 cost_matrix.set(x, y, 255)
         return False
+    if me is not None:
+        walkby_move.mod_cost_matrix(me, room_name, cost_matrix)
     add_exits(room_name, cost_matrix)
     add_roads(room_name, cost_matrix)
     add_sk(room_name, cost_matrix)
 
-def get_def_cost_callback(target_room):
-    return lambda room_name, cost_matrix: def_cost_callback(room_name, cost_matrix, target_room)
 
-_REUSE = find_reuse_path_value()
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "costCallback": def_cost_callback}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "ignoreRoads": True,
-                         "costCallback": def_cost_callback}
+def get_def_cost_callback(target_room, me):
+    return lambda room_name, cost_matrix: def_cost_callback(room_name, cost_matrix, target_room, me)
+
+
+_REUSE = 100  #find_reuse_path_value()
+_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE}
+_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "ignoreRoads": True}
 
 
 class RoleBase:
@@ -235,9 +238,11 @@ class RoleBase:
 
     def _move_options(self):
         if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            return _IGNORE_ROADS_OPTIONS
+            options = Object.create(_IGNORE_ROADS_OPTIONS)
         else:
-            return _DEFAULT_PATH_OPTIONS
+            options = Object.create(_DEFAULT_PATH_OPTIONS)
+        options['costCallback'] = get_def_cost_callback(None, self.creep)
+        return options
 
     __pragma__('nofcall')
 

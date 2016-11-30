@@ -14,11 +14,11 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 
-def get_def_move_opts(target_room):
+def get_def_move_opts(target_room, me):
     return {
         'reusePath': 2,
         'ignoreRoads': True,
-        'costCallback': role_base.get_def_cost_callback(target_room),
+        'costCallback': role_base.get_def_cost_callback(target_room, me),
     }
 
 
@@ -214,7 +214,7 @@ class KitingOffense(MilitaryBase):
                     if self.pos.isNearTo(damaged):
                         self.creep.heal(damaged)
                     else:
-                        self.creep.moveTo(damaged, get_def_move_opts(damaged.pos.roomName))
+                        self.creep.moveTo(damaged, get_def_move_opts(damaged.pos.roomName, self.creep))
                     return False
             # TODO: turn this into part of a large generic cross-room movement module
             if not self.pos.isEqualTo(marker_flag.pos):
@@ -231,7 +231,7 @@ class KitingOffense(MilitaryBase):
                                               marker_flag, {'range': 1})
                     self.creep.say("G1")
                 elif distance >= 1:
-                    self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName))
+                    self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName, self.creep))
                     self.creep.say("G2")
                 else:
                     self.basic_move_to(marker_flag)
@@ -261,12 +261,13 @@ class KitingOffense(MilitaryBase):
                     self.memory.countdown -= 1
                 if self.memory.countdown <= 5:
                     del self.memory.countdown
-                self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName))
+                self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName, self.creep))
         elif not harmless and min_distance <= 3 and _.find(self.pos.lookFor(LOOK_STRUCTURES),
                                                            {'structureType': STRUCTURE_RAMPART, 'my': True}):
             pass
         elif harmless:
-            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos), get_def_move_opts(closest_pos.roomName))
+            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos), get_def_move_opts(closest_pos.roomName,
+                                                                                               self.creep))
         elif min_distance < 3 or (min_distance == 3 and not fatigue) or (min_distance <= 3 and self_damaged and ranged) or (min_distance == 4 and self_damaged and ranged):
             away_path = None
             try:
@@ -283,7 +284,8 @@ class KitingOffense(MilitaryBase):
                 self.creep.say("ERROR")
                 self.go_to_depot()
         elif (min_distance > 4 or (min_distance == 4 and (not fatigue or Game.time % 2) and (not self_damaged or not ranged))) or harmless:
-            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos), get_def_move_opts(closest_pos.roomName))
+            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos), get_def_move_opts(closest_pos.roomName,
+                                                                                               self.creep))
 
         if closest_pos.roomName == self.pos.roomName and min_distance <= 3:
             closest_creep = Game.getObjectById(closest.id)
