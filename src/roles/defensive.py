@@ -70,10 +70,13 @@ class RoleDefender(MilitaryBase):
                 self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
                                                                                  self.home.room_name))
 
-            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
-                                      _.create(RoomPosition.prototype, hostile_pos), {'range': 1})
-            return False
+            enemy_checkpoint = self.memory.enemy_checkpoint or hostile_pos
+            if movement.chebyshev_distance_room_pos(enemy_checkpoint, hostile_pos) > 10:
+                enemy_checkpoint = self.memory.enemy_checkpoint = hostile_pos
 
+            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
+                                      _.create(RoomPosition.prototype, enemy_checkpoint), {'range': 1})
+            return False
 
         target = Game.getObjectById(target_id)
 
