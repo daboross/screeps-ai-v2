@@ -1477,7 +1477,7 @@ class RoomMind:
                         worker_size = spawning.max_sections_of(self, creep_base_worker)
                         return (base_num + extra) * worker_size
                     else:
-                        # Since we have a constant 15-part upgader going at RCL8, workers have to be more of the
+                        # Since we have a constant 15-part upgrader going at RCL8, workers have to be more of the
                         # 'scaling' factor.
                         worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
                         return 1 * worker_size
@@ -1549,8 +1549,11 @@ class RoomMind:
                 self._target_upgrader_work_mass = wm
                 return wm  # Upgrading auto-turns-off being deprioritized if energy is above 700 * 1000
             elif self.rcl == 8:
-                self._target_upgrader_work_mass = 15
-                return 15
+                if _.sum(self.room.storage.store) > 700 * 1000 \
+                        and self.room.storage.store.energy > 200 * 1000:
+                    wm = 7
+                else:
+                    wm = max(2, min(7, math.floor(self.room.storage.store.energy / (50 * 1000))))
             elif self.mining_ops_paused():
                 wm = worker_size * 4
             elif self.trying_to_get_full_storage_use:
@@ -1585,6 +1588,9 @@ class RoomMind:
                         print("[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})"
                               .format(self.room_name, wm, worker_size))
 
+            if self.rcl >= 8:
+                wm = min(wm, 15)
+
             # TODO: calculate open spaces near controller to determine this
             if base is creep_base_full_upgrader:
                 self._target_upgrader_work_mass = min(wm, worker_size * 4)
@@ -1602,6 +1608,13 @@ class RoomMind:
             return spawning.ceil_sections(min(sections, target / 2), base)
         else:
             return spawning.ceil_sections(min(sections, target), base)
+
+    def get_builder_size(self):
+        base = self.get_variable_base(role_builder)
+        if self.rcl < 8:
+            return min(8, spawning.max_sections_of(self, base))
+        else:
+            return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
 
     def get_target_tower_fill_mass(self):
         if not self.get_target_spawn_fill_mass():
@@ -1769,7 +1782,7 @@ class RoomMind:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: spawning.max_sections_of(self, creep_base_worker),
-            role_builder: lambda: min(8, spawning.max_sections_of(self, creep_base_worker)),
+            role_builder: self.get_builder_size,
             role_mineral_miner:
                 lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
             role_mineral_hauler:
