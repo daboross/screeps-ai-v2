@@ -5,7 +5,7 @@ import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
     target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
     creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
-    creep_base_1500miner
+    creep_base_1500miner, creep_base_half_move_hauler
 from control import defense
 from control import live_creep_utils
 from utilities import movement
@@ -221,7 +221,11 @@ class MiningMind:
     def calculate_creep_num_sections_for_mine(self, flag):
         double = False
         if flag.pos.roomName == self.room.room_name:
-            maximum = spawning.max_sections_of(self.room, creep_base_hauler)
+            if self.room.all_paved():
+                maximum = spawning.max_sections_of(self.room, creep_base_half_move_hauler)
+                double = True
+            else:
+                maximum = spawning.max_sections_of(self.room, creep_base_hauler)
         elif self.room.all_paved():
             maximum = spawning.max_sections_of(self.room, creep_base_work_half_move_hauler)
             double = True
@@ -436,7 +440,10 @@ class MiningMind:
                 eol_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
             if flag.pos.roomName == self.room.room_name:
-                base = creep_base_hauler
+                if self.room.all_paved():
+                    base = creep_base_half_move_hauler
+                else:
+                    base = creep_base_hauler
             elif self.room.all_paved():
                 base = creep_base_work_half_move_hauler
             elif self.room.paving():
