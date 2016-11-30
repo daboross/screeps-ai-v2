@@ -96,6 +96,7 @@ py.get_room("W49N25").minerals.fulfill_market_order('W40N40', 'H', 284380, '57e4
 _(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets()._register_new_targeter("extra_repair_site", c.name, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
 TODO: creep 'setting_up' memory variable which is set on spawn or on replacing or on autoactions move
 
+
 Game.market.createOrder(ORDER_BUY, "XKHO2", 23, 3000, "E15N52")
 
 py.context.targets()._register_new_targeter("rampart_def", "2366", "57fe2bc3985c67b3701c90c5")
@@ -107,6 +108,7 @@ _(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.roomName} has
 _(py.hive().my_rooms).filter('room.terminal').map(x => `\nRoom ${x.room_name} has ${x.minerals.get_total_room_resource_counts()['XLHO2'] || 0} XLHO2 and ${x.minerals.get_total_room_resource_counts()['XKHO2'] || 0} XKHO2`).value()
 JSON.stringify(_.countBy(py.flags.find_flags_global(py.flags.ATTACK_POWER_BANK), 'pos.roomName'))
 Game.rooms.E56N21.find(FIND_MY_CREEPS).forEach(c => c.memory.role = py.constants.role_builder)
+_(py.hive().my_rooms).map(r => _(py.hive().my_rooms).map(r2 => Game.map.getRoomLinearDistance(r.room_name, r2.room_name)).max()).max()
 
 py.get_room("E11N34").minerals.fill_order('5828da30dcfc6b7f21ea02d7')
 py.get_room("E11N34").minerals.fill_order('5828a31d6a473c1f6cea64af')
