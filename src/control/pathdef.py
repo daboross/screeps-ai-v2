@@ -308,8 +308,10 @@ class HoneyTrails:
                             cost_matrix.set(x, y, 20 * if_roads_multiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
+        controller = room.room.controller and room.room.controller.my and not len(flags.find_flags(room, flags.UPGRADER_SPOT))
+
         for struct in room.find(FIND_STRUCTURES):
-            if (struct.structureType != STRUCTURE_CONTROLLER or struct.my) \
+            if (struct.structureType != STRUCTURE_CONTROLLER or controller) \
                     and (struct.structureType != STRUCTURE_RAMPART or not struct.my):
                 set_matrix(struct.structureType, struct.pos, False)
         for site in room.find(FIND_CONSTRUCTION_SITES):
@@ -404,6 +406,8 @@ class HoneyTrails:
             (origin.roomName == room_name and len(room.look_at(LOOK_SOURCES, origin)))
             or (destination.roomName == room_name and len(room.look_at(LOOK_SOURCES, destination)))
         )
+        avoid_controller = room.room.controller and room.room.controller.my and not len(flags.find_flags(room, flags.UPGRADER_SPOT))
+
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
@@ -457,7 +461,7 @@ class HoneyTrails:
                     for y in range(pos.y - 1, pos.y + 2):
                         if not road_at(x, y) and not wall_at(x, y) and cost_matrix.get(x, y) < 10 * if_roads_multiplier:
                             cost_matrix.set(x, y, 10 * if_roads_multiplier)
-            elif (stype == STRUCTURE_CONTROLLER and my and not going_to_controller) or \
+            elif (stype == STRUCTURE_CONTROLLER and avoid_controller and my and not going_to_controller) or \
                     (stype == "this_is_a_source" and not going_to_source):
                 for x in range(pos.x - 3, pos.x + 4):
                     for y in range(pos.y - 3, pos.y + 4):
