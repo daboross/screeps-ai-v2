@@ -74,7 +74,7 @@ class SpawnFill(building.Builder, Refill):
                     if self.creep.carry.energy < self.creep.carryCapacity:
                         self.memory.filling = True
                         return True
-                    if not self.home.room.storage:
+                    if not self.home.full_storage_use:
                         self.memory.running = "refill"
                         return self.refill_creeps()
                     if not self.creep.pos.isEqualTo(target.pos):
@@ -137,7 +137,7 @@ class SpawnFill(building.Builder, Refill):
                 else:
                     self.memory.running = role_upgrader
                     return upgrading.Upgrader.run(self)
-            elif not self.home.room.storage or self.home.room.storage.storeCapacity <= 0:
+            elif not self.home.full_storage_use or self.home.room.storage.storeCapacity <= 0:
                 self.memory.running = "refill"
                 return self.refill_creeps()
             elif self.creep.carry.energy < self.creep.carryCapacity:

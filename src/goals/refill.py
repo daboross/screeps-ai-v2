@@ -140,6 +140,8 @@ class Refill(RoleBase):
             return False
         else:
             self.go_to_depot()
+            if not self.home.spawn:
+                return
             # haha, total hack...
             if not self.home.spawn.spawning and self.home.get_next_role() is None:
                 self.home.mem.next_role = generate_role_obj(self.home)
