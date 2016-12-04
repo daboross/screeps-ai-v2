@@ -6,8 +6,8 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 MOVE_THEN_WORK = 4
-MILITARY = 3
-CONSTANT_MOVEMENT = 2
+CONSTANT_MOVEMENT = 3
+MILITARY = 2
 MOVE_THEN_STOP = 1
 
 spawn_fill_running_memory = __pragma__('js', '{}', """
@@ -93,7 +93,7 @@ function move (direction) {
             newY = this.pos.y + 1;
             break;
     }
-    if (newX > 50 || newY > 50 || newX < 0 || newY < 0) {
+    if (newX > 49 || newY > 49 || newX < 0 || newY < 0) {
         return result;
     }
     var creeps = this.room.lookForAt(LOOK_CREEPS, newX, newY);
