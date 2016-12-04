@@ -262,7 +262,8 @@ class RoomDefense:
             return hostile._possible_heal
         else:
             nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1)
-            healing_possible = _.sum(nearby, lambda obj: not obj.creep.my and obj.creep.getActiveBodyparts(HEAL)) * 12
+            healing_possible = _.sum(
+                nearby, lambda obj: not obj.creep.my and obj.creep.getActiveBodypartsBoostEquivalent(HEAL, 'heal')) * 12
             hostile._possible_heal = healing_possible
             return healing_possible
 
@@ -277,6 +278,17 @@ class RoomDefense:
             hostile._defenders_near = result
             return result
 
+    def any_attack_invaders(self):
+        if self._cache.has('_attack_invaders'):
+            return self._cache.get('_attack_invaders')
+        else:
+            any_attack_invaders = _.some(
+                self.all_hostiles(),
+                lambda h: h.owner.username == INVADER_USERNAME and (h.hasBodyparts(ATTACK)
+                                                                    or h.hasBodyparts(RANGED_ATTACK)))
+            self._cache.set('_attack_invaders', any_attack_invaders)
+            return any_attack_invaders
+
     def _calc_danger_level(self, hostile):
         """
         Internal function to calculate the raw danger level of a hostile. Use DefenseMind.danger_level(hostile) for a
@@ -290,27 +302,33 @@ class RoomDefense:
         """
         user = hostile.owner.username
         if user == INVADER_USERNAME:
-            return 2
+            if not hostile.hasBodyparts(ATTACK) and not hostile.hasBodyparts(RANGED_ATTACK):
+                if self.any_attack_invaders():
+                    return 0.3
+                else:
+                    return 0
+            else:
+                return 2
         elif user == SK_USERNAME:
             return 0
         elif Memory.meta.friends.includes(user):
             return 0
         elif self.room.my:
             structs_near = len(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1))
-            if structs_near and hostile.getActiveBodyparts(WORK):
+            if structs_near and hostile.hasBodyparts(WORK):
                 return 6
-            elif structs_near and hostile.getActiveBodyparts(ATTACK):
+            elif structs_near and hostile.hasBodyparts(ATTACK):
                 return 5
-            elif hostile.getActiveBodyparts(RANGED_ATTACK):
+            elif hostile.hasActiveBodyparts(RANGED_ATTACK):
                 return 4
-            elif hostile.getActiveBodyparts(ATTACK):
+            elif hostile.hasBodyparts(ATTACK):
                 if (self.any_broken_walls() or structs_near or
                         _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
                                lambda obj: obj.creep.my)):
                     return 3
                 else:
                     return 2
-            elif hostile.getActiveBodyparts(WORK):
+            elif hostile.hasBodyparts(WORK):
                 return 2
             elif 1 < hostile.pos.x < 48 and 1 < hostile.pos.y < 48:
                 # Specifically for E17N55, so we don't attack haulers who have wondered just on the room boundary
@@ -318,15 +336,15 @@ class RoomDefense:
             else:
                 return 0
         else:
-            if hostile.getActiveBodyparts(RANGED_ATTACK):
+            if hostile.hasActiveBodyparts(RANGED_ATTACK):
                 return 4
-            elif hostile.getActiveBodyparts(ATTACK):
+            elif hostile.hasActiveBodyparts(ATTACK):
                 return 1
             elif _.find(hostile.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK):
                 return 0.7
             elif (hostile.hasBodyparts(CARRY) or hostile.hasBodyparts(WORK)) and self.this_room_mining_ops():
                 return 0.5
-            elif hostile.getActiveBodyparts(TOUGH):
+            elif hostile.hasActiveBodyparts(TOUGH):
                 return 0.3
             else:
                 return 0
