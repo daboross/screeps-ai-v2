@@ -207,6 +207,60 @@ class HiveMind:
             else:
                 room._creeps = new_creep_lists[name]
 
+    def balance_rooms(self):
+        if not _.some(self.my_rooms, lambda r: r.rcl >= 8 and not r.minerals.has_no_terminal_or_storage()):
+            print("[hive][balance_rooms] Canceling: no RCL8 rooms.")
+            return
+
+        def map_to_walls(room):
+            smallest = _(room.find(FIND_STRUCTURES)) \
+                .filter(lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART) \
+                .min(lambda s: s.hits)
+
+            if smallest == Infinity:
+                return room, Infinity
+            else:
+                return room, smallest.hits
+
+        rooms_with_walls = _(self.my_rooms) \
+            .filter(lambda r: r.rcl >= 6 and not r.minerals.has_no_terminal_or_storage()) \
+            .map(map_to_walls).value()
+        biggest_rcl8_room = _(rooms_with_walls) \
+            .filter(lambda t: t[0].rcl >= 8 and _.isEmpty(t[0].minerals.fulfilling[RESOURCE_ENERGY])) \
+            .max(lambda t: t[1])
+        smallest_room = _.min(rooms_with_walls, lambda t: t[1])
+
+        if biggest_rcl8_room == -Infinity or smallest_room == Infinity or smallest_room[1] == Infinity \
+                or (smallest_room[0].rcl >= 8 and smallest_room[1] >= 49 * 1000 * 1000) \
+                or smallest_room[0].room_name == biggest_rcl8_room[0].room_name:
+            print("[hive][balance_rooms] Canceling.")
+            return
+        biggest_rcl8_room = biggest_rcl8_room[0]
+        smallest_room = smallest_room[0]
+        assert isinstance(biggest_rcl8_room, RoomMind)
+        assert isinstance(smallest_room, RoomMind)
+        total_cutoff = 300 * 1000
+        energy_cutoff = 100 * 1000
+        extra_energy = min(_.sum(biggest_rcl8_room.minerals.get_total_room_resource_counts()) - total_cutoff,
+                           biggest_rcl8_room.minerals.get_total_room_resource_counts().energy - energy_cutoff)
+        if js_isNaN(extra_energy) or extra_energy <= 0:
+            print("[hive][balance_rooms] Canceling: no extra energy in {}.".format(biggest_rcl8_room.room_name))
+            return
+
+        distance = Game.map.getRoomLinearDistance(biggest_rcl8_room.room_name, smallest_room.room_name, True)
+        total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
+        max_to_send = math.floor(extra_energy / total_cost_of_1_energy)
+
+        if max_to_send <= 0:
+            print("[hive][balance_rooms] Extra energy in {} ({}) isn't enough to send any to {} via a terminal."
+                  .format(biggest_rcl8_room.room_name, extra_energy, smallest_room.room_name))
+            return
+
+        print("[hive] Balancing rooms: sending {} energy from {} to {}."
+              .format(max_to_send, biggest_rcl8_room.room_name, smallest_room.room_name))
+
+        biggest_rcl8_room.minerals.send_minerals(smallest_room.room_name, RESOURCE_ENERGY, max_to_send)
+
     def mineral_report(self):
         result = []
         tally = {}

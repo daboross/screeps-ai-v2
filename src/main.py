@@ -284,6 +284,12 @@ def main():
         averages.start_record()
         autoactions.cleanup_running_memory()
         averages.finish_record('auto.running-memory-cleanup')
+
+    if Game.time % 1000 == 367:
+        averages.start_record()
+        hive_mind.balance_rooms()
+        averages.finish_record('hive.balance_rooms')
+
     if not _.isEmpty(creeps_skipped):
         skipped_count = _.sum(creeps_skipped, 'length')
         if skipped_count:

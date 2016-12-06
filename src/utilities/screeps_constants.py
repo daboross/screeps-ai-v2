@@ -170,6 +170,7 @@ __all__ = [
     "Map",
     "Set",
     "isFinite",
+    "js_isNaN",
     "_",
     "__pragma__",
     "__new__",
