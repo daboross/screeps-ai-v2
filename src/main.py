@@ -75,8 +75,9 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
         averages.finish_record('hive.wrap-creep')
         creep.wrapped = instance
         averages.start_record()
+        bef = Game.cpu.getUsed()
         rerun = instance.run()
-        if Game.cpu.bucket >= 7000:
+        if Game.cpu.bucket >= 7000 or Game.cpu.getUsed() - bef < 0.3:
             if rerun:
                 rerun = instance.run()
             if rerun:
