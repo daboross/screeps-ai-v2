@@ -106,9 +106,21 @@ function move (direction) {
             var otherPriority = role_movement_types[otherRole] || MOVE_THEN_WORK;
             if (myPriority < otherPriority
                 || (otherPriority == myPriority
-                    && this.ticksToLive < creep.ticksToLive)) {
+                    && this.ticksToLive < creep.ticksToLive
+                    && !('pt' in creep.memory && creep.memory.pt < Game.time))) {
                 creep.__move(creep.pos.getDirectionTo(this.pos));
                 creep.__moved = true;
+            } else if (otherPriority == myPriority && (!('pt' in creep.memory) || creep.memory.pt < Game.time)) {
+                if (!('pt' in this.memory) || Game.time - this.memory.pt > 50) {
+                    this.memory.pt = Game.time + 5;
+                }
+                if (this.memory.pt >= Game.time) {
+                    creep.__move(creep.pos.getDirectionTo(this.pos));
+                    creep.__moved = true;
+                } else {
+                    delete this.memory._move;
+                    return result;
+                }
             } else {
                 delete this.memory._move;
                 return result;
