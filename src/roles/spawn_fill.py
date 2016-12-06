@@ -78,10 +78,7 @@ class SpawnFill(building.Builder, Refill):
                         self.memory.running = "refill"
                         return self.refill_creeps()
                     if not self.creep.pos.isEqualTo(target.pos):
-                        if self.creep.pos.isNearTo(target.pos):
-                            self.basic_move_to(target)
-                        else:
-                            self.move_to(target)
+                        self.move_to(target)
                     return False
                 else:
                     if target.energy >= target.energyCapacity:
