@@ -1263,13 +1263,6 @@ class RoomMind:
         """
         return _rcl_to_sane_wall_hits[self.rcl - 1] or 0  # 1-to-0-based index
 
-    def get_max_rampart_extension_hits(self):
-        """
-        Er, TODO: make this a lot cleaner
-        :return:
-        """
-        return 100 * 1000
-
     def get_min_sane_wall_hits(self):
         return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
 

@@ -79,7 +79,6 @@ protect_with_ramparts = [
     STRUCTURE_TERMINAL,
     STRUCTURE_STORAGE,
     STRUCTURE_TOWER,
-    STRUCTURE_EXTENSION,
     STRUCTURE_LAB,
 ]
 rampart_priorities = {
@@ -326,14 +325,6 @@ class ConstructionMind:
         self.room.store_cached_property("bt_last_checked_rcl", self.room.rcl, 1000)
         return self.room.get_cached_property("building_targets")
 
-    def where_be_extensions(self):
-        if '_where_be_extensions' not in self:
-            self._where_be_extensions = _(self.room.find(FIND_MY_STRUCTURES)) \
-                .filter(lambda s: s.structureType == STRUCTURE_EXTENSION) \
-                .map(lambda s: movement.xy_to_serialized_int(s.pos.x, s.pos.y)) \
-                .value()
-        return self._where_be_extensions
-
     def max_hits_for_struct(self, struct, big_repair=False):
         if struct.structureType == STRUCTURE_WALL:
             if big_repair:
@@ -341,9 +332,7 @@ class ConstructionMind:
             else:
                 return self.room.min_sane_wall_hits
         elif struct.structureType == STRUCTURE_RAMPART:
-            if self.where_be_extensions().includes(movement.xy_to_serialized_int(struct.pos.x, struct.pos.y)):
-                return self.room.get_max_rampart_extension_hits()
-            elif big_repair:
+            if big_repair:
                 return min(self.room.max_sane_wall_hits, struct.hitsMax)
             else:
                 return min(self.room.min_sane_wall_hits, struct.hitsMax)
@@ -379,17 +368,15 @@ class ConstructionMind:
                 spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
 
         max_hits = self.room.min_sane_wall_hits
-        max_extrampart_hits = self.room.get_max_rampart_extension_hits()
-        extensions = self.where_be_extensions()
         any_destruct_flags = len(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT))
 
         # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
+        # TODO: At some point, I think it might just be more efficient to store a list in
+        # memory of (target_id, target_hits, target_priority) and not have to keep looking
+        # at everything.
         structures = _(self.room.find(FIND_STRUCTURES)).map(
             lambda s: (
-                s, min(s.hitsMax, (max_hits if (s.structureType != STRUCTURE_RAMPART
-                                                or not extensions.includes(movement.xy_to_serialized_int(s.pos.x,
-                                                                                                         s.pos.y)))
-                                   else max_extrampart_hits))
+                s, min(s.hitsMax, max_hits)
                 if (s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
                 else s.hitsMax
             )
@@ -405,12 +392,6 @@ class ConstructionMind:
                          if t[0].structureType != STRUCTURE_RAMPART and t[0].structureType != STRUCTURE_WALL
                          else -movement.distance_room_pos(spawn_pos, t[0].pos)) / 50 * 10
                       - ((t[1] - t[0].hits) / t[1]) * 100  # more important than the above
-                      + (10000 if t[0].structureType == STRUCTURE_RAMPART
-                                  # TODO: At some point, I think it might just be more efficient to store a list in
-                                  # memory of (target_id, target_hits, target_priority) and not have to keep looking
-                                  # at everything.
-                                  and extensions.includes(movement.xy_to_serialized_int(t[0].pos.x, t[0].pos.y))
-                         else 0)
         ).map(lambda t: t[0].id).value()
 
         self.room.store_cached_property("repair_targets", structures, 50)
@@ -424,23 +405,17 @@ class ConstructionMind:
 
         # TODO: spawn one large repairer (separate from builders) which is boosted with LO to build walls!
         max_hits = self.room.max_sane_wall_hits
-        extensions = self.where_be_extensions()
         any_destruct_flags = len(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT))
         target_list = (
             _(self.room.find(FIND_STRUCTURES))
                 .filter(lambda s: (s.my or not s.owner) and s.hits < s.hitsMax
                                   and s.hits <= max_hits and (
                                       s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
-                                  and (s.structureType != STRUCTURE_RAMPART
-                                       or not extensions.includes(movement.xy_to_serialized_int(s.pos.x, s.pos.y))
-                                       or s.hits <= 100000)
                                   and (not any_destruct_flags
                                        or not flags.look_for(self.room, s, flags.MAIN_DESTRUCT,
                                                              flags.structure_type_to_flag_sub[
                                                                  s.structureType])))
-                .sortBy(lambda s: s.hits + (200 * 1000
-                                            if extensions.includes(movement.xy_to_serialized_int(s.pos.x, s.pos.y))
-                                            else 0))
+                .sortBy(lambda s: s.hits)
                 .map('id').value()
         )
 

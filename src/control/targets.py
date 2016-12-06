@@ -437,21 +437,12 @@ class TargetMind:
         # best_id = None
         if len(repair_targets) <= 1 and not len(creep.home.building.next_priority_construction_targets()):
             max_work = Infinity
-        extension_spots = creep.home.building.where_be_extensions()
-        extension_rampart_max_hits = creep.home.get_max_rampart_extension_hits()
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
             if not structure:
                 continue
             # TODO: merge this logic with ConstructionMind _efficiently!_
-            this_hits_max = structure.hitsMax
-            if structure.structureType == STRUCTURE_WALL:
-                this_hits_max = min(this_hits_max, max_hits)
-            elif structure.structureType == STRUCTURE_RAMPART:
-                if extension_spots.includes(movement.xy_to_serialized_int(structure.pos.x, structure.pos.y)):
-                    this_hits_max = min(this_hits_max, max_hits, extension_rampart_max_hits)
-                else:
-                    this_hits_max = min(this_hits_max, max_hits)
+            this_hits_max = min(structure.hitsMax, max_hits)
             if structure and structure.hits < this_hits_max * 0.9:
                 if max_work is Infinity:
                     current_max = Infinity
