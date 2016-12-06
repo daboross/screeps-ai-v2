@@ -1,5 +1,6 @@
 import math
 
+from constants import role_mineral_hauler
 from utilities import movement
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -112,11 +113,15 @@ class MineralMind:
         return self.fulfill_market_order(target_room, mineral, amount, order_id)
 
     def fulfill_market_order(self, target_room, mineral, amount, order_id=None):
+        would_have_needed_haulers_before = self.get_target_mineral_hauler_count() \
+                                           or self.room.role_count(role_mineral_hauler)
+
         energy_cost = Game.market.calcTransactionCost(min(_SINGLE_MINERAL_FULFILLMENT_MAX, amount),
                                                       self.room.room_name, target_room)
+        if mineral == RESOURCE_ENERGY:
+            energy_cost += amount
         if energy_cost > self.mem['total_energy_needed']:
             self.mem['total_energy_needed'] = energy_cost
-        self.mem['total_energy_needed'] += energy_cost  # TODO: re-calc this every so often.
         if order_id:
             obj = {
                 'order_id': order_id,
@@ -133,14 +138,19 @@ class MineralMind:
         else:
             self.fulfilling[mineral] = [obj]
         self.log("Now fulfilling: Order for {} {}, sent to {}!".format(amount, mineral, target_room))
+        if not would_have_needed_haulers_before:
+            self.room.reset_planned_role()
 
     def recalculate_energy_needed(self):
         energy_needed = 0
-        for order_list in _.values(self.fulfilling):
+        for mineral, order_list in _.pairs(self.fulfilling):
             for order in order_list:
                 amount = min(_SINGLE_MINERAL_FULFILLMENT_MAX, order.amount)
-                energy_needed = max(energy_needed,
-                                    Game.market.calcTransactionCost(amount, self.room.room_name, order.room))
+                if mineral == RESOURCE_ENERGY:
+                    needed_here = Game.market.calcTransactionCost(amount, self.room.room_name, order.room) + amount
+                else:
+                    needed_here = Game.market.calcTransactionCost(amount, self.room.room_name, order.room)
+                energy_needed = max(energy_needed, needed_here)
         self.mem['total_energy_needed'] = energy_needed
 
     def log(self, message):
@@ -267,7 +277,6 @@ class MineralMind:
         return None
 
     def get_total_room_resource_counts(self):
-        # TODO: store hauler name from last tick in memory, and use it instead of a passed argument
         if self._total_resource_counts:
             return self._total_resource_counts
         counts = {}
@@ -357,8 +366,9 @@ class MineralMind:
                 return 0
 
     def tick_terminal(self):
-        if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (Game.time % 1020 == 8
-                                                                                 or Game.time % 765 == 3
+        # 1020, 765 and 595 are all multiples of 85.
+        if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (Game.time % 1020 == 3
+                                                                                 or Game.time % 765 == 8
                                                                                  or Game.time % 595 == 15)):
             return
         split = Game.time % 85
@@ -427,8 +437,18 @@ class MineralMind:
             self.log("WARNING: fulfill_now() called with mineral: {}, target: {},"
                      "but {} < {}".format(mineral, JSON.stringify(target_obj), self.terminal.store[mineral], 1000))
             return ERR_NOT_ENOUGH_RESOURCES
-        amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
-        energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
+        if mineral == RESOURCE_ENERGY:
+            energy_here = min(_SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
+            amount = min(target_obj.amount, energy_here)
+            energy_cost = amount + Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
+            if energy_cost > energy_here:
+                distance = Game.map.getRoomLinearDistance(self.room.room_name, target_obj.room, True)
+                total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
+                amount = math.floor(energy_here / total_cost_of_1_energy)
+                energy_cost = math.ceil(amount * total_cost_of_1_energy)
+        else:
+            amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
+            energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
         if self.terminal.store[RESOURCE_ENERGY] < energy_cost:
             return ERR_NOT_ENOUGH_RESOURCES
         if 'order_id' in target_obj:
@@ -578,7 +598,8 @@ class MineralMind:
         if self.has_no_terminal_or_storage():
             return 0
         elif self.get_target_mineral_miner_count() or len(self.adding_to_terminal()) or self.energy_needed_in_labs() \
-                or self.amount_needed_in_lab1() or self.amount_needed_in_lab2():
+                or self.amount_needed_in_lab1() or self.amount_needed_in_lab2() \
+                or _.sum(self.removing_from_terminal(), lambda t: t[1]) > 50 * 1000:
             # We don't really need to be spawning a new mineral hauler if we only need to remove things from the
             # terminal, and not add them.
             # or len(self.removing_from_terminal()):
@@ -611,5 +632,6 @@ class MineralMind:
             return "{} is empty, and is fulfilling {}".format(self.room.room_name, ', '.join(orderstrings))
         else:
             return "{} is empty."
+
 
 __pragma__('nofcall')
