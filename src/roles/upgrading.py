@@ -39,19 +39,31 @@ class Upgrader(RoleBase):
 
         if not self.home.upgrading_deprioritized() or self.creep.room.controller.ticksToDowngrade <= 5000:
             self.upgrade(controller)
-        elif Game.time % 15 == 2 and not self.home.get_target_upgrader_work_mass() or not self.home.spawn:
-            if len(self.creep.body) > 3 and spawning.find_base_type(self) == creep_base_worker:
-                self.memory.role = role_builder
-                return False
-            elif self.home.spawn:
-                self.memory.role = role_recycling
-                self.memory.last_role = role_upgrader
-                return False
-        if Game.time % 15 == 7 and self.home.overprioritize_building():
-            # TODO: do this via push immediately after controller upgrade, instead of polling
-            if len(self.creep.body) > 3 and spawning.find_base_type(self) == creep_base_worker:
-                self.memory.role = role_builder
-                return False
+        elif Game.time % 15 == 2 or self.memory.set_till == Game.time:
+            if not self.home.get_target_upgrader_work_mass() or not self.home.spawn:
+                if len(self.creep.body) > 3 and spawning.find_base_type(self) == creep_base_worker:
+                    self.memory.role = role_builder
+                    return False
+                elif self.home.spawn:
+                    self.memory.role = role_recycling
+                    self.memory.last_role = role_upgrader
+                    return False
+        if Game.time % 15 == 7 or self.memory.set_till == Game.time:
+            if self.home.overprioritize_building():
+                # TODO: do this via push immediately after controller upgrade, instead of polling
+                if len(self.creep.body) > 3 and spawning.find_base_type(self) == creep_base_worker:
+                    self.memory.role = role_builder
+                    return False
+            if self.home.rcl >= 8 and self.home.role_count(role_upgrader) > 1 \
+                    and self.home.work_mass_of(role_upgrader) > self.home.get_target_upgrader_work_mass():
+                needed = self.home.get_target_upgrader_work_mass()
+                any_big_enough = _.find(self.home.creeps, lambda c: c.memory.role == role_upgrader
+                                                                    and c.getBodyparts(WORK) >= needed)
+                if any_big_enough:
+                    for creep in self.home.creeps:
+                        if creep.memory.role == role_upgrader and creep.name != needed.name:
+                            creep.suicide()
+                    self.home.mem.meta.clear_next = 0
 
         self.harvest_from(link)
 
@@ -62,6 +74,10 @@ class Upgrader(RoleBase):
             else:
                 self.move_to(spot)
         else:
+            if self.creep.ticksToLive < 50:
+                self.creep.suicide()
+                self.home.mem.meta.clear_next = 0
+                return
             self.log("WARNING: Not enough set upgrader spots in {}".format(self.memory.home))
             available_positions = self.memory.controller_positions
             if not available_positions or (Game.time + self.creep.ticksToLive) % 25:
