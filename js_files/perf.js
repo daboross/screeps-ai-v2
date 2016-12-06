@@ -441,115 +441,115 @@ module.exports = function (options) {
         //     return C.OK;
         // }
 
-        /** default pos.findPathTo:
-        RoomPosition.prototype.findPathTo = register.wrapFn(function(firstArg, secondArg, opts) {
+        // default pos.findPathTo:
+        // RoomPosition.prototype.findPathTo = register.wrapFn(function(firstArg, secondArg, opts) {
+        //
+        //     var [x,y,roomName] = utils.fetchXYArguments(firstArg, secondArg, globals),
+        //         room = register.rooms[this.roomName];
+        //
+        //     if(_.isObject(secondArg)) {
+        //         opts = _.clone(secondArg);
+        //     }
+        //     opts = opts || {};
+        //
+        //     roomName = roomName || this.roomName;
+        //
+        //     if(!room) {
+        //         throw new Error(`Could not access room ${this.roomName}`);
+        //     }
+        //
+        //     if(roomName == this.roomName || register._useNewPathFinder) {
+        //         return room.findPath(this, new globals.RoomPosition(x,y,roomName), opts);
+        //     }
+        //     else {
+        //         var exitDir = room.findExitTo(roomName);
+        //         if(exitDir < 0) {
+        //             return [];
+        //         }
+        //         var exit = this.findClosestByPath(exitDir, opts);
+        //         if(!exit) {
+        //             return [];
+        //         }
+        //         return room.findPath(this, exit, opts);
+        //     }
+        //
+        // });
 
-            var [x,y,roomName] = utils.fetchXYArguments(firstArg, secondArg, globals),
-                room = register.rooms[this.roomName];
+        // default room.findPath:
+        // function _findPath2(id, fromPos, toPos, opts) {
+        //     opts = opts || {};
+        //
+        //     if(fromPos.isEqualTo(toPos)) {
+        //         return opts.serialize ? '' : [];
+        //     }
+        //
+        //     if(opts.avoid) {
+        //         register.deprecated('`avoid` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
+        //         opts.avoid = undefined;
+        //     }
+        //     if(opts.ignore) {
+        //         register.deprecated('`ignore` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
+        //         opts.ignore = undefined;
+        //     }
+        //     if(opts.maxOps === undefined && (opts.maxRooms === undefined || opts.maxRooms > 1) && fromPos.roomName != toPos.roomName) {
+        //         opts.maxOps = 20000;
+        //     }
+        //     var searchOpts = {
+        //         roomCallback: function(roomName) {
+        //             var costMatrix = getPathfindingGrid2(roomName, opts);
+        //             if(typeof opts.costCallback == 'function') {
+        //                 costMatrix = costMatrix.clone();
+        //                 var resultMatrix = opts.costCallback(roomName, costMatrix);
+        //                 if(resultMatrix instanceof globals.PathFinder.CostMatrix) {
+        //                     costMatrix = resultMatrix;
+        //                 }
+        //             }
+        //             return costMatrix;
+        //         },
+        //         maxOps: opts.maxOps,
+        //         maxRooms: opts.maxRooms
+        //     };
+        //     if(!opts.ignoreRoads) {
+        //         searchOpts.plainCost = 2;
+        //         searchOpts.swampCost = 10;
+        //     }
+        //
+        //     var ret = globals.PathFinder.search(fromPos, {range: Math.max(1,opts.range || 0), pos: toPos}, searchOpts);
+        //
+        //     if(!opts.range &&
+        //             (ret.path.length && ret.path[ret.path.length-1].isNearTo(toPos) && !ret.path[ret.path.length-1].isEqualTo(toPos) ||
+        //             !ret.path.length && fromPos.isNearTo(toPos))) {
+        //         ret.path.push(toPos);
+        //     }
+        //     var curX = fromPos.x, curY = fromPos.y;
+        //
+        //     var resultPath = [];
+        //
+        //     for(let i=0; i<ret.path.length; i++) {
+        //         let pos = ret.path[i];
+        //         if(pos.roomName != id) {
+        //             break;
+        //         }
+        //         let result = {
+        //             x: pos.x,
+        //             y: pos.y,
+        //             dx: pos.x - curX,
+        //             dy: pos.y - curY,
+        //             direction: utils.getDirection(pos.x - curX, pos.y - curY)
+        //         };
+        //
+        //         curX = result.x;
+        //         curY = result.y;
+        //         resultPath.push(result);
+        //     }
+        //
+        //     if(opts.serialize) {
+        //         return utils.serializePath(resultPath);
+        //     }
+        //
+        //     return resultPath;
+        // }
 
-            if(_.isObject(secondArg)) {
-                opts = _.clone(secondArg);
-            }
-            opts = opts || {};
-
-            roomName = roomName || this.roomName;
-
-            if(!room) {
-                throw new Error(`Could not access room ${this.roomName}`);
-            }
-
-            if(roomName == this.roomName || register._useNewPathFinder) {
-                return room.findPath(this, new globals.RoomPosition(x,y,roomName), opts);
-            }
-            else {
-                var exitDir = room.findExitTo(roomName);
-                if(exitDir < 0) {
-                    return [];
-                }
-                var exit = this.findClosestByPath(exitDir, opts);
-                if(!exit) {
-                    return [];
-                }
-                return room.findPath(this, exit, opts);
-            }
-
-        });
-        */
-        /** default room.findPath:
-        function _findPath2(id, fromPos, toPos, opts) {
-            opts = opts || {};
-
-            if(fromPos.isEqualTo(toPos)) {
-                return opts.serialize ? '' : [];
-            }
-
-            if(opts.avoid) {
-                register.deprecated('`avoid` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
-                opts.avoid = undefined;
-            }
-            if(opts.ignore) {
-                register.deprecated('`ignore` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
-                opts.ignore = undefined;
-            }
-            if(opts.maxOps === undefined && (opts.maxRooms === undefined || opts.maxRooms > 1) && fromPos.roomName != toPos.roomName) {
-                opts.maxOps = 20000;
-            }
-            var searchOpts = {
-                roomCallback: function(roomName) {
-                    var costMatrix = getPathfindingGrid2(roomName, opts);
-                    if(typeof opts.costCallback == 'function') {
-                        costMatrix = costMatrix.clone();
-                        var resultMatrix = opts.costCallback(roomName, costMatrix);
-                        if(resultMatrix instanceof globals.PathFinder.CostMatrix) {
-                            costMatrix = resultMatrix;
-                        }
-                    }
-                    return costMatrix;
-                },
-                maxOps: opts.maxOps,
-                maxRooms: opts.maxRooms
-            };
-            if(!opts.ignoreRoads) {
-                searchOpts.plainCost = 2;
-                searchOpts.swampCost = 10;
-            }
-
-            var ret = globals.PathFinder.search(fromPos, {range: Math.max(1,opts.range || 0), pos: toPos}, searchOpts);
-
-            if(!opts.range &&
-                    (ret.path.length && ret.path[ret.path.length-1].isNearTo(toPos) && !ret.path[ret.path.length-1].isEqualTo(toPos) ||
-                    !ret.path.length && fromPos.isNearTo(toPos))) {
-                ret.path.push(toPos);
-            }
-            var curX = fromPos.x, curY = fromPos.y;
-
-            var resultPath = [];
-
-            for(let i=0; i<ret.path.length; i++) {
-                let pos = ret.path[i];
-                if(pos.roomName != id) {
-                    break;
-                }
-                let result = {
-                    x: pos.x,
-                    y: pos.y,
-                    dx: pos.x - curX,
-                    dy: pos.y - curY,
-                    direction: utils.getDirection(pos.x - curX, pos.y - curY)
-                };
-
-                curX = result.x;
-                curY = result.y;
-                resultPath.push(result);
-            }
-
-            if(opts.serialize) {
-                return utils.serializePath(resultPath);
-            }
-
-            return resultPath;
-        }
-        */
         // RoomPosition.prototype.defaultFindPathTo = RoomPosition.prototype.findPathTo;
         // RoomPosition.prototype.findPathTo = function(arg1, arg2, arg3) {
         //     let x, y, roomName, opts;
