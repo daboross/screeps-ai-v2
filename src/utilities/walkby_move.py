@@ -5,6 +5,7 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
+IDLE_ABOUT = 5
 MOVE_THEN_WORK = 4
 CONSTANT_MOVEMENT = 3
 MILITARY = 2
@@ -42,7 +43,7 @@ role_movement_types = {
     role_mineral_steal: CONSTANT_MOVEMENT,
     role_recycling: CONSTANT_MOVEMENT,
     role_mineral_miner: MOVE_THEN_STOP,
-    role_mineral_hauler: CONSTANT_MOVEMENT,
+    role_mineral_hauler: IDLE_ABOUT,
     role_td_healer: MILITARY,
     role_td_goad: MILITARY,
     role_simple_dismantle: MILITARY,
