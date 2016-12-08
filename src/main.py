@@ -285,7 +285,7 @@ def main():
         autoactions.cleanup_running_memory()
         averages.finish_record('auto.running-memory-cleanup')
 
-    if Game.time % 1000 == 367:
+    if Game.time % 10000 == 367:
         averages.start_record()
         hive_mind.balance_rooms()
         averages.finish_record('hive.balance_rooms')
