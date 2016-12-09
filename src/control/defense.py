@@ -655,7 +655,7 @@ class RoomDefense:
                                                                      and c.creep.getActiveBodyparts(ATTACK)) or 0) * 30 \
                                   + _.sum(towers.slice(tower_index),
                                           lambda t: tower_damage(t.pos.getRangeTo(hostile)))
-                if hostile.hasAnyActiveBoostedBodyparts(TOUGH):
+                if hostile.hasActiveBoostedBodyparts(TOUGH):
                     damage_to_account_for = attack_possible
                     for part in hostile.body:
                         if part.hits <= 0:
