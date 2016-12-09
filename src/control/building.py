@@ -273,7 +273,7 @@ class ConstructionMind:
                 struct_type = flags.flag_sub_to_structure_type[flag_tuple[1]]
                 return (
                     get_priority(self.room, struct_type) * 50
-                    + movement.distance_squared_room_pos(spawn_pos, flag_tuple[0].pos)
+                    + movement.distance_room_pos(spawn_pos, flag_tuple[0].pos)
                 )
 
             for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD), flag_priority):

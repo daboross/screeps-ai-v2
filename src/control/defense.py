@@ -540,14 +540,14 @@ class RoomDefense:
                         closest_distance = Infinity
                         closest_index = -1
                         for i in range(0, len(towers)):
-                            distance = movement.distance_squared_room_pos(creep.pos, towers[i].pos)
+                            distance = movement.chebyshev_distance_room_pos(creep.pos, towers[i].pos)
                             if distance < closest_distance:
                                 closest_index = i
                                 closest_distance = distance
                         tower = towers.splice(closest_index, 1)[0]
                         tower.heal(creep)
             elif len(damaged) > 1:
-                towers[0].heal(_.min(damaged, lambda c: movement.distance_squared_room_pos(c, towers[0])))
+                towers[0].heal(_.min(damaged, lambda c: movement.chebyshev_distance_room_pos(c, towers[0])))
             else:
                 towers[0].heal(damaged[0])
         elif Game.time % 7 == 0:

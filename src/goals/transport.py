@@ -205,7 +205,8 @@ class TransportPickup(RoleBase):
                 closest = None
                 closest_distance = Infinity
                 for index, pos in enumerate(all_positions):
-                    if movement.distance_room_pos(pos, origin) < 3 or movement.distance_room_pos(pos, target) < 3:
+                    if movement.chebyshev_distance_room_pos(pos, origin) < 3 \
+                            or movement.chebyshev_distance_room_pos(pos, target) < 3:
                         room = self.hive.get_room(pos.roomName)
                         if room and not movement.is_block_clear(room, pos.x, pos.y):
                             continue  # Don't try and target where the miner is right now!

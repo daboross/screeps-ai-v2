@@ -33,15 +33,14 @@ class RoleDefender(MilitaryBase):
             best_id = None
             closest_distance = Infinity
             for hostile in self.room.defense.dangerous_hostiles():
-                distance = movement.distance_room_pos(self.pos, hostile.pos)
+                distance = movement.chebyshev_distance_room_pos(self.pos, hostile.pos)
                 if distance < closest_distance:
                     best_id = hostile.id
                     closest_distance = distance
             if not best_id:
                 for mem_hostile in self.home.defense.remote_hostiles():
-                    distance = movement.distance_squared_room_pos(self.pos,
-                                                                  movement.serialized_pos_to_pos_obj(mem_hostile.room,
-                                                                                                     mem_hostile.pos))
+                    distance = movement.chebyshev_distance_room_pos(
+                        self.pos, movement.serialized_pos_to_pos_obj(mem_hostile.room, mem_hostile.pos))
                     if mem_hostile.ranged and not mem_hostile.attack:
                         distance += 1000  # Don't go after kiting attackers
                     if distance < closest_distance:

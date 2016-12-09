@@ -608,7 +608,7 @@ class RoomMind:
         closest_distance = Infinity
         closest_element = None
         for element in raw_find_results:
-            distance = movement.distance_squared_room_pos(pos, element.pos)
+            distance = movement.chebyshev_distance_room_pos(pos, element.pos)
             if distance < closest_distance:
                 closest_element = element
                 closest_distance = distance
