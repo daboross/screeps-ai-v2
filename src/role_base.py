@@ -285,7 +285,7 @@ class RoleBase:
                 self.last_checkpoint = None
                 return self.creep.moveTo(target, self._move_options())
 
-        path = self.hive.honey.find_path(checkpoint, target)
+        path = self.hive.honey.find_serialized_path(checkpoint, target)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         # TODO: this code should be able to space out creeps eventually
         result = self.creep.moveByPath(path)

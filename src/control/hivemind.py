@@ -1401,8 +1401,8 @@ class RoomMind:
                         and _.find(room.defense.dangerous_hostiles(),
                                    lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
                     continue
-                distance = len(self.hive_mind.honey.find_path(
-                    self.spawn, __new__(RoomPosition(25, 25, room.room_name)), {'range': 15}))
+                distance = self.hive_mind.honey.find_path_length(
+                    self.spawn, __new__(RoomPosition(25, 25, room.room_name)), {'range': 15})
                 room_work_mass = 0
                 rt_map = room.rt_map
                 for role in Object.keys(room.work_mass_map):

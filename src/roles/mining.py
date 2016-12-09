@@ -185,13 +185,13 @@ class EnergyMiner(TransportPickup):
         source = self.targets.get_new_target(self, target_remote_mine_miner)
         if not source:
             return -1
-        path = self.hive.honey.find_path(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
         if self.home.all_paved():
             moves_every /= 2
         moves_every = math.ceil(moves_every)
-        return len(path) / moves_every + _.size(self.creep.body) * 3 + 15
+        return path_length / moves_every + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(EnergyMiner, ["run"])
@@ -278,9 +278,9 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         source = self.targets.get_new_target(self, target_remote_mine_hauler)
         if not source:
             return -1
-        path = self.hive.honey.find_path(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
-        return len(path) * 1.7 + _.size(self.creep.body) * 3 + 15
+        return path_length * 1.7 + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(EnergyHauler, ["run"])
@@ -384,9 +384,9 @@ class RemoteReserve(TransportPickup):
             target_pos = Game.rooms[room].controller.pos
         else:
             return -1
-        path = self.hive.honey.find_path(self.home.spawn, target_pos)
+        path_length = self.hive.honey.find_path_length(self.home.spawn, target_pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
-        return len(path) + _.size(self.creep.body) * 3 + 15
+        return path_length + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(RemoteReserve, ["run"])

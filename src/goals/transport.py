@@ -179,8 +179,7 @@ class TransportPickup(RoleBase):
         if target.pos:
             target = target.pos
 
-        path = self.hive.honey.find_path(origin, target)
-        return len(path)
+        return self.hive.honey.find_path_length(origin, target)
 
     def follow_energy_path(self, origin, target):
         # over_debug = self.name in ('30d6' ,'3b5a', '4387')

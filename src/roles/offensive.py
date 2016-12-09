@@ -295,8 +295,7 @@ class MilitaryBase(RoleBase):
         # else:
         path_opts.max_ops = movement.chebyshev_distance_room_pos(spawn, target) * 150
         path_opts.max_rooms = math.ceil(movement.chebyshev_distance_room_pos(spawn, target) / 5)
-        path1 = self.hive.honey.find_path(spawn, target, path_opts)
-        return len(path1)
+        return self.hive.honey.find_path_length(spawn, target, path_opts)
 
 
 class TowerDrainHealer(MilitaryBase):

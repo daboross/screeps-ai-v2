@@ -785,6 +785,18 @@ class HoneyTrails:
                     final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
 
+    def find_path_length(self, origin, destination, opts=None):
+        serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
+        # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
+
+        # return len(serialized_path_obj['full'])   # The length of the path
+        #  - 4 + 1                                  # The first four characters only represent one position
+        #  - (
+        # len(Object.keys(serialized_path_obj))     # On each room edge, creeps moving along the path skip one square
+        # - 2)                                      # This also contains the "full" path, so we want one less than that
+        #                                           #  to get the room count. -2 instead of -1 because we want the count
+        #                                           #  of room _exits_, which is one less than the room count.
+        return len(serialized_path_obj['full']) - len(Object.keys(serialized_path_obj)) - 1
 
 __pragma__('nofcall')
 

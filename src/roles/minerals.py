@@ -83,8 +83,8 @@ class MineralMiner(RoleBase):
         if not len(minerals):
             return -1
         mineral_pos = minerals[0].pos
-        spawn_pos = movement.average_pos_same_room(self.home.spawns)
-        time = movement.path_distance(spawn_pos, mineral_pos, True) * 2 + _.size(self.creep.body) * 3 + 15
+        spawn_pos = self.home.spawn.pos
+        time = self.hive.honey.find_path_length(spawn_pos, mineral_pos) * 2 + _.size(self.creep.body) * 3 + 15
         return time
 
 

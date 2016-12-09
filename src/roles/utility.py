@@ -134,7 +134,7 @@ class LinkManager(RoleBase):
             return -1
         link_pos = link.pos
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, link_pos)
-        return movement.path_distance(self.home.spawn, link_pos) + _.size(self.creep.body) * 3 + 15
+        return self.hive.honey.find_path_length(self.home.spawn, link_pos) + _.size(self.creep.body) * 3 + 15
 
 
 profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
