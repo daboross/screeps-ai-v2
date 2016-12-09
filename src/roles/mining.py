@@ -42,7 +42,13 @@ class EnergyMiner(TransportPickup):
             elif not self.creep.getActiveBodyparts(WORK):
                 self.creep.suicide()
                 return
-        distance_away = self.creep.pos.getRangeTo(source_flag.pos)
+        if 'container_pos' in self.memory:
+            sitting_target = _.create(RoomPosition.prototype,
+                                      movement.serialized_pos_to_pos_obj(source_flag.pos.roomName,
+                                                                         self.memory.container_pos))
+        else:
+            sitting_target = source_flag.pos
+        distance_away = self.creep.pos.getRangeTo(sitting_target)
         if distance_away > 2:
             if self.pos.roomName == source_flag.pos.roomName:
                 if distance_away <= 3:
@@ -55,26 +61,26 @@ class EnergyMiner(TransportPickup):
                             other_miner.creep.suicide()
                             del self.memory._move
                 if self.memory.mmni:
-                    self.creep.moveTo(source_flag, {'reusePath': 0})
+                    self.creep.moveTo(sitting_target, {'reusePath': 0})
                 else:
-                    self.creep.moveTo(source_flag, {'ignoreCreeps': True})
+                    self.creep.moveTo(sitting_target, {'ignoreCreeps': True})
                 serialized_pos = self.pos.x | (self.pos.y << 6)
                 if self.memory.last_pos == serialized_pos:
                     self.memory.sf = (self.memory.sf or 0) + 1
                     if self.memory.sf >= 5:
-                        self.creep.moveTo(source_flag, {'reusePath': 0})
+                        self.creep.moveTo(sitting_target, {'reusePath': 0})
                         self.memory.mmni = True
                 elif not self.creep.fatigue:
                     self.memory.last_pos = serialized_pos
             else:
-                self.follow_energy_path(self.home.spawn, source_flag)
+                self.follow_energy_path(self.home.spawn, sitting_target)
             self.report(speech.remote_miner_moving)
             return False
         elif distance_away > 1:
             non_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
                                lambda c: c.creep.memory.role != role_miner)
             if not non_miner or not self.force_basic_move_to(non_miner, lambda c: c.memory.role != role_miner):
-                self.move_to(source_flag.pos)
+                self.move_to(sitting_target)
             return False
         if 'container_pos' not in self.memory:
             container = _.find(self.room.find_in_range(FIND_STRUCTURES, 1, source_flag.pos),
