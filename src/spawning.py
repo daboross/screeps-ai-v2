@@ -12,7 +12,7 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 initial_section = {
-    creep_base_work_full_move_hauler: [WORK, MOVE],
+    creep_base_work_full_move_hauler: [WORK, WORK, MOVE, MOVE],
     creep_base_work_half_move_hauler: [WORK, WORK, MOVE],  # for swamp roads.
     # TODO: separate "repair station" creeps triggered by lookFor during moveByPath
     creep_base_goader: [ATTACK, MOVE, TOUGH],
@@ -298,19 +298,19 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_work_full_move_hauler:
         parts = []
-        for part in initial_section[base]:
-            parts.append(part)
         for i in range(0, num_sections):
             parts.append(CARRY)
+        for part in initial_section[base]:
+            parts.append(part)
         for i in range(0, num_sections):
             parts.append(MOVE)
         descriptive_level = num_sections
     elif base is creep_base_work_half_move_hauler:
         parts = []
-        for part in initial_section[base]:
-            parts.append(part)
         for i in range(0, num_sections * 2 + half_section):
             parts.append(CARRY)
+        for part in initial_section[base]:
+            parts.append(part)
         for i in range(0, num_sections + half_section):
             parts.append(MOVE)
         descriptive_level = num_sections * 2 + 1
