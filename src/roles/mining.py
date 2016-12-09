@@ -42,7 +42,7 @@ class EnergyMiner(TransportPickup):
             elif not self.creep.getActiveBodyparts(WORK):
                 self.creep.suicide()
                 return
-        if 'container_pos' in self.memory:
+        if self.memory.container_pos:
             sitting_target = _.create(RoomPosition.prototype,
                                       movement.serialized_pos_to_pos_obj(source_flag.pos.roomName,
                                                                          self.memory.container_pos))
