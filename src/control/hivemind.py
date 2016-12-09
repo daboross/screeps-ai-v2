@@ -1597,7 +1597,11 @@ class RoomMind:
                 self._target_upgrader_work_mass = wm
                 return wm  # Upgrading auto-turns-off being deprioritized if energy is above 700 * 1000
             elif self.rcl == 8:
-                if _.sum(self.room.storage.store) > 700 * 1000 \
+                if len(self.possible_remote_mining_operations) >= 3 \
+                        and _.sum(self.room.storage.store) > 250 * 1000 \
+                        and self.room.storage.store.energy > 100 * 1000:
+                    wm = 15
+                elif _.sum(self.room.storage.store) > 700 * 1000 \
                         and self.room.storage.store.energy > 200 * 1000:
                     wm = 7
                 else:
