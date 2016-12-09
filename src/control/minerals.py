@@ -454,6 +454,15 @@ class MineralMind:
         if 'order_id' in target_obj:
             result = Game.market.deal(target_obj.order_id, amount, self.room.room_name)
         else:
+            if target_obj.amount < 100:
+                self.log("Extending order of {} to {} from {} to {} {} (too small to fill)"
+                         .format(mineral, target_obj.room, target_obj.amount, 100, mineral))
+                target_obj.amount = 100
+                return ERR_NOT_ENOUGH_RESOURCES
+            elif amount < 100: # Not possible to send this much!
+                return ERR_NOT_ENOUGH_RESOURCES
+            elif target_obj.amount - amount < 100:  # Don't leave ourselves with a hanging order
+                return ERR_NOT_ENOUGH_RESOURCES
             result = self.terminal.send(mineral, amount, target_obj.room,
                                         "Fulfilling order for {} {}".format(target_obj.amount, mineral))
         if result == OK:
