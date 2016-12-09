@@ -11,7 +11,7 @@ __pragma__('noalias', 'Infinity')
 
 class Scout(MilitaryBase):
     def run(self):
-        destination = self.targets.get_new_target(self, target_single_flag, flags.SCOUT)
+        destination = self.targets.get_existing_target(self, target_single_flag, flags.SCOUT)
         if not destination:
             if not self.memory.idle_for:
                 self.log("WARNING: Scout does not have destination set!")
@@ -23,7 +23,11 @@ class Scout(MilitaryBase):
                     self.creep.suicide()
             return
 
-        if self.memory.last_room != self.pos.roomName:
+        still_exploring = ('explored_at' not in destination.memory) \
+                          or (movement.xy_to_serialized_int(destination.pos.x, destination.pos.y)
+                              + destination.pos.roomName) != destination.memory.explored_at
+
+        if still_exploring and self.memory.last_room != self.pos.roomName:
             self.memory.last_room = self.pos.roomName
             if self.room.enemy and self.pos.roomName != destination.pos.roomName:
                 self.recalc_military_path(self.home.spawn, destination, {"ignore_swamp": True,
@@ -55,11 +59,12 @@ class Scout(MilitaryBase):
         if self.pos.isEqualTo(destination) or \
                 (self.pos.isNearTo(destination)
                  and not movement.is_block_empty(self.room, destination.pos.x, destination.pos.y)):
-            if not self.memory.arrived:
-                self.memory.arrived = Game.time
+            if still_exploring:
                 destination.memory.travel_time = CREEP_LIFE_TIME - self.creep.ticksToLive
                 self.log("Arrived at {} ({}), traveling from {} in {} ticks."
                          .format(destination, destination.pos, self.home.spawn, destination.memory.travel_time))
+                destination.memory.explored_at = movement.xy_to_serialized_int(destination.pos.x, destination.pos.y) \
+                                                 + destination.pos.roomName
         elif self.pos.isNearTo(destination):
             self.basic_move_to(destination)
         else:
@@ -68,9 +73,9 @@ class Scout(MilitaryBase):
         if self.pos.roomName == destination.pos.roomName and destination.memory.activate_attack_in:
             if len(self.room.defense.dangerous_hostiles()) and _.sum(self.room.defense.dangerous_hostiles(),
                                                                      lambda h: h.owner.username != INVADER_USERNAME
-                                                                                and _.sum(h.body, lambda p: p.type == ATTACK
-                                                                                                            or p.type == RANGED_ATTACK
-                                                                                                            or p.type == HEAL)) >= 10:
+                                                                     and _.sum(h.body, lambda p: p.type == ATTACK
+                                                                             or p.type == RANGED_ATTACK
+                                                                             or p.type == HEAL)) >= 10:
                 rooms_newly_activated = []
                 for name in destination.memory.activate_attack_in:
                     activate_attack_in = self.hive.get_room(name)
@@ -114,4 +119,4 @@ class Scout(MilitaryBase):
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target, {"ignore_swamp": True,
                                                                            "use_roads": False})
-        return path_len + 53  # Body size is always 1.
+        return path_len + 28  # Body size is always 1, so just 25 leeway + 3 here.
