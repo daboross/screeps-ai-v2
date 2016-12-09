@@ -179,7 +179,7 @@ class MilitaryBase(RoleBase):
                     target = dest_midpoint
                     path_opts.range = max(path_opts.range or 0, 10)
 
-        path = self.hive.honey.find_path(origin, target, path_opts)
+        path = self.hive.honey.find_serialized_path(origin, target, path_opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
