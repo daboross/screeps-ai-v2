@@ -99,7 +99,7 @@ role_bases = {
     role_builder: creep_base_worker,
     role_tower_fill: creep_base_hauler,
     role_remote_mining_reserve: creep_base_reserving,
-    role_link_manager: creep_base_hauler,
+    role_link_manager: creep_base_half_move_hauler,
     role_defender: creep_base_defender,
     role_wall_defender: creep_base_rampart_defense,
     role_cleanup: creep_base_hauler,
