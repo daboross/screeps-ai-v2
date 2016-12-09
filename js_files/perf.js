@@ -69,6 +69,19 @@ module.exports = function (options) {
             return false;
         };
 
+        Creep.prototype.hasActiveBoostedBodyparts = function (type) {
+            for (var i = this.body.length; i-- > 0;) {
+                var x = this.body[i];
+                if (x.hits <= 0) {
+                    break;
+                }
+                if (x.boost !== undefined && x.type == type) {
+                    return true;
+                }
+            }
+            return false;
+        };
+
         Creep.prototype.getBodyparts = function (type) {
             var total = 0;
             for (var i = this.body.length; i-- > 0;) {

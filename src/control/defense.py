@@ -1,3 +1,5 @@
+import math
+
 import flags
 from constants import INVADER_USERNAME, SK_USERNAME
 from tools import profiling
@@ -8,6 +10,21 @@ from utilities.screeps_constants import new_set
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+
+
+def _init_tough_part_multipliers():
+    # This was the original code. We're now creating a constant in order to skip directly to
+    # math.ceil(part.hits * MULTIPLIERS[part.boost])
+    # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
+    # effective_hits = math.ceil(part.hits * (1 / prevented))
+    result = {}
+    input_obj = BOOSTS[TOUGH]
+    for boost in Object.keys(input_obj):
+        result[boost] = 1 / (1 - input_obj[boost])
+    return result
+
+
+TOUGH_HIT_MULTIPLIERS = _init_tough_part_multipliers()
 
 
 def tower_damage(range):
@@ -638,7 +655,35 @@ class RoomDefense:
                                                                      and c.creep.getActiveBodyparts(ATTACK)) or 0) * 30 \
                                   + _.sum(towers.slice(tower_index),
                                           lambda t: tower_damage(t.pos.getRangeTo(hostile)))
+                if hostile.hasAnyActiveBoostedBodyparts(TOUGH):
+                    damage_to_account_for = attack_possible
+                    for part in hostile.body:
+                        if part.hits <= 0:
+                            continue
+                        if damage_to_account_for <= 0:
+                            break
+                        if part.boost is undefined or part.type != TOUGH:
+                            damage_to_account_for -= part.hits
+                            continue
+                        # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
+                        # effective_hits = math.ceil(part.hits * (1 / prevented))
+                        effective_hits = math.ceil(part.hits * TOUGH_HIT_MULTIPLIERS[part.boost])
+                        # If we will fully destroy this part, there's no need to do partial-destruction logic
+                        if effective_hits <= damage_to_account_for:
+                            damage_to_account_for -= effective_hits
+                            # since we fully destroy it, just subtract how much extra damage is absorbed
+                            attack_possible -= (effective_hits - part.hits)
+                        else:
+                            # This is the last part, and we're partially destroying it, which means... ratios!
+                            actually_destroyed = math.floor((effective_hits - damage_to_account_for)
+                                                            / effective_hits
+                                                            * part.hits)
+                            attack_possible = damage_to_account_for - actually_destroyed
+                            break  # No need to zero out damage_to_account_for here, as we're done
+
                 if healing_possible > attack_possible:
+                    # TODO: request a rampart defender if this is next to a rampart and there's a small enough gap
+                    #  between damage/healing power!
                     print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
                           .format(self.room.room_name, hostile.pos, healing_possible, attack_possible))
                     continue
