@@ -1,5 +1,5 @@
 import role_base
-from constants import INVADER_USERNAME, target_rampart_defense, role_recycling, role_wall_defender
+from constants import INVADER_USERNAME, target_rampart_defense, role_recycling, role_wall_defender, role_defender
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
 from tools import profiling
@@ -51,7 +51,8 @@ class RoleDefender(MilitaryBase):
                 target_id = best_id
                 self.memory.attack_target = best_id
             else:
-                self.creep.suicide()
+                self.memory.role = role_recycling
+                self.memory.last_role = role_defender
                 return False
 
         hostile_info = Memory.hostiles[target_id]

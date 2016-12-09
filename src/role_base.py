@@ -580,10 +580,16 @@ class RoleBase:
     def recycle_me(self):
         spawn = self.home.spawns[0]
         if not spawn:
-            self.go_to_depot()
+            if self.creep.ticksToLive > 50:
+                self.go_to_depot()
+            else:
+                self.creep.suicide()
             return
         if not self.creep.pos.isNearTo(spawn.pos):
-            self.move_to(self.home.spawns[0])
+            if self.pos.getRangeTo(spawn) + 20 > self.creep.ticksToLive:
+                self.creep.suicide()
+            else:
+                self.move_to(self.home.spawns[0])
         else:
             result = spawn.recycleCreep(self.creep)
             if result == OK:

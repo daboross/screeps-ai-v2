@@ -3,7 +3,9 @@ from constants import *
 from control import pathdef
 from goals.refill import Refill
 from role_base import RoleBase
+from roles.offensive import MilitaryBase
 from tools import profiling
+from utilities import movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -111,13 +113,28 @@ class ReplacingExpendedCreep(RoleBase):
 profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
 
-class Recycling(Refill):
+class Recycling(Refill, MilitaryBase):
     def should_pickup(self, resource_type=None):
         return self.creep.ticksToLive > 100
 
     def run(self):
         # flag to other creeps
-        self.memory.filling = False
+        if 'filling' in self.memory:
+            del self.memory.filling
+        if self.pos.roomName != self.room.room_name:
+            target = None
+            if self.carry_sum() > 0:
+                target = self.home.room.storage
+            if target is None:
+                target = self.home.spawn
+            if target is None or self.creep.ticksToLive < self.pos.getRangeTo(target):
+                self.creep.suicide()
+                return False
+            if 'checkpoint' not in self.memory or \
+                            movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                self.memory.checkpoint = self.pos
+            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target, {'range': 1})
+            return False
         if self.carry_sum() > 0:
             storage = self.home.room.storage
             if storage and _.sum(storage.store) < storage.storeCapacity:
@@ -130,10 +147,12 @@ class Recycling(Refill):
                             else:
                                 self.log("Unknown result from recycling-creep.transfer({}, {}): {}".format(
                                     storage, rtype, result))
+                elif self.creep.ticksToLive <= self.pos.getRangeTo(storage.pos):
+                    self.creep.suicide()
                 else:
                     self.move_to(storage)
                 return False
-            else:
+            elif self.creep.carry.energy > 0:
                 return self.refill_creeps()
 
         self.report(speech.recycling)
