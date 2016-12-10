@@ -450,19 +450,27 @@ class MineralMind:
             amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
             energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
         if self.terminal.store[RESOURCE_ENERGY] < energy_cost:
+            if energy_cost > self.mem['total_energy_needed']:
+                self.log("WARNING: Error correction! Total energy needed should have been at least {},"
+                         "but it was only {}.".format(energy_cost, self.mem['total_energy_needed']))
+                self.mem['total_energy_needed'] = energy_cost
             return ERR_NOT_ENOUGH_RESOURCES
         if 'order_id' in target_obj:
             result = Game.market.deal(target_obj.order_id, amount, self.room.room_name)
         else:
             if target_obj.amount < 100:
-                self.log("Extending order of {} to {} from {} to {} {} (too small to fill)"
+                self.log("WARNING: Error correction! Extending order of {} to {} from {} to {} {} (too small to fill)"
                          .format(mineral, target_obj.room, target_obj.amount, 100, mineral))
                 target_obj.amount = 100
                 return ERR_NOT_ENOUGH_RESOURCES
-            elif amount < 100: # Not possible to send this much!
+            elif amount < 100:  # Not possible to send this much!
                 return ERR_NOT_ENOUGH_RESOURCES
-            elif target_obj.amount - amount < 100:  # Don't leave ourselves with a hanging order
-                return ERR_NOT_ENOUGH_RESOURCES
+            # Don't leave ourselves with a hanging order
+            elif target_obj.amount - amount < 100 and amount < target_obj.amount:
+                if target_obj.amount < 200:
+                    return ERR_NOT_ENOUGH_RESOURCES
+                else:
+                    amount = target_obj.amount - 100
             result = self.terminal.send(mineral, amount, target_obj.room,
                                         "Fulfilling order for {} {}".format(target_obj.amount, mineral))
         if result == OK:
