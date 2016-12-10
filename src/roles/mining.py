@@ -48,7 +48,7 @@ class EnergyMiner(TransportPickup):
                                                                          self.memory.container_pos))
         else:
             sitting_target = source_flag.pos
-        distance_away = self.creep.pos.getRangeTo(sitting_target)
+        distance_away = self.creep.pos.getRangeTo(source_flag)
         if distance_away > 2:
             if self.pos.roomName == source_flag.pos.roomName:
                 if distance_away <= 3:
@@ -128,7 +128,7 @@ class EnergyMiner(TransportPickup):
         elif result == ERR_NOT_ENOUGH_RESOURCES:
             self.report(speech.remote_miner_ner)
         else:
-            self.log("Unknown result from remote-mining-creep.harvest({}): {}", source, result)
+            self.log("Unknown result from mining-creep.harvest({}): {}", source, result)
             self.report(speech.remote_miner_unknown_result)
 
         if self.creep.carryCapacity:
