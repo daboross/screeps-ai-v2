@@ -467,8 +467,8 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
-              .format(creep.name, creep.home.room_name, max_hits))
+        # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
+        #       .format(creep.name, creep.home.room_name, max_hits))
         best_id = None
         smallest_num = Infinity
         smallest_hits = Infinity

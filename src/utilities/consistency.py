@@ -53,8 +53,8 @@ def clear_memory(room):
         creep = Game.creeps[name]
         if not creep:
             role = Memory.creeps[name].role
-            if role and role != role_recycling:
-                print("[{}][{}] {} died.".format(home, name, role))
+            # if role and role != role_recycling:
+            #     print("[{}][{}] {} died.".format(home, name, role))
             target_mind._unregister_all(name)
 
             del Memory.creeps[name]

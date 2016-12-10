@@ -250,8 +250,8 @@ class Builder(upgrading.Upgrader):
         if target.hits >= target.hitsMax or (target.hits >= max_hits * 2 and
                                                  (target.structureType == STRUCTURE_WALL
                                                   or target.structureType == STRUCTURE_RAMPART)):
-            self.log("Untargeting {}: hits: {}, hitsMax: {}, max_hits: {} type: {}", target, target.hits,
-                     target.hitsMax, max_hits, ttype)
+            # self.log("Untargeting {}: hits: {}, hitsMax: {}, max_hits: {} type: {}", target, target.hits,
+            #          target.hitsMax, max_hits, ttype)
             if Game.cpu.bucket >= 8000:
                 self.home.building.refresh_repair_targets()
             self.targets.untarget(self, ttype)

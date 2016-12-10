@@ -729,8 +729,6 @@ class ConstructionMind:
         if site_count + prev_sites_placed >= 90:
             return
 
-        print("[{}] Checking for structures without ramparts.".format(self.room.room_name))
-
         ramparts = new_set()
         need_ramparts = new_map()
 

@@ -2070,7 +2070,8 @@ class RoomMind:
         if next_role:
             self.mem.next_role = next_role
         else:
-            print("[{}] All creep targets reached!".format(self.room_name))
+            if len(self.spawns) <= 1:
+                print("[{}] All creep targets reached!".format(self.room_name))
             self.mem.next_role = None
 
     def get_next_role(self):

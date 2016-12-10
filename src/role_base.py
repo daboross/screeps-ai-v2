@@ -577,26 +577,32 @@ class RoleBase:
                                               and not movement.is_block_clear(self.home, depot.x, depot.y))):
             self.move_to(depot)
 
+    def _log_recycling(self):
+        if self.creep.ticksToLive > 50:
+            if self.memory.role == role_recycling:
+                self.log("{} recycled (ttl: {}).", self.memory.last_role, self.creep.ticksToLive)
+            else:
+                self.log("{} committed suicide (ttl: {}).", self.memory.role, self.creep.ticksToLive)
+
     def recycle_me(self):
         spawn = self.home.spawns[0]
         if not spawn:
             if self.creep.ticksToLive > 50:
                 self.go_to_depot()
             else:
+                self._log_recycling()
                 self.creep.suicide()
             return
         if not self.creep.pos.isNearTo(spawn.pos):
             if self.pos.getRangeTo(spawn) + 20 > self.creep.ticksToLive:
+                self._log_recycling()
                 self.creep.suicide()
             else:
                 self.move_to(self.home.spawns[0])
         else:
             result = spawn.recycleCreep(self.creep)
             if result == OK:
-                if self.memory.role == role_recycling:
-                    self.log("{} recycled (ttl: {}).", self.memory.last_role, self.creep.ticksToLive)
-                else:
-                    self.log("{} committed suicide (ttl: {}).", self.memory.role, self.creep.ticksToLive)
+                self._log_recycling()
                 self.home.mem.meta.clear_next = 0  # clear next tick
             else:
                 self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)

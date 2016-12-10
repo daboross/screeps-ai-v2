@@ -351,7 +351,7 @@ class HoneyTrails:
 
         if hostile_utils.enemy_room(room_name):
             if room_name != origin.roomName and room_name != destination.roomName:
-                print("[honey] Avoiding room {}.".format(room_name))
+                # print("[honey] Avoiding room {}.".format(room_name))
                 return False
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
@@ -368,7 +368,7 @@ class HoneyTrails:
             if this_room_future_roads:
                 serialized = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
                 if serialized:
-                    print("[honey] Using serialized matrix for room {}.".format(room_name))
+                    # print("[honey] Using serialized matrix for room {}.".format(room_name))
                     matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
                     self.set_max_avoid(room_name, matrix, opts)
                     if this_room_future_roads:
@@ -377,17 +377,17 @@ class HoneyTrails:
             else:
                 matrix = self.get_generic_cost_matrix(room_name, opts)
                 if matrix:
-                    print("[honey] Using generic matrix for room {}.".format(room_name))
+                    # print("[honey] Using generic matrix for room {}.".format(room_name))
                     return matrix
 
-            print("[honey] Using basic matrix for room {}.".format(room_name))
+            # print("[honey] Using basic matrix for room {}.".format(room_name))
             matrix = __new__(PathFinder.CostMatrix())
             # Avoid stepping on exit tiles unnecessarily
             self.mark_exit_tiles(room_name, matrix, opts)
             self.mark_flags(room_name, matrix, opts)
             self.set_max_avoid(room_name, matrix, opts)
             return matrix
-        print("[honey] Calculating intricate matrix for room {}.".format(room_name))
+        # print("[honey] Calculating intricate matrix for room {}.".format(room_name))
 
         structures_ignore = []
         if origin.roomName == room_name:

@@ -526,19 +526,19 @@ def run(room, spawn):
         # Add whatever memory seems to be necessary
         _.extend(memory, role_obj.memory)
 
-    if descriptive_level:
-        if replacing:
-            print("[{}][spawning] Spawning {}, a {} with body {} level {}, live-replacing {}.".format(
-                room.room_name, name, role, base, descriptive_level, replacing))
-        else:
-            print("[{}][spawning] Spawning {}, a {} with body {} level {}.".format(
-                room.room_name, name, role, base, descriptive_level))
-    else:
-        if replacing:
-            print("[{}][spawning] Spawning {}, a {} with body {}, live-replacing {}.".format(
-                room.room_name, name, role, base, replacing))
-        else:
-            print("[{}][spawning] Spawning {}, a {} with body {}.".format(room.room_name, name, role, base))
+    # if descriptive_level:
+    #     if replacing:
+    #         print("[{}][spawning] Spawning {}, a {} with body {} level {}, live-replacing {}.".format(
+    #             room.room_name, name, role, base, descriptive_level, replacing))
+    #     else:
+    #         print("[{}][spawning] Spawning {}, a {} with body {} level {}.".format(
+    #             room.room_name, name, role, base, descriptive_level))
+    # else:
+    #     if replacing:
+    #         print("[{}][spawning] Spawning {}, a {} with body {}, live-replacing {}.".format(
+    #             room.room_name, name, role, base, replacing))
+    #     else:
+    #         print("[{}][spawning] Spawning {}, a {} with body {}.".format(room.room_name, name, role, base))
     result = spawn.createCreep(parts, name, memory)
     if result not in Game.creeps:
         print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
