@@ -78,8 +78,8 @@ class EnergyMiner(TransportPickup):
             return False
         elif distance_away > 1:
             non_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
-                               lambda c: c.creep.memory.role != role_miner)
-            if not non_miner or not self.force_basic_move_to(non_miner, lambda c: c.memory.role != role_miner):
+                               lambda c: c.my and c.creep.memory.role != role_miner)
+            if not non_miner or not self.force_basic_move_to(non_miner, lambda c: c.my and c.memory.role != role_miner):
                 self.move_to(sitting_target)
             return False
         if 'container_pos' not in self.memory:
