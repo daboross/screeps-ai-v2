@@ -504,7 +504,7 @@ class ConstructionMind:
         # stagger updates after a version change.
         # Really don't do this often either - this is an expensive operation.
         # Calculate this here so we can pass it to HoneyTrails for how long to keep paths.
-        ttl = random.randint(30000, 40000)
+        ttl = random.randint(200 * 1000, 220 * 1000)
 
         volatile = volatile_cache.volatile()
 
