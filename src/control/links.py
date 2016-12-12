@@ -151,7 +151,7 @@ class LinkingMind:
                         {'link': link, 'amount': -energy_change_now - link.energy,
                          'priority': math.floor(link.energy / energy_change_now)})
             else:
-                access_list = _.sortBy(_.filter(vmem_values, lambda x: x.distance > 1), lambda x: x.distance)
+                access_list = _.sortBy(_.filter(vmem.values(), lambda x: x.distance > 1), lambda x: x.distance)
                 if len(access_list):
                     count = access_list[0].cap
                     for x in access_list:
