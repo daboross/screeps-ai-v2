@@ -6,7 +6,7 @@ from constants import target_single_flag, role_td_healer, target_single_flag2
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.mining import EnergyHauler
-from utilities import hostile_utils
+from utilities import hostile_utils, global_cache
 from utilities import movement
 from utilities.movement import center_pos, room_xy_to_name, parse_room_to_xy
 from utilities.screeps_constants import *
@@ -415,28 +415,31 @@ class Dismantler(MilitaryBase):
                     site = self.room.look_at(LOOK_CONSTRUCTION_SITES, target.pos)[0]
                     if site:
                         self.basic_move_to(site)
-                    elif 'dismantle_all' not in target.memory or target.memory.dismantle_all:
-                        new_target_site = self.room.find_closest_by_range(FIND_HOSTILE_CONSTRUCTION_SITES, target.pos)
-                        new_structure = self.room.find_closest_by_range(
-                            FIND_STRUCTURES, target.pos, lambda s: s.structureType != STRUCTURE_ROAD
-                                                                   and s.structureType != STRUCTURE_CONTAINER
-                                                                   and s.structureType != STRUCTURE_CONTROLLER
-                                                                   and s.structureType != STRUCTURE_EXTRACTOR
-                                                                   and s.structureType != STRUCTURE_STORAGE
-                                                                   and s.structureType != STRUCTURE_TERMINAL)
-                        if new_structure and (not new_target_site or
-                                                      movement.distance_squared_room_pos(target, new_target_site)
-                                                      > movement.distance_squared_room_pos(target, new_structure)):
-                            new_pos = new_structure.pos
-                        elif new_target_site:
-                            new_pos = new_target_site.pos
+                    else:
+                        global_cache.clear_values_matching(target.pos.roomName + '_cost_matrix_')
+                        if 'dismantle_all' not in target.memory or target.memory.dismantle_all:
+                            new_target_site = self.room.find_closest_by_range(FIND_HOSTILE_CONSTRUCTION_SITES,
+                                                                              target.pos)
+                            new_structure = self.room.find_closest_by_range(
+                                FIND_STRUCTURES, target.pos, lambda s: s.structureType != STRUCTURE_ROAD
+                                                                       and s.structureType != STRUCTURE_CONTAINER
+                                                                       and s.structureType != STRUCTURE_CONTROLLER
+                                                                       and s.structureType != STRUCTURE_EXTRACTOR
+                                                                       and s.structureType != STRUCTURE_STORAGE
+                                                                       and s.structureType != STRUCTURE_TERMINAL)
+                            if new_structure and (not new_target_site or
+                                                          movement.distance_squared_room_pos(target, new_target_site)
+                                                          > movement.distance_squared_room_pos(target, new_structure)):
+                                new_pos = new_structure.pos
+                            elif new_target_site:
+                                new_pos = new_target_site.pos
+                            else:
+                                target.remove()
+                                return
+                            target.setPosition(new_pos)
+                            self.move_to(new_pos)
                         else:
                             target.remove()
-                            return
-                        target.setPosition(new_pos)
-                        self.move_to(new_pos)
-                    else:
-                        target.remove()
             else:
                 if self.pos.roomName == target.pos.roomName:
                     self.move_to(target)

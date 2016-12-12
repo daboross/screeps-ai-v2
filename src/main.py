@@ -308,15 +308,6 @@ def main():
 module.exports.loop = profiling.wrap_main(main)
 
 
-def clear_global_cache(name):
-    if not name:
-        return
-    for key in Object.keys(Memory.cache):
-        if key.includes(name):
-            del Memory.cache[key]
-            print("[clear_global_cache] Cleared {}.".format(key))
-
-
 __pragma__('js', 'global').py = {
     "context": context,
     "consistency": consistency,
@@ -336,7 +327,7 @@ __pragma__('js', 'global').py = {
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
     "cpu_avg": averages.get_average_visual,
-    "cc": clear_global_cache,
+    "cc": global_cache.clear_values_matching,
     "analyse_mem": lambda path: memory_info.analyse_memory(path),
     "records": {
         'start': averages.start_recording,

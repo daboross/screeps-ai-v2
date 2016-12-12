@@ -47,3 +47,12 @@ def cleanup():
                 min_last_use = Game.time - 1500
             if r[key].l < min_last_use:
                 del r[key]
+
+
+def clear_values_matching(name):
+    if not name:
+        return
+    for key in Object.keys(Memory.cache):
+        if key.includes(name):
+            del Memory.cache[key]
+            print("[clear_global_cache] Cleared {}.".format(key))
