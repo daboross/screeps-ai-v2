@@ -96,6 +96,20 @@ def get_def_cost_callback(target_room, me):
 _REUSE = 100  #find_reuse_path_value()
 _DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE}
 _IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "ignoreRoads": True}
+_WITH_ROAD_PF_OPTIONS = {
+    "maxRooms": 10,
+    "maxOps": 4000,
+    "reusePath": _REUSE,
+    "plainCost": 2,
+    "swampCost": 10,
+}
+_NO_ROAD_PF_OPTIONS = {
+    "maxRooms": 10,
+    "maxOps": 4000,
+    "reusePath": _REUSE,
+    "plainCost": 1,
+    "swampCost": 5,
+}
 
 
 class RoleBase:
@@ -236,12 +250,14 @@ class RoleBase:
 
     last_target = property(_get_last_target, _set_last_target)
 
-    def _move_options(self):
-        if self.creep.getActiveBodyparts(MOVE) >= len(self.creep.body) / 2:
-            options = Object.create(_IGNORE_ROADS_OPTIONS)
+    def _move_options(self, target_room):
+        roads = self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2
+        if roads:
+            options = _WITH_ROAD_PF_OPTIONS
         else:
-            options = Object.create(_DEFAULT_PATH_OPTIONS)
-        options['costCallback'] = get_def_cost_callback(None, self.creep)
+            options = _NO_ROAD_PF_OPTIONS
+        # Since this is overridden every _move_options call, we should be fine with modifying the constants.
+        options['roomCallback'] = walkby_move.create_cost_callback(self, roads, target_room)
         return options
 
     __pragma__('nofcall')
@@ -263,34 +279,34 @@ class RoleBase:
             if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
                                                         movement.is_block_clear(self.room, target.x, target.y)):
                 self.last_checkpoint = target
-            return self.creep.moveTo(target, self._move_options())
+            return self.creep.moveTo(target, self._move_options(target.roomName))
         elif target.isEqualTo(checkpoint):
             self.log("Creep target not updated! Last checkpoint is still {}, at {} distance away.".format(
                 target, self.creep.pos.getRangeTo(target)
             ))
             self.last_checkpoint = None
-            return self.creep.moveTo(target, self._move_options())
+            return self.creep.moveTo(target, self._move_options(target.roomName))
         if checkpoint.roomName != self.creep.pos.roomName:
             entrance = movement.get_entrance_for_exit_pos(checkpoint)
             if entrance == -1:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}".format(
                     checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target, self._move_options())
+                return self.creep.moveTo(target, self._move_options(target.roomName))
             # TODO: Remove debug logging
             self.last_checkpoint = checkpoint = entrance
             if entrance.roomName != self.creep.pos.roomName:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
                          "Removing checkpoint.".format(checkpoint, self.creep.pos))
                 self.last_checkpoint = None
-                return self.creep.moveTo(target, self._move_options())
+                return self.creep.moveTo(target, self._move_options(target.roomName))
 
         path = self.hive.honey.find_serialized_path(checkpoint, target)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         # TODO: this code should be able to space out creeps eventually
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND:
-            return self.creep.moveTo(target, self._move_options())
+            return self.creep.moveTo(target, self._move_options(target.roomName))
         if result == OK:
             # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
             # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
@@ -328,7 +344,7 @@ class RoleBase:
             return self._follow_path_to(target)  # this will precalculate a single path ignoring creeps, and move on it.
 
         self.last_checkpoint = None
-        result = self.creep.moveTo(queue_flag, self._move_options())
+        result = self.creep.moveTo(queue_flag, self._move_options(queue_flag.pos.roomName))
         # if result == OK:
         #     if self.creep.pos.isNearTo(queue_flag.pos) and \
         #             movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
@@ -343,23 +359,7 @@ class RoleBase:
         elif here.isNearTo(pos):
             self.basic_move_to(pos)
             return OK
-        move_opts = self._move_options()
-        # target_room = (pos.roomName or (pos.pos and pos.pos.roomName))
-        # if here.roomName != target_room:
-        #     move_opts = _.create(move_opts, {'maxRooms': 16})
-        #     if movement.chebyshev_distance_room_pos(here, pos) > 50:
-        #         exit_flag = movement.get_exit_flag_to(here.roomName, target_room)
-        #         if exit_flag:
-        #             # pathfind to the flag instead
-        #             pos = exit_flag
-        #         else:
-        #             # TODO: use Map to pathfind a list of room names to get from each room to each room, and use that
-        #             # instead of the direct route using these flags.
-        #             no_exit_flag = movement.get_no_exit_flag_to(here.roomName, target_room)
-        #             if not no_exit_flag:
-        #                 self.log("ERROR: Couldn't find exit flag from {} to {}. (targeting {}, as a {})"
-        #                          .format(here.roomName, target_room, JSON.stringify(pos), self.memory.role))
-        #             self.last_checkpoint = None
+        move_opts = self._move_options(pos.roomName)
         self.last_checkpoint = None
         result = self.creep.moveTo(pos, move_opts)
         if result == -2:

@@ -246,7 +246,7 @@ module.exports = function (options) {
         };
 
         // PathFinding
-        var mbspUtilDirToXY = function (dir) {
+        const directionToDxDy = function (dir) {
             switch (dir) {
                 case TOP:
                     return [0, -1];
@@ -305,7 +305,7 @@ module.exports = function (options) {
             }
             var path_len = path.length;
             if (path_len < 5) {
-                return ERR_NOT_FOUND;
+                return ERR_NO_PATH;
             }
             var my_x = this.pos.x, my_y = this.pos.y;
             var x_to_check = +path.slice(0, 2);
@@ -316,7 +316,7 @@ module.exports = function (options) {
             // gives the direction *from the first position to the second position*. So, to find the first position,
             // we subtract that! I do think this is actually more performant than trying to do any more complicated
             // logic in the loop.
-            dxdy = mbspUtilDirToXY(+path[4]);
+            dxdy = directionToDxDy(+path[4]);
             x_to_check -= dxdy[0];
             y_to_check -= dxdy[1];
             // Since we start at 4 again, we'll be re-adding what we just subtracted above - this lets us check both the
@@ -333,7 +333,7 @@ module.exports = function (options) {
                 } else {
                     // console.log(`[${this.memory.home}][${this.name}] Not my position: (${x_to_check}, ${y_to_check})`);
                 }
-                dxdy = mbspUtilDirToXY(+path[idx]);
+                dxdy = directionToDxDy(+path[idx]);
                 if (dxdy === null) {
                     console.log(`Unknown direction! couldn't figure out '${path[idx]}'`);
                     return ERR_INVALID_ARGS;
@@ -454,141 +454,206 @@ module.exports = function (options) {
         //     return C.OK;
         // }
 
-        // default pos.findPathTo:
-        // RoomPosition.prototype.findPathTo = register.wrapFn(function(firstArg, secondArg, opts) {
-        //
-        //     var [x,y,roomName] = utils.fetchXYArguments(firstArg, secondArg, globals),
-        //         room = register.rooms[this.roomName];
-        //
-        //     if(_.isObject(secondArg)) {
-        //         opts = _.clone(secondArg);
-        //     }
-        //     opts = opts || {};
-        //
-        //     roomName = roomName || this.roomName;
-        //
-        //     if(!room) {
-        //         throw new Error(`Could not access room ${this.roomName}`);
-        //     }
-        //
-        //     if(roomName == this.roomName || register._useNewPathFinder) {
-        //         return room.findPath(this, new globals.RoomPosition(x,y,roomName), opts);
-        //     }
-        //     else {
-        //         var exitDir = room.findExitTo(roomName);
-        //         if(exitDir < 0) {
-        //             return [];
-        //         }
-        //         var exit = this.findClosestByPath(exitDir, opts);
-        //         if(!exit) {
-        //             return [];
-        //         }
-        //         return room.findPath(this, exit, opts);
-        //     }
-        //
-        // });
+        const dxDyToDirection = function (dx, dy) {
+            if (dx < 0) {
+                if (dy < 0) {
+                    return TOP_LEFT;
+                } else if (dy > 0) {
+                    return BOTTOM_LEFT;
+                } else {
+                    return LEFT;
+                }
+            } else if (dx > 0) {
+                if (dy < 0) {
+                    return TOP_RIGHT;
+                } else if (dy > 0) {
+                    return BOTTOM_RIGHT;
+                } else {
+                    return RIGHT;
+                }
+            } else {
+                if (dy < 0) {
+                    return TOP;
+                } else if (dy > 0) {
+                    return BOTTOM;
+                } else {
+                    // both dx and dy are 0!
+                    return null;
+                }
+            }
+        };
 
-        // default room.findPath:
-        // function _findPath2(id, fromPos, toPos, opts) {
-        //     opts = opts || {};
-        //
-        //     if(fromPos.isEqualTo(toPos)) {
-        //         return opts.serialize ? '' : [];
-        //     }
-        //
-        //     if(opts.avoid) {
-        //         register.deprecated('`avoid` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
-        //         opts.avoid = undefined;
-        //     }
-        //     if(opts.ignore) {
-        //         register.deprecated('`ignore` option cannot be used when `PathFinder.use()` is enabled. Use `costCallback` instead.');
-        //         opts.ignore = undefined;
-        //     }
-        //     if(opts.maxOps === undefined && (opts.maxRooms === undefined || opts.maxRooms > 1) && fromPos.roomName != toPos.roomName) {
-        //         opts.maxOps = 20000;
-        //     }
-        //     var searchOpts = {
-        //         roomCallback: function(roomName) {
-        //             var costMatrix = getPathfindingGrid2(roomName, opts);
-        //             if(typeof opts.costCallback == 'function') {
-        //                 costMatrix = costMatrix.clone();
-        //                 var resultMatrix = opts.costCallback(roomName, costMatrix);
-        //                 if(resultMatrix instanceof globals.PathFinder.CostMatrix) {
-        //                     costMatrix = resultMatrix;
-        //                 }
-        //             }
-        //             return costMatrix;
-        //         },
-        //         maxOps: opts.maxOps,
-        //         maxRooms: opts.maxRooms
-        //     };
-        //     if(!opts.ignoreRoads) {
-        //         searchOpts.plainCost = 2;
-        //         searchOpts.swampCost = 10;
-        //     }
-        //
-        //     var ret = globals.PathFinder.search(fromPos, {range: Math.max(1,opts.range || 0), pos: toPos}, searchOpts);
-        //
-        //     if(!opts.range &&
-        //             (ret.path.length && ret.path[ret.path.length-1].isNearTo(toPos) && !ret.path[ret.path.length-1].isEqualTo(toPos) ||
-        //             !ret.path.length && fromPos.isNearTo(toPos))) {
-        //         ret.path.push(toPos);
-        //     }
-        //     var curX = fromPos.x, curY = fromPos.y;
-        //
-        //     var resultPath = [];
-        //
-        //     for(let i=0; i<ret.path.length; i++) {
-        //         let pos = ret.path[i];
-        //         if(pos.roomName != id) {
-        //             break;
-        //         }
-        //         let result = {
-        //             x: pos.x,
-        //             y: pos.y,
-        //             dx: pos.x - curX,
-        //             dy: pos.y - curY,
-        //             direction: utils.getDirection(pos.x - curX, pos.y - curY)
-        //         };
-        //
-        //         curX = result.x;
-        //         curY = result.y;
-        //         resultPath.push(result);
-        //     }
-        //
-        //     if(opts.serialize) {
-        //         return utils.serializePath(resultPath);
-        //     }
-        //
-        //     return resultPath;
-        // }
+        /**
+         * Searches for a path using PathFinder and the given opts, turns the path into a Room.findPath-compatible
+         * serialized result, and returns that result.
+         *
+         * Please ensure that all arguments have been validated when passing in, and that targetPos is a raw position
+         * (not a RoomObject with a pos property).
+         */
+        const findPathPathFinder = function (originPos, targetPos, options) {
+            const result = PathFinder.search(
+                originPos,
+                {
+                    pos: targetPos,
+                    range: 'range' in options ? options.range : 1,
+                },
+                options
+            );
 
-        // RoomPosition.prototype.defaultFindPathTo = RoomPosition.prototype.findPathTo;
-        // RoomPosition.prototype.findPathTo = function(arg1, arg2, arg3) {
-        //     let x, y, roomName, opts;
-        //     if (arg3 === undefined) {
-        //         if (arg1.pos === undefined) {
-        //             x = arg1.x;
-        //             y = arg1.y;
-        //             roomName = arg1.roomName;
-        //         } else {
-        //             x = arg1.pos.x;
-        //             y = arg1.pos.y;
-        //             roomName = arg1.pos.roomName;
-        //         }
-        //         opts = arg2;
-        //     } else {
-        //         x = arg1;
-        //         y = arg2;
-        //         roomName = this.roomName;
-        //         opts = arg3;
-        //     }
-        //     if (!opts['roomCallback']) {
-        //         return this.defaultFindPathTo(arg1, arg2, arg3);
-        //     }
-        //     let searchOpts = {
-        //         roomCallback: opts['roomCallback'],
-        //     }
-        // }
+            const path = result.path;
+            var resultStringArray = []; // it's faster to use [...].join('') than to continuously add to a string iirc.
+            var roomToConvert = originPos.roomName;
+
+            if (path.length < 1) {
+                return '';
+            }
+
+            // The serialized format starts with the _second_ position's x and y values, then the direction from the
+            // first pos to second, then direction from second to third, etc. originPos is the first pos, input[0] is
+            // the second, input[1] is the third, etc.
+
+            if (path[0].x > 9) {
+                resultStringArray.push(path[0].x);
+            } else {
+                resultStringArray.push(0, path[0].x); // 0-pad
+            }
+            if (path[0].y > 9) {
+                resultStringArray.push(path[0].y);
+            } else {
+                resultStringArray.push(0, path[0].y); // 0-pad
+            }
+
+            var last_x = originPos.x;
+            var last_y = originPos.y;
+            var pos, dx, dy, dir;
+            for (var i = 0; i < path.length; i++) {
+                pos = path[i];
+                dx = pos.x - last_x;
+                dy = pos.y - last_y;
+                if (dx === -49) {
+                    dx = 1;
+                } else if (dx === 49) {
+                    dx = -1;
+                }
+                if (dy === -49) {
+                    dy = 1;
+                } else if (dy === 49) {
+                    dy = -1;
+                }
+
+                resultStringArray.push(dxDyToDirection(dx, dy));
+                if (pos.roomName != roomToConvert) {
+                    break;
+                }
+                last_x = pos.x;
+                last_y = pos.y;
+            }
+            return resultStringArray.join('');
+        };
+
+        Creep.prototype.defaultMoveTo = Creep.prototype.moveTo;
+
+        /**
+         * Custom replacement of moveTo, which just calls moveTo unless a 'roomCallback' argument is passed in in the
+         * options. The memory format this function uses is identical to the default moveTo's, so it is supported
+         * alternate* calling this function with and without the 'roomCallback' option.
+         *
+         * When passed roomCallback, this function:
+         * - assumes that Creep.prototype.moveByPath has already been optimized to deal with
+         *   serialized paths, and will pass it purely serialized paths.
+         * - does not accept the 'serializeMemory' option, and will always assume it is set to true
+         * - does not accept any of the 'costCallback', 'ignoreCreeps', 'ignoreRoads' or 'ignoreDestructibleStructures'
+         *   options. (note: roomCallback is used by PathFinder instead of the costCallback used by findPath)
+         * - passes all arguments on to PathFinder.search as is.
+         * - accepts one additional option, 'range', which is passed into PathFinder as part of the target object.
+         */
+        Creep.prototype.moveTo = function (arg1, arg2, arg3) {
+            var targetPos, opts;
+            if (arg3 === undefined) {
+                if (arg1.pos) {
+                    arg1 = arg1.pos;
+                }
+                targetPos = arg1;
+                opts = arg2 || {};
+            } else {
+                targetPos = new RoomPosition(arg1, arg2, this.pos.roomName);
+                opts = arg3 || {};
+            }
+
+            if (!('roomCallback' in opts)) {
+                return this.defaultMoveTo(arg1, arg2, arg3); // Compatible memory format.
+            }
+            if (!_.isNumber(targetPos.x) || !_.isNumber(targetPos.y) || !_.isString(targetPos.roomName)) {
+                return ERR_INVALID_TARGET;
+            }
+            if (!_.isObject(opts)) {
+                return ERR_INVALID_ARGS;
+            }
+            if (!this.my) {
+                return ERR_NOT_OWNER;
+            }
+            if (this.spawning) {
+                return ERR_BUSY
+            }
+            if (this.fatigue > 0) {
+                return ERR_TIRED
+            }
+            if (!this.hasActiveBodyparts(MOVE)) {
+                return ERR_NO_BODYPART;
+            }
+
+            if (this.pos.isNearTo(targetPos)) {
+                if (this.pos.isEqualTo(targetPos)) {
+                    return OK;
+                } else {
+                    return this.move(this.pos.getDirectionTo(targetPos));
+                }
+            }
+
+            const reusePath = _.isObject(this.memory) && ('reusePath' in opts ? opts.reusePath : 5);
+
+            if (reusePath) {
+                var _move = this.memory._move;
+
+                if (_.isObject(_move)
+                    && Game.time <= _move.time + Number(reusePath)
+                    && _move.room == this.pos.roomName
+                    && _move.dest.room == targetPos.roomName
+                    && _move.dest.x == targetPos.x
+                    && _move.dest.y == targetPos.y) {
+
+                    // moveByPath is optimized to deal with serialized paths already, and it's more CPU to
+                    // re-serialize each tick with a smaller string than it is to store the larger string the
+                    // whole time.
+                    var byPathResult = this.moveByPath(_move.path);
+                    if (byPathResult !== ERR_NOT_FOUND && byPathResult !== ERR_INVALID_ARGS
+                        && byPathResult !== ERR_NO_PATH) {
+                        return byPathResult;
+                    }
+                }
+            }
+
+            if (opts.noPathFinding) {
+                return ERR_NOT_FOUND;
+            }
+
+            // This uses PathFinder, and returns the result as an already-serialized path.
+            const path = findPathPathFinder(this.pos, targetPos, opts);
+
+            if (reusePath) {
+                this.memory._move = {
+                    dest: {
+                        x: targetPos.x,
+                        y: targetPos.y,
+                        room: targetPos.roomName,
+                    },
+                    time: Game.time,
+                    path: path,
+                    room: this.pos.roomName,
+                }
+            }
+
+            return this.moveByPath(path);
+        };
     }
 };
