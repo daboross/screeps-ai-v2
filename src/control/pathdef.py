@@ -419,6 +419,8 @@ class HoneyTrails:
             return Game.map.getTerrainAt(x, y, room_name) == 'wall'
 
         def road_at(x, y):
+            if x < 1 or x > 48 or y < 1 or y > 48:
+                return False
             for s in room.look_at(LOOK_STRUCTURES, x, y):
                 if s.structureType == STRUCTURE_ROAD:
                     return True
