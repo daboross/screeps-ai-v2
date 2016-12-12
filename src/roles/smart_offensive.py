@@ -162,22 +162,26 @@ class KitingOffense(MilitaryBase):
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
-                    self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos) <= 3)):
+                    self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos) <= 5)):
                 hostiles_nearby = _.filter(hostiles_nearby, 'offensive')
             nearby = _.filter(hostiles_nearby,
                               lambda h: movement.chebyshev_distance_room_pos(
-                                  self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 4)
+                                  self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 5)
             closest = _.min(
                 hostiles_nearby,
                 lambda h: movement.chebyshev_distance_room_pos(self.pos,
                                                                movement.serialized_pos_to_pos_obj(h.room, h.pos))
+                          - (5 if h.offensive else 0)
             )
             closest_pos = movement.serialized_pos_to_pos_obj(closest.room, closest.pos)
             harmless = not _.some(nearby, lambda x: x.attack or x.ranged)
             ranged = _.some(nearby, lambda x: x.ranged)
             only_ranged = not _.some(nearby,
                                      lambda h: movement.chebyshev_distance_room_pos(
-                                         self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 3 and h.attack)
+                                         self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 4 and h.attack)
+            mass_attack = _.some(nearby, lambda h: movement.chebyshev_distance_room_pos(
+                self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 1
+                                                   and h.room == self.pos.roomName)
         else:
             enemies = self.room.find(FIND_HOSTILE_CREEPS)
             if len(enemies):
@@ -194,21 +198,22 @@ class KitingOffense(MilitaryBase):
             if len(enemies):
                 closest = _.min(enemies, lambda h: movement.chebyshev_distance_room_pos(self.pos, h.pos))
                 closest_pos = closest.pos
-                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 4)
+                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 5)
                 harmless = not _.some(nearby, lambda h: h.hasActiveBodyparts(ATTACK)
                                                         or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
                 ranged = _.some(nearby, lambda h: h.hasActiveBodyparts(RANGED_ATTACK))
                 only_ranged = not _.some(nearby, lambda h: movement.chebyshev_distance_room_pos(self.pos,
-                                                                                                h.pos) <= 3 and h.hasBodyparts(
+                                                                                                h.pos) <= 4 and h.hasBodyparts(
                     ATTACK))
+                mass_attack = _.some(nearby, lambda h: self.pos.isNearTo(h.pos) and self.pos.roomName == h.pos.roomName)
             else:
                 closest = None
                 closest_pos = None
                 harmless = False
                 ranged = False
                 only_ranged = True
-                nearby = []
+                mass_attack = False
 
         if not closest or (closest_pos.roomName != self.pos.roomName
                            and movement.chebyshev_distance_room_pos(closest_pos, self.pos) > 10):
@@ -252,7 +257,7 @@ class KitingOffense(MilitaryBase):
             self.creep.say("🐾 🏹 🐾", True)
         fatigue = (closest_creep and (closest_creep.fatigue or not closest_creep.hasActiveBodyparts(MOVE)))
         if self.memory.healing:
-            self.memory.healing = self_damaged = self.creep.hits <= self.creep.hitsMax
+            self.memory.healing = self_damaged = self.creep.hits < self.creep.hitsMax
         else:
             # If 1/4 of our ranged attack parts are dead.
             total_ra = self.creep.getBodyparts(RANGED_ATTACK)
@@ -260,13 +265,13 @@ class KitingOffense(MilitaryBase):
             self.memory.healing = self_damaged = (total_ra < 10 and alive_ra < total_ra / 2) or alive_ra < total_ra / 3
 
         if closest_pos.roomName == self.pos.roomName and min_distance <= 3:
-            closest_creep = Game.getObjectById(closest.id)
-            if min_distance == 1:
+            if mass_attack:
                 self.creep.rangedMassAttack()
             else:
+                closest_creep = Game.getObjectById(closest.id)
                 self.creep.rangedAttack(closest_creep)
 
-        if (min_distance <= 4) and self.pos.roomName != closest_pos.roomName:
+        if (min_distance <= 6) and self.pos.roomName != closest_pos.roomName:
             self.memory.countdown = (self.memory.countdown or 10) - 1
             if self.memory.countdown <= 0:
                 if self.memory.countdown == 0:
@@ -276,9 +281,9 @@ class KitingOffense(MilitaryBase):
                 self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName, self.creep))
             return
         if ranged and self_damaged:
-            safe_distance = 4
+            safe_distance = 5
         elif ranged and only_ranged:
-            safe_distance = 2
+            safe_distance = 0
         else:
             safe_distance = 3
         should_run = (not _.find(self.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': True})

@@ -111,12 +111,12 @@ def chebyshev_distance_room_pos(pos1, pos2):
     room_1_pos = parse_room_to_xy(pos1.roomName)
     room_2_pos = parse_room_to_xy(pos2.roomName)
     world_pos_1 = (
-        room_1_pos[0] * 50 + pos1.x,
-        room_1_pos[1] * 50 + pos1.y
+        room_1_pos[0] * 49 + pos1.x,
+        room_1_pos[1] * 49 + pos1.y
     )
     world_pos_2 = (
-        room_2_pos[0] * 50 + pos2.x,
-        room_2_pos[1] * 50 + pos2.y
+        room_2_pos[0] * 49 + pos2.x,
+        room_2_pos[1] * 49 + pos2.y
     )
     return max(abs(world_pos_1[0] - world_pos_2[0]), abs(world_pos_1[1] - world_pos_2[1]))
 
