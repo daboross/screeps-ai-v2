@@ -13,6 +13,7 @@ repair_roads_this_tick = False
 repair_roads_tick_num = 0
 
 
+# TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
         debug = self.memory.debug

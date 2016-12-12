@@ -163,6 +163,7 @@ __all__ = [
     "JSON",
     "this",
     "RegExp",
+    "Array",
     "Error",
     "Infinity",
     "console",

@@ -356,7 +356,6 @@ class TargetMind:
                 if volatile_cache.mem("extensions_filled").has(structure_id):
                     continue
                 current_carry = self.workforce_of(target_spawn_deposit, structure_id)
-                # TODO: "1" should be a lot bigger if we have smaller creeps and no extensions.
                 distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                 if distance < closest_distance:
                     max = structure.energyCapacity / 50.0
@@ -411,7 +410,6 @@ class TargetMind:
                     continue
                 max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
             current_work = self.workforce_of(target_construction, site_id)
-            # TODO: this 200 should be a decided factor based off of spawn extensions
 
             if not current_work or current_work < max_work:
                 best_id = site_id

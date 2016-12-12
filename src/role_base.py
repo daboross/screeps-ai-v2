@@ -293,7 +293,6 @@ class RoleBase:
                     checkpoint, self.creep.pos))
                 self.last_checkpoint = None
                 return self.creep.moveTo(target, self._move_options(target.roomName))
-            # TODO: Remove debug logging
             self.last_checkpoint = checkpoint = entrance
             if entrance.roomName != self.creep.pos.roomName:
                 self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."

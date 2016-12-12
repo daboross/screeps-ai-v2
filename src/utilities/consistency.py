@@ -99,7 +99,7 @@ def clear_cache():
         if _.isEmpty(mem):
             del Memory.flags[name]
         elif name not in Game.flags and (
-            (not name.includes('_') and name.includes('Flag')) or name.includes('local_mine')):
+                    (not name.includes('_') and name.includes('Flag')) or name.includes('local_mine')):
             del Memory.flags[name]
             print('[consistency] Clearing flag {}\'s memory: {}'.format(name, JSON.stringify(mem)))
     global_cache.cleanup()

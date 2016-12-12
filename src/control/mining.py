@@ -33,7 +33,6 @@ def fit_num_sections(needed, maximum, extra_initial=0.0, min_split=1):
 __pragma__('fcall')
 
 
-# TODO: expand this for local dedicated mining as well as the remote mining
 class MiningMind:
     """
     :type room: control.hivemind.RoomMind

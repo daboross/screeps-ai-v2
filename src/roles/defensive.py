@@ -126,7 +126,8 @@ class WallDefender(RoleBase):
                     self.memory.last_role = role_wall_defender
                     return False
                 elif self.pos.isEqualTo(target.pos) and len(all_hostiles):
-                    # TODO: in this case, look for a specific wall which has hostiles next to it! don't just blindly re-choose
+                    # TODO: in this case, look for a specific wall which has hostiles next to it! don't just blindly
+                    # re-choose
                     self.targets.untarget(self, target_rampart_defense)
 
 

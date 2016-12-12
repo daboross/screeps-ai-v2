@@ -33,8 +33,8 @@ class ReplacingExpendedCreep(RoleBase):
     def run(self):
         old_name = self.memory.replacing
         if not old_name:
-            self.creep.say("REPLACE?")  # TODO: temp message, move to speech.py
-            self.go_to_depot()
+            self.memory.role = role_recycling
+            self.memory.last_role = role_temporary_replacing + '->' + self.memory.replacing_role
             return
 
         role = self.memory.replacing_role

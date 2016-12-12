@@ -289,25 +289,21 @@ profiling.profile_whitelist(HiveMind, [
     "poll_all_creeps",
 ])
 
-# TODO: A lot of these should be changed for if the room has 1 or 2 sources!
-_min_work_mass_big_miner = 8  # TODO: This really should be based off of spawn extensions & work mass percentage!
-_extra_work_mass_per_big_miner = 10
-
-_min_total_pause_remote_mining = 950000
-_min_energy_pause_remote_mining = 150000
-_max_total_resume_remote_mining = 700000
-_max_energy_resume_remote_mining = 50000
+_min_total_pause_remote_mining = 950 * 1000
+_min_energy_pause_remote_mining = 150 * 1000
+_max_total_resume_remote_mining = 700 * 1000
+_max_energy_resume_remote_mining = 50 * 1000
 _min_work_mass_per_source_for_full_storage_use = 15
 
-_min_energy_enable_full_storage_use = 10000
-_max_energy_disable_full_storage_use = 5000
-_energy_to_resume_upgrading = 14000
-_energy_to_pause_upgrading = 8000
-_rcl8_energy_to_resume_upgrading = 200000
-_rcl8_energy_to_pause_upgrading = 100000
-_energy_to_pause_building = 14000
-_energy_to_resume_building = 28000
-_min_stored_energy_to_draw_from_before_refilling = 20000
+_min_energy_enable_full_storage_use = 10 * 1000
+_max_energy_disable_full_storage_use = 5 * 1000
+_energy_to_resume_upgrading = 14 * 1000
+_energy_to_pause_upgrading = 8 * 1000
+_rcl8_energy_to_resume_upgrading = 100 * 1000
+_rcl8_energy_to_pause_upgrading = 50 * 1000
+_energy_to_pause_building = 14 * 1000
+_energy_to_resume_building = 28 * 1000
+_min_stored_energy_to_draw_from_before_refilling = 20 * 1000
 
 _rcl_to_min_wall_hits = [
     1,  # RCL 1
@@ -664,7 +660,6 @@ class RoomMind:
         paving = self.get_cached_property("paving_here")
         if paving is None:
             if self.my:
-                # TODO: 2 maybe should be a constant?
                 paving = (self.room.storage or self.spawn) and \
                          (self.get_max_mining_op_count() >= 1 or self.room.storage) \
                          and len(self.mining.available_mines) >= 1 \
@@ -1437,7 +1432,7 @@ class RoomMind:
         return self._target_mineral_steal_mass
 
     def get_target_spawn_fill_backup_carry_mass(self):
-        # TODO: 7 should be a constant.
+        # TODO: 25 should be a constant.
         if self.full_storage_use or self.are_all_big_miners_placed:
             if self.full_storage_use and (self.are_all_big_miners_placed or
                                               (self.work_mass > 25 and self.role_count(role_tower_fill) > 0

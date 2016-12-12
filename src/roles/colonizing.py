@@ -1,9 +1,6 @@
-import context
 import flags
-import role_base
 import speech
-from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_simple_claim, \
-    role_mineral_steal, target_single_flag
+from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_mineral_steal, target_single_flag
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
 from tools import profiling
@@ -182,7 +179,6 @@ class ReserveNow(MilitaryBase):
         return path_len + _.size(self.creep.body) * 3 + 10
 
 
-# TODO: abstract path movement out of TransportPickup into a higher class.
 class MineralSteal(TransportPickup):
     def get_colony(self):
         if not self.memory.colonizing:

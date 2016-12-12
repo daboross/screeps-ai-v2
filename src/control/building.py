@@ -745,7 +745,7 @@ class ConstructionMind:
             if site.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
 
-        entries = __pragma__('js', 'Array.from(need_ramparts.entries())')
+        entries = Array.js_from(need_ramparts.entries())
         sorted_entries = _.sortBy(entries, lambda t: rampart_priorities[t[1].structureType] or 10)
         # Need to make this a list in order to iterate it.
         for pos_key, structure in sorted_entries:

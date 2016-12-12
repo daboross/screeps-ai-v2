@@ -31,7 +31,6 @@ bottom_prices = {
 __pragma__('fcall')
 
 
-# TODO: expand this for local dedicated mining as well as the remote mining
 class MineralMind:
     """
     :type room: control.hivemind.RoomMind

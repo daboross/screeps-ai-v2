@@ -133,9 +133,7 @@ class LinkingMind:
             mem = self.link_mem(link)
             vmem = self.volatile_link_mem(link)
             energy_change_now = 0
-            # TODO: Switch over to ES6 code generation so this isn't needed!
-            vmem_values = __pragma__('js', 'Array.from(vmem.values())')
-            for obj in vmem_values:
+            for obj in Array.js_from(vmem.values()):
                 if obj.distance <= 1:
                     energy_change_now += obj.cap
             if Memory.links_debug == self.room.room_name:

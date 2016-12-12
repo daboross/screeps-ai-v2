@@ -128,7 +128,6 @@ class LinkManager(RoleBase):
         self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
 
     def _calculate_time_to_replace(self):
-        # TODO: maybe merge this logic with DedicatedMiner?
         link = self.home.links.main_link
         if not link:
             return -1

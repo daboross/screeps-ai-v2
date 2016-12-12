@@ -69,35 +69,6 @@ def pathfinder_path_to_room_to_path_obj(origin, input):
     return result_obj
 
 
-# def serialize_pathfinder_path(path):
-#     codepoints = []
-#     for pos in path:
-#         codepoints.append(pos.x | (pos.y << 6))
-#         codepoints.append()
-#     # String.fromCodePoint(x | (y << 6));
-#     # 2:09 decode like this:
-#     # var char = str.charCodeAt(index);
-#     #    var x = (char &  0x3F);
-#     #    var y = ((char >> 6) & 0x3F);
-#     #    return {x: x, y:y};
-#     pass
-
-
-# # TODO: function to use pathfinder to search and cache results
-# if self.memory.path_cached and self.memory.path_reset > Game.time:
-#     path = Room.deserializePath(self.memory.path_cached)
-# else:
-#     result = PathFinder.search(self.creep.pos, {"pos": target.pos, "range": 1}, {
-#         "roomCallback": autoactions.simple_cost_matrix,
-#         "maxOps": 1000,
-#     })
-#     path = pathdef.pathfinder_to_regular_path(self.creep.pos, result.path)
-#     self.memory.path_cached = Room.serializePath(path)
-#     self.memory.path_reset = Game.time + 10
-# result = self.creep.moveTo(target)
-# if result != OK:
-#     self.log("Unknown result from creep.moveByPath(): {}".format(result))
-
 def get_direction(dx, dy):
     """
     Gets the screeps direction constant from a given dx and dy.
@@ -308,7 +279,8 @@ class HoneyTrails:
                             cost_matrix.set(x, y, 20 * if_roads_multiplier)
             cost_matrix.set(pos.x, pos.y, 255)
 
-        controller = room.room.controller and room.room.controller.my and not len(flags.find_flags(room, flags.UPGRADER_SPOT))
+        controller = room.room.controller and room.room.controller.my and not len(
+            flags.find_flags(room, flags.UPGRADER_SPOT))
 
         for struct in room.find(FIND_STRUCTURES):
             if (struct.structureType != STRUCTURE_CONTROLLER or controller) \
@@ -406,8 +378,8 @@ class HoneyTrails:
             (origin.roomName == room_name and len(room.look_at(LOOK_SOURCES, origin)))
             or (destination.roomName == room_name and len(room.look_at(LOOK_SOURCES, destination)))
         )
-        avoid_controller = room.room.controller and room.room.controller.my and not len(flags.find_flags(room, flags.UPGRADER_SPOT))
-
+        avoid_controller = room.room.controller and room.room.controller.my and not len(
+            flags.find_flags(room, flags.UPGRADER_SPOT))
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)
@@ -799,6 +771,7 @@ class HoneyTrails:
         #                                           #  to get the room count. -2 instead of -1 because we want the count
         #                                           #  of room _exits_, which is one less than the room count.
         return len(serialized_path_obj['full']) - len(Object.keys(serialized_path_obj)) - 1
+
 
 __pragma__('nofcall')
 

@@ -17,7 +17,6 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 
-# TODO: abstract path movement out of TransportPickup into a higher class.
 class EnergyMiner(TransportPickup):
     def run(self):
         source_flag = self.targets.get_existing_target(self, target_remote_mine_miner)
