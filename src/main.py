@@ -307,7 +307,6 @@ def main():
 
 module.exports.loop = profiling.wrap_main(main)
 
-
 __pragma__('js', 'global').py = {
     "context": context,
     "consistency": consistency,

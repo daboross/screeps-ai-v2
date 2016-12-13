@@ -1,6 +1,7 @@
 import flags
 import speech
-from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_mineral_steal, target_single_flag
+from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_mineral_steal, \
+    target_single_flag
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
 from tools import profiling
