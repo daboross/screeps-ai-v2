@@ -1,13 +1,12 @@
 import random
 
 import context
-import flags
 import role_base
 from constants import INVADER_USERNAME, role_simple_dismantle, role_miner
 from control import defense
 from control import pathdef
 from tools import profiling
-from utilities import volatile_cache, movement, hostile_utils
+from utilities import volatile_cache, movement, hostile_utils, walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -94,10 +93,8 @@ def enemy_purposes_cost_matrix(room_name):
     return cost_matrix
 
 
-def simple_cost_matrix(room_name, new_to_use_as_base=False):
+def simple_cost_matrix(room_name):
     cache = volatile_cache.mem("enemy_cost_matrix")
-    if not new_to_use_as_base and cache.has(room_name):
-        return cache.get(room_name)
     # TODO: some of this is duplicated in pathdef.HoneyTrails
 
     room = context.hive().get_room(room_name)
@@ -107,7 +104,9 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
         else:
             return __new__(PathFinder.CostMatrix())
 
-    cost_matrix = __new__(PathFinder.CostMatrix())
+    # The basic cost matrix already has impassable things on it, and already has SK lairs avoided, but does not
+    # have any non-hostile creeps. It also already has exits marked.
+    cost_matrix = walkby_move.get_basic_cost_matrix(room_name, False)
 
     def wall_at(x, y):
         return Game.map.getTerrainAt(x, y, room_name) == 'wall'
@@ -120,24 +119,14 @@ def simple_cost_matrix(room_name, new_to_use_as_base=False):
         if increase_by_center > 0 and drange > 0:
             set_in_range(pos, drange - 1, value + increase_by_center, increase_by_center)
 
-    for struct in room.find(FIND_STRUCTURES):
-        if struct.structureType == STRUCTURE_ROAD:
-            cost_matrix.set(struct.pos.x, struct.pos.y, 1)
-        elif struct.structureType != STRUCTURE_CONTAINER and (struct.structureType != STRUCTURE_RAMPART
-                                                              or not struct.my):
-            cost_matrix.set(struct.pos.x, struct.pos.y, 255)
     for creep in room.find(FIND_CREEPS):
         set_in_range(creep.pos, 1, 5, 0)
         cost_matrix.set(creep.pos.x, creep.pos.y, 255)
     for creep in room.find(FIND_HOSTILE_CREEPS):
         set_in_range(creep.pos, 7, 2, 7)
         cost_matrix.set(creep.pos.x, creep.pos.y, 255)
-    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
-        set_in_range(flag.pos, 4, 255, 0)
 
-    if not new_to_use_as_base:
-        cache.set(room_name, cost_matrix)
-    role_base.add_exits(room_name, cost_matrix)
+    cache.set(room_name, cost_matrix)
     return cost_matrix
 
 

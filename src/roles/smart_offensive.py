@@ -1,6 +1,5 @@
 import context
 import flags
-import role_base
 from constants import target_single_flag, PYFIND_HURT_CREEPS
 from control import defense
 from control import pathdef
@@ -12,14 +11,6 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
-
-
-def get_def_move_opts(target_room, me):
-    return {
-        'reusePath': 2,
-        'ignoreRoads': True,
-        'costCallback': role_base.get_def_cost_callback(target_room, me),
-    }
 
 
 def kiting_cost_matrix(room_name):
@@ -136,6 +127,11 @@ class KitingOffense(MilitaryBase):
 
         return False
 
+    def get_def_move_opts(self, target_room):
+        return _.create(self._move_options(target_room), {
+            'reusePath': 2,
+        })
+
     def run(self):
         if self.creep.ticksToLive > 1450 and not (self.memory.boosted >= 2):
             if 'boosted' not in self.memory:
@@ -226,7 +222,7 @@ class KitingOffense(MilitaryBase):
                     if self.pos.isNearTo(damaged):
                         self.creep.heal(damaged)
                     else:
-                        self.creep.moveTo(damaged, get_def_move_opts(damaged.pos.roomName, self.creep))
+                        self.creep.moveTo(damaged, self.get_def_move_opts(damaged.pos.roomName))
                     return False
             # TODO: turn this into part of a large generic cross-room movement module
             if not self.pos.isEqualTo(marker_flag.pos):
@@ -243,7 +239,7 @@ class KitingOffense(MilitaryBase):
                                               marker_flag, {'range': 1})
                     self.creep.say("G1")
                 elif distance >= 1:
-                    self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName, self.creep))
+                    self.creep.moveTo(marker_flag, self.get_def_move_opts(marker_flag.pos.roomName))
                     self.creep.say("G2")
                 else:
                     self.basic_move_to(marker_flag)
@@ -278,7 +274,7 @@ class KitingOffense(MilitaryBase):
                     self.memory.countdown -= 1
                 if self.memory.countdown <= 5:
                     del self.memory.countdown
-                self.creep.moveTo(marker_flag, get_def_move_opts(marker_flag.pos.roomName, self.creep))
+                self.creep.moveTo(marker_flag, self.get_def_move_opts(marker_flag.pos.roomName))
             return
         if ranged and self_damaged:
             safe_distance = 5
@@ -292,8 +288,8 @@ class KitingOffense(MilitaryBase):
 
         should_approach = not should_run and (harmless or min_distance > safe_distance)
         if should_approach:
-            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos), get_def_move_opts(closest_pos.roomName,
-                                                                                               self.creep))
+            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos),
+                              self.get_def_move_opts(closest_pos.roomName))
         elif should_run:
             away_path = None
             try:

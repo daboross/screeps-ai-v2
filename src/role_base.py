@@ -4,109 +4,26 @@ import flags
 from constants import target_source, recycle_time, role_recycling, target_closest_energy_site, role_miner
 from control import pathdef
 from tools import profiling
-from utilities import hostile_utils, walkby_move
 from utilities import movement
+from utilities import walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-
-def find_reuse_path_value():
-    if Game.cpu.limit <= 10:
-        return 25
-    elif Game.gcl.level >= _.sum(Game.rooms, lambda r: _.get(r, "controller.my", False)) * 2:
-        return 3
-    else:
-        return 15
-
-
-def add_roads(room_name, cost_matrix):
-    room = Game.rooms[room_name]
-    if not room:
-        return
-    for road in room.find(FIND_STRUCTURES):
-        if road.structureType == STRUCTURE_ROAD and not cost_matrix.get(road.pos.x, road.pos.y):
-            cost_matrix.set(road.pos.x, road.pos.y, 1)
-
-
-def add_exits(room_name, cost_matrix):
-    for x in [0, 49]:
-        for y in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 5)
-                cost_matrix.set(x, y, max(existing + 3, 3))
-    for y in [0, 49]:
-        for x in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 5)
-                cost_matrix.set(x, y, max(existing + 3, 3))
-    for x in [1, 48]:
-        for y in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 5)
-                cost_matrix.set(x, y, max(existing + 2, 2))
-    for y in [1, 48]:
-        for x in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 5)
-                cost_matrix.set(x, y, max(existing + 2, 2))
-
-
-def add_sk(room_name, cost_matrix):
-    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
-        for x in range(flag.pos.x - 4, flag.pos.x + 5):
-            for y in range(flag.pos.y - 4, flag.pos.y + 5):
-                cost_matrix.set(x, y, 255)
-
-
-def def_cost_callback(room_name, cost_matrix, target_room=None, me=None):
-    if hostile_utils.enemy_room(room_name) and room_name != target_room:
-        for x in [0, 49]:
-            for y in range(0, 50):
-                cost_matrix.set(x, y, 255)
-        for y in [0, 49]:
-            for x in range(0, 50):
-                cost_matrix.set(x, y, 255)
-        return False
-    if me is not None:
-        walkby_move.mod_cost_matrix(me, room_name, cost_matrix)
-    add_exits(room_name, cost_matrix)
-    add_roads(room_name, cost_matrix)
-    add_sk(room_name, cost_matrix)
-
-
-def get_def_cost_callback(target_room, me):
-    return lambda room_name, cost_matrix: def_cost_callback(room_name, cost_matrix, target_room, me)
-
-
-_REUSE = 100  #find_reuse_path_value()
-_DEFAULT_PATH_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE}
-_IGNORE_ROADS_OPTIONS = {"maxRooms": 10, "maxOps": 4000, "reusePath": _REUSE, "ignoreRoads": True}
+_REUSE_PATH = 100
 _WITH_ROAD_PF_OPTIONS = {
     "maxRooms": 10,
     "maxOps": 4000,
-    "reusePath": _REUSE,
+    "reusePath": _REUSE_PATH,
     "plainCost": 2,
     "swampCost": 10,
 }
 _NO_ROAD_PF_OPTIONS = {
     "maxRooms": 10,
     "maxOps": 4000,
-    "reusePath": _REUSE,
+    "reusePath": _REUSE_PATH,
     "plainCost": 1,
     "swampCost": 5,
 }

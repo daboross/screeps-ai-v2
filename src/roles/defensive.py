@@ -1,4 +1,3 @@
-import role_base
 from constants import INVADER_USERNAME, target_rampart_defense, role_recycling, role_wall_defender, role_defender
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
@@ -10,17 +9,6 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
-
-
-def avoid_hostile_rooms_costmatrix(room_name, cost_matrix):
-    if hostile_utils.enemy_room(room_name):
-        for x in range(0, 49):
-            for y in range(0, 49):
-                cost_matrix.set(x, y, 150)
-        return False
-    else:
-        role_base.add_roads(room_name, cost_matrix)
-    return cost_matrix
 
 
 class RoleDefender(MilitaryBase):
@@ -92,8 +80,7 @@ class RoleDefender(MilitaryBase):
                 room_hostiles.splice(index, 1)
             return True
 
-        self.creep.moveTo(target, {'reusePath': 2, 'ignoreRoads': True,
-                                   "costCallback": role_base.get_def_cost_callback(hostile_room, self.creep)})
+        self.creep.moveTo(target, _.create(self._move_options(target.pos.roomName), {'reusePath': 2}))
 
     def _calculate_time_to_replace(self):
         return 0  # never live-replace a defender.

@@ -142,29 +142,6 @@ def apply_move_prototype():
     Creep.prototype.move = move_prototype
 
 
-def mod_cost_matrix(me, room_name, cost_matrix):
-    my_role = me.memory.running or me.memory.role
-    my_priority = role_movement_types[my_role] or MOVE_THEN_WORK
-    if room_name in Game.rooms:
-        for creep in Game.rooms[room_name].find(FIND_MY_CREEPS):
-            role = creep.memory.running or creep.memory.role
-            priority = role_movement_types[role] or MOVE_THEN_WORK
-            if priority > my_priority:
-                x = creep.pos.x
-                y = creep.pos.y
-                if Game.map.getTerrainAt(x, y, room_name) == 'swamp':
-                    cost_matrix.set(creep.pos.x, creep.pos.y, 10)
-                else:
-                    cost_matrix.set(creep.pos.x, creep.pos.y, 2)
-            elif priority == my_priority:
-                x = creep.pos.x
-                y = creep.pos.y
-                if Game.map.getTerrainAt(x, y, room_name) == 'swamp':
-                    cost_matrix.set(creep.pos.x, creep.pos.y, 10 + 3)
-                else:
-                    cost_matrix.set(creep.pos.x, creep.pos.y, 2 + 3)
-
-
 def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_role_cost, same_role_swamp_cost,
                                         existing_cost_addition):
     for creep in room.find(FIND_MY_CREEPS):
@@ -277,6 +254,23 @@ def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
                                             4 * multiplier,  # existing cost addition (x + 4)
                                             )
         return matrix
+
+
+def get_basic_cost_matrix(room_name, roads=False):
+    if room_name not in Game.rooms:
+        return __new__(PathFinder.CostMatrix())  # TODO: pull cached data here
+    cache = volatile_cache.submem('matrices', room_name)
+    if roads:
+        basic_key = -2
+    else:
+        basic_key = -1
+    if cache.has(basic_key):
+        matrix = cache.get(basic_key).clone()
+    else:
+        matrix = _create_basic_room_cost_matrix(room_name)
+        _add_avoid_things_to_cost_matrix(room_name, matrix, roads)
+        cache.set(basic_key, matrix.clone())
+    return matrix
 
 
 def create_cost_callback(me, roads, target_room=None):
