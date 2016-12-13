@@ -185,6 +185,11 @@ def _create_basic_room_cost_matrix(room_name):
                 or site.structureType == STRUCTURE_CONTAINER:
             continue
         matrix.set(site.pos.x, site.pos.y, 255)
+    # Note: this depends on room being a regular Room, not a RoomMind, since RoomMind.find(FIND_HOSTILE_CREEPS)
+    # excludes allies!
+    if not room.controller or not room.controller.my or not room.controller.safeMode:
+        for creep in room.find(FIND_HOSTILE_CREEPS):
+            matrix.set(creep.pos.x, creep.pos.y, 255)
     return matrix
 
 
