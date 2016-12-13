@@ -8,9 +8,10 @@ __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-IDLE_ABOUT = 5
-MOVE_THEN_WORK = 4
-CONSTANT_MOVEMENT = 3
+IDLE_ABOUT = 6
+MOVE_THEN_WORK = 5
+CONSTANT_MOVEMENT = 4
+SEMICONSTANT_MOVEMENT = 3
 MILITARY = 2
 MOVE_THEN_STOP = 1
 
@@ -26,12 +27,12 @@ function runningMemory (creep) {
 
 role_movement_types = {
     role_upgrader: MOVE_THEN_WORK,
-    role_spawn_fill: CONSTANT_MOVEMENT,
-    role_spawn_fill_backup: CONSTANT_MOVEMENT,
+    role_spawn_fill: SEMICONSTANT_MOVEMENT,
+    role_spawn_fill_backup: SEMICONSTANT_MOVEMENT,
     role_upgrade_fill: MOVE_THEN_WORK,
     role_link_manager: MOVE_THEN_STOP,
     role_builder: MOVE_THEN_WORK,
-    role_tower_fill: CONSTANT_MOVEMENT,
+    role_tower_fill: SEMICONSTANT_MOVEMENT,
     role_miner: MOVE_THEN_STOP,
     role_hauler: CONSTANT_MOVEMENT,
     role_remote_mining_reserve: MOVE_THEN_STOP,
@@ -147,9 +148,10 @@ def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_rol
     for creep in room.find(FIND_MY_CREEPS):
         role = creep.memory.running or creep.memory.role
         priority = role_movement_types[role] or MOVE_THEN_WORK
-        if priority < my_priority:
+        if priority < my_priority and priority is not CONSTANT_MOVEMENT:  # Constant movement creeps constantly move.
             cost_matrix.set(creep.pos.x, creep.pos.y, 255)
-        elif priority == my_priority:
+        elif priority is my_priority \
+                or (priority is CONSTANT_MOVEMENT and priority < my_priority):
             x = creep.pos.x
             y = creep.pos.y
             if Game.map.getTerrainAt(x, y, room.name) == 'swamp':
