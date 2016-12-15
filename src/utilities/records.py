@@ -66,6 +66,10 @@ def finish_main_record():
             _averages['_main'] += end - _main_loop_record_start
         else:
             _averages['_main'] = end - _main_loop_record_start
+        if '_total' in _averages:
+            _averages['_total'] += end
+        else:
+            _averages['_total'] = end
         if '_ticks' in _averages:
             _averages['_ticks'] += 1
         else:
@@ -79,6 +83,18 @@ def record_memory_amount(time):
             _averages['memory.init'].time += time
         else:
             _averages['memory.init'] = {
+                'calls': 1,
+                'time': time,
+            }
+
+
+def record_compile_amount(time):
+    if _recording_now:
+        if 'code.compile' in _averages:
+            _averages['code.compile'].calls += 1
+            _averages['code.compile'].time += time
+        else:
+            _averages['code.compile'] = {
                 'calls': 1,
                 'time': time,
             }
@@ -98,9 +114,10 @@ def output_records_full():
     rows = ["time\tcalls\ttime/t\tcalls/t\taverage\tname"]
     total_time_in_records = 0
     for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
-        if identity == '_recording_now' or identity == '_ticks' or identity == '_main':
+        if identity == '_recording_now' or identity == '_ticks' or identity == '_main' or identity == '_total':
             continue
-        total_time_in_records += obj.time
+        if identity != 'memory.init' and identity != 'code.compile':
+            total_time_in_records += obj.time
         rows.push("\n{}\t{}\t{}\t{}\t{}\t{}".format(
             display_num(obj.time),
             display_num(obj.calls, 1),
@@ -124,6 +141,23 @@ def output_records_full():
         display_num(_averages['_main'] / _averages['_ticks']),
         display_num(1),
         display_num(_averages['_main'] / _averages['_ticks']),
+        'total.main_loop',
+    ))
+    compile_time = _averages['_total'] - _averages['_main'] - _averages['memory.init']
+    rows.push("\n{}\t{}\t{}\t{}\t{}\t{}".format(
+        display_num(compile_time),
+        display_num(_averages['_ticks']),
+        display_num(compile_time / _averages['_ticks']),
+        display_num(1),
+        display_num(compile_time / _averages['_ticks']),
+        'total.compile'.format(Game.cpu.limit),
+    ))
+    rows.push("\n{}\t{}\t{}\t{}\t{}\t{}".format(
+        display_num(_averages['_total']),
+        display_num(_averages['_ticks']),
+        display_num(_averages['_total'] / _averages['_ticks']),
+        display_num(1),
+        display_num(_averages['_total'] / _averages['_ticks']),
         'total (limit: {})'.format(Game.cpu.limit),
     ))
     return "".join(rows)
@@ -135,10 +169,11 @@ def output_records():
     rows = ["time/t\tcalls/t\taverage\tname"]
     total_time_in_records = 0
     for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
-        if identity == '_recording_now' or identity == '_ticks' or identity == '_main':
+        if identity == '_recording_now' or identity == '_ticks' or identity == '_main' or identity == '_total':
             continue
 
-        total_time_in_records += obj.time
+        if identity != 'memory.init' and identity != 'code.compile':
+            total_time_in_records += obj.time
 
         rows.push("\n{}\t{}\t{}\t{}".format(
             display_num(obj.time / _averages['_ticks']),
@@ -146,7 +181,7 @@ def output_records():
             display_num(obj.time / obj.calls),
             identity,
         ))
-    missing_time = _averages['_main'] + _averages['memory.init'].time - total_time_in_records
+    missing_time = _averages['_main'] - total_time_in_records
     rows.push("\n{}\t{}\t{}\t{}".format(
         display_num(missing_time / _averages['_ticks']),
         display_num(1, 1),
@@ -157,6 +192,19 @@ def output_records():
         display_num(_averages['_main'] / _averages['_ticks']),
         display_num(1, 1),
         display_num(_averages['_main'] / _averages['_ticks']),
+        'total.main_loop'.format(Game.cpu.limit),
+    ))
+    compile_time = _averages['_total'] - _averages['_main'] - _averages['memory.init'].time
+    rows.push("\n{}\t{}\t{}\t{}".format(
+        display_num(compile_time / _averages['_ticks']),
+        display_num(1, 1),
+        display_num(compile_time / _averages['_ticks']),
+        'total.compile'.format(Game.cpu.limit),
+    ))
+    rows.push("\n{}\t{}\t{}\t{}".format(
+        display_num(_averages['_total'] / _averages['_ticks']),
+        display_num(1, 1),
+        display_num(_averages['_total'] / _averages['_ticks']),
         'total (limit: {})'.format(Game.cpu.limit),
     ))
     return "".join(rows)

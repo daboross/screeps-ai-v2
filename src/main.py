@@ -11,6 +11,8 @@ def init_memory():
 
 init_memory()
 
+_start_of_compile = Game.cpu.getUsed()
+
 require("perf")()
 
 import math
@@ -336,4 +338,5 @@ __pragma__('js', 'global').py = {
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
 RoomPosition.prototype.cfms = lambda main_type, sub_type: flags.create_ms_flag(this, main_type, sub_type)
 
-records.finish_record("")
+records.prep_recording()
+records.record_compile_amount(Game.cpu.getUsed() - _start_of_compile)
