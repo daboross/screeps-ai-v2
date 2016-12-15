@@ -28,7 +28,7 @@ from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling, memory_info
-from utilities import averages, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move
+from utilities import records, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -55,7 +55,7 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
             return
         if creep.defense_override:
             return
-        averages.start_record()
+        records.start_record()
         instance = wrap_creep(hive_mind, target_mind, room, creep)
         if not instance:
             if creep.memory.role:
@@ -72,9 +72,9 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
                 instance = RoleBase(hivemind, target_mind, room, creep)
                 instance.go_to_depot()
                 instance.report(speech.base_no_role)
-        averages.finish_record('hive.wrap-creep')
+        records.finish_record('hive.wrap-creep')
         creep.wrapped = instance
-        averages.start_record()
+        records.start_record()
         bef = Game.cpu.getUsed()
         rerun = instance.run()
         if Game.cpu.bucket >= 7000 or Game.cpu.getUsed() - bef < 0.3:
@@ -85,7 +85,7 @@ def run_creep(hive_mind, target_mind, creeps_skipped, room, creep):
             if rerun:
                 print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.room_name, creep.name,
                                                                         creep.memory.role))
-        averages.finish_record(creep.memory.role)
+        records.finish_record(creep.memory.role)
     except:
         e = __except0__
         role = creep.memory.role
@@ -112,9 +112,9 @@ def run_room(target_mind, creeps_skipped, room):
         if room.mem.pause:
             return
         context.set_room(room)
-        averages.start_record()
+        records.start_record()
         room.defense.tick()
-        averages.finish_record('defense.tick')
+        records.finish_record('defense.tick')
         if 'skipped_last_turn' in Memory and room.room_name in Memory.skipped_last_turn:
             for creep in room.creeps:
                 role = creep.memory.role
@@ -128,31 +128,31 @@ def run_room(target_mind, creeps_skipped, room):
                     run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
 
         else:
-            averages.start_record()
+            records.start_record()
             room.precreep_tick_actions()
-            averages.finish_record('room.tick')
+            records.finish_record('room.tick')
             for creep in room.creeps:
                 run_creep(room.hive_mind, target_mind, creeps_skipped, room, creep)
-            averages.start_record()
+            records.start_record()
             room.building.place_remote_mining_roads()
-            averages.finish_record('building.roads')
-            averages.start_record()
+            records.finish_record('building.roads')
+            records.start_record()
             room.building.place_home_ramparts()
-            averages.finish_record('building.ramparts')
+            records.finish_record('building.ramparts')
             for spawn in room.spawns:
-                averages.start_record()
+                records.start_record()
                 spawning.run(room, spawn)
-                averages.finish_record('spawn.tick')
-        averages.start_record()
+                records.finish_record('spawn.tick')
+        records.start_record()
         room.links.tick_links()
-        averages.finish_record('links.tick')
+        records.finish_record('links.tick')
         if Game.time % 25 == 17:
-            averages.start_record()
+            records.start_record()
             room.mining.poll_flag_energy_sitting()
-            averages.finish_record('mining.flags')
-        averages.start_record()
+            records.finish_record('mining.flags')
+        records.start_record()
         room.minerals.tick_terminal()
-        averages.finish_record('terminal.tick')
+        records.finish_record('terminal.tick')
     except:
         e = __except0__
         Game.notify("Error running room {}!\n{}".format(
@@ -173,13 +173,11 @@ def main():
     if _memory_init is None:
         init_memory()
 
-    averages.start_main_loop()
-
     if 'meta' not in Memory:
         Memory.meta = {"pause": False, "quiet": False, "friends": []}
-    averages.prep_recording()
-    averages.start_main_record()
-    averages.record_memory_amount(_memory_init)
+    records.prep_recording()
+    records.start_main_record()
+    records.record_memory_amount(_memory_init)
     _memory_init = None
 
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate tier
@@ -214,7 +212,7 @@ def main():
 
     flags.move_flags()
 
-    averages.start_record()
+    records.start_record()
 
     PathFinder.use(True)
 
@@ -223,34 +221,34 @@ def main():
     context.set_targets(target_mind)
     context.set_hive(hive_mind)
 
-    averages.finish_record('hive.init')
+    records.finish_record('hive.init')
 
     if Game.time % 320 == 53:
-        averages.start_record()
+        records.start_record()
         consistency.clear_cache()
-        averages.finish_record('cache.clean')
+        records.finish_record('cache.clean')
 
-    averages.start_record()
+    records.start_record()
     hive_mind.poll_all_creeps()
-    averages.finish_record('hive.poll-creeps')
+    records.finish_record('hive.poll-creeps')
     if Game.time % 5 == 1 or not _.isEmpty(Memory.hostiles):
-        averages.start_record()
+        records.start_record()
         # NOTE: this also runs running-away checks!
         defense.poll_hostiles(hive_mind, autoactions.running_check_room)
-        averages.finish_record('defense.poll-hostiles')
+        records.finish_record('defense.poll-hostiles')
     if Game.time % 25 == 7:
-        averages.start_record()
+        records.start_record()
         defense.cleanup_stored_hostiles()
-        averages.finish_record('defense.clean-hostiles')
+        records.finish_record('defense.clean-hostiles')
 
     if not Memory.creeps:
         Memory.creeps = {}
         for name in Object.keys(Game.creeps):
             Memory.creeps[name] = {}
 
-    averages.start_record()
+    records.start_record()
     hive_mind.find_my_rooms()
-    averages.finish_record('hive.poll-rooms')
+    records.finish_record('hive.poll-rooms')
 
     creeps_skipped = {}
     if 'skipped_last_turn' in Memory:
@@ -276,19 +274,19 @@ def main():
                 print("[main] Used >= 400 CPU this tick! Skipping everything else.")
                 return
 
-    averages.start_record()
+    records.start_record()
     for room in hive_mind.visible_rooms:
         autoactions.pickup_check_room(room)
-    averages.finish_record('auto.pickup')
+    records.finish_record('auto.pickup')
     if Game.time % 50 == 40:
-        averages.start_record()
+        records.start_record()
         autoactions.cleanup_running_memory()
-        averages.finish_record('auto.running-memory-cleanup')
+        records.finish_record('auto.running-memory-cleanup')
 
     if Game.time % 10000 == 367:
-        averages.start_record()
+        records.start_record()
         hive_mind.balance_rooms()
-        averages.finish_record('hive.balance_rooms')
+        records.finish_record('hive.balance_rooms')
 
     if not _.isEmpty(creeps_skipped):
         skipped_count = _.sum(creeps_skipped, 'length')
@@ -301,8 +299,7 @@ def main():
             print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
             Memory.skipped_last_turn = creeps_skipped
 
-    averages.finish_main_record()
-    averages.end_main_loop()
+    records.finish_main_record()
 
 
 module.exports.loop = profiling.wrap_main(main)
@@ -325,18 +322,17 @@ __pragma__('js', 'global').py = {
     "get_creep": lambda name: wrap_creep(context.hive(), context.targets(),
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
-    "cpu_avg": averages.get_average_visual,
     "cc": global_cache.clear_values_matching,
     "analyse_mem": lambda path: memory_info.analyse_memory(path),
     "records": {
-        'start': averages.start_recording,
-        'stop': averages.stop_recording,
-        'output': averages.output_records,
-        'reset': averages.reset_records,
+        'start': records.start_recording,
+        'stop': records.stop_recording,
+        'output': records.output_records,
+        'reset': records.reset_records,
     }
 }
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
 RoomPosition.prototype.cfms = lambda main_type, sub_type: flags.create_ms_flag(this, main_type, sub_type)
 
-averages.finish_record("")
+records.finish_record("")
