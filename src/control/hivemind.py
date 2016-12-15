@@ -582,6 +582,53 @@ class RoomMind:
                                        clamp_room_coord(pos.x + look_range),
                                        True)
 
+    def get_position(self):
+        if '_position' not in self:
+            self._position = movement.parse_room_to_xy(self.room.name)
+        return self._position
+
+    def get_sources(self):
+        if '_sources' not in self:
+            self._sources = self.find(FIND_SOURCES)
+        return self._sources
+
+    def get_spawns(self):
+        if '_spawns' not in self:
+            self._spawns = self.find(FIND_MY_SPAWNS)
+        return self._spawns
+
+    def get_spawn(self):
+        if '_spawn' not in self:
+            self._spawn = self.spawns[0] or None
+        return self._spawn
+
+    def get_creeps(self):
+        if '_creeps' not in self:
+            if self.my:
+                print("[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!"
+                      .format(self.room_name, self.room_name))
+                creeps = []
+                for name in Object.keys(Game.creeps):
+                    creep = Game.creeps[name]
+                    if creep.memory.home == self.room_name:
+                        creeps.append(creep)
+                self._creeps = creeps
+            else:
+                self._creeps = []
+        return self._creeps
+
+    def _get_remote_mining_operations(self):
+        if '_remote_mining_operations' not in self:
+            if self.my:
+                self.hive_mind.poll_remote_mining_flags()
+            else:
+                print("[{}] Warning: accessing remote mining operations of unowned room {}."
+                      .format(self.room_name, self.room_name))
+                self._remote_mining_operations = []
+        return self._remote_mining_operations
+
+    possible_remote_mining_operations = property(_get_remote_mining_operations)
+
     def _get_role_counts(self):
         if not self.mem.roles_alive:
             self.recalculate_roles_alive()
@@ -602,76 +649,6 @@ class RoomMind:
         return self.mem.roles_carry
 
     carry_mass_map = property(_get_carry_mass)
-
-    def _get_remote_mining_operations(self):
-        if '_remote_mining_operations' not in self:
-            if self.my:
-                self.hive_mind.poll_remote_mining_flags()
-            else:
-                print("[{}] Warning: accessing remote mining operations of unowned room {}."
-                      .format(self.room_name, self.room_name))
-                self._remote_mining_operations = []
-        return self._remote_mining_operations
-
-    possible_remote_mining_operations = property(_get_remote_mining_operations)
-
-    def paving(self):
-        paving = self.get_cached_property("paving_here")
-        if paving is None:
-            if self.my:
-                paving = (self.room.storage or self.spawn) and \
-                         (self.get_max_mining_op_count() >= 1 or self.room.storage) \
-                         and len(self.mining.available_mines) >= 1 \
-                         and self.room.energyCapacityAvailable >= 600
-            else:
-                paving = False
-                for flag in flags.find_flags(self, flags.REMOTE_MINE):
-                    if flag.memory.sponsor:
-                        # if we're a remote mine and our sponsor is paving, let's also pave.
-                        sponsor = self.hive_mind.get_room(flag.memory.sponsor)
-                        if sponsor and sponsor.paving():
-                            paving = True
-                            break
-            self.store_cached_property("paving_here", paving, 200)
-
-        return self.get_cached_property("paving_here")
-
-    def all_paved(self):
-        paved = self.get_cached_property("completely_paved")
-        if paved is not None:
-            return paved
-
-        paved = True
-        unreachable_rooms = False
-        if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
-            paved = False  # no roads
-        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(_.filter(self.find(FIND_STRUCTURES),
-                                                                   {"structureType": STRUCTURE_ROAD})):
-            paved = False  # still paving
-        elif self.my:
-            for flag in self.mining.active_mines:
-                if flag.pos.roomName == self.room_name:
-                    continue
-                room = self.hive_mind.get_room(flag.pos.roomName)
-                if room:
-                    if not room.all_paved():
-                        paved = False
-                        break
-                else:
-                    unreachable_rooms = True  # Cache for less time
-                    paved = False
-        # TODO: better remote mine-specific paving detection, so we can disable this shortcut
-        if not paved and self.paving():
-            paved = True
-        if paved:
-            if unreachable_rooms:
-                self.store_cached_property("completely_paved", paved, 50)
-            else:
-                self.store_cached_property("completely_paved", paved, 200)
-        else:
-
-            self.store_cached_property("completely_paved", paved, 20)
-        return paved
 
     def _get_rt_map(self):
         if not self.mem.rt_map:
@@ -966,93 +943,63 @@ class RoomMind:
     def reassign_roles(self):
         return consistency.reassign_room_roles(self)
 
-    def get_position(self):
-        if '_position' not in self:
-            self._position = movement.parse_room_to_xy(self.room.name)
-        return self._position
-
-    def get_sources(self):
-        if '_sources' not in self:
-            self._sources = self.find(FIND_SOURCES)
-        return self._sources
-
-    def get_spawns(self):
-        if '_spawns' not in self:
-            self._spawns = self.find(FIND_MY_SPAWNS)
-        return self._spawns
-
-    def get_spawn(self):
-        if '_spawn' not in self:
-            self._spawn = self.spawns[0] or None
-        return self._spawn
-
-    def get_creeps(self):
-        if '_creeps' not in self:
+    def paving(self):
+        paving = self.get_cached_property("paving_here")
+        if paving is None:
             if self.my:
-                print("[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!"
-                      .format(self.room_name, self.room_name))
-                creeps = []
-                for name in Object.keys(Game.creeps):
-                    creep = Game.creeps[name]
-                    if creep.memory.home == self.room_name:
-                        creeps.append(creep)
-                self._creeps = creeps
+                paving = (self.room.storage or self.spawn) and \
+                         (self.get_max_mining_op_count() >= 1 or self.room.storage) \
+                         and len(self.mining.available_mines) >= 1 \
+                         and self.room.energyCapacityAvailable >= 600
             else:
-                self._creeps = []
-        return self._creeps
+                paving = False
+                for flag in flags.find_flags(self, flags.REMOTE_MINE):
+                    if flag.memory.sponsor:
+                        # if we're a remote mine and our sponsor is paving, let's also pave.
+                        sponsor = self.hive_mind.get_room(flag.memory.sponsor)
+                        if sponsor and sponsor.paving():
+                            paving = True
+                            break
+            self.store_cached_property("paving_here", paving, 200)
 
-    def get_upgrader_energy_struct(self):
-        if self._upgrader_source is undefined:
-            structure_id = self.get_cached_property("upgrader_source_id")
-            if structure_id:
-                if structure_id == -1:
-                    self._upgrader_source = None
-                    return None
+        return self.get_cached_property("paving_here")
+
+    def all_paved(self):
+        paved = self.get_cached_property("completely_paved")
+        if paved is not None:
+            return paved
+
+        paved = True
+        unreachable_rooms = False
+        if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
+            paved = False  # no roads
+        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(_.filter(self.find(FIND_STRUCTURES),
+                                                                   {"structureType": STRUCTURE_ROAD})):
+            paved = False  # still paving
+        elif self.my:
+            for flag in self.mining.active_mines:
+                if flag.pos.roomName == self.room_name:
+                    continue
+                room = self.hive_mind.get_room(flag.pos.roomName)
+                if room:
+                    if not room.all_paved():
+                        paved = False
+                        break
                 else:
-                    structure = Game.getObjectById(structure_id)
-                    if structure:
-                        self._upgrader_source = structure
-                        return structure
-            structure = None
-            if self.room.storage and not self.being_bootstrapped():
-                if self.room.storage.pos.inRangeTo(self.room.controller, 4):
-                    structure = self.room.storage
-                else:
-                    all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
-                    if all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
-                        structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
-                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
-                    elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
-                        structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
-                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
-            if structure:
-                structure_id = structure.id
+                    unreachable_rooms = True  # Cache for less time
+                    paved = False
+        # TODO: better remote mine-specific paving detection, so we can disable this shortcut
+        if not paved and self.paving():
+            paved = True
+        if paved:
+            if unreachable_rooms:
+                self.store_cached_property("completely_paved", paved, 50)
             else:
-                structure_id = -1
-            self._upgrader_source = structure
-            self.store_cached_property("upgrader_source_id", structure_id, 15)
-        return self._upgrader_source
+                self.store_cached_property("completely_paved", paved, 200)
+        else:
 
-    def get_extra_fill_targets(self):
-        if '_extra_fill_targets' not in self:
-            extra_targets = []
-            cont = self.get_upgrader_energy_struct()
-            if cont and cont.structureType == STRUCTURE_CONTAINER:
-                extra_targets.push(cont)
-            self._extra_fill_targets = _.filter(extra_targets,
-                                                lambda s: (s.storeCapacity and _.sum(s.store) < s.storeCapacity)
-                                                          or (s.energyCapacity and s.energy < s.energyCapacity))
-        return self._extra_fill_targets
-
-    def get_work_mass(self):
-        if '_work_mass' not in self:
-            mass = 0
-            for creep in self.get_creeps():
-                for part in creep.body:
-                    if part.type == WORK or part.type == CARRY:
-                        mass += 1
-            self._work_mass = math.floor(mass / 2)
-        return self._work_mass
+            self.store_cached_property("completely_paved", paved, 20)
+        return paved
 
     def any_local_miners(self):
         """
@@ -1079,6 +1026,16 @@ class RoomMind:
                     break
             self._all_miners = all_miners
         return self._all_miners
+
+    def get_work_mass(self):
+        if '_work_mass' not in self:
+            mass = 0
+            for creep in self.get_creeps():
+                for part in creep.body:
+                    if part.type == WORK or part.type == CARRY:
+                        mass += 1
+            self._work_mass = math.floor(mass / 2)
+        return self._work_mass
 
     def get_trying_to_get_full_storage_use(self):
         """
@@ -1165,34 +1122,6 @@ class RoomMind:
                 self._upgrading_paused = not not self.mem.upgrading_paused
         return self._upgrading_paused
 
-    def under_siege(self):
-        return not not self.mem.attack
-
-    def any_remotes_under_siege(self):
-        return self.mem.attack or self.mem.remotes_attack
-
-    def remote_under_siege(self, flag):
-        return self.any_remotes_under_siege() \
-               and flag.pos.roomName != self.room_name \
-               and (not self.mem.remotes_safe or not self.mem.remotes_safe.includes(flag.pos.roomName))
-
-    def upgrading_deprioritized(self):
-        deprioritized = self.get_cached_property("upgrading_deprioritized")
-        if deprioritized is not None:
-            return deprioritized
-        deprioritized = not not (
-            (
-                self.upgrading_paused()
-                or (self.rcl < 4 and len(self.subsidiaries) and not self.being_bootstrapped())
-                or (not self.spawn and not self.being_bootstrapped())
-                or (self.under_siege() and (not self.room.storage or self.room.storage.storeCapacity))
-            )
-            and self.room.controller.ticksToDowngrade >= 1000
-            and (not self.room.storage or self.room.storage.store.energy < 700 * 1000)
-        )
-        self.store_cached_property("upgrading_deprioritized", deprioritized, 15)
-        return deprioritized
-
     def building_paused(self):
         if '_building_paused' not in self:
             if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
@@ -1235,22 +1164,33 @@ class RoomMind:
             self._overprioritize_building = prioritize
         return self._overprioritize_building
 
-    def _any_closest_to_me(self, flag_type):
-        for flag in flags.find_flags_global(flag_type):
-            if 'sponsor' in flag.memory:
-                if flag.memory.sponsor == self.room_name:
-                    return True
-            else:
-                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
-                possible_sponsor = str(flag.name).split('_')[0]
-                if possible_sponsor in Game.rooms:
-                    if possible_sponsor == self.room_name:
-                        return True
-                else:
-                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
-                        return True
+    def upgrading_deprioritized(self):
+        deprioritized = self.get_cached_property("upgrading_deprioritized")
+        if deprioritized is not None:
+            return deprioritized
+        deprioritized = not not (
+            (
+                self.upgrading_paused()
+                or (self.rcl < 4 and len(self.subsidiaries) and not self.being_bootstrapped())
+                or (not self.spawn and not self.being_bootstrapped())
+                or (self.under_siege() and (not self.room.storage or self.room.storage.storeCapacity))
+            )
+            and self.room.controller.ticksToDowngrade >= 1000
+            and (not self.room.storage or self.room.storage.store.energy < 700 * 1000)
+        )
+        self.store_cached_property("upgrading_deprioritized", deprioritized, 15)
+        return deprioritized
 
-        return False
+    def under_siege(self):
+        return not not self.mem.attack
+
+    def any_remotes_under_siege(self):
+        return self.mem.attack or self.mem.remotes_attack
+
+    def remote_under_siege(self, flag):
+        return self.any_remotes_under_siege() \
+               and flag.pos.roomName != self.room_name \
+               and (not self.mem.remotes_safe or not self.mem.remotes_safe.includes(flag.pos.roomName))
 
     def conducting_siege(self):
         if '_conducting_siege' not in self:
@@ -1297,7 +1237,136 @@ class RoomMind:
     def get_min_sane_wall_hits(self):
         return _rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
 
+    def get_upgrader_energy_struct(self):
+        if self._upgrader_source is undefined:
+            structure_id = self.get_cached_property("upgrader_source_id")
+            if structure_id:
+                if structure_id == -1:
+                    self._upgrader_source = None
+                    return None
+                else:
+                    structure = Game.getObjectById(structure_id)
+                    if structure:
+                        self._upgrader_source = structure
+                        return structure
+            structure = None
+            if self.room.storage and not self.being_bootstrapped():
+                if self.room.storage.pos.inRangeTo(self.room.controller, 4):
+                    structure = self.room.storage
+                else:
+                    all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
+                    if all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
+                        structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                    elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
+                        structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+            if structure:
+                structure_id = structure.id
+            else:
+                structure_id = -1
+            self._upgrader_source = structure
+            self.store_cached_property("upgrader_source_id", structure_id, 15)
+        return self._upgrader_source
+
+    def get_extra_fill_targets(self):
+        if '_extra_fill_targets' not in self:
+            extra_targets = []
+            cont = self.get_upgrader_energy_struct()
+            if cont and cont.structureType == STRUCTURE_CONTAINER:
+                extra_targets.push(cont)
+            self._extra_fill_targets = _.filter(extra_targets,
+                                                lambda s: (s.storeCapacity and _.sum(s.store) < s.storeCapacity)
+                                                          or (s.energyCapacity and s.energy < s.energyCapacity))
+        return self._extra_fill_targets
+
+    def get_open_source_spaces(self):
+        if 'oss' not in self.mem:
+            oss = 0
+            for source in self.sources:
+                for x in range(source.pos.x - 1, source.pos.x + 2):
+                    for y in range(source.pos.y - 1, source.pos.y + 2):
+                        if movement.is_block_empty(self, x, y):
+                            oss += 1
+            self.mem.oss = oss
+        return self.mem.oss
+
+    def get_open_source_spaces_around(self, source):
+        key = 'oss-{}'.format(source.id)
+        if key not in self.mem:
+            oss = 0
+            for x in range(source.pos.x - 1, source.pos.x + 2):
+                for y in range(source.pos.y - 1, source.pos.y + 2):
+                    if movement.is_block_empty(self, x, y):
+                        oss += 1
+            self.mem[key] = oss
+        return self.mem[key]
+
     __pragma__('nofcall')
+
+    def _any_closest_to_me(self, flag_type):
+        for flag in flags.find_flags_global(flag_type):
+            if 'sponsor' in flag.memory:
+                if flag.memory.sponsor == self.room_name:
+                    return True
+            else:
+                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
+                possible_sponsor = str(flag.name).split('_')[0]
+                if possible_sponsor in Game.rooms:
+                    if possible_sponsor == self.room_name:
+                        return True
+                else:
+                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                        return True
+
+        return False
+
+    def flags_without_target(self, flag_type):
+        result = []  # TODO: yield
+        for flag in flags.find_flags_global(flag_type):
+            if flag.memory.sponsor:
+                ours = flag.memory.sponsor == self.room_name
+            else:
+                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
+                possible_sponsor = str(flag.name).split('_')[0]
+                if possible_sponsor in Game.rooms:
+                    ours = possible_sponsor == self.room_name
+                else:
+                    ours = self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name
+            if ours:
+                flag_id = "flag-{}".format(flag.name)
+                noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
+                if noneol_targeting_count < 1:
+                    result.append(flag)
+        return result
+
+    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag, max_sections=0):
+        if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
+            base = full_move_base
+        else:
+            base = half_move_base
+        sections = spawning.max_sections_of(self, base)
+        if max_sections:
+            sections = min(sections, max_sections)
+        if flag.memory.size:
+            sections = min(sections, flag.memory.size)
+        obj = {
+            "role": role,
+            "base": base,
+            "num_sections": sections,
+            "targets": [
+                [target_single_flag, "flag-{}".format(flag.name)],
+            ]
+        }
+        if 'boosted' in flag.memory and not flag.memory.boosted:
+            obj.memory = {'boosted': 2}
+        return obj
+
+    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0):
+        flag_list = self.flags_without_target(flag_type)
+        if len(flag_list):
+            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0], max_sections)
+        return None
 
     def get_target_link_manager_count(self):
         """
@@ -1460,14 +1529,6 @@ class RoomMind:
                     self._total_needed_spawn_fill_mass /= 2
         return self._total_needed_spawn_fill_mass
 
-    def get_target_spawn_fill_size(self):
-        if self.under_siege() or self.mem.prepping_defenses:
-            return fit_num_sections(self.get_target_total_spawn_fill_mass(),
-                                    spawning.max_sections_of(self, creep_base_hauler))
-        else:
-            return fit_num_sections(self.get_target_total_spawn_fill_mass(),
-                                    spawning.max_sections_of(self, creep_base_hauler), 0, 2)
-
     def get_target_builder_work_mass(self):
         if not self.building_paused():
             base_num = self.building.get_target_num_builders()
@@ -1507,28 +1568,6 @@ class RoomMind:
                         worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
                         return 1 * worker_size
         return 0
-
-    def get_open_source_spaces(self):
-        if 'oss' not in self.mem:
-            oss = 0
-            for source in self.sources:
-                for x in range(source.pos.x - 1, source.pos.x + 2):
-                    for y in range(source.pos.y - 1, source.pos.y + 2):
-                        if movement.is_block_empty(self, x, y):
-                            oss += 1
-            self.mem.oss = oss
-        return self.mem.oss
-
-    def get_open_source_spaces_around(self, source):
-        key = 'oss-{}'.format(source.id)
-        if key not in self.mem:
-            oss = 0
-            for x in range(source.pos.x - 1, source.pos.x + 2):
-                for y in range(source.pos.y - 1, source.pos.y + 2):
-                    if movement.is_block_empty(self, x, y):
-                        oss += 1
-            self.mem[key] = oss
-        return self.mem[key]
 
     def get_target_upgrade_fill_mass(self):
         if self._target_upgrade_fill_work_mass is None:
@@ -1629,22 +1668,6 @@ class RoomMind:
                 self._target_upgrader_work_mass = min(wm, worker_size * 8)
         return self._target_upgrader_work_mass
 
-    def get_upgrader_size(self):
-        base = self.get_variable_base(role_upgrader)
-        sections = self.get_target_upgrader_work_mass()
-        target = self.get_target_upgrader_work_mass()
-        if base == creep_base_full_upgrader and target > 1:
-            return spawning.ceil_sections(min(sections, target / 2), base)
-        else:
-            return spawning.ceil_sections(min(sections, target), base)
-
-    def get_builder_size(self):
-        base = self.get_variable_base(role_builder)
-        if self.rcl < 8:
-            return min(8, spawning.max_sections_of(self, base))
-        else:
-            return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
-
     def get_target_tower_fill_mass(self):
         if not self.get_target_spawn_fill_mass():
             return 0
@@ -1672,6 +1695,30 @@ class RoomMind:
             self._target_room_reserve_count = count
             # claimable!
         return self._target_room_reserve_count
+
+    def get_target_spawn_fill_size(self):
+        if self.under_siege() or self.mem.prepping_defenses:
+            return fit_num_sections(self.get_target_total_spawn_fill_mass(),
+                                    spawning.max_sections_of(self, creep_base_hauler))
+        else:
+            return fit_num_sections(self.get_target_total_spawn_fill_mass(),
+                                    spawning.max_sections_of(self, creep_base_hauler), 0, 2)
+
+    def get_upgrader_size(self):
+        base = self.get_variable_base(role_upgrader)
+        sections = self.get_target_upgrader_work_mass()
+        target = self.get_target_upgrader_work_mass()
+        if base == creep_base_full_upgrader and target > 1:
+            return spawning.ceil_sections(min(sections, target / 2), base)
+        else:
+            return spawning.ceil_sections(min(sections, target), base)
+
+    def get_builder_size(self):
+        base = self.get_variable_base(role_builder)
+        if self.rcl < 8:
+            return min(8, spawning.max_sections_of(self, base))
+        else:
+            return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
 
     def get_next_spawn_fill_body_size(self):
         # Enough so that it takes only 2 trips for each creep to fill all extensions.
@@ -1710,10 +1757,60 @@ class RoomMind:
         else:
             return None
 
-    def wall_defense(self):
-        return self._check_role_reqs([
-            [role_wall_defender, self.get_target_wall_defender_count],
-        ])
+    def get_variable_base(self, role):
+        if role == role_hauler:
+            if self.all_paved():
+                return creep_base_work_half_move_hauler
+            elif self.paving():
+                return creep_base_work_full_move_hauler
+            else:
+                return creep_base_hauler
+        elif role == role_upgrader:
+            if self.get_upgrader_energy_struct():
+                return creep_base_full_upgrader
+            else:
+                return creep_base_worker
+        else:
+            return role_bases[role]
+
+    def get_max_sections_for_role(self, role):
+        max_mass = {
+            role_spawn_fill_backup:
+                lambda: fit_num_sections(self.get_target_spawn_fill_backup_carry_mass()
+                                         if spawning.using_lower_energy_section(self, creep_base_worker)
+                                         else spawning.ceil_sections(self.get_target_spawn_fill_backup_carry_mass() / 3,
+                                                                     creep_base_worker),
+                                         spawning.max_sections_of(self, creep_base_worker)),
+            role_link_manager:
+                lambda: min(self.get_target_link_manager_count() * 8,
+                            spawning.max_sections_of(self, creep_base_hauler)),
+            role_spawn_fill: self.get_target_spawn_fill_size,
+            role_tower_fill: self.get_target_spawn_fill_size,
+            role_upgrader: self.get_upgrader_size,
+            role_upgrade_fill: self.get_target_upgrade_fill_mass,
+            role_defender: lambda: min(4, spawning.max_sections_of(self, creep_base_defender)),
+            role_wall_defender: lambda: min(9, spawning.max_sections_of(self, creep_base_rampart_defense)),
+            role_room_reserve:
+                lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
+            role_colonist:
+                lambda: spawning.max_sections_of(self, creep_base_worker),
+            role_builder: self.get_builder_size,
+            role_mineral_miner:
+                lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
+            role_mineral_hauler:
+                lambda: min(10, spawning.max_sections_of(self, creep_base_hauler)),
+            role_td_goad:
+                lambda: spawning.max_sections_of(self, creep_base_goader),
+            role_td_healer:
+                lambda: spawning.max_sections_of(self, creep_base_half_move_healer),
+            role_simple_dismantle:
+                lambda: spawning.max_sections_of(self, creep_base_dismantler),
+        }
+        if role in max_mass:
+            return max_mass[role]()
+        else:
+            print("[{}] Can't find max section function for role {}!".format(self.room_name, role))
+            return Infinity
 
     def _next_needed_local_mining_role(self):
         if spawning.would_be_emergency(self):
@@ -1790,63 +1887,13 @@ class RoomMind:
         ]
         return self._check_role_reqs(requirements)
 
-    def get_max_sections_for_role(self, role):
-        max_mass = {
-            role_spawn_fill_backup:
-                lambda: fit_num_sections(self.get_target_spawn_fill_backup_carry_mass()
-                                         if spawning.using_lower_energy_section(self, creep_base_worker)
-                                         else spawning.ceil_sections(self.get_target_spawn_fill_backup_carry_mass() / 3,
-                                                                     creep_base_worker),
-                                         spawning.max_sections_of(self, creep_base_worker)),
-            role_link_manager:
-                lambda: min(self.get_target_link_manager_count() * 8,
-                            spawning.max_sections_of(self, creep_base_hauler)),
-            role_spawn_fill: self.get_target_spawn_fill_size,
-            role_tower_fill: self.get_target_spawn_fill_size,
-            role_upgrader: self.get_upgrader_size,
-            role_upgrade_fill: self.get_target_upgrade_fill_mass,
-            role_defender: lambda: min(4, spawning.max_sections_of(self, creep_base_defender)),
-            role_wall_defender: lambda: min(9, spawning.max_sections_of(self, creep_base_rampart_defense)),
-            role_room_reserve:
-                lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
-            role_colonist:
-                lambda: spawning.max_sections_of(self, creep_base_worker),
-            role_builder: self.get_builder_size,
-            role_mineral_miner:
-                lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
-            role_mineral_hauler:
-                lambda: min(10, spawning.max_sections_of(self, creep_base_hauler)),
-            role_td_goad:
-                lambda: spawning.max_sections_of(self, creep_base_goader),
-            role_td_healer:
-                lambda: spawning.max_sections_of(self, creep_base_half_move_healer),
-            role_simple_dismantle:
-                lambda: spawning.max_sections_of(self, creep_base_dismantler),
-        }
-        if role in max_mass:
-            return max_mass[role]()
-        else:
-            print("[{}] Can't find max section function for role {}!".format(self.room_name, role))
-            return Infinity
-
-    def get_variable_base(self, role):
-        if role == role_hauler:
-            if self.all_paved():
-                return creep_base_work_half_move_hauler
-            elif self.paving():
-                return creep_base_work_full_move_hauler
-            else:
-                return creep_base_hauler
-        elif role == role_upgrader:
-            if self.get_upgrader_energy_struct():
-                return creep_base_full_upgrader
-            else:
-                return creep_base_worker
-        else:
-            return role_bases[role]
-
     def _next_cheap_military_role(self):
         return self.spawn_one_creep_per_flag(flags.SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
+
+    def wall_defense(self):
+        return self._check_role_reqs([
+            [role_wall_defender, self.get_target_wall_defender_count],
+        ])
 
     def _next_complex_defender(self):
         if self.room.energyCapacityAvailable >= 500:
@@ -1887,53 +1934,6 @@ class RoomMind:
                 else:
                     return self.get_spawn_for_flag(role_simple_claim, creep_base_claiming,
                                                    creep_base_claiming, needed, 1)
-        return None
-
-    def flags_without_target(self, flag_type):
-        result = []  # TODO: yield
-        for flag in flags.find_flags_global(flag_type):
-            if flag.memory.sponsor:
-                ours = flag.memory.sponsor == self.room_name
-            else:
-                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
-                possible_sponsor = str(flag.name).split('_')[0]
-                if possible_sponsor in Game.rooms:
-                    ours = possible_sponsor == self.room_name
-                else:
-                    ours = self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name
-            if ours:
-                flag_id = "flag-{}".format(flag.name)
-                noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
-                if noneol_targeting_count < 1:
-                    result.append(flag)
-        return result
-
-    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag, max_sections=0):
-        if movement.distance_squared_room_pos(self.spawn, flag) > math.pow(200, 2):
-            base = full_move_base
-        else:
-            base = half_move_base
-        sections = spawning.max_sections_of(self, base)
-        if max_sections:
-            sections = min(sections, max_sections)
-        if flag.memory.size:
-            sections = min(sections, flag.memory.size)
-        obj = {
-            "role": role,
-            "base": base,
-            "num_sections": sections,
-            "targets": [
-                [target_single_flag, "flag-{}".format(flag.name)],
-            ]
-        }
-        if 'boosted' in flag.memory and not flag.memory.boosted:
-            obj.memory = {'boosted': 2}
-        return obj
-
-    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0):
-        flag_list = self.flags_without_target(flag_type)
-        if len(flag_list):
-            return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0], max_sections)
         return None
 
     def _next_tower_breaker_role(self):
