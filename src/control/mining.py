@@ -3,8 +3,8 @@ import math
 import flags
 import spawning
 from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
-    target_remote_mine_miner, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
-    creep_base_reserving, target_remote_mine_hauler, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
+    target_energy_miner_mine, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
+    creep_base_reserving, target_energy_hauler_mine, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
     creep_base_1500miner, creep_base_half_move_hauler
 from control import defense
 from control import live_creep_utils
@@ -358,7 +358,7 @@ class MiningMind:
         if len(defense.stored_hostiles_in(flag.pos.roomName)):
             return None
 
-        miners = self.targets.creeps_now_targeting(target_remote_mine_miner, flag_id)
+        miners = self.targets.creeps_now_targeting(target_energy_miner_mine, flag_id)
         miner_needed = False
         if len(miners):
             # In order to have replacement miners correctly following the cached path and saving CPU, we no longer use
@@ -416,7 +416,7 @@ class MiningMind:
                 'base': base,
                 'num_sections': num_sections,
                 'targets': [
-                    [target_remote_mine_miner, flag_id],
+                    [target_energy_miner_mine, flag_id],
                 ]
             }
 
@@ -429,7 +429,7 @@ class MiningMind:
 
         current_noneol_hauler_mass = 0
         eol_mass = 0
-        for hauler_name in self.targets.creeps_now_targeting(target_remote_mine_hauler, flag_id):
+        for hauler_name in self.targets.creeps_now_targeting(target_energy_hauler_mine, flag_id):
             creep = Game.creeps[hauler_name]
             if not creep:
                 continue
@@ -468,7 +468,7 @@ class MiningMind:
                 'base': base,
                 'num_sections': self.calculate_creep_num_sections_for_mine(flag),
                 'targets': [
-                    [target_remote_mine_hauler, flag_id]
+                    [target_energy_hauler_mine, flag_id]
                 ],
             }
 

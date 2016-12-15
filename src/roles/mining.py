@@ -2,7 +2,7 @@ import math
 
 import flags
 import speech
-from constants import target_remote_mine_miner, target_remote_mine_hauler, target_closest_energy_site, \
+from constants import target_energy_miner_mine, target_energy_hauler_mine, target_closest_energy_site, \
     role_hauler, role_miner, role_recycling, role_spawn_fill
 from goals.refill import Refill
 from goals.transport import TransportPickup
@@ -19,10 +19,10 @@ __pragma__('noalias', 'Infinity')
 
 class EnergyMiner(TransportPickup):
     def run(self):
-        source_flag = self.targets.get_existing_target(self, target_remote_mine_miner)
+        source_flag = self.targets.get_existing_target(self, target_energy_miner_mine)
         if not source_flag:
             self.log("WARNING: Getting new remote mine for remote miner!")
-            source_flag = self.targets.get_new_target(self, target_remote_mine_miner)
+            source_flag = self.targets.get_new_target(self, target_energy_miner_mine)
         if not source_flag:
             self.log("Remote miner can't find any sources! Flag: {}".format(source_flag))
             self.memory.role = role_recycling
@@ -187,7 +187,7 @@ class EnergyMiner(TransportPickup):
         return 'container_pos' in self.memory and RoleBase.should_pickup(resource_type)
 
     def _calculate_time_to_replace(self):
-        source = self.targets.get_new_target(self, target_remote_mine_miner)
+        source = self.targets.get_new_target(self, target_energy_miner_mine)
         if not source:
             return -1
         path_length = self.hive.honey.find_path_length(self.home.spawn, source)
@@ -243,11 +243,11 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         debug = self.memory.debug
         if debug:
             self.log("Running energy filling!")
-        pickup = self.targets.get_existing_target(self, target_remote_mine_hauler)
+        pickup = self.targets.get_existing_target(self, target_energy_hauler_mine)
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
             self.targets.untarget(self, target_closest_energy_site)
-            pickup = self.targets.get_new_target(self, target_remote_mine_hauler)
+            pickup = self.targets.get_new_target(self, target_energy_hauler_mine)
 
         if not pickup:
             self.memory.role = role_recycling
@@ -280,7 +280,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         return self.transport(pickup, fill)
 
     def _calculate_time_to_replace(self):
-        source = self.targets.get_new_target(self, target_remote_mine_hauler)
+        source = self.targets.get_new_target(self, target_energy_hauler_mine)
         if not source:
             return -1
         path_length = self.hive.honey.find_path_length(self.home.spawn, source)

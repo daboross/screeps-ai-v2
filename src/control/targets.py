@@ -57,15 +57,14 @@ class TargetMind:
             self.mem.last_clear = Game.time
         self.find_functions = {
             target_source: self._find_new_source,
-            target_big_source: self._find_new_dedicated_miner_source,
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
             target_destruction_site: self._find_new_destruction_site,
             target_spawn_deposit: self._find_new_spawn_fill_site,
             target_tower_fill: self._find_new_tower,
-            target_remote_mine_miner: self._find_new_remote_miner_mine,
-            target_remote_mine_hauler: self._find_new_remote_hauler_mine,
+            target_energy_miner_mine: self._find_new_energy_miner_mine,
+            target_energy_hauler_mine: self._find_new_energy_hauler_mine,
             target_reserve_now: self._find_top_priority_reservable_room,
             target_closest_energy_site: self._find_closest_deposit_site,
             target_single_flag: self._find_closest_flag,
@@ -328,18 +327,6 @@ class TargetMind:
 
         return best_source
 
-    def _find_new_dedicated_miner_source(self, creep):
-        """
-        :type creep: role_base.RoleBase
-        """
-        for source in creep.room.find(FIND_SOURCES):
-            source_id = source.id
-            current_harvesters = self.targets[target_big_source][source_id]
-            if not current_harvesters or current_harvesters < 1:
-                return source_id
-
-        return None
-
     def _find_new_spawn_fill_site(self, creep):
         """
         :type creep: role_base.RoleBase
@@ -515,7 +502,7 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_remote_miner_mine(self, creep):
+    def _find_new_energy_miner_mine(self, creep):
         """
         :type creep: role_base.RoleBase
         """
@@ -523,7 +510,7 @@ class TargetMind:
         closest_flag = Infinity
         for flag in creep.home.mining.available_mines:
             flag_id = "flag-{}".format(flag.name)
-            miners = self.targets[target_remote_mine_miner][flag_id]
+            miners = self.targets[target_energy_miner_mine][flag_id]
             if not miners or miners < 1:
                 distance = movement.distance_squared_room_pos(flag.pos, creep.creep.pos)
                 if distance < closest_flag:
@@ -532,7 +519,7 @@ class TargetMind:
 
         return best_id
 
-    def _find_new_remote_hauler_mine(self, creep):
+    def _find_new_energy_hauler_mine(self, creep):
         """
         :type creep: role_base.RoleBase
         """
@@ -543,7 +530,7 @@ class TargetMind:
             flag_id = "flag-{}".format(flag.name)
             if not creep.home.mining.haulers_can_target_mine(flag):
                 continue
-            hauler_mass = self.workforce_of(target_remote_mine_hauler, flag_id)
+            hauler_mass = self.workforce_of(target_energy_hauler_mine, flag_id)
             hauler_percentage = float(hauler_mass) / creep.home.mining.calculate_current_target_mass_for_mine(flag)
             too_long = creep.creep.ticksToLive < 2.2 * creep.home.mining.distance_to_mine(flag)
             if too_long:

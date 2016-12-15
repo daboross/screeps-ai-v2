@@ -38,15 +38,14 @@ creep_base_3h = "ranged_3h"
 
 # Hive Mind TargetMind possible targets
 target_source = "source"
-target_big_source = "dedicated_miner_source"
 target_construction = "construction_site"
 target_repair = "repair_site"
 target_big_repair = "extra_repair_site"
 target_destruction_site = "destruction_site"
 target_spawn_deposit = "spawn_deposit_site"
 target_tower_fill = "fillable_tower"
-target_remote_mine_miner = "remote_miner_mine"
-target_remote_mine_hauler = "remote_mine_hauler"
+target_energy_miner_mine = "remote_miner_mine"
+target_energy_hauler_mine = "remote_mine_hauler"
 target_closest_energy_site = "generic_deposit"
 target_reserve_now = "top_priority_reserve"
 target_single_flag = "sccf"  # single creep, closest flag
@@ -139,9 +138,9 @@ default_roles = {
     creep_base_claim_attack: role_simple_claim,
 }
 
-PYFIND_REPAIRABLE_ROADS = 1001  #"pyfind_repairable_roads"
-PYFIND_BUILDABLE_ROADS = 1002  #"pyfind_buildable_roads"
-PYFIND_HURT_CREEPS = 1003  #"pyfind_hurt_creeps"
+PYFIND_REPAIRABLE_ROADS = 1001
+PYFIND_BUILDABLE_ROADS = 1002
+PYFIND_HURT_CREEPS = 1003
 INVADER_USERNAME = "Invader"
 SK_USERNAME = "Source Keeper"
 
