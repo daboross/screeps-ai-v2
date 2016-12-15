@@ -27,7 +27,6 @@ class EnergyMiner(TransportPickup):
             self.log("Remote miner can't find any sources! Flag: {}".format(source_flag))
             self.memory.role = role_recycling
             self.memory.last_role = role_miner
-            self.report(speech.remote_miner_no_flag)
             return False
         if source_flag.memory.sponsor and source_flag.memory.sponsor != self.home.room_name:
             self.memory.home = source_flag.memory.sponsor
@@ -73,7 +72,7 @@ class EnergyMiner(TransportPickup):
                     self.memory.last_pos = serialized_pos
             else:
                 self.follow_energy_path(self.home.spawn, sitting_target)
-            self.report(speech.remote_miner_moving)
+            self.report(speech.energy_miner_moving)
             return False
         elif distance_away > 1:
             non_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
@@ -107,7 +106,7 @@ class EnergyMiner(TransportPickup):
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
-            self.report(speech.remote_miner_flag_no_source)
+            self.report(speech.energy_miner_flag_no_source)
             return False
         source = sources_list[0]
 
@@ -123,12 +122,12 @@ class EnergyMiner(TransportPickup):
         #             return False  # skip a tick, to spread it out
         result = self.creep.harvest(source)
         if result == OK:
-            self.report(speech.remote_miner_ok)
+            self.report(speech.energy_miner_ok)
         elif result == ERR_NOT_ENOUGH_RESOURCES:
-            self.report(speech.remote_miner_ner)
+            self.report(speech.energy_miner_ner)
         else:
             self.log("Unknown result from mining-creep.harvest({}): {}", source, result)
-            self.report(speech.remote_miner_unknown_result)
+            self.report(speech.energy_miner_unknown_result)
 
         if self.creep.carryCapacity:
             if 'link' in self.memory:
