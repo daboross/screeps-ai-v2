@@ -90,10 +90,10 @@ Brown:
     Grey:
     White:
 Grey:
-    Red: NO_EXIT_NORTH
-    Purple: NO_EXIT_EAST
-    Blue: NO_EXIT_SOUTH
-    Cyan: NO_EXIT_WEST
+    Red:
+    Purple:
+    Blue:
+    Cyan:
     Green:
     Yellow:
     Orange:
@@ -101,10 +101,10 @@ Grey:
     Grey:
     White:
 White:
-    Red: EXIT_NORTH
-    Purple: EXIT_EAST
-    Blue: EXIT_SOUTH
-    Cyan: EXIT_WEST
+    Red:
+    Purple:
+    Blue:
+    Cyan:
     Green: REROUTE              - Portal marked for current use (hardcoded name: `reroute`)
     Yellow: REROUTE_DESTINATION - Destination of a reroute (hardcoded name: `reroute_destination`)
     Orange:
@@ -120,14 +120,6 @@ __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
 DEPOT = "depot"
-EXIT_NORTH = "exit_north"
-EXIT_EAST = "exit_east"
-EXIT_SOUTH = "exit_south"
-EXIT_WEST = "exit_west"
-NO_EXIT_NORTH = "no_exit_north"
-NO_EXIT_EAST = "no_exit_east"
-NO_EXIT_SOUTH = "no_exit_south"
-NO_EXIT_WEST = "no_exit_west"
 REMOTE_MINE = "harvest"
 CLAIM_LATER = "claim_later"
 RESERVE_NOW = "top_priority_reserve"
@@ -165,19 +157,6 @@ UPGRADER_SPOT = "us"
 REROUTE = "portal_reroute"
 REROUTE_DESTINATION = "portal_reroute_destination"
 
-DIR_TO_EXIT_FLAG = {
-    TOP: EXIT_NORTH,
-    LEFT: EXIT_WEST,
-    BOTTOM: EXIT_SOUTH,
-    RIGHT: EXIT_EAST,
-}
-DIR_TO_NO_EXIT_FLAG = {
-    TOP: NO_EXIT_NORTH,
-    LEFT: NO_EXIT_WEST,
-    BOTTOM: NO_EXIT_SOUTH,
-    RIGHT: NO_EXIT_EAST,
-}
-
 flag_definitions = {
     SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
@@ -201,14 +180,6 @@ flag_definitions = {
     RESERVE_NOW: (COLOR_GREEN, COLOR_GREY),
     WALL_DEFENSE_HIGH: (COLOR_GREEN, COLOR_GREEN),
     WALL_DEFENSE_MID: (COLOR_GREEN, COLOR_RED),  # conflict with RESERVE_NOW!
-    NO_EXIT_NORTH: (COLOR_GREY, COLOR_RED),
-    NO_EXIT_EAST: (COLOR_GREY, COLOR_PURPLE),
-    NO_EXIT_SOUTH: (COLOR_GREY, COLOR_BLUE),
-    NO_EXIT_WEST: (COLOR_GREY, COLOR_CYAN),
-    EXIT_NORTH: (COLOR_WHITE, COLOR_RED),
-    EXIT_EAST: (COLOR_WHITE, COLOR_PURPLE),
-    EXIT_SOUTH: (COLOR_WHITE, COLOR_BLUE),
-    EXIT_WEST: (COLOR_WHITE, COLOR_CYAN),
     REROUTE: (COLOR_WHITE, COLOR_GREEN),
     REROUTE_DESTINATION: (COLOR_WHITE, COLOR_YELLOW),
 }
