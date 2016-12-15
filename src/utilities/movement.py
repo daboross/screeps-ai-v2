@@ -10,29 +10,6 @@ __pragma__('noalias', 'Infinity')
 room_regex = __new__(RegExp("(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})"))
 
 
-def inter_room_difference(from_room, to_room):
-    """
-    :param from_room: The name of the room to get from.
-    :param to_room: The name of the room to get to.
-    :return: (x_difference, y_difference)
-    :type from_room: Room
-    :type to_room: Room
-    :rtype: (int, int)
-    """
-    # Make this work in the simulation, for little to no cost!
-    if from_room == to_room:
-        return 0, 0
-
-    # example room string: W47N26 or E1S1 or E1N1
-    pos1 = parse_room_to_xy(from_room)
-    pos2 = parse_room_to_xy(to_room)
-    if not pos1 or not pos2:
-        return None
-    x1, y1 = pos1
-    x2, y2 = pos2
-    return x2 - x1, y2 - y1
-
-
 def squared_distance(xy1, xy2):
     """
     Gets the squared distance between two x, y positions
@@ -67,11 +44,6 @@ def room_xy_to_name(room_x, room_y):
         "S" if room_y > 0 else "N",
         abs(room_y),
     )
-
-
-def is_room_highway_intersection(room_name):
-    x, y = parse_room_to_xy(room_name)
-    return x % 10 == 0 and y % 10 == 0
 
 
 def center_pos(room_name):
@@ -223,19 +195,3 @@ def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
         return -1
     entrance_pos.roomName = room_xy_to_name(room_x, room_y)
     return entrance_pos
-
-
-def average_pos_same_room(targets):
-    if not targets or not len(targets):
-        return None
-    sum_x, sum_y = 0, 0
-    room_name = None
-    for target in targets:
-        if "pos" in target:
-            target = target.pos  # get the position
-        room_name = target.roomName
-        sum_x += target.x
-        sum_y += target.y
-    x_avg = sum_x / len(targets)
-    y_avg = sum_y / len(targets)
-    return __new__(RoomPosition(round(x_avg), round(y_avg), room_name))

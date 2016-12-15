@@ -9,9 +9,6 @@ __pragma__("noalias", "name")
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
 
-repair_roads_this_tick = False
-repair_roads_tick_num = 0
-
 
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):

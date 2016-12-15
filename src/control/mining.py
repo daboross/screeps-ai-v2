@@ -428,15 +428,12 @@ class MiningMind:
             return None
 
         current_noneol_hauler_mass = 0
-        eol_mass = 0
         for hauler_name in self.targets.creeps_now_targeting(target_energy_hauler_mine, flag_id):
             creep = Game.creeps[hauler_name]
             if not creep:
                 continue
             if live_creep_utils.replacement_time(creep) > Game.time:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
-            else:
-                eol_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
             if flag.pos.roomName == self.room.room_name:
                 if self.room.all_paved():

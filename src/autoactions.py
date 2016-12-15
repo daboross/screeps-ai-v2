@@ -81,9 +81,6 @@ def enemy_purposes_cost_matrix(room_name):
 
     cost_matrix = __new__(PathFinder.CostMatrix())
 
-    def wall_at(x, y):
-        return Game.map.getTerrainAt(x, y, room_name) == 'wall'
-
     for struct in room.find(FIND_STRUCTURES):
         if struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER \
                 and (struct.structureType != STRUCTURE_RAMPART or struct.my):

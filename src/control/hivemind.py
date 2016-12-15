@@ -69,7 +69,6 @@ class HiveMind:
         self.honey = HoneyTrails(self)
         self._my_rooms = None
         self._all_rooms = None
-        self._remote_mining_flags = None
         self._room_to_mind = {}
 
     def find_my_rooms(self):
@@ -388,7 +387,6 @@ class RoomMind:
 
         # role target counts
         self._target_link_managers = None
-        self._target_cleanup_mass = None
         self._target_defender_count = None
         self._first_simple_target_defender_count = None
         self._target_colonist_work_mass = None
@@ -761,95 +759,6 @@ class RoomMind:
                     return name
 
         return None
-
-    def next_x_to_die_of_role(self, role, x=1):
-        if not x:
-            x = 1
-        key = "next_{}_to_die_{}".format(x, role)
-        result = self.get_cached_property(key)
-        if result:
-            return result
-        result = []
-        rt_map = self._get_rt_map()
-        if role in rt_map and len(rt_map[role]):
-            for rt_pair in rt_map[role]:
-                result.append(rt_pair[0])
-                if len(result) >= x:
-                    break
-        self.store_cached_property_at(key, result, self.mem.meta.clear_next)
-        return result
-
-    def extra_creeps_with_carry_in_role(self, role, target_carry_mass):
-        """
-        Gets a list of extra creep names who are in the given role, given that the target is target_carry_mass
-        :param role: The role
-        :param target_carry_mass: The desired carry mass
-        :return: Creeps who should be switched to a different role
-        :type role: str
-        :type target_carry_mass: int
-        :rtype: list[str]
-        """
-        key = "ecc_{}".format(role)
-        result = self.get_cached_property(key)
-        if result:
-            return result
-        current = self.carry_mass_of(role)
-        left_to_remove = current - target_carry_mass
-        result = []
-        if left_to_remove < 0:
-            return result
-        rt_map = self._get_rt_map()
-        if role in rt_map:
-            for name, rt in rt_map[role]:
-                if name not in Game.creeps:
-                    continue
-                carry = spawning.carry_count(Game.creeps[name])
-                if carry > left_to_remove:
-                    # We don't want to go below the target, but there might be a smaller creep we can remove?
-                    continue
-                left_to_remove -= carry
-                result.append(name)
-        if self.mem.meta.clear_next - Game.time < 19:
-            self.store_cached_property_at(key, result, self.mem.meta.clear_next)
-        else:
-            self.store_cached_property(key, result, 19)
-        return result
-
-    def extra_creeps_with_work_in_role(self, role, target_work_mass):
-        """
-        Gets a list of extra creep names who are in the given role, given that the target is target_work_mass
-        :param role: The role
-        :param target_work_mass: The desired work mass
-        :return: Creeps who should be switched to a different role
-        :type role: str
-        :type target_work_mass: int
-        :rtype: list[str]
-        """
-        key = "ecw_{}".format(role)
-        result = self.get_cached_property(key)
-        if result:
-            return result
-        current = self.work_mass_of(role)
-        left_to_remove = current - target_work_mass
-        result = []
-        if left_to_remove < 0:
-            return result
-        rt_map = self._get_rt_map()
-        if role in rt_map:
-            for name, rt in rt_map[role]:
-                if name not in Game.creeps:
-                    continue
-                work = spawning.work_count(Game.creeps[name])
-                if work > left_to_remove:
-                    # We don't want to go below the target, but there might be a smaller creep we can remove?
-                    continue
-                left_to_remove -= work
-                result.append(name)
-        if self.mem.meta.clear_next - Game.time < 19:
-            self.store_cached_property_at(key, result, self.mem.meta.clear_next)
-        else:
-            self.store_cached_property(key, result, 19)
-        return result
 
     def register_new_replacing_creep(self, replaced_name, replacing_name):
         # print("[{}][{}] Registering as replacement for {} (a {}).".format(self.room_name, replacing_name,
@@ -1719,11 +1628,6 @@ class RoomMind:
             return min(8, spawning.max_sections_of(self, base))
         else:
             return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
-
-    def get_next_spawn_fill_body_size(self):
-        # Enough so that it takes only 2 trips for each creep to fill all extensions.
-        total_mass = self.room.energyCapacityAvailable / 50 / 2
-        return fit_num_sections(total_mass, spawning.max_sections_of(self, creep_base_hauler))
 
     def _check_role_reqs(self, role_list):
         """

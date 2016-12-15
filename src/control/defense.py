@@ -420,10 +420,6 @@ class RoomDefense:
                     protect = self.room.spawns.concat(self.towers())
                     if self.room.room.storage:
                         protect.push(self.room.room.storage)
-                    # if len(protect):
-                    #     center = movement.average_pos_same_room(protect)
-                    # else:
-                    #     center = __new__(RoomPosition(25, 25, self.room.room_name))
                     if not len(protect):
                         protect.push(__new__(RoomPosition(25, 25, self.room.room_name)))
                     hostiles = _(hostiles) \

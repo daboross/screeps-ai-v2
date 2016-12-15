@@ -70,7 +70,6 @@ def not_road(id):
     else:
         flag = Game.flags[id]
         return flag is not undefined and flags.flag_secondary_to_sub[flag.secondaryColor] != flags.SUB_ROAD
-    return thing is not None and thing.structureType != STRUCTURE_ROAD
 
 
 protect_with_ramparts = [
@@ -634,7 +633,6 @@ class ConstructionMind:
                 __pragma__('js', 'throw __except0__;')
                 raise __except0__
 
-        to_destruct = 0
         for room_name in checked_positions_per_room.keys():
             checked_positions = checked_positions_per_room.get(room_name)
             room = self.hive.get_room(room_name)
@@ -645,7 +643,6 @@ class ConstructionMind:
                     if not checked_positions.has(pos_key):
                         if flags.look_for(room, road.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
                             continue
-                        to_destruct += 1
                         destruct_flag = flags.look_for(room, road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
                         if not destruct_flag:
                             flags.create_ms_flag(road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
@@ -656,7 +653,6 @@ class ConstructionMind:
                     if not checked_positions.has(pos_key):
                         if flags.look_for(room, site.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
                             continue
-                        to_destruct += 1
                         destruct_flag = flags.look_for(room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
                         if destruct_flag:
                             site.remove()

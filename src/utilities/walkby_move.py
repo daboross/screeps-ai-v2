@@ -15,16 +15,6 @@ SEMICONSTANT_MOVEMENT = 3
 MILITARY = 2
 MOVE_THEN_STOP = 1
 
-spawn_fill_running_memory = __pragma__('js', '{}', """
-function runningMemory (creep) {
-    if (creep.memory.running && creep.memory.running != role_spawn_fill) {
-        return MOVE_THEN_WORK;
-    } else {
-        return CONSTANT_MOVEMENT;
-    }
-}
-""")
-
 role_movement_types = {
     role_upgrader: MOVE_THEN_WORK,
     role_spawn_fill: SEMICONSTANT_MOVEMENT,
