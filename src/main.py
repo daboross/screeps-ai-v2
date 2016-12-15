@@ -323,6 +323,7 @@ __pragma__('js', 'global').py = {
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
     "cc": global_cache.clear_values_matching,
+    "full_refresh": lambda: consistency.complete_refresh(context.hive()),
     "analyse_mem": lambda path: memory_info.analyse_memory(path),
     "records": {
         'start': records.start_recording,

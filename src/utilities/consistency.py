@@ -102,20 +102,29 @@ def clear_cache():
     global_cache.cleanup()
 
 
-def clear_all_dead(hive):
+def complete_refresh(hive):
+    # Run all regular clear functions:
     for room in hive.my_rooms:
         clear_memory(room)
         room.recalculate_roles_alive()
         room.reset_planned_role()
-
+    # Double check for creeps in memory that aren't alive (maybe in rooms which are no longer owned?)
     for name, mem in _.pairs(Memory.creeps):
         if name not in Game.creeps:
             print('[consistency] Clearing rouge creep: {} ({})'.format(name, mem.home))
             del Memory.creeps[name]
+    # Double check for creeps in TargetMind which aren't alive:
     for name, targets in _.pairs(_.get(Memory, 'targets.targeters_using')):
         if name not in Game.creeps:
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
             hive.target_mind._unregister_all(name)
+    # Remove deprecated Memory paths that are no longer in use:
+    for key in ['cpu_usage']:
+        if key in Memory:
+            print('[consistency] Removing deprecated memory path: {}'.format(key))
+            del Memory[key]
+
+
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
