@@ -191,7 +191,7 @@ class HiveMind:
                 new_creep_lists[home].append(creep)
             else:
                 new_creep_lists[home] = [creep]
-        for name in new_creep_lists:
+        for name in Object.keys(new_creep_lists):
             room = self.get_room(name)
             if not room:
                 print("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(name, name))
