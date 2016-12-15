@@ -145,7 +145,7 @@ class HiveMind:
                     room_to_flags[sponsor.room_name].push(flag)
                 else:
                     room_to_flags[sponsor.room_name] = [flag]
-        for room in self.visible_rooms:
+        for room in self.my_rooms:
             if room.room_name in room_to_flags:
                 room._remote_mining_operations = room_to_flags[room.room_name]
             else:
@@ -329,17 +329,6 @@ _rcl_to_sane_wall_hits = [
 
 class RoomMind:
     """
-    Modes to create:
-
-    - Whether or not to use STORAGE
-    - When to create Big Harvesters
-    - When to set workers to TOWER FILL
-
-    Variables to consider
-    - WORK_MASS: a total count of all WORK bodyparts on worker creeps
-    - CONTROLLER_LEVEL: current controller level
-    - USING_STORAGE: whether or not we're using a storage
-    - FULL_ROAD_COVERAGE: whether or not all paths are covered in roads in this room.
     :type hive_mind: HiveMind
     :type room: Room
     :type building: ConstructionMind
@@ -349,7 +338,6 @@ class RoomMind:
     :type sources: list[Source]
     :type creeps: list[Creep]
     :type work_mass: int
-    :type are_all_big_miners_placed: bool
     :type trying_to_get_full_storage_use: bool
     :type full_storage_use: bool
     :type max_sane_wall_hits: int
@@ -371,46 +359,47 @@ class RoomMind:
             self.rcl = 0
         self.defense = RoomDefense(self)
         self.subsidiaries = []
-        self._remote_mining_operations = None
-        self._sources = None
-        self._creeps = None
-        self._work_mass = None
-        self._position = None
         __pragma__('skip')
+        # properties that could exist for any room
+        self._position = undefined
+        self._sources = undefined
+        self._spawns = undefined
+        self._spawn = undefined
+
+        # properties generally set via a poll in hive mind
+        self._creeps = undefined
+        self._remote_mining_operations = undefined
+
+        # properties that are purely based on per-tick polling
+        self._work_mass = undefined
+        self._any_miners = undefined
+        self._all_miners = undefined
+        self._trying_to_get_full_storage_use = undefined
+        self._full_storage_use = undefined
+
+        # properties which represent some multi-tick state
         self._upgrader_source = undefined
+        self._extra_fill_targets = undefined
+        self._building_paused = undefined
+        self._upgrading_paused = undefined
+        self._overprioritize_building = undefined
+        self._conducting_siege = undefined
         __pragma__('noskip')
-        self._extra_fill_targets = None
-        self._ideal_big_miner_count = None
-        self._all_big_miners_placed = None
-        self._trying_to_get_full_storage_use = None
-        self._full_storage_use = None
-        self._building_paused = None
-        self._overprioritize_building = None
-        self._target_remote_mining_operation_count = None
-        self._target_remote_hauler_carry_mass = None
-        self._first_target_remote_reserve_count = None
-        self._target_remote_reserve_count = None
-        self._target_local_hauler_carry_mass = None
+
+        # role target counts
         self._target_link_managers = None
         self._target_cleanup_mass = None
         self._target_defender_count = None
         self._first_simple_target_defender_count = None
-        self._first_target_cleanup_mass = None
         self._target_colonist_work_mass = None
         self._target_mineral_steal_mass = None
         self._target_room_reserve_count = None
         self._target_spawn_fill_mass = None
-        self._target_td_healer_count = None
-        self._target_td_goader_count = None
-        self._target_simple_dismantler_count = None
-        self._target_remote_hauler_count = None
         self._target_upgrader_work_mass = None
         self._target_upgrade_fill_work_mass = None
         self._total_needed_spawn_fill_mass = None
-        self._max_sane_wall_hits = None
-        self._conducting_siege = None
-        self._spawns = None
-        # self._look_cache = new_map()
+
+        # Other properties to calculate for every room
         self._find_cache = new_map()
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
@@ -426,7 +415,6 @@ class RoomMind:
                 and Memory.enemy_rooms.includes(self.room_name) \
                 and not enemy_structures:
             Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.room_name), 1)
-        self.spawn = self.spawns[0] if self.spawns and len(self.spawns) else None
         if self.mem.sponsor:
             self.sponsor_name = self.mem.sponsor
         else:
@@ -498,36 +486,6 @@ class RoomMind:
             self._find_cache.set(parameter, result)
             return result
 
-    def find_at(self, find_type, pos, optional_y=None):
-        """
-        Looks for something at a position, and caches the result for this tick.
-
-        This is meant as a drop-in replacement for pos.lookFor() or room.lookForAt().
-        :param find_type: thing to look for, one of the FIND_* constants
-        :type find_type: str
-        :param pos: The position to look for at, or the x value of a position
-        :type pos: int | RoomPosition
-        :param optional_y: The y value of the position. If this is specified, `pos` is treated as the x value, not as a
-                           whole position
-        :type optional_y: int | None
-        :return: A list of results
-        :rtype: list[RoomObject]
-        """
-        x, y, room_name = parse_xy_arguments(pos, optional_y)
-        if room_name is not None and room_name != self.room_name:
-            room = self.hive_mind.get_room(room_name)
-            if room:
-                return room.find_at(find_type, x, y)
-            else:
-                return []
-        raw_find_results = self.find(find_type)
-        found = []
-        if len(raw_find_results):
-            for element in raw_find_results:
-                if element.pos.x == x and element.pos.y == y:
-                    found.append(element)
-        return found
-
     def look_at(self, look_type, pos, optional_y=None):
         x, y, room_name = parse_xy_arguments(pos, optional_y)
         if room_name is not None and room_name != self.room_name:
@@ -536,11 +494,7 @@ class RoomMind:
                 return room.look_at(look_type, x, y)
             else:
                 return []
-        # ser = (x | y << 6) + look_type
-        # if self._look_cache.has(ser):
-        #     return self._look_cache.get(ser)
         result = self.room.lookForAt(look_type, x, y)
-        # self._look_cache.set(ser, result)
         return result
 
     def find_in_range(self, find_type, find_range, pos, optional_y=None):
@@ -650,8 +604,13 @@ class RoomMind:
     carry_mass_map = property(_get_carry_mass)
 
     def _get_remote_mining_operations(self):
-        if self._remote_mining_operations is None:
-            self.hive_mind.poll_remote_mining_flags()
+        if '_remote_mining_operations' not in self:
+            if self.my:
+                self.hive_mind.poll_remote_mining_flags()
+            else:
+                print("[{}] Warning: accessing remote mining operations of unowned room {}."
+                      .format(self.room_name, self.room_name))
+                self._remote_mining_operations = []
         return self._remote_mining_operations
 
     possible_remote_mining_operations = property(_get_remote_mining_operations)
@@ -1008,28 +967,38 @@ class RoomMind:
         return consistency.reassign_room_roles(self)
 
     def get_position(self):
-        if self._position is None:
+        if '_position' not in self:
             self._position = movement.parse_room_to_xy(self.room.name)
         return self._position
 
     def get_sources(self):
-        if self._sources is None:
+        if '_sources' not in self:
             self._sources = self.find(FIND_SOURCES)
         return self._sources
 
     def get_spawns(self):
-        if self._spawns is None:
+        if '_spawns' not in self:
             self._spawns = self.find(FIND_MY_SPAWNS)
         return self._spawns
 
+    def get_spawn(self):
+        if '_spawn' not in self:
+            self._spawn = self.spawns[0] or None
+        return self._spawn
+
     def get_creeps(self):
-        if self._creeps is None:
-            creeps = []
-            for name in Object.keys(Game.creeps):
-                creep = Game.creeps[name]
-                if creep.memory.home == self.room_name:
-                    creeps.append(creep)
-            self._creeps = creeps
+        if '_creeps' not in self:
+            if self.my:
+                print("[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!"
+                      .format(self.room_name, self.room_name))
+                creeps = []
+                for name in Object.keys(Game.creeps):
+                    creep = Game.creeps[name]
+                    if creep.memory.home == self.room_name:
+                        creeps.append(creep)
+                self._creeps = creeps
+            else:
+                self._creeps = []
         return self._creeps
 
     def get_upgrader_energy_struct(self):
@@ -1065,7 +1034,7 @@ class RoomMind:
         return self._upgrader_source
 
     def get_extra_fill_targets(self):
-        if self._extra_fill_targets is None:
+        if '_extra_fill_targets' not in self:
             extra_targets = []
             cont = self.get_upgrader_energy_struct()
             if cont and cont.structureType == STRUCTURE_CONTAINER:
@@ -1076,41 +1045,51 @@ class RoomMind:
         return self._extra_fill_targets
 
     def get_work_mass(self):
-        if self._work_mass is None:
+        if '_work_mass' not in self:
             mass = 0
             for creep in self.get_creeps():
                 for part in creep.body:
-                    # TODO: better measure for local haulers!
                     if part.type == WORK or part.type == CARRY:
                         mass += 1
             self._work_mass = math.floor(mass / 2)
         return self._work_mass
 
-    def get_if_all_big_miners_are_placed(self):
+    def any_local_miners(self):
         """
         :rtype: bool
         """
-        if self._all_big_miners_placed is None:
-            all_placed = True
-            for source in self.sources:
-                if not _.find(self.find_in_range(FIND_MY_CREEPS, 1, source),
-                              lambda c: c.memory.role == role_miner):
-                    all_placed = False
+        if '_any_miners' not in self:
+            any_miners = False
+            for flag in self.mining.local_mines:
+                if self.hive_mind.target_mind.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) > 0:
+                    any_miners = True
                     break
-            self._all_big_miners_placed = all_placed
-        return self._all_big_miners_placed
+            self._any_miners = any_miners
+        return self._any_miners
+
+    def all_local_miners(self):
+        """
+        :rtype: bool
+        """
+        if '_all_miners' not in self:
+            all_miners = True
+            for flag in self.mining.local_mines:
+                if self.hive_mind.target_mind.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) <= 0:
+                    all_miners = False
+                    break
+            self._all_miners = all_miners
+        return self._all_miners
 
     def get_trying_to_get_full_storage_use(self):
         """
         :rtype: bool
         """
-        if self._trying_to_get_full_storage_use is None:
+        if '_trying_to_get_full_storage_use' not in self:
             self._trying_to_get_full_storage_use = self.room.storage and (
                 self.room.storage.store[RESOURCE_ENERGY] >= _min_stored_energy_to_draw_from_before_refilling
-                or (
-                    self.are_all_big_miners_placed and self.work_mass >=
+                or (self.any_local_miners() and self.work_mass >=
                     _min_work_mass_per_source_for_full_storage_use * len(self.sources)
-                )
+                    )
             )
         return self._trying_to_get_full_storage_use
 
@@ -1118,7 +1097,7 @@ class RoomMind:
         """
         :rtype: bool
         """
-        if self._full_storage_use is None:
+        if '_full_storage_use' not in self:
             if self.room.storage and (self.room.storage.store[RESOURCE_ENERGY]
                                           >= _min_stored_energy_to_draw_from_before_refilling or
                                           (not self.spawn and self.room.storage.store[RESOURCE_ENERGY] > 0)):
@@ -1165,23 +1144,26 @@ class RoomMind:
         return not not self.mem.focusing_home
 
     def upgrading_paused(self):
-        if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
-            return False
-        # TODO: constant here and below in upgrader_work_mass
-        if self.conducting_siege() and (self.room.storage.store.energy < 100 * 1000 or (
-                        self.rcl < 7 and self.room.storage.store.energy < 500 * 1000)):
-            return True  # Don't upgrade while we're taking someone down.
-        if self.rcl >= 8:
-            if self.mem.upgrading_paused and self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading:
-                self.mem.upgrading_paused = False
-            if not self.mem.upgrading_paused and self.room.storage.store.energy < _rcl8_energy_to_pause_upgrading:
-                self.mem.upgrading_paused = True
-        else:
-            if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
-                self.mem.upgrading_paused = False
-            if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
-                self.mem.upgrading_paused = True
-        return not not self.mem.upgrading_paused
+        if '_upgrading_paused' not in self:
+            if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
+                self._upgrading_paused = False
+            # TODO: constant here and below in upgrader_work_mass
+            elif self.conducting_siege() and (self.room.storage.store.energy < 100 * 1000 or (
+                            self.rcl < 7 and self.room.storage.store.energy < 500 * 1000)):
+                self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
+            else:
+                if self.rcl >= 8:
+                    if self.mem.upgrading_paused and self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading:
+                        self.mem.upgrading_paused = False
+                    if not self.mem.upgrading_paused and self.room.storage.store.energy < _rcl8_energy_to_pause_upgrading:
+                        self.mem.upgrading_paused = True
+                else:
+                    if self.mem.upgrading_paused and self.room.storage.store.energy > _energy_to_resume_upgrading:
+                        self.mem.upgrading_paused = False
+                    if not self.mem.upgrading_paused and self.room.storage.store.energy < _energy_to_pause_upgrading:
+                        self.mem.upgrading_paused = True
+                self._upgrading_paused = not not self.mem.upgrading_paused
+        return self._upgrading_paused
 
     def under_siege(self):
         return not not self.mem.attack
@@ -1212,7 +1194,7 @@ class RoomMind:
         return deprioritized
 
     def building_paused(self):
-        if self._building_paused is None:
+        if '_building_paused' not in self:
             if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
                 self._building_paused = False
             elif self.conducting_siege() and self.rcl < 7:
@@ -1239,7 +1221,7 @@ class RoomMind:
         return self._building_paused
 
     def overprioritize_building(self):
-        if self._overprioritize_building is None:
+        if '_overprioritize_building' not in self:
             if self.spawn:
                 prioritize = ((self.room.energyCapacityAvailable < 550
                                and self.get_open_source_spaces() < len(self.sources) * 2)
@@ -1271,7 +1253,7 @@ class RoomMind:
         return False
 
     def conducting_siege(self):
-        if self._conducting_siege is None:
+        if '_conducting_siege' not in self:
             self._conducting_siege = Game.cpu.bucket > 4500 and not not (
                 (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK)
                  or self._any_closest_to_me(flags.ATTACK_DISMANTLE))
@@ -1433,8 +1415,8 @@ class RoomMind:
 
     def get_target_spawn_fill_backup_carry_mass(self):
         # TODO: 25 should be a constant.
-        if self.full_storage_use or self.are_all_big_miners_placed:
-            if self.full_storage_use and (self.are_all_big_miners_placed or
+        if self.full_storage_use or self.all_local_miners():
+            if self.full_storage_use and (self.any_local_miners() or
                                               (self.work_mass > 25 and self.role_count(role_tower_fill) > 0
                                                and self.role_count(role_spawn_fill) > 0)):
                 return 0
@@ -1447,7 +1429,7 @@ class RoomMind:
 
     def get_target_spawn_fill_mass(self):
         if self._target_spawn_fill_mass is None:
-            if self.full_storage_use or self.are_all_big_miners_placed:
+            if self.full_storage_use or self.any_local_miners():
                 tower_fill = self.carry_mass_of(role_tower_fill)
                 total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
                 if self.rcl < 4 or not self.room.storage:
@@ -1735,7 +1717,7 @@ class RoomMind:
 
     def _next_needed_local_mining_role(self):
         if spawning.would_be_emergency(self):
-            if not self.full_storage_use and not self.are_all_big_miners_placed:
+            if not self.full_storage_use and not self.any_local_miners():
                 next_role = self._check_role_reqs([
                     [role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, True],
                 ])
@@ -2083,11 +2065,11 @@ class RoomMind:
     position = property(get_position)
     sources = property(get_sources)
     spawns = property(get_spawns)
+    spawn = property(get_spawn)
     creeps = property(get_creeps)
     work_mass = property(get_work_mass)
     next_role = property(get_next_role)
     rt_map = property(_get_rt_map)
-    are_all_big_miners_placed = property(get_if_all_big_miners_are_placed)
     trying_to_get_full_storage_use = property(get_trying_to_get_full_storage_use)
     full_storage_use = property(get_full_storage_use)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
@@ -2121,7 +2103,6 @@ profiling.profile_whitelist(RoomMind, [
     "get_upgrader_energy_struct",
     "get_extra_fill_targets",
     "get_work_mass",
-    "get_if_all_big_miners_are_placed",
     "get_trying_to_get_full_storage_use",
     "get_full_storage_use",
     "being_bootstrapped",
