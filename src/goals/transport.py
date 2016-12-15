@@ -180,19 +180,18 @@ class TransportPickup(RoleBase):
         return self.hive.honey.find_path_length(origin, target)
 
     def follow_energy_path(self, origin, target):
-        # over_debug = self.name in ('30d6' ,'3b5a', '4387')
-        if origin.pos: origin = origin.pos
-        if target.pos: target = target.pos
+        if origin.pos:
+            origin = origin.pos
+        if target.pos:
+            target = target.pos
         if self.creep.fatigue > 0:
             return
-        # if over_debug:
-        #     self.log("Following path from {} to {}!".format(origin, target))
         if origin.isNearTo(target):
             origin = self.home.spawn.pos
         path = self.hive.honey.find_serialized_path(origin, target, {'current_room': self.pos.roomName})
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
-        if result == ERR_NOT_FOUND:
+        if result == ERR_NOT_FOUND or result == ERR_NO_PATH:
             if self.pos.isNearTo(target):
                 self.basic_move_to(target)
                 return
@@ -208,7 +207,7 @@ class TransportPickup(RoleBase):
                         if room and not movement.is_block_clear(room, pos.x, pos.y):
                             continue  # Don't try and target where the miner is right now!
                     # subtract how far we are on the path!
-                    distance = movement.distance_room_pos(self.pos, pos) - index * 0.7
+                    distance = movement.chebyshev_distance_room_pos(self.pos, pos) - index * 0.7
                     if pos.roomName != self.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -247,11 +246,9 @@ class TransportPickup(RoleBase):
                 self.memory.off_path_for = 1
             else:
                 self.memory.off_path_for += 1
-                # if self.memory.off_path_for > 10:
-                #     self.log("Lost the path from {} to {}! Pos: {}, retargetting to: {}".format(
-                #         origin, target, self.pos, new_target))
         elif result != OK:
-            self.log("Unknown result from follow_energy_path: {}".format(result))
+            self.log("Unknown result from follow_energy_path: {}. Going from {} to {} (path {}, in {})"
+                     .format(result, origin, target, path, self.pos.roomName))
         else:
             del self.memory.tried_new_next_ppos
             if self.memory.off_path_for:
