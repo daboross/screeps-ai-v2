@@ -429,10 +429,13 @@ class RoomDefense:
                                 - self.danger_level(c) * 200
                                 # More defenders = more important
                                 - len(self.defenders_near(c)) * 100
-                                # Further away = less important
+                                # Further away from closest target = less important
+                                + movement.minimum_chebyshev_distance(c, protect)
+                                # Further away average distance from targets = less important
                                 + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
+                                  / 50
                                 # More hits = less important
-                                - (c.hitsMax - c.hits - self.healing_possible_on(c)) / 50
+                                - (c.hitsMax - c.hits - self.healing_possible_on(c)) / 100
                                 ) \
                         .value()
                 else:
