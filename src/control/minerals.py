@@ -67,7 +67,7 @@ class MineralMind:
             room.mem.market = {'total_energy_needed': 0, 'fulfilling': {}}
         else:
             if 'total_energy_needed' not in room.mem.market:
-                room.mem.market.total_energy_needed = 0
+                room.mem.market['total_energy_needed'] = 0
             if 'fulfilling' not in room.mem.market:
                 # Memory format:
                 # fulfilling: {
