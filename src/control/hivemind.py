@@ -21,6 +21,10 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 
 def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
@@ -93,7 +97,7 @@ class HiveMind:
                         else:
                             sponsoring[room_mind.sponsor_name] = [room_mind]
                 self._room_to_mind[name] = room_mind
-            for sponsor_name in sponsoring.keys():
+            for sponsor_name in Object.keys(sponsoring):
                 sponsor = self._room_to_mind[sponsor_name]
                 if sponsor:
                     for subsidiary in sponsoring[sponsor_name]:

@@ -9,6 +9,10 @@ from utilities.screeps_constants import new_set
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 building_priorities = {
     STRUCTURE_EXTENSION: 0,
@@ -633,7 +637,7 @@ class ConstructionMind:
                 __pragma__('js', 'throw __except0__;')
                 raise __except0__
 
-        for room_name in checked_positions_per_room.keys():
+        for room_name in Object.keys(checked_positions_per_room):
             checked_positions = checked_positions_per_room.get(room_name)
             room = self.hive.get_room(room_name)
 

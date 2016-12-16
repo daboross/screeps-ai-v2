@@ -12,6 +12,10 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 _MAX_BUILDERS = 4
 _MAX_REPAIR_WORKFORCE = 10

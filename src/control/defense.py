@@ -10,6 +10,10 @@ from utilities.screeps_constants import new_set
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 
 def _init_tough_part_multipliers():

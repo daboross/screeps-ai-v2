@@ -118,6 +118,10 @@ from utilities.screeps_constants import *
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 DEPOT = "depot"
 REMOTE_MINE = "harvest"
@@ -523,7 +527,7 @@ def create_ms_flag(position, main, sub):
 
 def rename_flags():
     refresh_flag_caches()
-    for name in flag_definitions.keys():
+    for name in Object.keys(flag_definitions):
         for flag in find_flags_global(name):
             if Game.cpu.getUsed() > 400:
                 refresh_flag_caches()
@@ -536,7 +540,7 @@ def rename_flags():
                         Memory.flags[new_name] = Memory.flags[flag.name]
                     del Memory.flags[flag.name]
                 flag.remove()
-    for main in main_to_flag_primary.keys():
+    for main in Object.keys(main_to_flag_primary):
         for flag, sub in find_by_main_with_sub_global(main):
             if Game.cpu.getUsed() > 400:
                 refresh_flag_caches()
