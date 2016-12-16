@@ -196,7 +196,7 @@ class ConstructionMind:
                                                      or x.structureType == STRUCTURE_RAMPART)
                                   and not len(x.pos.lookFor(LOOK_STRUCTURES))) \
                 .sortBy(lambda x: -1 * max(abs(25 - x.pos.x), abs(25 - x.pos.y))) \
-                .map(lambda x: x.id) \
+                .pluck('id') \
                 .value()
             # Sort by the closest to the edge of the room
             self.room.store_cached_property("seiged_walls_unbuilt", targets, 200)
@@ -211,7 +211,7 @@ class ConstructionMind:
                 .filter(lambda x: x is not None
                                   and get_priority(self.room, x.structureType)
                                       <= max_priority_for_non_wall_sites) \
-                .map(lambda x: x.id).value()
+                .pluck('id').value()
             self.room.store_cached_property("non_wall_construction_targets", targets, 200)
             return targets
 
@@ -319,7 +319,7 @@ class ConstructionMind:
         sites = _(self.room.find(FIND_MY_CONSTRUCTION_SITES)) \
             .sortBy(lambda s: get_priority(self.room, s.structureType) * 50
                               + movement.distance_room_pos(spawn_pos, s.pos)) \
-            .map('id').value().concat(new_sites)
+            .pluck('id').value().concat(new_sites)
         # sites = [x.id for x in _.sortBy(self.room.find(FIND_MY_CONSTRUCTION_SITES),
         #                                 lambda s: get_priority(self.room, s.structureType) * 50
         #                                           + movement.distance_room_pos(spawn_pos, s.pos))]
@@ -425,7 +425,7 @@ class ConstructionMind:
                                                              flags.structure_type_to_flag_sub[
                                                                  s.structureType])))
                 .sortBy(lambda s: s.hits)
-                .map('id').value()
+                .pluck('id').value()
         )
 
         self.room.store_cached_property("big_repair_targets", target_list, 200)

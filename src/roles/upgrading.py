@@ -378,7 +378,8 @@ class DedicatedUpgradeFiller(RoleBase):
                             self.memory.role = role_recycling
                             self.memory.last_role = role_upgrade_fill
                             return False
-            mineral_held = _.find(_.keys(self.creep.carry), lambda x: x != RESOURCE_ENERGY)
+            mineral_held = _.findKey(self.creep.carry,
+                                     lambda amount, mineral: amount > 0 and mineral != RESOURCE_ENERGY)
             if mineral_held:
                 if not self.empty_to_storage():
                     result = self.creep.drop(mineral_held)
