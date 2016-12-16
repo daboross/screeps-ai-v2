@@ -124,6 +124,7 @@ class MineralMind:
         if mineral == RESOURCE_ENERGY:
             energy_cost += amount
         if energy_cost > self.mem['total_energy_needed']:
+            self.recalculate_energy_needed()
             self.mem['total_energy_needed'] = energy_cost
         if order_id:
             obj = {
@@ -146,6 +147,7 @@ class MineralMind:
 
     def recalculate_energy_needed(self):
         energy_needed = 0
+        energy_needed_without_self_orders = 0
         for mineral, order_list in _.pairs(self.fulfilling):
             for order in order_list:
                 amount = min(_SINGLE_MINERAL_FULFILLMENT_MAX, order.amount)
@@ -154,7 +156,10 @@ class MineralMind:
                 else:
                     needed_here = Game.market.calcTransactionCost(amount, self.room.room_name, order.room)
                 energy_needed = max(energy_needed, needed_here)
+                if mineral != RESOURCE_ENERGY or not _.get(Game.rooms, [order.room, 'controller', 'my'], False):
+                    energy_needed_without_self_orders = max(energy_needed_without_self_orders, needed_here)
         self.mem['total_energy_needed'] = energy_needed
+        self.mem['ten_without_self_orders'] = energy_needed_without_self_orders
 
     def log(self, message):
         print("[{}][market] {}".format(self.room.room_name, message))
@@ -335,16 +340,20 @@ class MineralMind:
 
     def _terminal_target_for_resource(self, mineral, currently_have):
         if mineral == RESOURCE_ENERGY:
-            if currently_have < 20000:
+            if currently_have < 20 * 1000:
                 return 0
-            elif currently_have <= 30000:
-                return currently_have - 20000
+            elif currently_have <= 30 * 1000:
+                return currently_have - 20 * 1000
             if self.room.mem.empty_to:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
                 min_via_empty_to = 0
-            min_via_fulfillment = self.mem['total_energy_needed']
-            return min(currently_have - 20000, max(10000, min_via_empty_to, min_via_fulfillment))
+            if 'ten_without_self_orders' not in self.mem:
+                self.recalculate_energy_needed()
+            min_via_fulfillment = self.mem['ten_without_self_orders']
+            min_via_balancing = min(0, currently_have - 300 * 1000, 'total_energy_needed')
+            return min(currently_have - 20 * 1000, max(10 * 1000, min_via_empty_to, min_via_fulfillment,
+                                                       min_via_balancing))
         elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
             return 0
         else:
