@@ -345,8 +345,14 @@ class ConstructionMind:
     def get_is_relatively_decayed(self, big_repair=False):
         def is_relatively_decayed(id):
             thing = Game.getObjectById(id)
-            return thing is not None and thing.hits <= self.max_hits_for_struct(thing, big_repair) * 0.6 \
-                   and (thing.structureType != STRUCTURE_ROAD or thing.hits <= thing.hitsMax * 0.3)
+            if thing is None:
+                return False
+            if thing.structureType == STRUCTURE_ROAD:
+                return thing.hits < thing.hitsMax * 0.35
+            else:
+                max_hits = self.max_hits_for_struct(thing, big_repair)
+                max_hits = max_hits - min(max_hits * 0.4, 50 * 1000)
+                return thing.hits < max_hits
 
         return is_relatively_decayed
 
@@ -412,7 +418,7 @@ class ConstructionMind:
         target_list = (
             _(self.room.find(FIND_STRUCTURES))
                 .filter(lambda s: (s.my or not s.owner) and s.hits < s.hitsMax
-                                  and s.hits <= max_hits and (
+                                  and s.hits < max_hits and (
                                       s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
                                   and (not any_destruct_flags
                                        or not flags.look_for(self.room, s, flags.MAIN_DESTRUCT,
