@@ -368,6 +368,7 @@ class RoomMind:
         self._sources = undefined
         self._spawns = undefined
         self._spawn = undefined
+        self._unique_owned_index = undefined
 
         # properties generally set via a poll in hive mind
         self._creeps = undefined
@@ -618,6 +619,32 @@ class RoomMind:
             else:
                 self._creeps = []
         return self._creeps
+
+    def get_unique_owned_index(self):
+        if '_unique_owned_index' not in self:
+            if self.my:
+                if '_owned_rooms_index' not in Memory.meta:
+                    Memory.meta._owned_rooms_index = _(self.hive_mind.my_rooms).sortByOrder(
+                        [
+                            'rcl',
+                            lambda r: r.position[0],
+                            lambda r: r.position[1],
+                        ],
+                        [
+                            'desc',
+                            'asc',
+                            'asc',
+                        ]
+                    ).pluck('name').value()
+                    index = Memory.meta._owned_rooms_index.indexOf(self.room_name)
+                else:
+                    index = Memory.meta._owned_rooms_index.indexOf(self.room_name)
+                    if index == -1:
+                        index = Memory.meta._owned_rooms_index.push(self.room_name) - 1
+                self._unique_owned_index = index
+            else:
+                self._unique_owned_index = -1
+        return self._unique_owned_index
 
     def _get_remote_mining_operations(self):
         if '_remote_mining_operations' not in self:
