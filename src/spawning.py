@@ -630,7 +630,7 @@ def find_base_type(creep):
         base = creep_base_rampart_defense
     else:
         print("[{}][{}] Creep has unknown body! {}".format(
-            context.room().room_name, creep.name, JSON.stringify(part_counts)))
+            creep.memory.home, creep.name, JSON.stringify(part_counts)))
         return None
     return base
 

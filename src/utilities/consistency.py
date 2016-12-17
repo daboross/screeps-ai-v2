@@ -62,7 +62,7 @@ def clear_memory(room):
         else:
             if creep.ticksToLive < smallest_ticks_to_live:
                 smallest_ticks_to_live = creep.ticksToLive
-            replacement_time = live_creep_utils.replacement_time(creep)
+            replacement_time = live_creep_utils.replacement_time(creep, room)
             if Game.time < replacement_time < closest_replacement_time:
                 closest_replacement_time = replacement_time
     dead_next = Game.time + smallest_ticks_to_live
@@ -76,7 +76,7 @@ def get_next_replacement_time(room):
     """
     closest_replacement_time = Game.time + 100
     for creep in room.creeps:
-        replacement_time = live_creep_utils.replacement_time(creep)
+        replacement_time = live_creep_utils.replacement_time(creep, room)
         if Game.time < replacement_time < closest_replacement_time:
             closest_replacement_time = replacement_time
     return closest_replacement_time

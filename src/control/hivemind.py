@@ -310,7 +310,6 @@ class HiveMind:
 
         biggest_rcl8_room.minerals.send_minerals(smallest_room.room_name, RESOURCE_ENERGY, max_to_send)
 
-
     def mineral_report(self):
         result = []
         tally = {}
@@ -873,7 +872,8 @@ class RoomMind:
         targeters = self.hive_mind.target_mind.creeps_now_targeting(target_type, target_id)
         for name in targeters:
             creep = Game.creeps[name]
-            if creep and Game.time < live_creep_utils.replacement_time(creep):
+            if creep and Game.time \
+                    < live_creep_utils.replacement_time(creep, self.hive_mind.get_room(creep.memory.home)):
                 count += 1
         return count
 
@@ -1642,7 +1642,7 @@ class RoomMind:
                         wm += math.ceil((extra - 200 * 1000) / 400)
                         if self.rcl < 8:
                             print("[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})"
-                              .format(self.room_name, wm, worker_size))
+                                  .format(self.room_name, wm, worker_size))
                         else:
                             # TODO: put this somewhere better
                             self.hive_mind.rebalance_from(self)

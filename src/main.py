@@ -117,7 +117,6 @@ def run_room(target_mind, creeps_skipped, room):
     try:
         if room.mem.pause:
             return
-        context.set_room(room)
         records.start_record()
         room.defense.tick()
         records.finish_record('defense.tick')
@@ -224,7 +223,6 @@ def main():
 
     target_mind = TargetMind()
     hive_mind = HiveMind(target_mind)
-    context.set_targets(target_mind)
     context.set_hive(hive_mind)
 
     records.finish_record('hive.init')
@@ -325,7 +323,7 @@ __pragma__('js', 'global').py = {
     "hostile_utils": hostile_utils,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
-    "get_creep": lambda name: wrap_creep(context.hive(), context.targets(),
+    "get_creep": lambda name: wrap_creep(context.hive(), context.hive().target_mind,
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
     "cc": global_cache.clear_values_matching,

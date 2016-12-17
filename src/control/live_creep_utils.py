@@ -11,12 +11,15 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
 
-def replacement_time(creep):
+def replacement_time(creep, room):
+    """
+    :type creep: Creep
+    :type room: control.hivemind.RoomMind
+    """
     if 'get_replacement_time' not in creep:
         if 'wrapped' in creep:
             creep = creep.wrapped
         else:
-            room = context.room()
             creep = creep_wrappers.wrap_creep(room.hive_mind, room.hive_mind.target_mind, room, creep)
             if not creep:
                 return Infinity
