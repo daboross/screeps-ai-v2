@@ -1,6 +1,5 @@
 import spawning
 from constants import *
-from control import live_creep_utils
 from tools import profiling
 from utilities import global_cache
 from utilities.screeps_constants import *
@@ -62,7 +61,7 @@ def clear_memory(room):
         else:
             if creep.ticksToLive < smallest_ticks_to_live:
                 smallest_ticks_to_live = creep.ticksToLive
-            replacement_time = live_creep_utils.replacement_time(creep, room)
+            replacement_time = room.replacement_time_of(creep)
             if Game.time < replacement_time < closest_replacement_time:
                 closest_replacement_time = replacement_time
     dead_next = Game.time + smallest_ticks_to_live
@@ -76,7 +75,7 @@ def get_next_replacement_time(room):
     """
     closest_replacement_time = Game.time + 100
     for creep in room.creeps:
-        replacement_time = live_creep_utils.replacement_time(creep, room)
+        replacement_time = room.replacement_time_of(creep)
         if Game.time < replacement_time < closest_replacement_time:
             closest_replacement_time = replacement_time
     return closest_replacement_time
@@ -127,8 +126,6 @@ def complete_refresh(hive):
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
-
-
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")

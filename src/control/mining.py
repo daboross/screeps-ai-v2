@@ -7,7 +7,6 @@ from constants import creep_base_work_half_move_hauler, creep_base_work_full_mov
     creep_base_reserving, target_energy_hauler_mine, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
     creep_base_1500miner, creep_base_half_move_hauler
 from control import defense
-from control import live_creep_utils
 from utilities import movement
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -304,8 +303,7 @@ class MiningMind:
                     return None
 
         claimer = Game.creeps[Memory.reserving[room_name]]
-        if not claimer or live_creep_utils.replacement_time(
-                claimer, self.hive.get_room(claimer.memory.home)) <= Game.time \
+        if not claimer or self.room.replacement_time_of(claimer) <= Game.time \
                 and not Game.creeps[claimer.memory.replacement]:
             room = Game.rooms[room_name]
             if room and not room.controller:
@@ -387,8 +385,7 @@ class MiningMind:
                 creep = Game.creeps[miner_name]
                 if not creep:
                     continue
-                if live_creep_utils.replacement_time(
-                        creep, self.hive.get_room(creep.memory.home)) > Game.time:
+                if self.room.replacement_time_of(creep) > Game.time:
                     if work_mass_needed is None:
                         break
                     work_mass_needed -= spawning.work_count(creep)
@@ -438,7 +435,7 @@ class MiningMind:
             creep = Game.creeps[hauler_name]
             if not creep:
                 continue
-            if live_creep_utils.replacement_time(creep, self.hive.get_room(creep.memory.home)) > Game.time:
+            if self.room.replacement_time_of(creep) > Game.time:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
             if flag.pos.roomName == self.room.room_name:

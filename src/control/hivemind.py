@@ -5,7 +5,6 @@ import flags
 import spawning
 from constants import *
 from control import defense
-from control import live_creep_utils
 from control.building import ConstructionMind
 from control.defense import RoomDefense
 from control.links import LinkingMind
@@ -872,8 +871,7 @@ class RoomMind:
         targeters = self.hive_mind.target_mind.creeps_now_targeting(target_type, target_id)
         for name in targeters:
             creep = Game.creeps[name]
-            if creep and Game.time \
-                    < live_creep_utils.replacement_time(creep, self.hive_mind.get_room(creep.memory.home)):
+            if creep and Game.time < self.replacement_time_of(creep):
                 count += 1
         return count
 
@@ -898,6 +896,26 @@ class RoomMind:
                 else:
                     break  # this is sorted
         return mass
+
+    def replacement_time_of(self, creep):
+        if creep.get_replacement_time:
+            return creep.get_replacement_time()
+
+        if creep.memory.home != self.room_name:
+            home_room = self.hive_mind.get_room(creep.memory.home)
+            if home_room:
+                return home_room.replacement_time_of(creep)
+            else:
+                console.log("Couldn't find home of {} ({})!".format(creep.name, creep.memory.home))
+
+        if 'wrapped' in creep:
+            creep = creep.wrapped
+        else:
+            creep = creep_wrappers.wrap_creep(self.hive_mind, self.hive_mind.target_mind, self, creep)
+            if not creep:
+                return Infinity
+
+        return creep.get_replacement_time()
 
     def precreep_tick_actions(self):
         time = Game.time
