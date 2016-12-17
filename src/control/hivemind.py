@@ -433,36 +433,41 @@ class RoomMind:
         self._upgrading_paused = undefined
         self._overprioritize_building = undefined
         self._conducting_siege = undefined
-        __pragma__('noskip')
 
         # role target counts
-        self._target_link_managers = None
-        self._target_defender_count = None
-        self._first_simple_target_defender_count = None
-        self._target_colonist_work_mass = None
-        self._target_mineral_steal_mass = None
-        self._target_room_reserve_count = None
-        self._target_spawn_fill_mass = None
-        self._target_upgrader_work_mass = None
-        self._target_upgrade_fill_work_mass = None
-        self._total_needed_spawn_fill_mass = None
+        self._target_link_managers = undefined
+        self._target_defender_count = undefined
+        self._first_simple_target_defender_count = undefined
+        self._target_colonist_work_mass = undefined
+        self._target_mineral_steal_mass = undefined
+        self._target_room_reserve_count = undefined
+        self._target_spawn_fill_mass = undefined
+        self._target_upgrader_work_mass = undefined
+        self._target_upgrade_fill_work_mass = undefined
+        self._total_needed_spawn_fill_mass = undefined
+
+        __pragma__('noskip')
 
         # Other properties to calculate for every room
         self._find_cache = new_map()
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
-        enemy_structures = _.find(self.find(FIND_HOSTILE_STRUCTURES), lambda s: s.structureType == STRUCTURE_SPAWN
-                                                                                or s.structureType == STRUCTURE_TOWER)
-        self.enemy = room.controller and room.controller.owner and not room.controller.my \
-                     and not Memory.meta.friends.includes(self.room.controller.owner.username) \
-                     and enemy_structures
-        if self.enemy:
-            if not Memory.enemy_rooms.includes(self.room_name):
-                Memory.enemy_rooms.push(room.name)
-        elif (not room.controller or room.controller.owner) \
-                and Memory.enemy_rooms.includes(self.room_name) \
-                and not enemy_structures:
-            Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.room_name), 1)
+        if room.controller and room.controller.owner:
+            enemy_structures = _.find(
+                self.find(FIND_HOSTILE_STRUCTURES),
+                lambda s: s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TOWER
+            )
+
+            self.enemy = not room.controller.my \
+                         and not Memory.meta.friends.includes(self.room.controller.owner.username) \
+                         and enemy_structures
+            if self.enemy:
+                if not Memory.enemy_rooms.includes(self.room_name):
+                    Memory.enemy_rooms.push(room.name)
+            elif Memory.enemy_rooms.includes(self.room_name) and not enemy_structures:
+                Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.room_name), 1)
+        else:
+            self.enemy = False
         if self.mem.sponsor:
             self.sponsor_name = self.mem.sponsor
         else:
@@ -1377,7 +1382,7 @@ class RoomMind:
         """
         :rtype: int
         """
-        if self._target_link_managers is None:
+        if '_target_link_managers' not in self:
             links = 0
             for s in self.find(FIND_STRUCTURES):
                 if s.structureType == STRUCTURE_LINK:
@@ -1415,7 +1420,7 @@ class RoomMind:
         """
         if self.under_siege():
             return 0
-        if (self._first_simple_target_defender_count if first else self._target_defender_count) is None:
+        if ('_first_simple_target_defender_count' if first else '_target_defender_count') not in self:
             needed_local = math.ceil(_.sum(self.defense.dangerous_hostiles(),
                                            lambda h: self.defense.danger_level(h) >= 2) / 3)
 
@@ -1442,7 +1447,7 @@ class RoomMind:
     def get_target_colonist_work_mass(self):
         if self.under_siege():
             return 0
-        if not self._target_colonist_work_mass:
+        if '_target_colonist_work_mass' not in self:
             worker_mass = spawning.max_sections_of(self, creep_base_worker)
             hauler_mass = spawning.max_sections_of(self, creep_base_half_move_hauler)
             needed = 0
@@ -1483,7 +1488,7 @@ class RoomMind:
         return self._target_colonist_work_mass
 
     def get_target_mineral_steal_mass(self):
-        if not self._target_mineral_steal_mass:
+        if '_target_mineral_steal_mass' not in self:
             self.get_target_colonist_work_mass()
         return self._target_mineral_steal_mass
 
@@ -1502,7 +1507,7 @@ class RoomMind:
             return math.floor(self.get_target_total_spawn_fill_mass() / 2)
 
     def get_target_spawn_fill_mass(self):
-        if self._target_spawn_fill_mass is None:
+        if '_target_spawn_fill_mass' not in self:
             if self.full_storage_use or self.any_local_miners():
                 tower_fill = self.carry_mass_of(role_tower_fill)
                 total_mass = math.ceil(self.get_target_total_spawn_fill_mass())
@@ -1523,7 +1528,7 @@ class RoomMind:
         return self._target_spawn_fill_mass
 
     def get_target_total_spawn_fill_mass(self):
-        if self._total_needed_spawn_fill_mass is None:
+        if '_total_needed_spawn_fill_mass' not in self:
             if self.room.energyCapacityAvailable < 550 and self.get_open_source_spaces() < len(self.sources) * 2:
                 self._total_needed_spawn_fill_mass = 3
             else:
@@ -1575,7 +1580,7 @@ class RoomMind:
         return 0
 
     def get_target_upgrade_fill_mass(self):
-        if self._target_upgrade_fill_work_mass is None:
+        if '_target_upgrade_fill_work_mass' not in self:
             target = self.get_upgrader_energy_struct()
             if not target or target.structureType != STRUCTURE_CONTAINER:
                 self._target_upgrade_fill_work_mass = 0
@@ -1601,7 +1606,7 @@ class RoomMind:
         return self._target_upgrade_fill_work_mass
 
     def get_target_upgrader_work_mass(self):
-        if self._target_upgrader_work_mass is None:
+        if '_target_upgrader_work_mass' not in self:
             base = self.get_variable_base(role_upgrader)
             sections = spawning.max_sections_of(self, base)
             if base is creep_base_full_upgrader:
@@ -1689,7 +1694,7 @@ class RoomMind:
             return 0
 
     def get_target_room_reserve_count(self):
-        if self._target_room_reserve_count is None:
+        if '_target_room_reserve_count' not in self:
             count = 0
             if self.room.energyCapacityAvailable >= 650:
                 for flag in flags.find_flags_global(flags.RESERVE_NOW):
