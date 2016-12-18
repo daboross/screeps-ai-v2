@@ -309,9 +309,6 @@ class MiningMind:
             if room and not room.controller:
                 Memory.no_controller[room_name] = True
             else:
-                def run_after(name):
-                    Memory.reserving[room_name] = name
-
                 return {
                     'role': role_remote_mining_reserve,
                     'base': creep_base_reserving,
@@ -319,7 +316,7 @@ class MiningMind:
                     'memory': {
                         'claiming': room_name
                     },
-                    'run_after': run_after,
+                    'run_after': '(name) => Memory.reserving[\'{}\'] = name'.format(room_name),
                 }
         else:
             return None

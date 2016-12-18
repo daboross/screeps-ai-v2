@@ -529,6 +529,13 @@ def run(room, spawn):
         # Add whatever memory seems to be necessary
         _.extend(memory, role_obj.memory)
 
+    if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.room_name):
+        print("[{}][spawning] Warning: Generated too costly of a body for a {}! Available energy: {}, cost: {}."
+              .format(role, spawn.room.energyAvailable - ubos_cache.get(room.room_name),
+                      _.sum(parts, lambda p: BODYPART_COST[p])))
+        room.reset_planned_role()
+        return
+
     # if descriptive_level:
     #     if replacing:
     #         print("[{}][spawning] Spawning {}, a {} with body {} level {}, live-replacing {}.".format(
@@ -556,13 +563,15 @@ def run(room, spawn):
                 print("[{}][spawning] Produced invalid body array for creep type {}: {}"
                       .format(room.room_name, base, JSON.stringify(parts)))
     else:
-        ubos_cache.set(room.room_name, postspawn_calculate_cost_of(parts))
+        used = ubos_cache.get(room.room_name) or 0
+        used += postspawn_calculate_cost_of(parts)
+        ubos_cache.set(room.room_name, used)
         room.reset_planned_role()
         if role_obj.targets:
             for target_type, target_id in role_obj.targets:
                 room.hive_mind.target_mind._register_new_targeter(target_type, name, target_id)
         if role_obj.run_after:
-            role_obj.run_after(name)
+            __pragma__('js', '(eval(role_obj.run_after))')(name)
         if replacing:
             room.register_new_replacing_creep(replacing, result)
         else:
