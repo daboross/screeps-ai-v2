@@ -351,7 +351,8 @@ class MineralMind:
             if 'ten_without_self_orders' not in self.mem:
                 self.recalculate_energy_needed()
             min_via_fulfillment = self.mem['ten_without_self_orders']
-            min_via_balancing = min(0, currently_have - 300 * 1000, 'total_energy_needed')
+            min_via_balancing = min(0, _.sum(self.get_total_room_resource_counts()) - 350 * 1000,
+                                    currently_have - 100 * 1000, self.mem['total_energy_needed'])
             return min(currently_have - 20 * 1000, max(10 * 1000, min_via_empty_to, min_via_fulfillment,
                                                        min_via_balancing))
         elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
