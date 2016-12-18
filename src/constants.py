@@ -149,3 +149,8 @@ INVADER_USERNAME = "Invader"
 SK_USERNAME = "Source Keeper"
 
 recycle_time = 50
+
+request_priority_imminent_threat_defense = 1
+request_priority_economy = 5
+request_priority_helping_party = 9
+request_priority_low = 20

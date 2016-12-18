@@ -570,6 +570,8 @@ def run(room, spawn):
         if role_obj.targets:
             for target_type, target_id in role_obj.targets:
                 room.hive_mind.target_mind._register_new_targeter(target_type, name, target_id)
+        if role_obj.rkey:
+            room.successfully_spawned_request(role_obj.rkey)
         if role_obj.run_after:
             __pragma__('js', '(eval(role_obj.run_after))')(name)
         if replacing:

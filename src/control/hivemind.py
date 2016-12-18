@@ -949,6 +949,8 @@ class RoomMind:
         # cleared! Actually, it's quite cheap.
         if Game.time % 10 == 0:
             self.reassign_roles()
+        if Game.time % 500 == 0:
+            self._check_request_expirations()
 
     def reassign_roles(self):
         return consistency.reassign_room_roles(self)
@@ -1735,6 +1737,90 @@ class RoomMind:
         else:
             return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
 
+    def request_creep(self, role, opts=None):
+        """
+        Performs a very simple creep request.
+        :param role: The role of the creep
+        :param opts: Any additional spawning options (described as role_obj in register_creep_request)
+        """
+
+        req_key = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+        if '_requests' in self.mem:
+            while req_key in self.mem._requests['s']:
+                req_key += Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+        self.register_creep_request(
+            req_key,
+            request_priority_low,
+            Game.time + 50 * 1000,
+            _.merge({'role': role, 'base': self.get_variable_base(role),
+                     'num_sections': self.get_max_sections_for_role(role)}, opts)
+        )
+
+    def register_creep_request(self, specific_key, priority, expire_at, role_obj):
+        """
+        Registers a creep request with unique key `specific_key`.
+        :param specific_key: The unique key to represent this creep order. Any other order with this key will replace
+                            it.
+        :param priority: The priority of the request. 0 is highest priority.
+        :param expire_at: If game time passes this point and the creep has not yet been spawned, the request should
+                            expire.
+        :param role_obj: A description of the creep to spawn - an object with role,base and num_sections, with
+                            other additional optional properties: memory (obj), replacing (string), targets
+                            (list of [target_type, target_id] items), run_after (string of a function to run after
+                            successful spawning)
+        """
+        if '_requests' not in self.mem:
+            self.mem._requests = {'q': [], 's': {}}
+        req = self.mem._requests
+        old_priority = _.get(req, ['s', specific_key, 'p'], None)
+        req['s'][specific_key] = {'e': expire_at, 'p': priority, 'o': JSON.stringify(role_obj)}
+
+        if req['q'].includes(specific_key):
+            if old_priority is None or old_priority == priority:
+                return
+            else:
+                req['q'].splice(req['q'].indexOf(specific_key), 1)
+        # push into sorted array
+        req['q'].splice(_.sortedIndex(req['q'], specific_key, lambda key: req['s'][key]['p']), 0, specific_key)
+        if len(req['q']) <= 1 and self.get_next_role() is None:
+            self.reset_planned_role()
+
+    def _get_next_requested_creep(self, max_priority=Infinity):
+        if '_requests' not in self.mem:
+            return
+        requests = self.mem._requests
+        while len(requests['q']) > 0:
+            request_key = requests['q'][0]
+            request = requests['s'][request_key]
+            if request.e < Game.time:
+                requests['q'].shift()
+                continue
+            if request.p > max_priority:
+                break
+            role_obj = JSON.parse(request.o)
+            role_obj['rkey'] = request_key
+            return role_obj
+        return None
+
+    def successfully_spawned_request(self, request_key):
+        if '_requests' not in self.mem:
+            return
+        requests = self.mem._requests
+        index = requests['q'].indexOf(request_key)
+        if index != -1:
+            requests['q'].splice(index, 1)
+        del requests['s'][request_key]
+
+    def _check_request_expirations(self):
+        if '_requests' not in self.mem:
+            return
+        requests = self.mem._requests
+        for key in _.remove(requests['q'],
+                            lambda key: _.get(requests['s'], [key, 'e'], 0) < Game.time):
+            del requests['s'][key]
+        if not len(requests['q']):
+            del self.mem._requests
+
     def _check_role_reqs(self, role_list):
         """
         Utility function to check the number of creeps in a role, optionally checking the work or carry mass for that
@@ -2031,18 +2117,22 @@ class RoomMind:
                 self._next_cheap_military_role,
                 self._next_tower_breaker_role,
                 self._next_complex_defender,
+                self._get_next_requested_creep,
             ]
         else:
             funcs_to_try = [
                 self._next_needed_local_mining_role,
+                lambda: self._get_next_requested_creep(request_priority_imminent_threat_defense),
                 self.wall_defense,
                 self._next_cheap_military_role,
                 self.next_cheap_dismantle_goal,
                 self._next_complex_defender,
                 self.mining.next_mining_role,
+                lambda: self._get_next_requested_creep(request_priority_economy),
                 self._next_tower_breaker_role,
                 self._next_needed_local_role,
                 self._next_claim,
+                self._get_next_requested_creep,
             ]
         next_role = None
         for func in funcs_to_try:
