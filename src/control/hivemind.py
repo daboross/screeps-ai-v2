@@ -903,7 +903,7 @@ class RoomMind:
         return mass
 
     def replacement_time_of(self, creep):
-        if creep.get_replacement_time:
+        if 'get_replacement_time' in creep:
             return creep.get_replacement_time()
 
         if creep.memory.home != self.room_name:

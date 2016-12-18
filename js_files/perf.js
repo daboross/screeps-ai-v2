@@ -2,7 +2,6 @@
 // Credit to @gdborton on GitHub.
 // Copied from https://github.com/gdborton/screeps-perf/blob/master/screeps-perf.js.
 
-var originalFindPath = Room.prototype.findPath;
 var setup = false;
 
 module.exports = function (options) {
