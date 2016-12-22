@@ -116,61 +116,6 @@ class RoleBase:
         """
         pass
 
-    def _get_last_checkpoint(self):
-        if self.memory.last_checkpoint:
-            if not self._last_checkpoint_as_pos:
-                checkpoint = self.memory.last_checkpoint
-                if checkpoint.pos:
-                    checkpoint = checkpoint.pos
-                if checkpoint.x is undefined or checkpoint.y is undefined or checkpoint.roomName is undefined:
-                    self.last_checkpoint = None
-                    return None
-                self._last_checkpoint_as_pos = __new__(RoomPosition(checkpoint.x, checkpoint.y, checkpoint.roomName))
-            return self._last_checkpoint_as_pos
-        else:
-            return None
-
-    def _set_last_checkpoint(self, value):
-        if value is None:
-            if 'last_checkpoint' in self.memory:
-                del self.memory.last_checkpoint
-                del self.memory.last_target
-        else:
-            if value.pos:
-                # we allow setting last checkpoint to a RoomObject and not just a RoomPosition.
-                value = value.pos
-            self.memory.last_checkpoint = value
-        self._last_checkpoint_as_pos = value
-
-    last_checkpoint = property(_get_last_checkpoint, _set_last_checkpoint)
-
-    def _get_last_target(self):
-        if self.memory.last_target:
-            if not self._last_target_as_pos:
-                target = self.memory.last_target
-                if target.pos:
-                    target = target.pos
-                if target.x is undefined or target.y is undefined or target.roomName is undefined:
-                    self.last_target = None
-                    return None
-                self._last_target_as_pos = __new__(RoomPosition(target.x, target.y, target.roomName))
-            return self._last_target_as_pos
-        else:
-            return None
-
-    def _set_last_target(self, value):
-        if value is None:
-            del self.memory.last_target
-            del self.memory.last_checkpoint
-        else:
-            if value.pos:
-                # we allow setting last target to a RoomObject and not just a RoomPosition.
-                value = value.pos
-            self.memory.last_target = value
-        self._last_target_as_pos = value
-
-    last_target = property(_get_last_target, _set_last_target)
-
     def _move_options(self, target_room):
         roads = self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2
         if roads:
@@ -183,94 +128,6 @@ class RoleBase:
 
     __pragma__('nofcall')
 
-    def _follow_path_to(self, target):
-        if target.pos:
-            target = target.pos
-        if self.last_target:
-            if not self.last_target.isEqualTo(target):
-                # self.log("Last target was {}. Setting that as the new target!".format(self.last_target))
-                self.last_checkpoint = self.last_target
-                self.last_target = target
-        else:
-            self.last_target = target
-        if self.creep.pos.isNearTo(target):
-            return self.creep.move(self.creep.pos.getDirectionTo(target))
-        checkpoint = self.last_checkpoint
-        if not checkpoint:
-            if self.creep.pos.isEqualTo(target) or (self.creep.pos.inRangeTo(target, 2) and
-                                                        movement.is_block_clear(self.room, target.x, target.y)):
-                self.last_checkpoint = target
-            return self.creep.moveTo(target, self._move_options(target.roomName))
-        elif target.isEqualTo(checkpoint):
-            self.log("Creep target not updated! Last checkpoint is still {}, at {} distance away.".format(
-                target, self.creep.pos.getRangeTo(target)
-            ))
-            self.last_checkpoint = None
-            return self.creep.moveTo(target, self._move_options(target.roomName))
-        if checkpoint.roomName != self.creep.pos.roomName:
-            entrance = movement.get_entrance_for_exit_pos(checkpoint)
-            if entrance == -1:
-                self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}".format(
-                    checkpoint, self.creep.pos))
-                self.last_checkpoint = None
-                return self.creep.moveTo(target, self._move_options(target.roomName))
-            self.last_checkpoint = checkpoint = entrance
-            if entrance.roomName != self.creep.pos.roomName:
-                self.log("Last checkpoint appeared to be an exit, but it was not! Checkpoint: {}, here: {}."
-                         "Removing checkpoint.".format(checkpoint, self.creep.pos))
-                self.last_checkpoint = None
-                return self.creep.moveTo(target, self._move_options(target.roomName))
-
-        path = self.hive.honey.find_serialized_path(checkpoint, target)
-        # TODO: manually check the next position, and if it's a creep check what direction it's going
-        # TODO: this code should be able to space out creeps eventually
-        result = self.creep.moveByPath(path)
-        if result == ERR_NOT_FOUND:
-            return self.creep.moveTo(target, self._move_options(target.roomName))
-        if result == OK:
-            # TODO: Maybe an option in the move_to call to switch between isNearTo and inRangeTo(2)?
-            # If the creep is trying to go *directly on top of* the target, isNearTo is what we want,
-            # but if they're just trying to get close to it, inRangeTo is what we want.
-            if self.creep.pos.inRangeTo(target, 2) and movement.is_block_clear(self.room, target.x, target.y):
-                self.last_checkpoint = target
-        elif result == ERR_INVALID_ARGS:
-            self.log("Invalid path found: {}".format(JSON.stringify(path)))
-        return result
-
-    def move_to_local_source_with_queue(self, target):
-        if target.pos:
-            target = target.pos
-        flag = flags.find_closest_in_room(target, flags.LOCAL_MINE)
-        queue_name = flag.memory.queue
-        if not queue_name or queue_name not in Game.flags:
-            self.log("Triggering queue flag creation near {}.".format(flag))
-            room = self.hive.get_room(target.roomName)
-            if room and room.my:
-                room.building.place_queue_flag_near(flag)
-            return self.move_to(target)
-        return self.move_to_with_queue(target, Game.flags[queue_name])
-
-    def move_to_with_queue(self, target, queue_flag):
-        if target.pos:
-            target = target.pos
-        if self.creep.pos.roomName != target.roomName:
-            return self.move_to(target)
-
-        if self.creep.pos.isEqualTo(queue_flag.pos):
-            self.last_checkpoint = queue_flag.pos
-        if (queue_flag.pos.isEqualTo(self.last_checkpoint)
-            or (self.last_checkpoint and self.last_checkpoint.isNearTo(target))) \
-                and target.roomName == self.last_checkpoint.roomName:
-            return self._follow_path_to(target)  # this will precalculate a single path ignoring creeps, and move on it.
-
-        self.last_checkpoint = None
-        result = self.creep.moveTo(queue_flag, self._move_options(queue_flag.pos.roomName))
-        # if result == OK:
-        #     if self.creep.pos.isNearTo(queue_flag.pos) and \
-        #             movement.is_block_clear(self.room, queue_flag.pos.x, queue_flag.pos.y):
-        #         self.last_checkpoint = queue_flag.pos
-        return result
-
     def _try_move_to(self, pos):
         here = self.creep.pos
 
@@ -280,7 +137,6 @@ class RoleBase:
             self.basic_move_to(pos)
             return OK
         move_opts = self._move_options(pos.roomName)
-        self.last_checkpoint = None
         result = self.creep.moveTo(pos, move_opts)
         if result == -2:
             self.basic_move_to(pos)
@@ -378,12 +234,12 @@ class RoleBase:
         piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 3, source.pos)
         if len(piles) > 0:
             pile = _.max(piles, 'amount')
-            if not self.creep.pos.isNearTo(pile) or not self.last_checkpoint:
+            if not self.creep.pos.isNearTo(pile):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(pile.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
-                self.move_to_local_source_with_queue(pile)
+                self.move_to(pile)
                 return False
             result = self.creep.pickup(pile)
             if result == OK:
@@ -397,12 +253,12 @@ class RoleBase:
                               {"structureType": STRUCTURE_CONTAINER})
         if len(containers) > 0:
             container = containers[0]
-            if not self.creep.pos.isNearTo(container) or not container.pos.isEqualTo(self.last_checkpoint):
+            if not self.creep.pos.isNearTo(container):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
                         and self.creep.pos.getRangeTo(container.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
-                self.move_to_local_source_with_queue(container)
+                self.move_to(container)
 
             result = self.creep.withdraw(container, RESOURCE_ENERGY)
             if result != OK:
@@ -413,7 +269,7 @@ class RoleBase:
         # TODO: this assumes that different sources are at least 3 away.
         miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_miner)
         if miner:
-            if not self.creep.pos.isNearTo(miner) or not miner.pos.isEqualTo(self.last_checkpoint):
+            if not self.creep.pos.isNearTo(miner):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
                                 self.creep.pos.getRangeTo(miner.pos) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
@@ -421,7 +277,7 @@ class RoleBase:
                 if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
                     # Just get all you can - if this much has built up, it means something's blocking the queue...
                     self.move_to(miner)
-                self.move_to_local_source_with_queue(miner)
+                self.move_to(miner)
             return False  # waiting for the miner to gather energy.
 
         if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), lambda c: c.memory.role == role_miner):

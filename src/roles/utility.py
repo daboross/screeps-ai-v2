@@ -233,7 +233,6 @@ class Cleanup(SpawnFill):
                 if self.creep.pos.isNearTo(storage):
                     # being blocked by a link manager to get to the link
                     target = storage
-                    self.last_target = storage
                 else:
                     self.move_to(target)
                     self.report(speech.remote_hauler_moving_to_storage, target.structureType)

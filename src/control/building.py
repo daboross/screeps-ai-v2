@@ -791,34 +791,6 @@ class ConstructionMind:
                 return
         return path.path[len(path) - 1]
 
-    def place_queue_flag_near(self, source_flag):
-        target = source_flag.pos
-        cache = volatile_cache.setmem("npcf")  # newly placed calculated flags
-        cache_key = "qf_{}_{}_{}".format(target.x, target.y, target.roomName)
-        if cache.has(cache_key):
-            return
-        away_from = [{'pos': target, 'range': 5}]
-        for other_source in self.room.sources:
-            if not other_source.pos.isEqualTo(target):
-                away_from.append({'pos': other_source.pos, 'range': 6})
-        for spawn in self.room.spawns:
-            away_from.append({'pos': spawn.pos, 'range': 4})
-
-        target = self.find_loc_near_away_from(target, away_from)
-        if target.inRangeTo(target, 10):
-            for flag in flags.find_flags(self.room, flags.SOURCE_QUEUE_START):
-                if not _.find(flags.find_flags(self.room, flags.LOCAL_MINE),
-                              lambda m: m.memory.queue == flag.name):
-                    flag.remove()
-            name = flags.create_flag(target, flags.SOURCE_QUEUE_START)
-            source_flag.memory.queue = name
-            flags.refresh_flag_caches()
-        else:
-            print("[{}][building] WARNING: Path away from source to place source queue start flag is too"
-                  " far away! Path took us to {}, {} squares away from {}!"
-                  .format(self.room.room_name, target, target.getRangeTo(target), target))
-        cache.add(cache_key)
-
     def place_depot_flag(self):
         center = self.room.spawn
         if not center:

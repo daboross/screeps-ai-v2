@@ -142,7 +142,8 @@ def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_rol
     for creep in room.find(FIND_MY_CREEPS):
         role = creep.memory.running or creep.memory.role
         priority = role_movement_types[role] or MOVE_THEN_WORK
-        if priority < my_priority and priority is not CONSTANT_MOVEMENT:  # Constant movement creeps constantly move.
+        # Constant movement creeps constantly move.
+        if priority == MOVE_THEN_STOP or (priority < my_priority and priority is not CONSTANT_MOVEMENT):
             cost_matrix.set(creep.pos.x, creep.pos.y, 255)
         elif priority is my_priority \
                 or (priority is CONSTANT_MOVEMENT and priority < my_priority):
