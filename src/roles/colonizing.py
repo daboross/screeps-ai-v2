@@ -24,8 +24,7 @@ class Colonist(MilitaryBase):
             closest_room_name = None
             for room in self.home.subsidiaries:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
-                    distance = movement.distance_squared_room_pos(self.creep.pos,
-                                                                  __new__(RoomPosition(25, 25, room.room_name)))
+                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.room_name))
                     if distance < closest_distance:
                         closest_room_name = room.room_name
 
@@ -33,7 +32,7 @@ class Colonist(MilitaryBase):
                 for room in self.home.subsidiaries:
                     if not len(room.spawns):
                         distance = movement.distance_squared_room_pos(self.creep.pos,
-                                                                      __new__(RoomPosition(25, 25, room.room_name)))
+                                                                      movement.center_pos(room.room_name))
                         if distance < closest_distance:
                             closest_room_name = room.room_name
 
@@ -70,11 +69,11 @@ class Colonist(MilitaryBase):
             if meta:
                 meta.clear_next = 0  # clear next tick
         else:
-            self.follow_military_path(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 20})
+            self.follow_military_path(self.home.spawn, movement.center_pos(colony), {'range': 20})
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
-        path_len = self.get_military_path_length(self.home.spawn, __new__(RoomPosition(25, 25, colony)), {'range': 20})
+        path_len = self.get_military_path_length(self.home.spawn, movement.center_pos(colony), {'range': 20})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
@@ -192,8 +191,7 @@ class MineralSteal(TransportPickup):
             for room in self.hive.my_rooms:
                 if room.room.storage and room.room.storage.storeCapacity <= 0 \
                         and _.sum(room.room.storage.store) > room.room.storage.store.energy:
-                    distance = movement.distance_squared_room_pos(self.creep.pos,
-                                                                  __new__(RoomPosition(25, 25, room.room_name)))
+                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.room_name))
                     if distance < closest_distance:
                         closest_room_name = room.room_name
 

@@ -491,7 +491,7 @@ class RoleBase:
             elif self.home.spawn:
                 depot = self.home.spawn.pos
             else:
-                depot = __new__(RoomPosition(25, 25, self.home.room_name))
+                depot = movement.find_an_open_space(self.home.room_name)
         return depot
 
     def go_to_depot(self):

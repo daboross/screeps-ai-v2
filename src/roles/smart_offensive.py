@@ -245,8 +245,7 @@ class KitingOffense(MilitaryBase):
                         del self.memory._move
 
                     if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
-                        self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
-                                                                                         self.home.room_name))
+                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.room_name)
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
                                               marker_flag, {'range': 1})

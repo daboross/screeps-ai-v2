@@ -235,7 +235,7 @@ class ConstructionMind:
             else:
                 print("[{}][building] Warning: Finding construction targets for room {},"
                       " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
+                spawn_pos = movement.center_pos(self.room.room_name)
         volatile = volatile_cache.volatile()
         total_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
         new_sites = []
@@ -374,7 +374,7 @@ class ConstructionMind:
             else:
                 print("[{}][building] Warning: Finding repair targets for room {},"
                       " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
+                spawn_pos = movement.center_pos(self.room.room_name)
 
         max_hits = self.room.min_sane_wall_hits
         any_destruct_flags = len(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT))
@@ -447,7 +447,7 @@ class ConstructionMind:
             else:
                 print("[{}][building] Warning: Finding destruct targets for room {},"
                       " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = __new__(RoomPosition(25, 25, self.room.room_name))
+                spawn_pos = movement.center_pos(self.room.room_name)
 
         for flag, secondary in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT),
                                         lambda t: -movement.distance_squared_room_pos(t[0].pos, spawn_pos)):

@@ -425,7 +425,7 @@ class RoomDefense:
                     if self.room.room.storage:
                         protect.push(self.room.room.storage)
                     if not len(protect):
-                        protect.push(__new__(RoomPosition(25, 25, self.room.room_name)))
+                        protect.push(movement.center_pos(self.room.room_name))
                     hostiles = _(hostiles) \
                         .filter(self.danger_level) \
                         .sortBy(lambda c:

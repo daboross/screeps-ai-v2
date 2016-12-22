@@ -54,6 +54,22 @@ def center_pos(room_name):
     return __new__(RoomPosition(25, 25, room_name))
 
 
+def find_an_open_space(room_name):
+    x = 0
+    y = 0
+    dx = 0
+    dy = -1
+    for _ in range(0, 50 * 50):
+        if Game.map.getTerrainAt(24 + x, 24 + y, room_name) != 'wall':
+            return __new__(RoomPosition(24 + x, 24 + y, room_name))
+        if x == y or (x < 0 and x == -y) or (x > 0 and x == -y + 1):
+            dx, dy = -dy, dx
+        x += dx
+        y += dy
+    print("[movement] WARNING: Could not find open space in {}".format(room_name))
+    return __new__(RoomPosition(25, 25, room_name))
+
+
 def distance_squared_room_pos(room_position_1, room_position_2):
     """
     Gets the squared distance between two RoomPositions, taking into account room difference by parsing room names to

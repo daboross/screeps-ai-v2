@@ -108,10 +108,10 @@ class MilitaryBase(RoleBase):
             path_opts.use_roads = False
             # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
             if to_home:
-                intermediate = __new__(RoomPosition(25, 25, origin.roomName))
+                intermediate = movement.find_an_open_space(origin.roomName)
                 origin = intermediate
             else:
-                intermediate = __new__(RoomPosition(25, 25, target.roomName))
+                intermediate = movement.center_pos(target.roomName)
                 if self.pos.roomName != intermediate.roomName:
                     target = intermediate
                     path_opts.range = 10
@@ -159,10 +159,10 @@ class MilitaryBase(RoleBase):
 
             # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
             if to_home:
-                intermediate = __new__(RoomPosition(25, 25, origin.roomName))
+                intermediate = movement.find_an_open_space(origin.roomName)
                 origin = intermediate
             else:
-                intermediate = __new__(RoomPosition(25, 25, target.roomName))
+                intermediate = movement.center_pos(target.roomName)
                 if self.pos.roomName != intermediate.roomName:
                     target = intermediate
                     path_opts.range = max(path_opts.range or 0, 10)
@@ -452,11 +452,9 @@ class Dismantler(MilitaryBase):
                                     movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
                         self.memory.checkpoint = self.pos
                     if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
-                        self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
-                                                                                         self.home.room_name))
+                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.room_name)
 
-                    self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
-                                              target)
+                    self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target)
         else:
             target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP)
             if not target:

@@ -343,7 +343,7 @@ class RemoteReserve(TransportPickup):
             if Game.rooms[claim_room]:
                 target = Game.rooms[claim_room].controller.pos
             else:
-                target = __new__(RoomPosition(25, 25, claim_room))
+                target = movement.find_an_open_space(claim_room)
             self.follow_energy_path(self.home.spawn, target)
             return
 
