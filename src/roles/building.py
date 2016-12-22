@@ -3,7 +3,7 @@ import math
 import flags
 import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
-    role_builder, target_destruction_site, role_upgrader
+    role_builder, target_destruction_site, role_upgrader, target_big_big_repair
 from role_base import RoleBase
 from roles import upgrading
 from tools import profiling
@@ -105,7 +105,8 @@ class Builder(upgrading.Upgrader):
                 else:
                     del self.memory.la
                     if Game.cpu.bucket >= 8000:
-                        # We've ran out of enery an untargeted a wall! Let's refresh the repair targets to re-sort them.
+                        # We've ran out of energy an untargeted a wall!
+                        # Let's refresh the repair targets to re-sort them.
                         self.home.building.refresh_repair_targets(True)
             elif sc_last_action == "m":
                 target = self.targets.get_existing_target(self, target_repair)
@@ -117,6 +118,12 @@ class Builder(upgrading.Upgrader):
                 target = self.targets.get_existing_target(self, target_big_repair)
                 if target:
                     return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
+                else:
+                    del self.memory.la
+            elif sc_last_action == "e":
+                target = self.targets.get_existing_target(self, target_big_big_repair)
+                if target:
+                    return self.execute_repair_target(target, Infinity, target_big_big_repair)
                 else:
                     del self.memory.la
             elif sc_last_action == "c":
@@ -148,6 +155,10 @@ class Builder(upgrading.Upgrader):
                 if target:
                     self.memory.la = "b"
                     return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
+                target = self.targets.get_existing_target(self, target_big_big_repair)
+                if target:
+                    self.memory.la = "e"
+                    return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_big_repair)
 
             if self.memory.building_walls_at:
                 walls = self.room.look_at(LOOK_STRUCTURES, self.memory.building_walls_at & 0x3F,
@@ -211,6 +222,10 @@ class Builder(upgrading.Upgrader):
                 self.memory.la = 'b'
                 return self.execute_repair_target(target, self.home.max_sane_wall_hits, target_big_repair)
 
+            target = self.get_new_repair_target(Infinity, target_big_big_repair)
+            if target:
+                self.memory.la = 'e'
+                return self.execute_repair_target(target, Infinity, target_big_big_repair)
             # Old code which was being possible inefficient when there were only high-hits targets left
             # Note that since this code was last active, TargetMind._find_new_big_repair_site has been updated
             # to return the structure with the least hits (previously it just returned the first structure found with

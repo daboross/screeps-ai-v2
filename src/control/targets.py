@@ -64,6 +64,7 @@ class TargetMind:
             target_construction: self._find_new_construction_site,
             target_repair: self._find_new_repair_site,
             target_big_repair: self._find_new_big_repair_site,
+            target_big_big_repair: self._find_new_big_big_repair_site,
             target_destruction_site: self._find_new_destruction_site,
             target_spawn_deposit: self._find_new_spawn_fill_site,
             target_tower_fill: self._find_new_tower,
@@ -465,6 +466,26 @@ class TargetMind:
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
                 struct_num = self.workforce_of(target_big_repair, struct_id)
+                if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
+                    smallest_num = struct_num
+                    smallest_hits = struct.hits
+                    best_id = struct_id
+        return best_id
+
+    def _find_new_big_big_repair_site(self, creep):
+        """
+        :type creep: role_base.RoleBase
+        """
+        # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
+        #       .format(creep.name, creep.home.room_name, max_hits))
+        best_id = None
+        smallest_num = Infinity
+        smallest_hits = Infinity
+        for struct_id in creep.home.building.next_priority_big_repair_targets():
+            struct = Game.getObjectById(struct_id)
+            if struct and struct.hits < struct.hitsMax \
+                    and (struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART):
+                struct_num = self.workforce_of(target_big_big_repair, struct_id)
                 if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
                     smallest_num = struct_num
                     smallest_hits = struct.hits
