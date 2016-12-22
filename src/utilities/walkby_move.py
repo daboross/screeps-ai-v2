@@ -106,10 +106,10 @@ function move (direction) {
             if (myPriority < otherPriority
                 || (otherPriority == myPriority
                     && this.ticksToLive < creep.ticksToLive
-                    && !('pt' in creep.memory && creep.memory.pt < Game.time))) {
+                    && (!('pt' in creep.memory) || creep.memory.pt >= Game.time))) {
                 creep.__move(creep.pos.getDirectionTo(this.pos));
                 creep.__moved = true;
-            } else if (otherPriority == myPriority && (!('pt' in creep.memory) || creep.memory.pt < Game.time)) {
+            } else if (otherPriority == myPriority && (!('pt' in creep.memory) || creep.memory.pt >= Game.time)) {
                 if (!('pt' in this.memory) || Game.time - this.memory.pt > 50) {
                     this.memory.pt = Game.time + 5;
                 }
