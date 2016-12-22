@@ -40,14 +40,6 @@ class TransportPickup(RoleBase):
                 if debug:
                     self.log("Full, heading back")
                 return
-            if 'hbu' in self.memory:
-                if Game.time > self.memory.hbu:
-                    del self.memory.hbu
-                elif not self.creep._forced_move:
-                    if debug:
-                        self.log("HBU! for {} more ticks", self.memory.hbu - Game.time)
-                    self.follow_energy_path(pickup, fill)
-                    return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
                 if debug:
                     self.log("Heading out (from {} to {})", fill, pickup)
@@ -114,12 +106,8 @@ class TransportPickup(RoleBase):
                 return
             # No energy, let's just wait
             if not _.find(self.room.look_for_in_area_around(LOOK_CREEPS, target, 1),
-                          lambda c: c.creep.getActiveBodyparts(WORK) >= 5):
-                if _.find(self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1),
-                          lambda c: c.creep.getActiveBodyparts(WORK) >= 5):
-                    self.memory.hbu = Game.time + 7  # head back until
-                    self.follow_energy_path(pickup, fill)
-                elif total_carried_now > self.creep.carryCapacity * 0.5:
+                          lambda o: o.creep.memory.role == role_miner):
+                if total_carried_now > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
                     self.follow_energy_path(pickup, fill)
         else:
@@ -270,15 +258,7 @@ class TransportPickup(RoleBase):
                     self.memory.standstill_for += 1
                 else:
                     self.memory.standstill_for = 1
-                if self.memory.standstill_for % 2 == 0:  # after two ticks, and then every two ticks after that.
-                    if self.memory.role != role_miner and \
-                            _.find(self.room.find_in_range(FIND_MY_CREEPS, 10, self.pos),
-                                   lambda c: c.memory.role == role_miner):
-                        if 'hbu' in self.memory:
-                            del self.memory.hbu
-                        else:
-                            self.memory.hbu = Game.time + 7
-                elif self.memory.standstill_for % 10 == 5 and \
+                if self.memory.standstill_for % 10 == 5 and \
                         (not self.memory.filling
                          or not _.find(self.room.find_in_range(FIND_MY_CREEPS, 1, self.pos),
                                        lambda c: c.memory.role != role_hauler and c.memory.role != role_miner)):
