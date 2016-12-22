@@ -1273,6 +1273,11 @@ class RoomMind:
                     elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
                         structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
                             .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+            else:
+                structure = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos)).filter({'structureType': STRUCTURE_CONTAINER}) \
+                    .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                if structure == Infinity or structure == -Infinity:
+                    structure = None
             if structure:
                 structure_id = structure.id
             else:
