@@ -125,7 +125,6 @@ class MineralMind:
             energy_cost += amount
         if energy_cost > self.mem['total_energy_needed']:
             self.recalculate_energy_needed()
-            self.mem['total_energy_needed'] = energy_cost
         if order_id:
             obj = {
                 'order_id': order_id,
@@ -351,9 +350,9 @@ class MineralMind:
             if 'ten_without_self_orders' not in self.mem:
                 self.recalculate_energy_needed()
             min_via_fulfillment = self.mem['ten_without_self_orders']
-            min_via_balancing = min(0, _.sum(self.get_total_room_resource_counts()) - 350 * 1000,
+            min_via_balancing = min(_.sum(self.get_total_room_resource_counts()) - 350 * 1000,
                                     currently_have - 100 * 1000, self.mem['total_energy_needed'])
-            return min(currently_have - 20 * 1000, max(10 * 1000, min_via_empty_to, min_via_fulfillment,
+            return min(currently_have - 20 * 1000, max(0, min_via_empty_to, min_via_fulfillment,
                                                        min_via_balancing))
         elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
             return 0
@@ -466,7 +465,7 @@ class MineralMind:
             if energy_cost > self.mem['total_energy_needed']:
                 self.log("WARNING: Error correction! Total energy needed should have been at least {},"
                          "but it was only {}.".format(energy_cost, self.mem['total_energy_needed']))
-                self.mem['total_energy_needed'] = energy_cost
+                self.recalculate_energy_needed()
             return ERR_NOT_ENOUGH_RESOURCES
         if 'order_id' in target_obj:
             result = Game.market.deal(target_obj.order_id, amount, self.room.room_name)
