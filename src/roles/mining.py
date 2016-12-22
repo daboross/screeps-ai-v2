@@ -62,18 +62,7 @@ class EnergyMiner(TransportPickup):
                         if other_miner:
                             other_miner.creep.suicide()
                             del self.memory._move
-                if self.memory.mmni:
-                    self.creep.moveTo(sitting_target, {'reusePath': 0})
-                else:
-                    self.creep.moveTo(sitting_target, {'ignoreCreeps': True})
-                serialized_pos = self.pos.x | (self.pos.y << 6)
-                if self.memory.last_pos == serialized_pos:
-                    self.memory.sf = (self.memory.sf or 0) + 1
-                    if self.memory.sf >= 5:
-                        self.creep.moveTo(sitting_target, {'reusePath': 0})
-                        self.memory.mmni = True
-                elif not self.creep.fatigue:
-                    self.memory.last_pos = serialized_pos
+                self.move_to(sitting_target)
             else:
                 self.follow_energy_path(self.home.spawn, sitting_target)
             self.report(speech.energy_miner_moving)

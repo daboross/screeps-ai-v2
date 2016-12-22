@@ -23,7 +23,7 @@ role_movement_types = {
     role_upgrader: MOVE_THEN_WORK,
     role_spawn_fill: SEMICONSTANT_MOVEMENT,
     role_spawn_fill_backup: SEMICONSTANT_MOVEMENT,
-    role_upgrade_fill: MOVE_THEN_WORK,
+    role_upgrade_fill: IDLE_ABOUT,
     role_link_manager: MOVE_THEN_STOP,
     role_builder: MOVE_THEN_WORK,
     role_tower_fill: SEMICONSTANT_MOVEMENT,

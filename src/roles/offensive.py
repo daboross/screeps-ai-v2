@@ -266,7 +266,7 @@ class MilitaryBase(RoleBase):
                     elif found_mine:
                         if movement.is_block_clear(self.room, pos.x, pos.y):
                             self.memory.next_ppos = {"x": pos.x, "y": pos.y, "roomName": self.pos.roomName}
-                            self.creep.moveTo(__new__(RoomPosition(pos.x, pos.y, self.pos.roomName)))
+                            self.move_to(__new__(RoomPosition(pos.x, pos.y, self.pos.roomName)))
                             break
             if self.memory.standstill_for > 10:
                 del self.memory.last_position

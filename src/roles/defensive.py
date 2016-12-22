@@ -97,7 +97,7 @@ class WallDefender(RoleBase):
             self.log("WARNING: No wall to defend!")
         if target:
             if not self.creep.pos.isEqualTo(target.pos):
-                self.creep.moveTo(target)
+                self.move_to(target)
             elif not _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
                             lambda s: s.structureType == STRUCTURE_RAMPART):
                 self.move_to(self.pos.findClosestByRange(FIND_MY_STRUCTURES,

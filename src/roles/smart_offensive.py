@@ -301,8 +301,8 @@ class KitingOffense(MilitaryBase):
 
         should_approach = not should_run and (harmless or min_distance > safe_distance)
         if should_approach:
-            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos),
-                              self.get_def_move_opts(closest_pos.roomName))
+            self.move_to(_.create(RoomPosition.prototype, closest_pos),
+                         self.get_def_move_opts(closest_pos.roomName))
         elif should_run:
             away_path = None
             try:
