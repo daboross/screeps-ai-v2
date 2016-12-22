@@ -365,6 +365,9 @@ class RoleBase:
             if self.creep.hasActiveBodyparts(WORK):
                 self.log("Wasn't able to find a source!")
                 self.finished_energy_harvest()
+            if self.creep.carry.energy > 10 and self.memory.filling:
+                self.memory.filling = False
+                return True
             self.go_to_depot()
             return False
 
