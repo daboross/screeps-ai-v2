@@ -263,12 +263,13 @@ class Builder(upgrading.Upgrader):
                 nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
                 self.refill_nearby(nearby)
             return False
-        if not self.creep.pos.inRangeTo(target.pos, 3):
+        if not self.creep.pos.inRangeTo(target.pos, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!
             self.build_swamp_roads()
             self.move_to(target)
-            return False
+            if not self.creep.pos.inRangeTo(target.pos, 3):
+                return False
 
         result = self.creep.repair(target)
         if result == OK:
@@ -298,15 +299,16 @@ class Builder(upgrading.Upgrader):
                 self.move_to(target)
                 return False
         self.report(speech.building_build_target, target.structureType)
-        if not self.creep.pos.inRangeTo(target.pos, 3):
+        if not self.creep.pos.inRangeTo(target.pos, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!
             self.build_swamp_roads()
             self.move_to(target)
-            if self.home.role_count(role_builder) > 10:
-                nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
-                self.refill_nearby(nearby)
-            return False
+            if not self.creep.pos.inRangeTo(target.pos, 3):
+                if self.home.role_count(role_builder) > 10:
+                    nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
+                    self.refill_nearby(nearby)
+                return False
 
         result = self.creep.build(target)
         if result == OK:
