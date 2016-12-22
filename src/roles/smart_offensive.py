@@ -219,7 +219,7 @@ class KitingOffense(MilitaryBase):
                            and movement.chebyshev_distance_room_pos(closest_pos, self.pos) > 10):
             del self.memory.last_enemy_pos
             # self.creep.say("🐾 💚 🐾", True)
-            if self.creep.hits >= self.creep.hitsMax:
+            if self.pos.roomName == marker_flag.pos.roomName and self.creep.hits >= self.creep.hitsMax:
                 hurt = self.room.find(PYFIND_HURT_CREEPS)
                 if len(hurt):
                     damaged = _.min(hurt, lambda p: movement.chebyshev_distance_room_pos(p.pos, self.pos))
@@ -235,6 +235,15 @@ class KitingOffense(MilitaryBase):
                     if 'checkpoint' not in self.memory or \
                                     movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
                         self.memory.checkpoint = self.pos
+                    if self.memory.next_ppos \
+                            and movement.chebyshev_distance_room_pos(self.pos, self.memory.next_ppos) > 10 \
+                            and not hostile_utils.enemy_room(self.pos.roomName):
+                        self.memory.checkpoint = self.pos
+                        del self.memory.next_ppos
+                        del self.memory.off_path_for
+                        del self.memory.lost_path_at
+                        del self.memory._move
+
                     if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
                         self.memory.checkpoint = self.home.spawn or __new__(RoomPosition(25, 25,
                                                                                          self.home.room_name))
