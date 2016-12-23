@@ -450,6 +450,7 @@ class RoomMind:
         self._target_upgrader_work_mass = undefined
         self._target_upgrade_fill_work_mass = undefined
         self._total_needed_spawn_fill_mass = undefined
+        self._target_builder_work_mass = undefined
 
         __pragma__('noskip')
 
@@ -1552,44 +1553,52 @@ class RoomMind:
         return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self):
-        if not self.building_paused():
-            base_num = self.building.get_target_num_builders()
-            if base_num > 0:
-                extra = 0
-                if self.room.storage:
-                    if self.mem.prepping_defenses:
-                        # purposefully a smaller threshold than upgrading has
-                        overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
-                                       self.room.storage.store.energy - 100 * 1000)
-                    else:
-                        overflow = min(_.sum(self.room.storage.store) - 500 * 1000,
-                                       self.room.storage.store.energy - 150 * 1000)
-                    if not self.room.storage.storeCapacity:
-                        overflow = self.room.storage.store.energy
-                    if overflow > 0:
-                        # TODO: utility method for "empty storage asap"
-                        if not self.room.storage.storeCapacity:
-                            extra = min(25, math.floor(overflow / (20 * 1000)))
+        if '_target_builder_work_mass' not in self:
+            self._target_builder_work_mass = 0
+            if not self.building_paused():
+                base_num = self.building.get_target_num_builders()
+                if base_num > 0:
+                    extra = 0
+                    if self.room.storage:
+                        if self.mem.prepping_defenses:
+                            # purposefully a smaller threshold than upgrading has
+                            overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
+                                           self.room.storage.store.energy - 100 * 1000)
                         else:
-                            extra = min(5, math.floor(overflow / (20 * 1000)))
-                    elif overflow < -100 * 1000 and base_num > 2:
-                        base_num = 2
-                if self.rcl < 8:
-                    if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
-                        worker_size = 1
+                            overflow = min(_.sum(self.room.storage.store) - 500 * 1000,
+                                           self.room.storage.store.energy - 150 * 1000)
+                        if not self.room.storage.storeCapacity:
+                            overflow = self.room.storage.store.energy
+                        if overflow > 0:
+                            # TODO: utility method for "empty storage asap"
+                            if not self.room.storage.storeCapacity:
+                                extra = min(25, math.floor(overflow / (20 * 1000)))
+                            else:
+                                extra = min(5, math.floor(overflow / (20 * 1000)))
+                        elif overflow < -100 * 1000 and base_num > 2:
+                            base_num = 2
+                    if self.rcl < 8:
+                        if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
+                            worker_size = 1
+                        else:
+                            worker_size = max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
+                        parts = (base_num + extra) * worker_size
                     else:
-                        worker_size = max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
-                    return (base_num + extra) * worker_size
-                else:
-                    if extra > 0:
-                        worker_size = spawning.max_sections_of(self, creep_base_worker)
-                        return (base_num + extra) * worker_size
-                    else:
-                        # Since we have a constant 15-part upgrader going at RCL8, workers have to be more of the
-                        # 'scaling' factor.
-                        worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
-                        return 1 * worker_size
-        return 0
+                        if extra > 0:
+                            worker_size = spawning.max_sections_of(self, creep_base_worker)
+                            parts = (base_num + extra) * worker_size
+                        else:
+                            # Since we have a constant 15-part upgrader going at RCL8, workers have to be more of the
+                            # 'scaling' factor.
+                            worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
+                            parts = 1 * worker_size
+                    max_parts = self.building.get_max_builder_work_parts()
+                    if parts > max_parts:
+                        print("[{}] Reducing target builder parts from {} to {} to match demand."
+                              .format(self.room_name, parts, max_parts))
+                        parts = max_parts
+                    self._target_builder_work_mass = parts
+        return self._target_builder_work_mass
 
     def get_target_upgrade_fill_mass(self):
         if '_target_upgrade_fill_work_mass' not in self:
@@ -1743,7 +1752,7 @@ class RoomMind:
     def get_builder_size(self):
         base = self.get_variable_base(role_builder)
         if self.rcl < 8:
-            return min(8, spawning.max_sections_of(self, base))
+            return min(8, spawning.max_sections_of(self, base), self.building.get_max_builder_work_parts())
         else:
             return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
 

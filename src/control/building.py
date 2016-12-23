@@ -1,3 +1,4 @@
+import math
 import random
 
 import flags
@@ -177,12 +178,30 @@ class ConstructionMind:
         self.room.store_cached_property("builders_needed", num, 1000)
         return num
 
+    def get_max_builder_work_parts(self):
+        parts = self.room.get_cached_property("max_builder_work_parts")
+        if parts is not None:
+            return parts
+
+        construction = _.sum(self.next_priority_construction_targets(), lambda c: c.progressTotal - c.progress)
+        repair = _.sum(self.next_priority_big_repair_targets(), self.get_hits_left_to_repair)
+        total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
+        # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
+        # site.
+        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+
+        self.room.store_cached_property("max_builder_work_parts", total_work_parts_needed, 1000)
+        return total_work_parts_needed
+
     def refresh_num_builders(self, now=False):
         if now:
             del self.room.mem.cache.builders_needed
+            del self.room.mem.cache.max_builder_work_parts
         else:
             if 'builders_needed' in self.room.mem.cache:
                 self.room.mem.cache.builders_needed.dead_at = Game.time + 1
+            if 'max_builder_work_parts' in self.room.mem.cache:
+                self.room.mem.cache.max_builder_work_parts.dead_at = Game.time + 1
 
     def next_priority_high_value_construction_targets(self):
         if self.room.under_siege():
@@ -224,7 +243,7 @@ class ConstructionMind:
         print("[{}] Calculating new construction targets".format(self.room.room_name))
         del self.room.mem.cache.non_wall_construction_targets
         del self.room.mem.cache.seiged_walls_unbuilt
-        del self.room.mem.builders_needed
+        self.refresh_num_builders(True)
 
         if self.room.spawn:
             spawn_pos = self.room.spawn.pos
@@ -343,8 +362,8 @@ class ConstructionMind:
             return struct.hitsMax
 
     def get_is_relatively_decayed(self, big_repair=False):
-        def is_relatively_decayed(id):
-            thing = Game.getObjectById(id)
+        def is_relatively_decayed(thing_id):
+            thing = Game.getObjectById(thing_id)
             if thing is None:
                 return False
             if thing.structureType == STRUCTURE_ROAD:
@@ -355,6 +374,14 @@ class ConstructionMind:
                 return thing.hits < max_hits
 
         return is_relatively_decayed
+
+    def get_hits_left_to_repair(self, thing_id):
+        thing = Game.getObjectById(thing_id)
+        if thing is None:
+            return 0
+        if thing.structureType != STRUCTURE_RAMPART and thing.structureType != STRUCTURE_WALL:
+            return thing.hitsMax - thing.hits
+        return max(0, self.room.max_sane_wall_hits - thing.hits)
 
     def next_priority_repair_targets(self):
         structures = self.room.get_cached_property("repair_targets")
@@ -418,8 +445,8 @@ class ConstructionMind:
         target_list = (
             _(self.room.find(FIND_STRUCTURES))
                 .filter(lambda s: (s.my or not s.owner) and s.hits < s.hitsMax
-                                  and s.hits < max_hits and (
-                                      s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
+                                  and s.hits < max_hits
+                                  and (s.structureType != STRUCTURE_ROAD or s.hits < s.hitsMax * 0.5)
                                   and (not any_destruct_flags
                                        or not flags.look_for(self.room, s, flags.MAIN_DESTRUCT,
                                                              flags.structure_type_to_flag_sub[
