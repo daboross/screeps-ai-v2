@@ -162,7 +162,12 @@ class HiveMind:
 
         mining_flags = flags.find_flags(current_room_name, flags.REMOTE_MINE)
         for flag in mining_flags:
-            return self.get_room(flag.memory.sponsor)
+            if 'sponsor' in flag.memory:
+                sponsor = self.get_room(flag.memory.sponsor)
+            else:
+                sponsor = self.get_room(flag.name.split('_')[0])
+            if sponsor:
+                return sponsor
         current_pos = movement.parse_room_to_xy(current_room_name)
         if not current_pos:
             print("[{}] Couldn't parse room name!".format(current_room_name))
