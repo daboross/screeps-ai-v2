@@ -214,7 +214,6 @@ class Cleanup(SpawnFill):
 
             if self.creep.pos.roomName != storage.pos.roomName:
                 self.move_to(storage)
-                self.report(speech.remote_hauler_moving_to_storage)
                 return False
 
             if self.carry_sum() > self.creep.carry.energy:
@@ -235,7 +234,6 @@ class Cleanup(SpawnFill):
                     target = storage
                 else:
                     self.move_to(target)
-                    self.report(speech.remote_hauler_moving_to_storage, target.structureType)
                     return False
 
             resource_type = _.find(Object.keys(self.creep.carry), lambda r: self.creep.carry[r] > 0)
