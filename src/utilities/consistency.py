@@ -48,14 +48,14 @@ def clear_memory(room):
     """
     smallest_ticks_to_live = 500
     closest_replacement_time = Game.time + 100  # reset spawn at a minimum of every 100 ticks.
-    target_mind = room.hive_mind.target_mind
+    targets = room.hive.targets
     for name, memory in _.pairs(Memory.creeps):
         home = memory.home
-        if home != room.room_name and home:
+        if home != room.name and home:
             continue
         creep = Game.creeps[name]
         if not creep:
-            target_mind._unregister_all(name)
+            targets._unregister_all(name)
 
             del Memory.creeps[name]
         else:
@@ -106,6 +106,9 @@ def clear_cache():
 
 
 def complete_refresh(hive):
+    """
+    :type hive: control.hivemind.HiveMind
+    """
     # Run all regular clear functions:
     for room in hive.my_rooms:
         clear_memory(room)
@@ -120,7 +123,7 @@ def complete_refresh(hive):
     for name, targets in _.pairs(_.get(Memory, 'targets.targeters_using')):
         if name not in Game.creeps:
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
-            hive.target_mind._unregister_all(name)
+            hive.targets._unregister_all(name)
     # Remove deprecated Memory paths that are no longer in use:
     for key in ['cpu_usage']:
         if key in Memory:

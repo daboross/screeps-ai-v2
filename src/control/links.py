@@ -140,7 +140,7 @@ class LinkingMind:
             for obj in Array.js_from(vmem.values()):
                 if obj.distance <= 1:
                     energy_change_now += obj.cap
-            if Memory.links_debug == self.room.room_name:
+            if Memory.links_debug == self.room.name:
                 print("[{}] Energy change: {}".format(link.id[-5:], energy_change_now))
             if energy_change_now > 0:
                 if energy_change_now * 3 > link.energyCapacity - link.energy and link.cooldown <= 0:
@@ -180,7 +180,7 @@ class LinkingMind:
 
         current_input_links.sort(None, key=lambda x: x.priority)
         current_output_links.sort(None, key=lambda x: x.priority)
-        if Memory.links_debug == self.room.room_name:
+        if Memory.links_debug == self.room.name:
             if len(current_input_links):
                 print("Current Input: {}".format(
                     ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in current_input_links]))

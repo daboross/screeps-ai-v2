@@ -61,14 +61,14 @@ def clamp_room_coord(coord):
 
 class HiveMind:
     """
-    :type target_mind: control.targets.TargetMind
+    :type targets: control.targets.TargetMind
     :type honey: control.pathdef.HoneyTrails
     :type my_rooms: list[RoomMind]
     :type visible_rooms: list[RoomMind]
     """
 
-    def __init__(self, target_mind):
-        self.target_mind = target_mind
+    def __init__(self, targets):
+        self.targets = targets
         self.honey = HoneyTrails(self)
         self._my_rooms = None
         self._all_rooms = None
@@ -129,7 +129,7 @@ class HiveMind:
         for flag in flag_list:
             room = self.get_room(flag.pos.roomName)
             if room and room.my:
-                print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.room_name, flag.name))
+                print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.name, flag.name))
                 flag.remove()
             else:
                 if not flag.memory.active:
@@ -143,13 +143,13 @@ class HiveMind:
                         flag.name, flag.memory.sponsor
                     ))
                     continue
-                if room_to_flags[sponsor.room_name]:
-                    room_to_flags[sponsor.room_name].push(flag)
+                if room_to_flags[sponsor.name]:
+                    room_to_flags[sponsor.name].push(flag)
                 else:
-                    room_to_flags[sponsor.room_name] = [flag]
+                    room_to_flags[sponsor.name] = [flag]
         for room in self.my_rooms:
-            if room.room_name in room_to_flags:
-                room._remote_mining_operations = room_to_flags[room.room_name]
+            if room.name in room_to_flags:
+                room._remote_mining_operations = room_to_flags[room.name]
             else:
                 room._remote_mining_operations = []
 
@@ -192,8 +192,8 @@ class HiveMind:
             home = creep.memory.home
             if not creep.memory.home:
                 home = self.get_closest_owned_room(creep.pos.roomName)
-                print("[{}][{}] Giving a {} a new home.".format(home.room_name, creep.name, creep.memory.role))
-                creep.memory.home = home.room_name
+                print("[{}][{}] Giving a {} a new home.".format(home.name, creep.name, creep.memory.role))
+                creep.memory.home = home.name
             if home in new_creep_lists:
                 new_creep_lists[home].append(creep)
             else:
@@ -239,7 +239,7 @@ class HiveMind:
 
         if biggest_rcl8_room == -Infinity or smallest_room == Infinity or smallest_room[1] == Infinity \
                 or (smallest_room[0].rcl >= 8 and smallest_room[1] >= 49 * 1000 * 1000) \
-                or smallest_room[0].room_name == biggest_rcl8_room[0].room_name:
+                or smallest_room[0].name == biggest_rcl8_room[0].name:
             print("[hive][balance_rooms] Canceling.")
             return
         biggest_rcl8_room = biggest_rcl8_room[0]
@@ -251,22 +251,22 @@ class HiveMind:
         extra_energy = min(_.sum(biggest_rcl8_room.minerals.get_total_room_resource_counts()) - total_cutoff,
                            biggest_rcl8_room.minerals.get_total_room_resource_counts().energy - energy_cutoff)
         if js_isNaN(extra_energy) or extra_energy <= 0:
-            print("[hive][balance_rooms] Canceling: no extra energy in {}.".format(biggest_rcl8_room.room_name))
+            print("[hive][balance_rooms] Canceling: no extra energy in {}.".format(biggest_rcl8_room.name))
             return
 
-        distance = Game.map.getRoomLinearDistance(biggest_rcl8_room.room_name, smallest_room.room_name, True)
+        distance = Game.map.getRoomLinearDistance(biggest_rcl8_room.name, smallest_room.name, True)
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
         max_to_send = math.floor(extra_energy / total_cost_of_1_energy)
 
         if max_to_send <= 0:
             print("[hive][balance_rooms] Extra energy in {} ({}) isn't enough to send any to {} via a terminal."
-                  .format(biggest_rcl8_room.room_name, extra_energy, smallest_room.room_name))
+                  .format(biggest_rcl8_room.name, extra_energy, smallest_room.name))
             return
 
         print("[hive] Balancing rooms: sending {} energy from {} to {}."
-              .format(max_to_send, biggest_rcl8_room.room_name, smallest_room.room_name))
+              .format(max_to_send, biggest_rcl8_room.name, smallest_room.name))
 
-        biggest_rcl8_room.minerals.send_minerals(smallest_room.room_name, RESOURCE_ENERGY, max_to_send)
+        biggest_rcl8_room.minerals.send_minerals(smallest_room.name, RESOURCE_ENERGY, max_to_send)
 
     def rebalance_from(self, biggest_rcl8_room):
         def map_to_walls(room):
@@ -286,7 +286,7 @@ class HiveMind:
 
         if smallest_room == Infinity or smallest_room[1] == Infinity \
                 or (smallest_room[0].rcl >= 8 and smallest_room[1] >= 49 * 1000 * 1000) \
-                or smallest_room[0].room_name == biggest_rcl8_room.room_name:
+                or smallest_room[0].name == biggest_rcl8_room.name:
             print("[hive][balance_rooms] Canceling.")
             return
         smallest_room = smallest_room[0]
@@ -297,22 +297,22 @@ class HiveMind:
         extra_energy = min(_.sum(biggest_rcl8_room.minerals.get_total_room_resource_counts()) - total_cutoff,
                            biggest_rcl8_room.minerals.get_total_room_resource_counts().energy - energy_cutoff)
         if js_isNaN(extra_energy) or extra_energy <= 0:
-            print("[hive][balance_rooms] Canceling: no extra energy in {}.".format(biggest_rcl8_room.room_name))
+            print("[hive][balance_rooms] Canceling: no extra energy in {}.".format(biggest_rcl8_room.name))
             return
 
-        distance = Game.map.getRoomLinearDistance(biggest_rcl8_room.room_name, smallest_room.room_name, True)
+        distance = Game.map.getRoomLinearDistance(biggest_rcl8_room.name, smallest_room.name, True)
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
         max_to_send = math.floor(extra_energy / total_cost_of_1_energy)
 
         if max_to_send <= 0:
             print("[hive][balance_rooms] Extra energy in {} ({}) isn't enough to send any to {} via a terminal."
-                  .format(biggest_rcl8_room.room_name, extra_energy, smallest_room.room_name))
+                  .format(biggest_rcl8_room.name, extra_energy, smallest_room.name))
             return
 
         print("[hive] Balancing rooms: sending {} energy from {} to {}."
-              .format(max_to_send, biggest_rcl8_room.room_name, smallest_room.room_name))
+              .format(max_to_send, biggest_rcl8_room.name, smallest_room.name))
 
-        biggest_rcl8_room.minerals.send_minerals(smallest_room.room_name, RESOURCE_ENERGY, max_to_send)
+        biggest_rcl8_room.minerals.send_minerals(smallest_room.name, RESOURCE_ENERGY, max_to_send)
 
     def mineral_report(self):
         result = []
@@ -331,7 +331,7 @@ class HiveMind:
         return "\n".join(result)
 
     def toString(self):
-        return "HiveMind[rooms: {}]".format(JSON.stringify([room.room_name for room in self.my_rooms]))
+        return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))
 
     my_rooms = property(find_my_rooms)
     visible_rooms = property(find_visible_rooms)
@@ -382,8 +382,9 @@ _rcl_to_sane_wall_hits = [
 
 class RoomMind:
     """
-    :type hive_mind: HiveMind
+    :type hive: HiveMind
     :type room: Room
+    :type name: str
     :type building: ConstructionMind
     :type links: LinkingMind
     :type mining: MiningMind
@@ -397,10 +398,13 @@ class RoomMind:
     :type min_sane_wall_hits: int
     """
 
-    def __init__(self, hive_mind, room):
-        self.hive_mind = hive_mind
+    def __init__(self, hive, room):
+        self.hive = hive
         self.room = room
-        self.room_name = self.room.name
+        Object.defineProperty(self, 'name', {'value': self.room.name})
+        __pragma__('skip')
+        self.name = str(self.room.name)
+        __pragma__('noskip')
         self.my = room.controller and room.controller.my
         if self.my:
             self.rcl = self.room.controller.level
@@ -468,10 +472,10 @@ class RoomMind:
                          and not Memory.meta.friends.includes(self.room.controller.owner.username) \
                          and enemy_structures
             if self.enemy:
-                if not Memory.enemy_rooms.includes(self.room_name):
+                if not Memory.enemy_rooms.includes(self.name):
                     Memory.enemy_rooms.push(room.name)
-            elif Memory.enemy_rooms.includes(self.room_name) and not enemy_structures:
-                Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.room_name), 1)
+            elif Memory.enemy_rooms.includes(self.name) and not enemy_structures:
+                Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.name), 1)
         else:
             self.enemy = False
         if self.mem.sponsor:
@@ -547,8 +551,8 @@ class RoomMind:
 
     def look_at(self, look_type, pos, optional_y=None):
         x, y, room_name = parse_xy_arguments(pos, optional_y)
-        if room_name is not None and room_name != self.room_name:
-            room = self.hive_mind.get_room(room_name)
+        if room_name is not None and room_name != self.name:
+            room = self.hive.get_room(room_name)
             if room:
                 return room.look_at(look_type, x, y)
             else:
@@ -578,8 +582,8 @@ class RoomMind:
         :rtype: list[RoomObject]
         """
         x, y, room_name = parse_xy_arguments(pos, optional_y)
-        if room_name is not None and room_name != self.room_name:
-            room = self.hive_mind.get_room(pos.roomName)
+        if room_name is not None and room_name != self.name:
+            room = self.hive.get_room(pos.roomName)
             if room:
                 return room.find_in_range(find_type, find_range, x, y)
             else:
@@ -665,11 +669,11 @@ class RoomMind:
         if '_creeps' not in self:
             if self.my:
                 print("[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!"
-                      .format(self.room_name, self.room_name))
+                      .format(self.name, self.name))
                 creeps = []
                 for name in Object.keys(Game.creeps):
                     creep = Game.creeps[name]
-                    if creep.memory.home == self.room_name:
+                    if creep.memory.home == self.name:
                         creeps.append(creep)
                 self._creeps = creeps
             else:
@@ -680,7 +684,7 @@ class RoomMind:
         if '_unique_owned_index' not in self:
             if self.my:
                 if '_owned_rooms_index' not in Memory.meta:
-                    Memory.meta._owned_rooms_index = _(self.hive_mind.my_rooms).sortByOrder(
+                    Memory.meta._owned_rooms_index = _(self.hive.my_rooms).sortByOrder(
                         [
                             'rcl',
                             lambda r: r.position[0],
@@ -692,11 +696,11 @@ class RoomMind:
                             'asc',
                         ]
                     ).pluck('name').value()
-                    index = Memory.meta._owned_rooms_index.indexOf(self.room_name)
+                    index = Memory.meta._owned_rooms_index.indexOf(self.name)
                 else:
-                    index = Memory.meta._owned_rooms_index.indexOf(self.room_name)
+                    index = Memory.meta._owned_rooms_index.indexOf(self.name)
                     if index == -1:
-                        index = Memory.meta._owned_rooms_index.push(self.room_name) - 1
+                        index = Memory.meta._owned_rooms_index.push(self.name) - 1
                 self._unique_owned_index = index
             else:
                 self._unique_owned_index = -1
@@ -705,10 +709,10 @@ class RoomMind:
     def _get_remote_mining_operations(self):
         if '_remote_mining_operations' not in self:
             if self.my:
-                self.hive_mind.poll_remote_mining_flags()
+                self.hive.poll_remote_mining_flags()
             else:
                 print("[{}] Warning: accessing remote mining operations of unowned room {}."
-                      .format(self.room_name, self.room_name))
+                      .format(self.name, self.name))
                 self._remote_mining_operations = []
         return self._remote_mining_operations
 
@@ -766,7 +770,7 @@ class RoomMind:
         Registers the creep's role and time till replacement in permanent memory. Should only be called once per creep.
         """
         if not isinstance(creep, RoleBase):
-            creep = creep_wrappers.wrap_creep(self.hive_mind, self.hive_mind.target_mind, self, creep)
+            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
         role = creep.memory.role
         if role in self.role_counts:
             self.role_counts[role] += 1
@@ -795,7 +799,7 @@ class RoomMind:
         no effect. However, it is useful to run this method frequently, for if memory becomes corrupted or a bug is
         introduced, this can ensure that everything is entirely correct.
         """
-        # print("[{}] Recalculating roles alive.".format(self.room_name))
+        # print("[{}] Recalculating roles alive.".format(self.name))
         # old_rt_map = self.mem.rt_map
         roles_alive = {}
         roles_work = {}  # TODO: better system for storing these
@@ -821,7 +825,7 @@ class RoomMind:
 
             if creep.spawning or creep.memory.role == role_temporary_replacing:
                 continue  # don't add rt_pairs for spawning creeps
-            creep = creep_wrappers.wrap_creep(self.hive_mind, self.hive_mind.target_mind, self, creep)
+            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
 
             rt_pair = (creep.name, creep.get_replacement_time())
             if not rt_map[role]:
@@ -854,7 +858,7 @@ class RoomMind:
             Memory.creeps[replaced_name].replacement = replacing_name
         else:
             print("[{}] Couldn't find creep-needing-replacement {} to register {} as the replacer to!".format(
-                self.room_name, replaced_name, replacing_name
+                self.name, replaced_name, replacing_name
             ))
 
     def replacements_currently_needed_for(self, role):
@@ -879,7 +883,7 @@ class RoomMind:
         # It's currently called more than this function, but more spawning code should eventually switch to using
         # this one.
         count = 0
-        targeters = self.hive_mind.target_mind.creeps_now_targeting(target_type, target_id)
+        targeters = self.hive.targets.creeps_now_targeting(target_type, target_id)
         for name in targeters:
             creep = Game.creeps[name]
             if creep and Game.time < self.replacement_time_of(creep):
@@ -912,8 +916,8 @@ class RoomMind:
         if 'get_replacement_time' in creep:
             return creep.get_replacement_time()
 
-        if creep.memory.home != self.room_name:
-            home_room = self.hive_mind.get_room(creep.memory.home)
+        if creep.memory.home != self.name:
+            home_room = self.hive.get_room(creep.memory.home)
             if home_room:
                 return home_room.replacement_time_of(creep)
             else:
@@ -922,7 +926,7 @@ class RoomMind:
         if 'wrapped' in creep:
             creep = creep.wrapped
         else:
-            creep = creep_wrappers.wrap_creep(self.hive_mind, self.hive_mind.target_mind, self, creep)
+            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
             if not creep:
                 return Infinity
 
@@ -936,7 +940,7 @@ class RoomMind:
             self.mem.meta = meta
 
         if time >= meta.clear_next:
-            # print("[{}] Clearing memory".format(self.room_name))
+            # print("[{}] Clearing memory".format(self.name))
             consistency.clear_memory(self)
             self.recalculate_roles_alive()
             # Recalculate spawning - either because a creep death just triggered our clearing memory, or we haven't
@@ -944,7 +948,7 @@ class RoomMind:
             # TODO: do we really need to recalculate every 500 ticks? even though it really isn't expensive
             self.reset_planned_role()
             del meta.clear_now
-            # print("[{}] Next clear in {} ticks.".format(self.room_name, meta.clear_next - Game.time))
+            # print("[{}] Next clear in {} ticks.".format(self.name, meta.clear_next - Game.time))
 
         # reset_spawn_on is set to the tick after the next creep's TTR expires in consistency.clear_memory()
         if time >= meta.reset_spawn_on:
@@ -974,7 +978,7 @@ class RoomMind:
                 for flag in flags.find_flags(self, flags.REMOTE_MINE):
                     if flag.memory.sponsor:
                         # if we're a remote mine and our sponsor is paving, let's also pave.
-                        sponsor = self.hive_mind.get_room(flag.memory.sponsor)
+                        sponsor = self.hive.get_room(flag.memory.sponsor)
                         if sponsor and sponsor.paving():
                             paving = True
                             break
@@ -996,9 +1000,9 @@ class RoomMind:
             paved = False  # still paving
         elif self.my:
             for flag in self.mining.active_mines:
-                if flag.pos.roomName == self.room_name:
+                if flag.pos.roomName == self.name:
                     continue
-                room = self.hive_mind.get_room(flag.pos.roomName)
+                room = self.hive.get_room(flag.pos.roomName)
                 if room:
                     if not room.all_paved():
                         paved = False
@@ -1026,7 +1030,7 @@ class RoomMind:
         if '_any_miners' not in self:
             any_miners = False
             for flag in self.mining.local_mines:
-                if self.hive_mind.target_mind.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) > 0:
+                if self.hive.targets.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) > 0:
                     any_miners = True
                     break
             self._any_miners = any_miners
@@ -1039,7 +1043,7 @@ class RoomMind:
         if '_all_miners' not in self:
             all_miners = True
             for flag in self.mining.local_mines:
-                if self.hive_mind.target_mind.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) <= 0:
+                if self.hive.targets.workforce_of(target_energy_miner_mine, "flag-{}".format(flag.name)) <= 0:
                     all_miners = False
                     break
             self._all_miners = all_miners
@@ -1088,11 +1092,11 @@ class RoomMind:
                 if self.trying_to_get_full_storage_use:
                     if self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
                             <= _max_energy_disable_full_storage_use:
-                        print("[{}] Disabling full storage use.".format(self.room_name))
+                        print("[{}] Disabling full storage use.".format(self.name))
                         self.mem.full_storage_use = False
                     if not self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
                             > _min_energy_enable_full_storage_use:
-                        print("[{}] Enabling full storage use.".format(self.room_name))
+                        print("[{}] Enabling full storage use.".format(self.name))
                         self.mem.full_storage_use = True
                     self._full_storage_use = self.mem.full_storage_use
                 else:
@@ -1102,7 +1106,7 @@ class RoomMind:
     def being_bootstrapped(self):
         if self.rcl >= 6 or not self.sponsor_name or self.spawn:
             return False
-        sponsor = self.hive_mind.get_room(self.sponsor_name)
+        sponsor = self.hive.get_room(self.sponsor_name)
         if not sponsor or not sponsor.my or not sponsor.spawn:
             return False
         return True
@@ -1175,7 +1179,7 @@ class RoomMind:
                               or (self.rcl >= 3 and not len(self.defense.towers()))
                               or (self.rcl >= 3 and self.room.energyCapacityAvailable < 650)
                               or (self.rcl >= 4 and self.room.energyCapacityAvailable < 1300)) \
-                             and len(self.building.next_priority_construction_targets()) \
+                             and len(self.building.get_construction_targets()) \
                              and (self.room.controller.ticksToDowngrade > 100)
             else:
                 prioritize = not self.being_bootstrapped()
@@ -1207,7 +1211,7 @@ class RoomMind:
 
     def remote_under_siege(self, flag):
         return self.any_remotes_under_siege() \
-               and flag.pos.roomName != self.room_name \
+               and flag.pos.roomName != self.name \
                and (not self.mem.remotes_safe or not self.mem.remotes_safe.includes(flag.pos.roomName))
 
     def conducting_siege(self):
@@ -1221,7 +1225,7 @@ class RoomMind:
 
     def get_max_mining_op_count(self):
         if not self.my:
-            print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.room_name))
+            print("[{}] WARNING: get_max_mining_op_count called for non-owned room!".format(self.name))
             return 0
         sources = len(self.sources)
 
@@ -1280,7 +1284,8 @@ class RoomMind:
                         structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
                             .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
             else:
-                structure = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos)).filter({'structureType': STRUCTURE_CONTAINER}) \
+                structure = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos)).filter(
+                    {'structureType': STRUCTURE_CONTAINER}) \
                     .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
                 if structure == Infinity or structure == -Infinity:
                     structure = None
@@ -1330,16 +1335,16 @@ class RoomMind:
     def _any_closest_to_me(self, flag_type):
         for flag in flags.find_flags_global(flag_type):
             if 'sponsor' in flag.memory:
-                if flag.memory.sponsor == self.room_name:
+                if flag.memory.sponsor == self.name:
                     return True
             else:
                 # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
                 possible_sponsor = str(flag.name).split('_')[0]
                 if possible_sponsor in Game.rooms:
-                    if possible_sponsor == self.room_name:
+                    if possible_sponsor == self.name:
                         return True
                 else:
-                    if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+                    if self.hive.get_closest_owned_room(flag.pos.roomName).name == self.name:
                         return True
 
         return False
@@ -1348,14 +1353,14 @@ class RoomMind:
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
             if flag.memory.sponsor:
-                ours = flag.memory.sponsor == self.room_name
+                ours = flag.memory.sponsor == self.name
             else:
                 # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
                 possible_sponsor = str(flag.name).split('_')[0]
                 if possible_sponsor in Game.rooms:
-                    ours = possible_sponsor == self.room_name
+                    ours = possible_sponsor == self.name
                 else:
-                    ours = self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name
+                    ours = self.hive.get_closest_owned_room(flag.pos.roomName).name == self.name
             if ours:
                 flag_id = "flag-{}".format(flag.name)
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
@@ -1412,7 +1417,7 @@ class RoomMind:
                                   lambda s:
                                   s.structureType == STRUCTURE_RAMPART
                                   and movement.is_block_empty(self, s.pos.x, s.pos.y))
-            if len(defense.stored_hostiles_near(self.room_name)):  # Here or neighboring rooms
+            if len(defense.stored_hostiles_near(self.name)):  # Here or neighboring rooms
                 flag_count = _.sum(self.find(FIND_FLAGS),
                                    lambda s:
                                    s.color == COLOR_GREEN
@@ -1470,8 +1475,8 @@ class RoomMind:
                         and _.find(room.defense.dangerous_hostiles(),
                                    lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
                     continue
-                distance = self.hive_mind.honey.find_path_length(
-                    self.spawn, movement.center_pos(room.room_name), {'range': 15})
+                distance = self.hive.honey.find_path_length(
+                    self.spawn, movement.center_pos(room.name), {'range': 15})
                 room_work_mass = 0
                 rt_map = room.rt_map
                 for role in Object.keys(room.work_mass_map):
@@ -1595,7 +1600,7 @@ class RoomMind:
                     max_parts = self.building.get_max_builder_work_parts()
                     if parts > max_parts:
                         print("[{}] Reducing target builder parts from {} to {} to match demand."
-                              .format(self.room_name, parts, max_parts))
+                              .format(self.name, parts, max_parts))
                         parts = max_parts
                     self._target_builder_work_mass = parts
         return self._target_builder_work_mass
@@ -1686,10 +1691,10 @@ class RoomMind:
                         wm += math.ceil((extra - 200 * 1000) / 400)
                         if self.rcl < 8:
                             print("[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})"
-                                  .format(self.room_name, wm, worker_size))
+                                  .format(self.name, wm, worker_size))
                         else:
                             # TODO: put this somewhere better
-                            self.hive_mind.rebalance_from(self)
+                            self.hive.rebalance_from(self)
                             pass
 
             if self.rcl >= 8:
@@ -1724,7 +1729,7 @@ class RoomMind:
                     if not room or (room.controller and not room.controller.my and not room.controller.owner):
                         # TODO: save in memory and predict the time length this room is reserved, and only send out a
                         # reserve creep for <3000 ticks reserved.
-                        if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name != self.room_name:
+                        if self.hive.get_closest_owned_room(flag.pos.roomName).name != self.name:
                             # there's a closer room, let's not claim here.
                             continue
                         count += 1
@@ -1924,7 +1929,7 @@ class RoomMind:
         if role in max_mass:
             return max_mass[role]()
         else:
-            print("[{}] Can't find max section function for role {}!".format(self.room_name, role))
+            print("[{}] Can't find max section function for role {}!".format(self.name, role))
             return Infinity
 
     def _next_needed_local_mining_role(self):
@@ -2087,9 +2092,9 @@ class RoomMind:
         if role_obj:
             return role_obj
         # for flag in flags.find_flags_global(flags.REAP_POWER_BANK):
-        #     if self.hive_mind.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
+        #     if self.hive.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
         #         # TODO: don't duplicate in TargetMind
-        #         room = self.hive_mind.get_room(flag.pos.roomName)
+        #         room = self.hive.get_room(flag.pos.roomName)
         #         if not room:
         #             continue
         #         bank = room.look_at(LOOK_STRUCTURES, flag.pos)[0]
@@ -2119,7 +2124,7 @@ class RoomMind:
     def reset_planned_role(self):
         del self.mem.next_role
         if not self.spawn:
-            sponsor = self.hive_mind.get_room(self.sponsor_name)
+            sponsor = self.hive.get_room(self.sponsor_name)
             if sponsor and sponsor.spawn:
                 if _.sum(self.role_counts) < 3 and sponsor.next_role is None:
                     sponsor.reset_planned_role()
@@ -2160,14 +2165,14 @@ class RoomMind:
                 maximum = spawning.max_sections_of(self, next_role.base)
                 if next_role.num_sections is not None and next_role.num_sections > maximum:
                     print("[{}] Function decided on {} sections for {} (a {}), which is more than the allowed {}."
-                          .format(self.room_name, next_role.num_sections, next_role.base, next_role.role, maximum))
+                          .format(self.name, next_role.num_sections, next_role.base, next_role.role, maximum))
                     next_role.num_sections = maximum
                 break
         if next_role:
             self.mem.next_role = next_role
         else:
             if len(self.spawns) <= 1:
-                print("[{}] All creep targets reached!".format(self.room_name))
+                print("[{}] All creep targets reached!".format(self.name))
             self.mem.next_role = None
 
     def get_next_role(self):
@@ -2178,8 +2183,8 @@ class RoomMind:
         return self.mem.next_role
 
     def toString(self):
-        return "RoomMind[room_name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
-            self.room_name, self.my, self.full_storage_use, self.conducting_siege())
+        return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
+            self.name, self.my, self.full_storage_use, self.conducting_siege())
 
     position = property(get_position)
     sources = property(get_sources)

@@ -116,7 +116,7 @@ class Upgrader(RoleBase):
                     x, y = split_pos_str(pos)
                     that_creep = _.find(self.home.look_at(LOOK_CREEPS, x, y))
                     if not that_creep:
-                        self.move_to(__new__(RoomPosition(x, y, self.home.room_name)))
+                        self.move_to(__new__(RoomPosition(x, y, self.home.name)))
                         break
                     elif that_creep.carry.energy >= that_creep.carryCapacity * 0.5 \
                             and that_creep.memory.role == role_upgrader and not that_creep.memory.get_near_controller:

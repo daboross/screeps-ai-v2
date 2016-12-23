@@ -153,7 +153,7 @@ class KitingOffense(MilitaryBase):
 
         marker_flag = self.targets.get_new_target(self, target_single_flag, flags.RANGED_DEFENSE)
         if marker_flag is None:
-            if self.pos.roomName == self.home.room_name and len(flags.find_flags(self.home, flags.RAID_OVER)):
+            if self.pos.roomName == self.home.name and len(flags.find_flags(self.home, flags.RAID_OVER)):
                 if len(hostiles_nearby) or self.creep.hits < self.creep.hitsMax:
                     self.creep.heal(self.creep)
                 return False
@@ -245,7 +245,7 @@ class KitingOffense(MilitaryBase):
                         del self.memory._move
 
                     if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
-                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.room_name)
+                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
                                               marker_flag, {'range': 1})

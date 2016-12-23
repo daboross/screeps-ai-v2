@@ -45,8 +45,8 @@ class MiningMind:
 
     def __init__(self, room):
         self.room = room
-        self.hive = room.hive_mind
-        self.targets = self.hive.target_mind
+        self.hive = room.hive
+        self.targets = self.hive.targets
         self._available_mining_flags = None
         self._local_mining_flags = None
         self._active_mining_flags = None
@@ -59,7 +59,7 @@ class MiningMind:
             if target:
                 return target
         # Even if we don't have a link manager active right now, we will soon if there is a main link
-        if self.room.links.main_link and flag.pos.roomName == self.room.room_name:
+        if self.room.links.main_link and flag.pos.roomName == self.room.name:
             main_link_id = self.room.links.main_link.id
             upgrader_link = self.room.get_upgrader_energy_struct()
             upgrader_link_id = upgrader_link and upgrader_link.id or None
@@ -93,7 +93,7 @@ class MiningMind:
 
     def mine_priority(self, flag):
         priority = self.distance_to_mine(flag)
-        if flag.pos.roomName == self.room.room_name:
+        if flag.pos.roomName == self.room.name:
             priority -= 50
         if flag.memory.sk_room:
             priority -= 40
@@ -176,15 +176,15 @@ class MiningMind:
                     name = flags.create_flag(source, flags.LOCAL_MINE)
                     if not name:
                         print("[{}][mining] Warning: Couldn't create local mining flag!".format(
-                            self.room.room_name))
+                            self.room.name))
                         continue
                     flag = Game.flags[name]
                     if not flag:
                         print("[{}][mining] Warning: Couldn't find local mining flag with name {}!".format(
-                            self.room.room_name, name))
+                            self.room.name, name))
                         continue
                 if 'sponsor' not in flag.memory:
-                    flag.memory.sponsor = self.room.room_name
+                    flag.memory.sponsor = self.room.name
                     flag.memory.active = True
                 result.append(flag)
             self._local_mining_flags = result
@@ -222,7 +222,7 @@ class MiningMind:
 
     def calculate_creep_num_sections_for_mine(self, flag):
         double = False
-        if flag.pos.roomName == self.room.room_name:
+        if flag.pos.roomName == self.room.name:
             if self.room.all_paved():
                 maximum = spawning.max_sections_of(self.room, creep_base_half_move_hauler)
                 double = True
@@ -324,7 +324,7 @@ class MiningMind:
     def get_ideal_miner_workmass_for(self, flag):
         if flag.memory.sk_room:
             return 7
-        elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
+        elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
             return 5
         else:
             return 3
@@ -333,12 +333,12 @@ class MiningMind:
         # TODO: duplicated in get_next_needed_mining_role_for
 
         miner_carry_no_haulers = (
-            flag.pos.roomName == self.room.room_name
+            flag.pos.roomName == self.room.name
             and self.room.room.energyCapacityAvailable >= 600
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
         )
         no_haulers = (
-            flag.pos.roomName == self.room.room_name
+            flag.pos.roomName == self.room.name
             and (self.room.rcl < 4 or not self.room.room.storage)
         )
         return not miner_carry_no_haulers and not no_haulers
@@ -346,12 +346,12 @@ class MiningMind:
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
-            flag.pos.roomName == self.room.room_name
+            flag.pos.roomName == self.room.name
             and self.room.room.energyCapacityAvailable >= 600
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
         )
         no_haulers = (
-            flag.pos.roomName == self.room.room_name
+            flag.pos.roomName == self.room.name
             and (self.room.rcl < 4 or not self.room.room.storage)
         )
 
@@ -371,7 +371,7 @@ class MiningMind:
                 # We don't want to do more than one miner in any remote mine due to remote haulers not having logic to
                 # go for the biggest energy pile instead of moving towards the source itself. We can still do this for
                 # local mines though, at low RCL levels.
-                if flag.pos.roomName == self.room.room_name:
+                if flag.pos.roomName == self.room.name:
                     workers_needed = self.open_spaces_around(flag)
                 else:
                     workers_needed = 1
@@ -403,7 +403,7 @@ class MiningMind:
             elif flag.memory.sk_room:
                 base = creep_base_4000miner
                 num_sections = min(7, spawning.max_sections_of(self.room, base))
-            elif flag.pos.roomName == self.room.room_name or self.should_reserve(flag.pos.roomName):
+            elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
                 base = creep_base_3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
             else:
@@ -435,7 +435,7 @@ class MiningMind:
             if self.room.replacement_time_of(creep) > Game.time:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
-            if flag.pos.roomName == self.room.room_name:
+            if flag.pos.roomName == self.room.name:
                 if self.room.all_paved():
                     base = creep_base_half_move_hauler
                 else:
@@ -456,7 +456,7 @@ class MiningMind:
             #     new_hauler_mass = new_hauler_num_sections
             # print('[{}][mining] Hauler stats for {}: ideal_mass: {}, current_target: {}, current_hauler_mass: {},'
             #       ' eol_hauler_mass: {}, hauler_size: {} ({} sections)'
-            #       .format(self.room.room_name, flag.name, self.calculate_ideal_mass_for_mine(flag),
+            #       .format(self.room.name, flag.name, self.calculate_ideal_mass_for_mine(flag),
             #               self.calculate_current_target_mass_for_mine(flag), current_noneol_hauler_mass, eol_mass,
             #               new_hauler_mass, new_hauler_num_sections))
 

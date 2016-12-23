@@ -53,11 +53,11 @@ role_classes = {
 }
 
 
-def wrap_creep(hive_mind, target_mind, home, creep):
+def wrap_creep(hive, targets, home, creep):
     """
     Wraps a given creep with it's role wrapper.
-    :param hive_mind: The active hive mind
-    :param target_mind: The active target mind
+    :param hive: The active hive mind
+    :param targets: The active target mind
     :param home: The creep's home room
     :param creep: The creep to wrap
     :return: The role class, providing methods specific to the role, including run()
@@ -65,10 +65,10 @@ def wrap_creep(hive_mind, target_mind, home, creep):
     """
     role = creep.memory.role
     if role in role_classes:
-        return role_classes[role](hive_mind, target_mind, home, creep)
+        return role_classes[role](hive, targets, home, creep)
     elif role in old_role_names:
         creep.memory.role = role = old_role_names[role]
-        return role_classes[role](hive_mind, target_mind, home, creep)
+        return role_classes[role](hive, targets, home, creep)
     else:
         return None
 

@@ -125,8 +125,8 @@ class HoneyTrails:
     :type hive: control.hivemind.HiveMind
     """
 
-    def __init__(self, hive_mind):
-        self.hive = hive_mind
+    def __init__(self, hive):
+        self.hive = hive
 
     def mark_exit_tiles(self, room_name, matrix, opts):
         use_roads = opts['roads']
@@ -376,7 +376,7 @@ class HoneyTrails:
             STRUCTURE_SPAWN)
         going_to_storage = structures_ignore.includes(STRUCTURE_STORAGE) or structures_ignore.includes(STRUCTURE_LINK)
         going_to_controller = structures_ignore.includes(STRUCTURE_CONTROLLER)
-        # Note: RoomMind.find_at() checks if pos.roomName == self.room_name, and if not, re-delegates to the actual
+        # Note: RoomMind.find_at() checks if pos.roomName == self.name, and if not, re-delegates to the actual
         # room. that allows this to work correctly for multi-room paths.
         going_to_source = (
             (origin.roomName == room_name and len(room.look_at(LOOK_SOURCES, origin)))

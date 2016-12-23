@@ -93,7 +93,7 @@ py.get_room("W49N25").minerals.fulfill_market_order('W50N20', 'H', 100 * 1000, '
 py.get_room("W49N25").minerals.fulfill_market_order('E24S21', 'H', 6500, '57da2bacc35ad09c28417c3d');
 py.get_room("W49N25").minerals.fulfill_market_order('W28S13', 'H', 27082, '57ddd8a09f7906ce03b5d3e1')
 py.get_room("W49N25").minerals.fulfill_market_order('W40N40', 'H', 284380, '57e4232ab62fb4be21b2a15f')
-_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets()._register_new_targeter("extra_repair_site", c.name, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
+_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets().manually_register(c, "extra_repair_site", "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
 TODO: creep 'setting_up' memory variable which is set on spawn or on replacing or on autoactions move
 
 

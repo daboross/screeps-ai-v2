@@ -24,17 +24,17 @@ class Colonist(MilitaryBase):
             closest_room_name = None
             for room in self.home.subsidiaries:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
-                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.room_name))
+                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
-                        closest_room_name = room.room_name
+                        closest_room_name = room.name
 
             if not closest_room_name:
                 for room in self.home.subsidiaries:
                     if not len(room.spawns):
                         distance = movement.distance_squared_room_pos(self.creep.pos,
-                                                                      movement.center_pos(room.room_name))
+                                                                      movement.center_pos(room.name))
                         if distance < closest_distance:
-                            closest_room_name = room.room_name
+                            closest_room_name = room.name
 
             # Colonize!
             self.memory.colonizing = closest_room_name
@@ -125,7 +125,7 @@ class Claim(MilitaryBase):
         else:
             self.creep.claimController(target)
         room = self.hive.get_room(target.pos.roomName)
-        room.mem.sponsor = self.home.room_name
+        room.mem.sponsor = self.home.name
         if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_walls', False):
             room.mem.prio_walls = True
         if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_spawn', False):
@@ -169,7 +169,7 @@ class ReserveNow(MilitaryBase):
             if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
                 # claim this!
                 self.creep.claimController(controller)
-                controller.room.memory.sponsor = self.home.room_name
+                controller.room.memory.sponsor = self.home.name
             self.creep.reserveController(controller)
             self.report(speech.remote_reserve_reserving)
 
@@ -191,9 +191,9 @@ class MineralSteal(TransportPickup):
             for room in self.hive.my_rooms:
                 if room.room.storage and room.room.storage.storeCapacity <= 0 \
                         and _.sum(room.room.storage.store) > room.room.storage.store.energy:
-                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.room_name))
+                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
-                        closest_room_name = room.room_name
+                        closest_room_name = room.name
 
             if not closest_room_name:
                 return None

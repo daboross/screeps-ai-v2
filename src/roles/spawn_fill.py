@@ -124,7 +124,7 @@ class SpawnFill(building.Builder, Refill):
                 self.memory.role = role_builder
                 return building.Builder.run(self)
             elif self.memory.role == role_spawn_fill_backup:
-                if _.find(self.room.building.next_priority_construction_targets(), lambda s:
+                if _.find(self.room.building.get_construction_targets(), lambda s:
                         s.structureType == STRUCTURE_EXTENSION) or self.home.upgrading_deprioritized():
                     self.memory.running = role_builder
                     return building.Builder.run(self)

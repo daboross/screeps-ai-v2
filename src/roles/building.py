@@ -20,8 +20,8 @@ __pragma__('noalias', 'type')
 
 class Builder(upgrading.Upgrader):
     def any_building_targets(self):
-        return not not (len(self.home.building.next_priority_big_repair_targets())
-                        or len(self.home.building.next_priority_construction_targets()))
+        return not not (len(self.home.building.get_big_repair_targets())
+                        or len(self.home.building.get_construction_targets()))
 
     def any_destruct_targets(self):
         if self.targets.get_existing_target(self, target_destruction_site):
@@ -169,7 +169,7 @@ class Builder(upgrading.Upgrader):
                 if wall:
                     if Game.cpu.bucket >= 8000:
                         self.home.building.refresh_repair_targets()
-                    self.targets._register_new_targeter(target_repair, self.name, wall.id)
+                    self.targets.manually_register(self, target_repair, wall.id)
                     self.memory.la = 'm'
                     return self.execute_repair_target(wall, 5000, target_repair)
 
@@ -193,7 +193,7 @@ class Builder(upgrading.Upgrader):
                 if not target:
                     target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN})
                 if target:
-                    self.targets._register_new_targeter(target_construction, self.name, target.id)
+                    self.targets.manually_register(self, target_construction, target.id)
                     self.memory.la = 'c'
                     return self.execute_construction_target(target)
 
@@ -304,7 +304,7 @@ class Builder(upgrading.Upgrader):
             # available targets.
             site = _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES), 'my')
             if site:
-                self.targets._register_new_targeter(target_construction, self.name, site.id)
+                self.targets.manually_register(self, target_construction, site.id)
                 target = site
             else:
                 self.log("WARNING: Couldn't find site for flag at {}! Refreshing building targets..."

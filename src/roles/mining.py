@@ -32,11 +32,11 @@ class EnergyMiner(TransportPickup):
             self.memory.role = role_recycling
             self.memory.last_role = role_miner
             return False
-        if source_flag.memory.sponsor and source_flag.memory.sponsor != self.home.room_name:
+        if source_flag.memory.sponsor and source_flag.memory.sponsor != self.home.name:
             self.memory.home = source_flag.memory.sponsor
 
         if self.creep.hits < self.creep.hitsMax:
-            if self.home.defense.healing_capable() and (self.pos.roomName != self.home.room_name
+            if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
                                                         or self.pos.x > 40 or self.pos.y > 40
                                                         or self.pos.x < 10 or self.pos.y < 10):
                 self.follow_energy_path(source_flag, self.home.spawn)

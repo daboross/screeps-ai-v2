@@ -21,7 +21,7 @@ class LinkManager(RoleBase):
         link = self.home.links.main_link
         storage = self.home.room.storage
         if not link or not storage:
-            self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.home.room_name))
+            self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.home.name))
             self.go_to_depot()
             self.report(speech.link_manager_something_not_found)
             return False
@@ -45,7 +45,7 @@ class LinkManager(RoleBase):
                                 else:
                                     self.creep.suicide()
                                     return False
-                        pos = __new__(RoomPosition(x, y, self.home.room_name))
+                        pos = __new__(RoomPosition(x, y, self.home.name))
                         priority = 1
                         if link.pos.x == storage.pos.x == pos.x:
                             priority += 5
@@ -61,7 +61,7 @@ class LinkManager(RoleBase):
         current_pos = (self.pos.x | self.pos.y << 6)
         if current_pos != self.memory.station_pos:
             self.move_to(__new__(RoomPosition(self.memory.station_pos & 0x3F,
-                                              self.memory.station_pos >> 6 & 0x3F, self.home.room_name)))
+                                              self.memory.station_pos >> 6 & 0x3F, self.home.name)))
             self.report(speech.link_manager_moving)
             return False
 

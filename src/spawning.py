@@ -96,11 +96,14 @@ def would_be_emergency(room):
 
 
 def emergency_conditions(room):
-    if volatile_cache.mem(room.room_name).has("emergency_conditions"):
-        return volatile_cache.mem(room.room_name).get("emergency_conditions")
+    """
+    :type room: control.hivemind.RoomMind
+    """
+    if volatile_cache.mem(room.name).has("emergency_conditions"):
+        return volatile_cache.mem(room.name).get("emergency_conditions")
     # The functions we run to determine target mass will in turn call emergency_conditions itself
     # This prevents an infinite loop (we set the actual value at the end of the function)
-    volatile_cache.mem(room.room_name).set("emergency_conditions", False)
+    volatile_cache.mem(room.name).set("emergency_conditions", False)
     if room.room.energyAvailable >= 300:
         spawn_mass = room.carry_mass_of(role_spawn_fill) \
                      + room.carry_mass_of(role_spawn_fill_backup) \
@@ -111,8 +114,8 @@ def emergency_conditions(room):
         )
     else:
         emergency = False
-    volatile_cache.mem(room.room_name).delete("running_emergency_conditions")
-    volatile_cache.mem(room.room_name).set("emergency_conditions", emergency)
+    volatile_cache.mem(room.name).delete("running_emergency_conditions")
+    volatile_cache.mem(room.name).set("emergency_conditions", emergency)
     return emergency
 
 
@@ -138,7 +141,7 @@ def run(room, spawn):
     if not role_obj:
         # TODO: at this point, figure out how long until the next replacement is needed!
         # if not room.mem.spawning_already_reported_no_next_role:
-        #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.room_name))
+        #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.name))
         #     room.mem.spawning_already_reported_no_next_role = True
         return
     role = role_obj.role
@@ -147,8 +150,8 @@ def run(room, spawn):
     replacing = role_obj.replacing
 
     ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
-    if ubos_cache.has(room.room_name):
-        filled = spawn.room.energyAvailable - ubos_cache.get(room.room_name)
+    if ubos_cache.has(room.name):
+        filled = spawn.room.energyAvailable - ubos_cache.get(room.name)
     else:
         filled = spawn.room.energyAvailable
     # If we have very few harvesters, try to spawn a new one! But don't make it too small, if we already have a big
@@ -156,7 +159,7 @@ def run(room, spawn):
     # too bad. We *can* assume that all work_mass at this point is in harvesters, since consistency.reassign_roles()
     # will reassign everyone to harvester if there are fewer than 2 harvesters existing.
     if emergency_conditions(room):
-        print("[{}] WARNING: Bootstrapping room!".format(room.room_name))
+        print("[{}] WARNING: Bootstrapping room!".format(room.name))
         energy = filled
     else:
         energy = spawn.room.energyCapacityAvailable
@@ -167,13 +170,13 @@ def run(room, spawn):
     if num_sections is not None and base in scalable_sections:
         if (num_sections <= 0 or not num_sections) and not (num_sections is 0 and half_section):  # Catch NaN here too?
             print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!"
-                  .format(room.room_name, base))
+                  .format(room.name, base))
             num_sections = 1
             role_obj.num_sections = 1
         cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
         if not cost:
             print("[{}][spawning] ERROR: Unknown cost retrieved from cost_of_sections({}, {}, {}): {}"
-                  .format(room.room_name, base, num_sections, energy, cost))
+                  .format(room.name, base, num_sections, energy, cost))
             cost = Infinity
         if cost > energy:
             new_size = max_sections_of(room, base)
@@ -182,11 +185,11 @@ def run(room, spawn):
                     cost = energy
                 else:
                     print("[{}][spawning] ERROR: Trying to spawn a {}, which we don't have enough energy for even 1"
-                          " section of!".format(room.room_name, base))
+                          " section of!".format(room.name, base))
                     return
             else:
                 print("[{}][spawning] Adjusted creep size from {} to {} to match available energy."
-                      .format(room.room_name, num_sections, new_size))
+                      .format(room.name, num_sections, new_size))
                 # Since the literal memory object is returned, this mutation will stick for until this creep has been
                 # spawned, or the target creep has been refreshed
                 num_sections = role_obj.num_sections = new_size
@@ -196,7 +199,7 @@ def run(room, spawn):
         energy = cost
 
     if filled < energy:
-        # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.room_name, filled, energy))
+        # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.name, filled, energy))
         return
 
     descriptive_level = None
@@ -204,7 +207,7 @@ def run(room, spawn):
     if base is creep_base_1500miner:
         parts = []
         if energy < 350:
-            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
             num_work = math.floor((energy - 50) / 100)
             num_move = math.floor((energy - num_work * 100) / 50)
         else:
@@ -218,7 +221,7 @@ def run(room, spawn):
     elif base is creep_base_3000miner:
         parts = []
         if energy < 550:
-            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
             num_work = math.floor((energy - 50) / 100)
             num_move = math.floor((energy - num_work * 100) / 50)
         else:
@@ -232,7 +235,7 @@ def run(room, spawn):
     elif base is creep_base_4000miner:
         parts = []
         if energy < 750:
-            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.room_name))
+            print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
             num_work = math.floor((energy - 50) / 100)
             num_move = math.floor((energy - num_work * 100) / 50)
         else:
@@ -246,7 +249,7 @@ def run(room, spawn):
     elif base is creep_base_carry3000miner:
         if energy < 600:
             print("[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!"
-                  .format(room.room_name))
+                  .format(room.name))
             if Game.time % 30 == 3:
                 room.reset_planned_role()
             return
@@ -337,7 +340,7 @@ def run(room, spawn):
             parts = [MOVE, MOVE, CARRY, WORK]
             descriptive_level = "carry:1-work:1"
         else:
-            print("[{}][spawning] Too few extensions to build a worker!".format(room.room_name))
+            print("[{}][spawning] Too few extensions to build a worker!".format(room.name))
             if Game.time % 30 == 3:
                 room.reset_planned_role()
             return
@@ -501,7 +504,7 @@ def run(room, spawn):
     elif base is creep_base_scout:
         parts = [MOVE]
     else:
-        print("[{}][spawning] Unknown creep base {}! Role object: {}".format(room.room_name, base,
+        print("[{}][spawning] Unknown creep base {}! Role object: {}".format(room.name, base,
                                                                              JSON.stringify(role_obj)))
         room.reset_planned_role()
         return
@@ -517,7 +520,7 @@ def run(room, spawn):
     name = random_four_digits()
     if Game.creeps[name]:
         name = random_four_digits()
-    home = room.room_name
+    home = room.name
 
     if replacing:
         memory = {"home": home, "role": role_temporary_replacing,
@@ -529,9 +532,9 @@ def run(room, spawn):
         # Add whatever memory seems to be necessary
         _.extend(memory, role_obj.memory)
 
-    if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.room_name):
+    if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.name):
         print("[{}][spawning] Warning: Generated too costly of a body for a {}! Available energy: {}, cost: {}."
-              .format(role, spawn.room.energyAvailable - ubos_cache.get(room.room_name),
+              .format(role, spawn.room.energyAvailable - ubos_cache.get(room.name),
                       _.sum(parts, lambda p: BODYPART_COST[p])))
         room.reset_planned_role()
         return
@@ -539,37 +542,37 @@ def run(room, spawn):
     # if descriptive_level:
     #     if replacing:
     #         print("[{}][spawning] Spawning {}, a {} with body {} level {}, live-replacing {}.".format(
-    #             room.room_name, name, role, base, descriptive_level, replacing))
+    #             room.name, name, role, base, descriptive_level, replacing))
     #     else:
     #         print("[{}][spawning] Spawning {}, a {} with body {} level {}.".format(
-    #             room.room_name, name, role, base, descriptive_level))
+    #             room.name, name, role, base, descriptive_level))
     # else:
     #     if replacing:
     #         print("[{}][spawning] Spawning {}, a {} with body {}, live-replacing {}.".format(
-    #             room.room_name, name, role, base, replacing))
+    #             room.name, name, role, base, replacing))
     #     else:
-    #         print("[{}][spawning] Spawning {}, a {} with body {}.".format(room.room_name, name, role, base))
+    #         print("[{}][spawning] Spawning {}, a {} with body {}.".format(room.name, name, role, base))
     result = spawn.createCreep(parts, name, memory)
     if result not in Game.creeps:
-        print("[{}][spawning] Invalid response from createCreep: {}".format(room.room_name, result))
+        print("[{}][spawning] Invalid response from createCreep: {}".format(room.name, result))
         if result == ERR_NOT_ENOUGH_RESOURCES:
             print("[{}][spawning] Couldn't create body {} with energy {} (target num_sections: {})!"
-                  .format(room.room_name, parts, energy, num_sections))
+                  .format(room.name, parts, energy, num_sections))
         elif result == ERR_INVALID_ARGS:
             if descriptive_level:
                 print("[{}][spawning] Produced invalid body array for creep type {} level {}: {}"
-                      .format(room.room_name, base, descriptive_level, JSON.stringify(parts)))
+                      .format(room.name, base, descriptive_level, JSON.stringify(parts)))
             else:
                 print("[{}][spawning] Produced invalid body array for creep type {}: {}"
-                      .format(room.room_name, base, JSON.stringify(parts)))
+                      .format(room.name, base, JSON.stringify(parts)))
     else:
-        used = ubos_cache.get(room.room_name) or 0
+        used = ubos_cache.get(room.name) or 0
         used += postspawn_calculate_cost_of(parts)
-        ubos_cache.set(room.room_name, used)
+        ubos_cache.set(room.name, used)
         room.reset_planned_role()
         if role_obj.targets:
             for target_type, target_id in role_obj.targets:
-                room.hive_mind.target_mind._register_new_targeter(target_type, name, target_id)
+                room.hive.targets.manually_register({'name': name}, target_type, target_id)
         if role_obj.rkey:
             room.successfully_spawned_request(role_obj.rkey)
         if role_obj.run_after:

@@ -295,6 +295,9 @@ class TargetMind:
             self._unregister_targeter(ttype, creep.name)
         return target
 
+    def manually_register(self, creep, ttype, target_id):
+        self._register_new_targeter(ttype, creep.name, target_id)
+
     def untarget(self, creep, ttype):
         self._unregister_targeter(ttype, creep.name)
 
@@ -390,9 +393,9 @@ class TargetMind:
         smallest_work_force = Infinity
         best_id = None
         if walls_only:
-            sites = creep.home.building.next_priority_high_value_construction_targets()
+            sites = creep.home.building.get_high_value_construction_targets()
         else:
-            sites = creep.home.building.next_priority_construction_targets()
+            sites = creep.home.building.get_construction_targets()
         for site_id in sites:
             if site_id.startsWith("flag-"):
                 max_work = _MAX_BUILDERS
@@ -419,13 +422,13 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        repair_targets = creep.home.building.next_priority_repair_targets()
+        repair_targets = creep.home.building.get_repair_targets()
         if not len(repair_targets):
             return None
         # closest_distance = Infinity
         # smallest_num_builders = Infinity
         # best_id = None
-        if len(repair_targets) <= 1 and not len(creep.home.building.next_priority_construction_targets()):
+        if len(repair_targets) <= 1 and not len(creep.home.building.get_construction_targets()):
             max_work = Infinity
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
@@ -458,11 +461,11 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
-        #       .format(creep.name, creep.home.room_name, max_hits))
+        #       .format(creep.name, creep.home.name, max_hits))
         best_id = None
         smallest_num = Infinity
         smallest_hits = Infinity
-        for struct_id in creep.home.building.next_priority_big_repair_targets():
+        for struct_id in creep.home.building.get_big_repair_targets():
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
                 struct_num = self.workforce_of(target_big_repair, struct_id)
@@ -477,11 +480,11 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
-        #       .format(creep.name, creep.home.room_name, max_hits))
+        #       .format(creep.name, creep.home.name, max_hits))
         best_id = None
         smallest_num = Infinity
         smallest_hits = Infinity
-        for struct_id in creep.home.building.next_priority_big_repair_targets():
+        for struct_id in creep.home.building.get_big_repair_targets():
             struct = Game.getObjectById(struct_id)
             if struct and struct.hits < struct.hitsMax \
                     and (struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART):
@@ -497,7 +500,7 @@ class TargetMind:
         :type creep: role_base.RoleBase
         """
         construct_count = {}
-        for struct_id in creep.home.building.next_priority_destruct_targets():
+        for struct_id in creep.home.building.get_destruction_targets():
             struct = Game.getObjectById(struct_id)
             if struct:
                 current_num = self.targets[target_destruction_site][struct_id]
@@ -616,7 +619,7 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        hostiles = defense.stored_hostiles_near(creep.home.room_name)
+        hostiles = defense.stored_hostiles_near(creep.home.name)
 
         def priority(wall):
             current_priority = 0

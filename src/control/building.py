@@ -91,8 +91,7 @@ rampart_priorities = {
     STRUCTURE_SPAWN: 3,
     STRUCTURE_TERMINAL: 4,
     STRUCTURE_POWER_SPAWN: 5,
-    STRUCTURE_EXTENSION: 6,
-    STRUCTURE_LAB: 7,
+    STRUCTURE_LAB: 6,
 }
 
 
@@ -108,10 +107,10 @@ class ConstructionMind:
         :param room:
         """
         self.room = room
-        self.hive = room.hive_mind
+        self.hive = room.hive
 
     def toString(self):
-        return "ConstructionMind[room: {}]".format(self.room.room_name)
+        return "ConstructionMind[room: {}]".format(self.room.name)
 
     def refresh_building_targets(self, now=False):
         self.refresh_num_builders(now)
@@ -152,14 +151,50 @@ class ConstructionMind:
     def refresh_destruction_targets(self):
         del self.room.mem.cache.destruct_targets
 
+    def _max_hits_at(self, struct, big_repair=False):
+        if struct.structureType == STRUCTURE_WALL:
+            if big_repair:
+                return self.room.max_sane_wall_hits
+            else:
+                return self.room.min_sane_wall_hits
+        elif struct.structureType == STRUCTURE_RAMPART:
+            if big_repair:
+                return min(self.room.max_sane_wall_hits, struct.hitsMax)
+            else:
+                return min(self.room.min_sane_wall_hits, struct.hitsMax)
+        else:
+            return struct.hitsMax
+
+    def _get_is_relatively_decayed_callback(self, big_repair=False):
+        def is_relatively_decayed(thing_id):
+            thing = Game.getObjectById(thing_id)
+            if thing is None:
+                return False
+            if thing.structureType == STRUCTURE_ROAD:
+                return thing.hits < thing.hitsMax * 0.35
+            else:
+                max_hits = self._max_hits_at(thing, big_repair)
+                max_hits = max_hits - min(max_hits * 0.4, 50 * 1000)
+                return thing.hits < max_hits
+
+        return is_relatively_decayed
+
+    def _hits_left_to_repair_at(self, thing_id):
+        thing = Game.getObjectById(thing_id)
+        if thing is None:
+            return 0
+        if thing.structureType != STRUCTURE_RAMPART and thing.structureType != STRUCTURE_WALL:
+            return thing.hitsMax - thing.hits
+        return max(0, self.room.max_sane_wall_hits - thing.hits)
+
     def get_target_num_builders(self):
         num = self.room.get_cached_property("builders_needed")
         if num is not None:
             return num
 
-        sites_and_repair = _.sum(self.next_priority_construction_targets(), not_road) \
-                           + _.sum(self.next_priority_repair_targets(),
-                                   self.get_is_relatively_decayed(False))
+        sites_and_repair = _.sum(self.get_construction_targets(), not_road) \
+                           + _.sum(self.get_repair_targets(),
+                                   self._get_is_relatively_decayed_callback(False))
         if sites_and_repair > 0:
             if sites_and_repair < 4:
                 num = 1
@@ -168,8 +203,8 @@ class ConstructionMind:
             else:
                 num = 4
         else:
-            extra_repair = _.sum(self.next_priority_big_repair_targets(),
-                                 self.get_is_relatively_decayed(True))
+            extra_repair = _.sum(self.get_big_repair_targets(),
+                                 self._get_is_relatively_decayed_callback(True))
             if extra_repair > 0:
                 num = 1
             else:
@@ -183,8 +218,8 @@ class ConstructionMind:
         if parts is not None:
             return parts
 
-        construction = _.sum(self.next_priority_construction_targets(), lambda c: c.progressTotal - c.progress)
-        repair = _.sum(self.next_priority_big_repair_targets(), self.get_hits_left_to_repair)
+        construction = _.sum(self.get_construction_targets(), lambda c: c.progressTotal - c.progress)
+        repair = _.sum(self.get_big_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
@@ -203,13 +238,13 @@ class ConstructionMind:
             if 'max_builder_work_parts' in self.room.mem.cache:
                 self.room.mem.cache.max_builder_work_parts.dead_at = Game.time + 1
 
-    def next_priority_high_value_construction_targets(self):
+    def get_high_value_construction_targets(self):
         if self.room.under_siege():
             targets = self.room.get_cached_property("sieged_walls_unbuilt")
             if targets is not None:
                 return targets
 
-            targets = _(self.next_priority_construction_targets()) \
+            targets = _(self.get_construction_targets()) \
                 .map(lambda x: Game.getObjectById(x)) \
                 .filter(lambda x: x is not None and (x.structureType == STRUCTURE_WALL
                                                      or x.structureType == STRUCTURE_RAMPART)
@@ -225,7 +260,7 @@ class ConstructionMind:
             if targets is not None:
                 return targets
 
-            targets = _(self.next_priority_construction_targets()) \
+            targets = _(self.get_construction_targets()) \
                 .map(lambda x: Game.getObjectById(x)) \
                 .filter(lambda x: x is not None
                                   and get_priority(self.room, x.structureType)
@@ -234,13 +269,13 @@ class ConstructionMind:
             self.room.store_cached_property("non_wall_construction_targets", targets, 200)
             return targets
 
-    def next_priority_construction_targets(self):
+    def get_construction_targets(self):
         targets = self.room.get_cached_property("building_targets")
         if targets is not None:
             last_rcl = self.room.get_cached_property("bt_last_checked_rcl")
             if last_rcl >= self.room.rcl:
                 return targets
-        print("[{}] Calculating new construction targets".format(self.room.room_name))
+        print("[{}] Calculating new construction targets".format(self.room.name))
         del self.room.mem.cache.non_wall_construction_targets
         del self.room.mem.cache.seiged_walls_unbuilt
         self.refresh_num_builders(True)
@@ -253,8 +288,8 @@ class ConstructionMind:
                 spawn_pos = spawn_flag[0].pos
             else:
                 print("[{}][building] Warning: Finding construction targets for room {},"
-                      " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = movement.center_pos(self.room.room_name)
+                      " which has no spawn planned!".format(self.room.name, self.room.name))
+                spawn_pos = movement.center_pos(self.room.name)
         volatile = volatile_cache.volatile()
         total_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
         new_sites = []
@@ -302,7 +337,7 @@ class ConstructionMind:
                 structure_type = flags.flag_sub_to_structure_type[flag_type]
                 if not structure_type:
                     print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
-                        self.room.room_name, flag_type
+                        self.room.name, flag_type
                     ))
                     continue
                 if structure_type == STRUCTURE_EXTRACTOR and not self.room.look_at(LOOK_MINERALS, flag.pos):
@@ -347,43 +382,7 @@ class ConstructionMind:
         self.room.store_cached_property("bt_last_checked_rcl", self.room.rcl, 1000)
         return self.room.get_cached_property("building_targets")
 
-    def max_hits_for_struct(self, struct, big_repair=False):
-        if struct.structureType == STRUCTURE_WALL:
-            if big_repair:
-                return self.room.max_sane_wall_hits
-            else:
-                return self.room.min_sane_wall_hits
-        elif struct.structureType == STRUCTURE_RAMPART:
-            if big_repair:
-                return min(self.room.max_sane_wall_hits, struct.hitsMax)
-            else:
-                return min(self.room.min_sane_wall_hits, struct.hitsMax)
-        else:
-            return struct.hitsMax
-
-    def get_is_relatively_decayed(self, big_repair=False):
-        def is_relatively_decayed(thing_id):
-            thing = Game.getObjectById(thing_id)
-            if thing is None:
-                return False
-            if thing.structureType == STRUCTURE_ROAD:
-                return thing.hits < thing.hitsMax * 0.35
-            else:
-                max_hits = self.max_hits_for_struct(thing, big_repair)
-                max_hits = max_hits - min(max_hits * 0.4, 50 * 1000)
-                return thing.hits < max_hits
-
-        return is_relatively_decayed
-
-    def get_hits_left_to_repair(self, thing_id):
-        thing = Game.getObjectById(thing_id)
-        if thing is None:
-            return 0
-        if thing.structureType != STRUCTURE_RAMPART and thing.structureType != STRUCTURE_WALL:
-            return thing.hitsMax - thing.hits
-        return max(0, self.room.max_sane_wall_hits - thing.hits)
-
-    def next_priority_repair_targets(self):
+    def get_repair_targets(self):
         structures = self.room.get_cached_property("repair_targets")
         if structures is not None:
             last_rcl = self.room.get_cached_property("rt_last_checked_rcl")
@@ -400,8 +399,8 @@ class ConstructionMind:
                 spawn_pos = spawn_flag[0].pos
             else:
                 print("[{}][building] Warning: Finding repair targets for room {},"
-                      " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = movement.center_pos(self.room.room_name)
+                      " which has no spawn planned!".format(self.room.name, self.room.name))
+                spawn_pos = movement.center_pos(self.room.name)
 
         max_hits = self.room.min_sane_wall_hits
         any_destruct_flags = len(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT))
@@ -434,7 +433,7 @@ class ConstructionMind:
         self.room.store_cached_property("rt_last_checked_rcl", self.room.rcl, 50)
         return structures
 
-    def next_priority_big_repair_targets(self):
+    def get_big_repair_targets(self):
         target_list = self.room.get_cached_property("big_repair_targets")
         if target_list is not None:
             return target_list
@@ -458,7 +457,7 @@ class ConstructionMind:
         self.room.store_cached_property("big_repair_targets", target_list, 200)
         return target_list
 
-    def next_priority_destruct_targets(self):
+    def get_destruction_targets(self):
         target_list = self.room.get_cached_property("destruct_targets")
         if target_list is not None:
             return target_list
@@ -473,8 +472,8 @@ class ConstructionMind:
                 spawn_pos = spawn_flag[0].pos
             else:
                 print("[{}][building] Warning: Finding destruct targets for room {},"
-                      " which has no spawn planned!".format(self.room.room_name, self.room.room_name))
-                spawn_pos = movement.center_pos(self.room.room_name)
+                      " which has no spawn planned!".format(self.room.name, self.room.name))
+                spawn_pos = movement.center_pos(self.room.name)
 
         for flag, secondary in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT),
                                         lambda t: -movement.distance_squared_room_pos(t[0].pos, spawn_pos)):
@@ -487,7 +486,7 @@ class ConstructionMind:
                                                               {"structureType": STRUCTURE_RAMPART}):
                 for struct in structures:
                     print("[{}][building] Not dismantling {}, as it is under a rampart.".format(
-                        self.room.room_name, struct))
+                        self.room.name, struct))
                 continue
             if len(structures) and not flags.look_for(self.room, flag.pos, flags.MAIN_BUILD, secondary):
                 for struct in structures:
@@ -609,8 +608,8 @@ class ConstructionMind:
             if single_mine_num < len(mines):
                 mine = mines[single_mine_num]
                 target = None
-                if mine.pos.roomName != self.room.room_name or (self.room.rcl >= 4 and self.room.room.storage
-                                                                and self.room.room.storage.storeCapacity):
+                if mine.pos.roomName != self.room.name or (self.room.rcl >= 4 and self.room.room.storage
+                                                           and self.room.room.storage.storeCapacity):
 
                     deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
                     if deposit_point:
@@ -636,9 +635,9 @@ class ConstructionMind:
                         self.room.store_cached_property("run_only_mine_target_num", 0, 500)
                         self.room.store_cached_property("run_only_mine", single_mine_num + 1, 500)
                 print("[{}][building] Searched target {}/3 of mine {}/{} for remote mining roads.".format(
-                    self.room.room_name, target, single_mine_num + 1, len(mines)))
+                    self.room.name, target, single_mine_num + 1, len(mines)))
                 return
-            print("[{}][building] Finished searching all mines one at a time!".format(self.room.room_name))
+            print("[{}][building] Finished searching all mines one at a time!".format(self.room.name))
             self.room.store_cached_property("run_only_mine", 0, 0)
             del self.room.mem.cache['run_only_mine_target_num']
 
@@ -646,7 +645,7 @@ class ConstructionMind:
             try:
                 # Prioritize paths for far-away mines (last in the original array)
                 for mine in reversed(self.room.mining.active_mines):
-                    if mine.pos.roomName == self.room.room_name \
+                    if mine.pos.roomName == self.room.name \
                             and (self.room.rcl < 4 or not self.room.room.storage
                                  or not self.room.room.storage.storeCapacity):
                         continue
@@ -713,15 +712,15 @@ class ConstructionMind:
 
         if any_non_visible_rooms:
             print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms)".format(
-                self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
+                self.room.name, _.sum(checked_positions_per_room.values(), 'size'),
                 placed_count, path_count))
         elif placed_count + preexisting_count >= 100:
             print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (hit site limit)".format(
-                self.room.room_name, _.sum(checked_positions_per_room.values(), 'size'),
+                self.room.name, _.sum(checked_positions_per_room.values(), 'size'),
                 placed_count, path_count))
         else:
             print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-                self.room.room_name, _.sum(list(checked_positions_per_room.values()), 'size'),
+                self.room.name, _.sum(list(checked_positions_per_room.values()), 'size'),
                 placed_count, path_count))
 
         if any_non_visible_rooms:
@@ -750,7 +749,7 @@ class ConstructionMind:
         if self.room.rcl < 3 or not len(self.room.defense.towers()):
             self.room.store_cached_property("placed_ramparts", "lower_rcl", 20)
             return
-        if _(self.next_priority_construction_targets()).concat(self.next_priority_repair_targets()) \
+        if _(self.get_construction_targets()).concat(self.get_repair_targets()) \
                 .map(lambda x: Game.getObjectById(x)).sum(
             lambda c: c and c.structureType == STRUCTURE_RAMPART or 0) >= 3:
             self.room.store_cached_property("placed_ramparts", "existing_sites", 20)
@@ -787,7 +786,7 @@ class ConstructionMind:
         for pos_key, structure in sorted_entries:
             if not ramparts.has(pos_key):
                 print("[{}][building] Protecting {} with a rampart."
-                      .format(self.room.room_name, structure))
+                      .format(self.room.name, structure))
                 structure.pos.createConstructionSite(STRUCTURE_RAMPART)
                 sites_placed_now += 1
                 if site_count + prev_sites_placed + sites_placed_now >= 100 or sites_placed_now >= 5:
@@ -813,7 +812,7 @@ class ConstructionMind:
         })
         if path.incomplete:
             print("[{}][building] WARNING: Couldn't find full path near {} and away from {}!"
-                  .format(self.room.room_name, near, [x.pos for x in away_from]))
+                  .format(self.room.name, near, [x.pos for x in away_from]))
             if not len(path.path):
                 return
         return path.path[len(path) - 1]
@@ -827,7 +826,7 @@ class ConstructionMind:
                 if not center:
                     return
         cache = volatile_cache.setmem("npcf")
-        cache_key = "depot_{}".format(self.room.room_name)
+        cache_key = "depot_{}".format(self.room.name)
         if cache.has(cache_key):
             return
         away_from = [{'pos': center.pos, 'range': 4}]
@@ -849,9 +848,9 @@ class ConstructionMind:
 
 
 profiling.profile_whitelist(ConstructionMind, [
-    "next_priority_construction_targets",
-    "next_priority_repair_targets",
-    "next_priority_big_repair_targets",
-    "next_priority_destruct_targets",
+    "get_construction_targets",
+    "get_repair_targets",
+    "get_big_repair_targets",
+    "get_destruction_targets",
     "place_remote_mining_roads",
 ])

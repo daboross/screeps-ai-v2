@@ -332,14 +332,14 @@ def running_check_room(room):
     if not len(room.defense.dangerous_hostiles()):
         return
 
-    hostile_path_targets = pathfinder_enemy_array_for_room(room.room_name)
+    hostile_path_targets = pathfinder_enemy_array_for_room(room.name)
 
     for creep in my_creeps:
         if creep.fatigue > 0 or len(creep.body) <= 1 \
                 or _.find(creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK or p.type == HEAL) \
                 or (creep.memory.role == role_simple_dismantle
                     and creep.memory.home in Game.rooms
-                    and room.hive_mind.get_room(creep.memory.home).conducting_siege()) \
+                    and room.hive.get_room(creep.memory.home).conducting_siege()) \
                 or not creep.hasActiveBodyparts(MOVE) \
                 or (creep.memory.role == role_miner and _.find(creep.pos.lookFor(LOOK_STRUCTURES),
                                                                {'structureType': STRUCTURE_RAMPART})):

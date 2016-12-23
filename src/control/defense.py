@@ -59,7 +59,7 @@ def poll_hostiles(hive, run_away_checks):
     if 'hostiles' not in Memory:
         Memory.hostiles = {}
     for room in hive.visible_rooms:
-        if hostile_utils.enemy_room(room.room_name):
+        if hostile_utils.enemy_room(room.name):
             continue
         targets = room.defense.dangerous_hostiles()
         if len(targets):
@@ -91,11 +91,11 @@ def poll_hostiles(hive, run_away_checks):
                 run_away_checks(room)
             except:
                 msg = "[hive] Error running run-away-checks in {}!\n{}".format(
-                    room.room_name, __except0__.stack if __except0__ else 'e: {}'.format(__except0__)
+                    room.name, __except0__.stack if __except0__ else 'e: {}'.format(__except0__)
                 )
                 print(msg)
                 Game.notify(msg)
-        elif room.room_name in Memory.rooms:
+        elif room.name in Memory.rooms:
             del room.mem.danger
 
 
@@ -225,7 +225,7 @@ class RoomDefense:
     __pragma__('fcall')
 
     def _hive(self):
-        return self.room.hive_mind
+        return self.room.hive
 
     hive = property(_hive)
 
@@ -425,7 +425,7 @@ class RoomDefense:
                     if self.room.room.storage:
                         protect.push(self.room.room.storage)
                     if not len(protect):
-                        protect.push(movement.center_pos(self.room.room_name))
+                        protect.push(movement.center_pos(self.room.name))
                     hostiles = _(hostiles) \
                         .filter(self.danger_level) \
                         .sortBy(lambda c:
@@ -480,12 +480,12 @@ class RoomDefense:
             checked_rooms = new_set()
             for room in self.room.subsidiaries:
                 # Do this instead of an active check so that all returned hostiles have the same format!
-                hostiles = stored_hostiles_in(room.room_name)
+                hostiles = stored_hostiles_in(room.name)
                 if len(hostiles):
                     hostile_lists.push(hostiles)
-                checked_rooms.add(room.room_name)
+                checked_rooms.add(room.name)
             for flag in self.room.mining.active_mines:
-                if flag.pos.roomName != self.room.room_name and not checked_rooms.has(flag.pos.roomName):
+                if flag.pos.roomName != self.room.name and not checked_rooms.has(flag.pos.roomName):
                     hostiles = stored_hostiles_in(flag.pos.roomName)
                     if len(hostiles):
                         hostile_lists.push(hostiles)
@@ -501,7 +501,7 @@ class RoomDefense:
             self.room.mem.attack = True
         self.room.mem.attack_until = Game.time + 10 * 1000
         self.room.reset_planned_role()
-        message = "{} activating live defenses.".format(self.room.room_name)
+        message = "{} activating live defenses.".format(self.room.name)
         Game.notify(message)
         console.log(message)
         # TODO: place / manipulate RED/GREEN and GREEN/GREEN flags depending on where the hostiles were found.
@@ -575,7 +575,7 @@ class RoomDefense:
                 and not self.room.being_bootstrapped() \
                 and not _.find(self.room.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN}):
             self.room.building.refresh_building_targets(True)
-            self.room.building.next_priority_construction_targets()
+            self.room.building.get_construction_targets()
 
         alert = self.alert()
 
@@ -587,7 +587,7 @@ class RoomDefense:
                         if Game.time > self.room.mem.attack_until:
                             del self.room.mem.attack
                             del self.room.mem.attack_until
-                            message = "{}: disabling active defenses.".format(self.room.room_name)
+                            message = "{}: disabling active defenses.".format(self.room.name)
                             Game.notify(message)
                             console.log(message)
                     else:
@@ -611,7 +611,7 @@ class RoomDefense:
                         self.room.building.refresh_building_targets(True)
                 elif wall.hits < self.room.get_min_sane_wall_hits:
                     self.room.building.refresh_repair_targets(True)
-            self.room.building.next_priority_construction_targets()
+            self.room.building.get_construction_targets()
 
         if not len(self.all_hostiles()):
             if not (self.room.mem.alert_for < 0):
@@ -688,7 +688,7 @@ class RoomDefense:
                     # TODO: request a rampart defender if this is next to a rampart and there's a small enough gap
                     #  between damage/healing power!
                     print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
-                          .format(self.room.room_name, hostile.pos, healing_possible, attack_possible))
+                          .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                     continue
                 for my_defender in nearby_defenders:
                     my_defender.creep.attack(hostile)

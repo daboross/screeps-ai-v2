@@ -35,16 +35,16 @@ _NO_ROAD_PF_OPTIONS = {
 
 class RoleBase:
     """
-    :type target_mind: control.targets.TargetMind
+    :type targets: control.targets.TargetMind
     :type creep: Creep
     :type name: str
     :type hive: control.hivemind.HiveMind
     :type home: control.hivemind.RoomMind
     """
 
-    def __init__(self, hive_mind, target_mind, home, creep):
-        self.hive = hive_mind
-        self.targets = target_mind
+    def __init__(self, hive, targets, home, creep):
+        self.hive = hive
+        self.targets = targets
         self.home = home
         self.creep = creep
         if creep.memory:
@@ -339,7 +339,7 @@ class RoleBase:
         if len(depots):
             depot = depots[0].pos
         else:
-            self.log("WARNING: No depots found in {}!".format(self.home.room_name))
+            self.log("WARNING: No depots found in {}!".format(self.home.name))
             self.home.building.place_depot_flag()
             depots = flags.find_flags_global(flags.DEPOT)
             if len(depots):
@@ -347,7 +347,7 @@ class RoleBase:
             elif self.home.spawn:
                 depot = self.home.spawn.pos
             else:
-                depot = movement.find_an_open_space(self.home.room_name)
+                depot = movement.find_an_open_space(self.home.name)
         return depot
 
     def go_to_depot(self):
@@ -600,9 +600,9 @@ class RoleBase:
         :type args: list[object]
         """
         if len(args):
-            print("[{}][{}] {}".format(self.home.room_name, self.name, format_string.format(*args)))
+            print("[{}][{}] {}".format(self.home.name, self.name, format_string.format(*args)))
         else:
-            print("[{}][{}] {}".format(self.home.room_name, self.name, format_string))
+            print("[{}][{}] {}".format(self.home.name, self.name, format_string))
 
     __pragma__('fcall')
 
@@ -615,7 +615,7 @@ class RoleBase:
         return self.creep._carry_sum
 
     def toString(self):
-        return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.room_name)
+        return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.name)
 
     __pragma__('nofcall')
 

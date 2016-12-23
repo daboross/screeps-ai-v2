@@ -44,8 +44,8 @@ class MineralMind:
 
     def __init__(self, room):
         self.room = room
-        self.hive = room.hive_mind
-        self.targets = self.hive.target_mind
+        self.hive = room.hive
+        self.targets = self.hive.targets
         self.storage = room.room.storage
         self.terminal = room.room.terminal
         self._has_no_terminal_or_storage = not (self.terminal and self.storage
@@ -120,7 +120,7 @@ class MineralMind:
                                            or self.room.role_count(role_mineral_hauler)
 
         energy_cost = Game.market.calcTransactionCost(min(_SINGLE_MINERAL_FULFILLMENT_MAX, amount),
-                                                      self.room.room_name, target_room)
+                                                      self.room.name, target_room)
         if mineral == RESOURCE_ENERGY:
             energy_cost += amount
         if energy_cost > self.mem['total_energy_needed']:
@@ -151,9 +151,9 @@ class MineralMind:
             for order in order_list:
                 amount = min(_SINGLE_MINERAL_FULFILLMENT_MAX, order.amount)
                 if mineral == RESOURCE_ENERGY:
-                    needed_here = Game.market.calcTransactionCost(amount, self.room.room_name, order.room) + amount
+                    needed_here = Game.market.calcTransactionCost(amount, self.room.name, order.room) + amount
                 else:
-                    needed_here = Game.market.calcTransactionCost(amount, self.room.room_name, order.room)
+                    needed_here = Game.market.calcTransactionCost(amount, self.room.name, order.room)
                 energy_needed = max(energy_needed, needed_here)
                 if mineral != RESOURCE_ENERGY or not _.get(Game.rooms, [order.room, 'controller', 'my'], False):
                     energy_needed_without_self_orders = max(energy_needed_without_self_orders, needed_here)
@@ -161,7 +161,7 @@ class MineralMind:
         self.mem['ten_without_self_orders'] = energy_needed_without_self_orders
 
     def log(self, message):
-        print("[{}][market] {}".format(self.room.room_name, message))
+        print("[{}][market] {}".format(self.room.name, message))
 
     def get_mineral_hauler(self):
         return Game.creeps[self.room.mem.mineral_hauler]
@@ -321,7 +321,7 @@ class MineralMind:
     def sell_orders_by_mineral(self):
         vmem = volatile_cache.mem("market")
         if vmem.has("grouped_sell_orders"):
-            return vmem.get("grouped_sell_orders")[self.room.room_name] or {}
+            return vmem.get("grouped_sell_orders")[self.room.name] or {}
         else:
             all_sell_orders = {}
             for order in _.values(Game.market.orders):
@@ -335,7 +335,7 @@ class MineralMind:
                     else:
                         room_orders[order.resourceType] = [order]
             vmem.set("grouped_sell_orders", all_sell_orders)
-            return all_sell_orders[self.room.room_name] or {}
+            return all_sell_orders[self.room.name] or {}
 
     def _terminal_target_for_resource(self, mineral, currently_have):
         if mineral == RESOURCE_ENERGY:
@@ -402,7 +402,7 @@ class MineralMind:
                 if not mineral_chosen:
                     return
                 amount = self.terminal.store[mineral_chosen]
-                cost = Game.market.calcTransactionCost(amount, self.room.room_name, self.room.mem.empty_to)
+                cost = Game.market.calcTransactionCost(amount, self.room.name, self.room.mem.empty_to)
                 self._next_mineral_to_empty = mineral_chosen, cost
             else:
                 self._next_mineral_to_empty = None, 0
@@ -452,15 +452,15 @@ class MineralMind:
         if mineral == RESOURCE_ENERGY:
             energy_here = min(_SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
             amount = min(target_obj.amount, energy_here)
-            energy_cost = amount + Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
+            energy_cost = amount + Game.market.calcTransactionCost(amount, self.room.name, target_obj.room)
             if energy_cost > energy_here:
-                distance = Game.map.getRoomLinearDistance(self.room.room_name, target_obj.room, True)
+                distance = Game.map.getRoomLinearDistance(self.room.name, target_obj.room, True)
                 total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
                 amount = math.floor(energy_here / total_cost_of_1_energy)
                 energy_cost = math.ceil(amount * total_cost_of_1_energy)
         else:
             amount = min(target_obj.amount, _SINGLE_MINERAL_FULFILLMENT_MAX, self.terminal.store[mineral])
-            energy_cost = Game.market.calcTransactionCost(amount, self.room.room_name, target_obj.room)
+            energy_cost = Game.market.calcTransactionCost(amount, self.room.name, target_obj.room)
         if self.terminal.store[RESOURCE_ENERGY] < energy_cost:
             if energy_cost > self.mem['total_energy_needed']:
                 self.log("WARNING: Error correction! Total energy needed should have been at least {},"
@@ -468,7 +468,7 @@ class MineralMind:
                 self.recalculate_energy_needed()
             return ERR_NOT_ENOUGH_RESOURCES
         if 'order_id' in target_obj:
-            result = Game.market.deal(target_obj.order_id, amount, self.room.room_name)
+            result = Game.market.deal(target_obj.order_id, amount, self.room.name)
         else:
             if target_obj.amount < 100:
                 self.log("WARNING: Error correction! Extending order of {} to {} from {} to {} {} (too small to fill)"
@@ -494,7 +494,7 @@ class MineralMind:
                 target_index = self.fulfilling[mineral].indexOf(target_obj)
                 if target_index < 0:
                     self.log("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}"
-                             .format(JSON.stringify(target_obj), mineral, self.room.room_name))
+                             .format(JSON.stringify(target_obj), mineral, self.room.name))
                 self.fulfilling[mineral].splice(target_index, 1)
                 if not len(self.fulfilling[mineral]):
                     del self.fulfilling[mineral]
@@ -509,16 +509,16 @@ class MineralMind:
                     target_index = self.fulfilling[mineral].indexOf(target_obj)
                     if target_index < 0:
                         self.log("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}"
-                                 .format(JSON.stringify(target_obj), mineral, self.room.room_name))
+                                 .format(JSON.stringify(target_obj), mineral, self.room.name))
                     self.fulfilling[mineral].splice(target_index, 1)
                     if not len(self.fulfilling[mineral]):
                         del self.fulfilling[mineral]
                 else:
                     self.log("ERROR: Unknown result from Game.market.deal({}, {}, {}): {}".format(
-                        target_obj.order_id, amount, self.room.room_name, result))
+                        target_obj.order_id, amount, self.room.name, result))
             else:
                 self.log("ERROR: Unknown result from {}.send({}, {}, {}, {}): {}".format(
-                    self.terminal, mineral, amount, self.room.room_name,
+                    self.terminal, mineral, amount, self.room.name,
                     "'Fulfilling order for {} {}'".format(target_obj.amount, mineral), result))
         return result
 
@@ -529,7 +529,7 @@ class MineralMind:
                 continue
             current_sell_orders = self.sell_orders_by_mineral()[mineral]
             if current_sell_orders:
-                current_sell_orders = _.filter(current_sell_orders, {"roomName": self.room.room_name})
+                current_sell_orders = _.filter(current_sell_orders, {"roomName": self.room.name})
             if current_sell_orders and len(current_sell_orders):
                 to_check = _.min(current_sell_orders, 'price')
                 self.mem.last_sold_at[mineral] = to_check.price
@@ -573,7 +573,7 @@ class MineralMind:
                 self.log("Creating new sell order for {} {} at {} credits/{}".format(
                     _SINGLE_MINERAL_FULFILLMENT_MAX, mineral, price, mineral))
                 Game.market.createOrder(ORDER_SELL, mineral, price,
-                                        _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.room_name)
+                                        _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.name)
                 self.mem.last_sold[mineral] = Game.time
 
     def place_container_construction_site(self, deposit):
@@ -654,11 +654,11 @@ class MineralMind:
         if len(minstrings):
             if len(orderstrings):
                 return "{} has {}, and is fulfilling {}".format(
-                    self.room.room_name, ', '.join(minstrings), ', '.join(orderstrings))
+                    self.room.name, ', '.join(minstrings), ', '.join(orderstrings))
             else:
-                return "{} has {}".format(self.room.room_name, ', '.join(minstrings))
+                return "{} has {}".format(self.room.name, ', '.join(minstrings))
         elif len(orderstrings):
-            return "{} is empty, and is fulfilling {}".format(self.room.room_name, ', '.join(orderstrings))
+            return "{} is empty, and is fulfilling {}".format(self.room.name, ', '.join(orderstrings))
         else:
             return "{} is empty."
 

@@ -452,7 +452,7 @@ class Dismantler(MilitaryBase):
                                     movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
                         self.memory.checkpoint = self.pos
                     if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
-                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.room_name)
+                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target)
         else:
