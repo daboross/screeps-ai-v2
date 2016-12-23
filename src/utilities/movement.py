@@ -31,11 +31,11 @@ def parse_room_to_xy(room_name):
     if not matches:
         return 0, 0
     if matches[1] == "W":
-        x = -int(matches[2])
+        x = -int(matches[2]) - 1
     else:
         x = +int(matches[2])
     if matches[3] == "N":
-        y = -int(matches[4])
+        y = -int(matches[4]) - 1
     else:
         y = +int(matches[4])
     return x, y
@@ -44,9 +44,9 @@ def parse_room_to_xy(room_name):
 def room_xy_to_name(room_x, room_y):
     return "{}{}{}{}".format(
         "E" if room_x > 0 else "W",
-        abs(room_x),
+        - room_x - 1 if room_x < 0 else room_x,
         "S" if room_y > 0 else "N",
-        abs(room_y),
+        - room_y - 1 if room_y < 0 else room_y,
     )
 
 

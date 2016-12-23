@@ -37,8 +37,9 @@ class Scout(MilitaryBase):
                 self.recalc_military_path(self.home.spawn, destination, {"ignore_swamp": True,
                                                                          "use_roads": False})
             rx, ry = movement.parse_room_to_xy(self.pos.roomName)
-            rrx = abs(rx) % 10  # TODO: this will break if we ever actually fix parse_room_to_xy making E0S0 == W0N0
-            rry = abs(ry) % 10
+            # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
+            rrx = (-rx - 1 if rx < 0 else rx) % 10
+            rry = (-ry - 1 if ry < 0 else ry) % 10
             if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
                     and not (rrx == 5 and rry == 5):
                 # should be a source keeper room

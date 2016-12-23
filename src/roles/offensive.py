@@ -22,30 +22,44 @@ __pragma__('noalias', 'type')
 
 class MilitaryBase(RoleBase):
     def _find_nearest_junctions(self):
-        room_xy = parse_room_to_xy(self.pos.roomName)
-        if room_xy is None:  # we're in sim
-            return []
-        x, y = room_xy
+        x, y = parse_room_to_xy(self.pos.roomName)
+        if x == 0 and y == 0 and self.pos.roomName == 'sim':
+            return []  # we're in sim
 
-        if x % 10 == 0:
-            if y % 10 == 0:
+        rrx = (-x - 1 if x < 0 else x) % 10
+        rry = (-y - 1 if y < 0 else y) % 10
+
+        def floor_thing(coord):
+            if coord < 0:
+                return math.floor((coord + 1) / 10) * 10 - 1
+            else:
+                return math.floor(coord / 10) * 10
+
+        def ceil_thing(coord):
+            if coord < 0:
+                return math.ceil((coord + 1) / 10) * 10 - 1
+            else:
+                return math.ceil(coord / 10) * 10
+
+        if rrx == 0:
+            if rry == 0:
                 return [center_pos(room_xy_to_name(x, y))]
             else:
                 return [
-                    center_pos(room_xy_to_name(x, math.floor(y / 10) * 10)),
-                    center_pos(room_xy_to_name(x, math.ceil(y / 10) * 10)),
+                    center_pos(room_xy_to_name(x, floor_thing(y))),
+                    center_pos(room_xy_to_name(x, ceil_thing(y))),
                 ]
-        elif y % 10 == 0:
+        elif rry == 0:
             return [
-                center_pos(room_xy_to_name(math.floor(x / 10) * 10, y)),
-                center_pos(room_xy_to_name(math.ceil(x / 10) * 10, y)),
+                center_pos(room_xy_to_name(floor_thing(x), y)),
+                center_pos(room_xy_to_name(ceil_thing(x), y)),
             ]
         else:
             return [
-                center_pos(room_xy_to_name(math.floor(x / 10) * 10, math.floor(y / 10) * 10)),
-                center_pos(room_xy_to_name(math.floor(x / 10) * 10, math.ceil(y / 10) * 10)),
-                center_pos(room_xy_to_name(math.ceil(x / 10) * 10, math.floor(y / 10) * 10)),
-                center_pos(room_xy_to_name(math.ceil(x / 10) * 10, math.ceil(y / 10) * 10)),
+                center_pos(room_xy_to_name(floor_thing(x), floor_thing(y))),
+                center_pos(room_xy_to_name(floor_thing(x), ceil_thing(y))),
+                center_pos(room_xy_to_name(ceil_thing(x), floor_thing(y))),
+                center_pos(room_xy_to_name(ceil_thing(x), ceil_thing(y))),
             ]
 
     def find_midpoint(self, origin, target):

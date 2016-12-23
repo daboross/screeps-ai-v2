@@ -137,7 +137,9 @@ class HoneyTrails:
             if_roads_multiplier = 2 if use_roads else 1
 
         room_x, room_y = movement.parse_room_to_xy(room_name)
-        if room_x % 10 == 0 or room_y % 10 == 0:
+        rrx = (-room_x - 1 if room_x < 0 else room_x) % 10
+        rry = (-room_y - 1 if room_y < 0 else room_y) % 10
+        if rrx == 0 or rry == 0:
             for x in [0, 49]:
                 for y in range(0, 50):
                     if Game.map.getTerrainAt(x, y, room_name) != 'wall':
