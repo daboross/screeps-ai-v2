@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build file for transcrypting Python files into JavaScript, and subsequently deploying to the local repository.
+# Build file for transpiling Python files into JavaScript, and subsequently deploying to the screeps server.
 
 # Fail early
 set -e
@@ -14,21 +14,24 @@ if [[ ! -e env ]]; then
     npm install # do this here because this means we're in a new install
 fi
 
-# Variables
+# Transcrypt binary
 TRANSCRYPT="$BASEDIR/env/bin/transcrypt"
-
+# Final distribution directory
+DIST_DIR="$BASEDIR/dist"
+# Source javascript files directory
+JS_DIR="$BASEDIR/js_files"
+# Python source directory
+SRC_DIR="$BASEDIR/src"
 
 rm -rf target/
 mkdir -p target/
 
-cd "src"
-# "$TRANSCRYPT" -n -b -p .none -e6 main.py
+cd "$SRC_DIR"
 "$TRANSCRYPT" -n -b -p .none main.py
-cp __javascript__/main.* ../target/
-cd ../
+cd "$BASEDIR"
 
-mkdir -p dist/
-cp target/main.js dist/
-cp js_files/*.js dist/
+mkdir -p "$DIST_DIR/"
+cp "$SRC_DIR/__javascript__/main.js" "$DIST_DIR/"
+cp "$JS_DIR/"*.js "$DIST_DIR/"
 
 grunt screeps "$@"

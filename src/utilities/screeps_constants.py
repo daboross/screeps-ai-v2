@@ -5,10 +5,12 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+# Don't actually include any of the following lines:
 __pragma__('skip')
-# This file defines names that we expect to exist in screeps, so as to allow editor warnings
-# without spamming them everywhere.
+# This file defines names that we expect to exist in screeps.
+# TODO: make each of these a full class, for full autocomplete.
 __all__ = [
+    # Classes
     "Creep",
     "Game",
     "Memory",
@@ -17,6 +19,7 @@ __all__ = [
     "PathFinder",
     "Object",
     "Math",
+    # Constants
     "OK",
     "CONTROLLER_STRUCTURES",
     "ERR_NO_PATH",
@@ -161,6 +164,7 @@ __all__ = [
     "RAMPART_HITS_MAX",
     "WALL_HITS",
     "WALL_HITS_MAX",
+    # JavaScript things
     "typeof",
     "require",
     "module",
@@ -177,10 +181,12 @@ __all__ = [
     "isFinite",
     "js_isNaN",
     "_",
+    # Transcrypt-specific things
     "__pragma__",
     "__new__",
     "__except__",
     "__except0__",
+    # Utility functions for autocomplete
     "new_map",
     "new_set",
 ]
