@@ -69,7 +69,7 @@ class EnergyMiner(TransportPickup):
             return False
         elif distance_away > 1:
             creep = _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my)
-            if creep.memory.role == role_miner and creep.ticksToLive > 100:
+            if creep and creep.memory.role == role_miner and creep.ticksToLive > 100:
                 self.memory.container_pos = None
                 sitting_target = source_flag.pos
             self.move_to(sitting_target)
