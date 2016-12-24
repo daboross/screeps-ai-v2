@@ -41,23 +41,28 @@ creep_base_3h = "ranged_3h"
 # and away from enemies. (or improve scout)
 
 # Hive Mind TargetMind possible targets
-target_source = "source"
-target_construction = "construction_site"
-target_repair = "repair_site"
-target_big_repair = "extra_repair_site"
-target_big_big_repair = "ders"
-target_destruction_site = "destruction_site"
-target_spawn_deposit = "spawn_deposit_site"
-target_tower_fill = "fillable_tower"
-target_energy_miner_mine = "remote_miner_mine"
-target_energy_hauler_mine = "remote_mine_hauler"
-target_closest_energy_site = "generic_deposit"
-target_reserve_now = "top_priority_reserve"
-target_single_flag = "sccf"  # single creep, closest flag
-target_home_flag = "hf"  # home flag
-target_single_flag2 = "sccf2"  # single creep, closest flag
-target_refill = "refill"
-target_rampart_defense = "rampart_def"
+# Generic targets: 0*
+target_source = 0
+target_closest_energy_site = 1
+target_single_flag = 2
+target_single_flag2 = 3
+target_home_flag = 4
+target_refill = 5
+# Builder targets: 1*
+target_construction = 10
+target_repair = 11
+target_big_repair = 12
+target_big_big_repair = 13
+target_destruction_site = 14
+# Spawn filler / tower filler: 2*
+target_spawn_deposit = 20
+target_tower_fill = 21
+# Energy miner / hauler: 3*
+target_energy_miner_mine = 30
+target_energy_hauler_mine = 31
+target_reserve_now = 32
+# Other military: 4*
+target_rampart_defense = 40
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"

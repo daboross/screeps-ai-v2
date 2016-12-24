@@ -39,6 +39,51 @@ def _mass_count(name):
 __pragma__('fcall')
 
 
+def update_targeters_memory_0_to_1(targeters):
+    string_target_names_to_numbers = {
+        'source': 0,
+        'generic_deposit': 1,
+        'sccf': 2,
+        'sccf2': 3,
+        'hf': 4,
+        'refill': 5,
+        'construction_site': 10,
+        'repair_site': 11,
+        'extra_repair_site': 12,
+        'ders': 13,
+        'destruction_site': 14,
+        'spawn_deposit_site': 20,
+        'fillable_tower': 21,
+        'remote_miner_mine': 30,
+        'remote_mine_hauler': 31,
+        'top_priority_reserve': 32,
+        'rampart_def': 40,
+    }
+    new_targeters = {}
+    for targeter_id in Object.keys(targeters):
+        new_targeter_map = {}
+        new_targeters[targeter_id] = new_targeter_map
+        for ttype in Object.keys(targeters[targeter_id]):
+            target_id = targeters[targeter_id][ttype]
+            if _.isString(ttype):
+                if ttype in string_target_names_to_numbers:
+                    ttype = string_target_names_to_numbers[ttype]
+                else:
+                    msg = "WARNING: Error updating old targetmind memory. Couldn't find ttype {} in conversion map!" \
+                        .format(ttype)
+                    console.log(msg)
+                    Game.notify(msg)
+                    raise ValueError
+            elif not _.isNumber(ttype):
+                msg = "WARNING: Error updating old TargetMind memory. Unknown type of ttype (not string nor int): {}!" \
+                    .format(ttype)
+                console.log(msg)
+                Game.notify(msg)
+                raise ValueError
+            new_targeter_map[ttype] = target_id
+    return new_targeters
+
+
 class TargetMind:
     def __init__(self):
         if not Memory.targets:
@@ -46,8 +91,15 @@ class TargetMind:
                 "targets_used": {},
                 "targeters_using": {},
                 "last_clear": Game.time,
+                "version": 1,
             }
         self.mem = Memory.targets
+        if 'version' not in self.mem or self.mem.version < 1:
+            targeters = self.mem.targeters_using or {}
+            self.mem.targeters_using = update_targeters_memory_0_to_1(targeters)
+            self._recreate_all_from_targeters()
+            self.mem.version = 1
+            self.mem.last_clear = Game.time
         if not self.mem.targets_used:
             self.mem.targets_used = {}
         if not self.mem.targets_workforce:
@@ -57,7 +109,7 @@ class TargetMind:
         if not self.mem.targets_stealable:
             self.mem.targets_stealable = {}
         if (self.mem.last_clear or 0) + 1000 < Game.time:
-            self._reregister_all()
+            self._recreate_all_from_targeters()
             self.mem.last_clear = Game.time
         self.find_functions = {
             target_source: self._find_new_source,
@@ -154,7 +206,7 @@ class TargetMind:
         else:
             self.reverse_targets[ttype][target_id].push(targeter_id)
 
-    def _reregister_all(self):
+    def _recreate_all_from_targeters(self):
         new_targets = {}
         new_workforce = {}
         new_reverse = {}
