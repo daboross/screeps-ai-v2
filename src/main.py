@@ -82,7 +82,7 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
                 instance = wrap_creep(hive, targets, room, creep)
                 room.register_to_role(instance)
             else:
-                instance = RoleBase(hivemind, targets, room, creep)
+                instance = RoleBase(hive, targets, room, creep)
                 instance.go_to_depot()
                 instance.report(speech.base_no_role)
         records.finish_record('hive.wrap-creep')
