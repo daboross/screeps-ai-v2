@@ -265,7 +265,6 @@ class Builder(upgrading.Upgrader):
         return self.targets.get_new_target(self, target_construction, walls_only)
 
     def execute_repair_target(self, target, max_hits, ttype):
-        self.report(speech.building_repair_target, target.structureType)
         if target.hits >= target.hitsMax or (target.hits >= max_hits * 2 and
                                                  (target.structureType == STRUCTURE_WALL
                                                   or target.structureType == STRUCTURE_RAMPART)):
@@ -313,7 +312,6 @@ class Builder(upgrading.Upgrader):
                 self.targets.untarget(self, target_construction)
                 self.move_to(target)
                 return False
-        self.report(speech.building_build_target, target.structureType)
         if not self.creep.pos.inRangeTo(target.pos, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!

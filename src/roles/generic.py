@@ -159,7 +159,6 @@ class Recycling(Refill, MilitaryBase):
             elif self.creep.carry.energy > 0:
                 return self.refill_creeps()
 
-        self.report(speech.recycling)
         self.recycle_me()
 
     def _calculate_time_to_replace(self):

@@ -23,7 +23,6 @@ class LinkManager(RoleBase):
         if not link or not storage:
             self.log("ERROR: Link manager can't find main link or storage in {}.".format(self.home.name))
             self.go_to_depot()
-            self.report(speech.link_manager_something_not_found)
             return False
         # Note: this does assume storage is directly within one space of the main link.
         if 'station_pos' not in self.memory:
@@ -62,7 +61,6 @@ class LinkManager(RoleBase):
         if current_pos != self.memory.station_pos:
             self.move_to(__new__(RoomPosition(self.memory.station_pos & 0x3F,
                                               self.memory.station_pos >> 6 & 0x3F, self.home.name)))
-            self.report(speech.link_manager_moving)
             return False
 
         if self.ensure_no_minerals():
@@ -82,7 +80,6 @@ class LinkManager(RoleBase):
                 self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, self.creep.carryCapacity / 2
                                                    - self.creep.carry.energy), "withdraw", storage,
                                RESOURCE_ENERGY)
-            self.report((["balancing"], True))
             return False
 
         self.home.links.note_link_manager(self)
@@ -191,24 +188,19 @@ class Cleanup(SpawnFill):
 
             if not self.creep.pos.isNearTo(pile.pos):
                 self.move_to(pile)
-                self.report(speech.cleanup_found_energy, pile.pos.x, pile.pos.y)
                 return False
 
             result = self.creep.pickup(pile)
 
-            if result == OK:
-                self.report(speech.link_manager_ok)
-            elif result == ERR_FULL:
+            if result == ERR_FULL:
                 self.memory.filling = False
                 return True
-            else:
+            elif result != OK:
                 self.log("Unknown result from cleanup-creep.pickup({}): {}", pile, result)
-                self.report(speech.link_manager_unknown_result)
         else:
             if not storage:
                 # self.log("Cleanup can't find storage in {}!", self.creep.room.name)
                 # self.go_to_depot()
-                # self.report(speech.link_manager_something_not_found)
                 # return False
                 return SpawnFill.run(self)
 
@@ -238,18 +230,14 @@ class Cleanup(SpawnFill):
 
             resource_type = _.find(Object.keys(self.creep.carry), lambda r: self.creep.carry[r] > 0)
             result = self.creep.transfer(target, resource_type)
-            if result == OK:
-                self.report(speech.link_manager_ok)
-            elif result == ERR_NOT_ENOUGH_RESOURCES:
+            if result == ERR_NOT_ENOUGH_RESOURCES:
                 self.memory.filling = True
                 return True
             elif result == ERR_FULL:
                 if target == storage:
                     self.log("Storage in room {} full!", storage.room.name)
-                self.report(speech.link_manager_storage_full)
-            else:
+            elif result != OK:
                 self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)
-                self.report(speech.link_manager_unknown_result)
 
     def _calculate_time_to_replace(self):
         return 0  # Don't live-replace

@@ -84,7 +84,6 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
             else:
                 instance = RoleBase(hive, targets, room, creep)
                 instance.go_to_depot()
-                instance.report(speech.base_no_role)
         records.finish_record('hive.wrap-creep')
         creep.wrapped = instance
         records.start_record()
@@ -309,6 +308,11 @@ def main():
             print("[main] Skipped {}/{} creeps, to save CPU.".format(skipped_count, all_creeps))
             print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
             Memory.skipped_last_turn = creeps_skipped
+
+    if Game.cpu.bucket is undefined or Game.cpu.bucket >= 6000:
+        records.start_record()
+        hive.sing()
+        records.finish_record('hive.sing')
 
     records.finish_main_record()
 

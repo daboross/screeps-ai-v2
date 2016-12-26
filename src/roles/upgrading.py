@@ -194,7 +194,6 @@ class Upgrader(RoleBase):
 
         if not self.home.room.controller.my or (self.home.upgrading_paused()
                                                 and self.creep.room.controller.ticksToDowngrade >= 9900):
-            self.report(speech.upgrading_upgrading_paused)
             if not self.empty_to_storage():
                 self.go_to_depot()
             return False
@@ -226,7 +225,6 @@ class Upgrader(RoleBase):
                 if not self.creep.pos.inRangeTo(target.pos, 3):
                     self.build_swamp_roads()
                     self.move_to(target)
-                    self.report(speech.upgrading_moving_to_controller)
                     return False
 
                 result = self.creep.upgradeController(target)
@@ -263,7 +261,6 @@ class Upgrader(RoleBase):
                             return False
 
                         self.force_basic_move_to(target, can_move_over)
-                    self.report(speech.upgrading_ok)
                 else:
                     self.log("Unknown result from upgradeController({}): {}", self.creep.room.controller, result)
 
@@ -271,7 +268,6 @@ class Upgrader(RoleBase):
                         self.memory.filling = True
                     else:
                         self.go_to_depot()
-                        self.report(speech.upgrading_unknown_result)
 
     def build_swamp_roads(self):
         if not _.get(self.home.room, 'storage.storeCapacity') and self.creep.carry.energy > 0:

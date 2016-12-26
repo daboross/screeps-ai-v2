@@ -583,16 +583,6 @@ class RoleBase:
                 return True
         return False
 
-    def report(self, task_array, *args):
-        if Game.cpu.bucket >= 6000 and (not Memory.meta.quiet or task_array[1]):
-            time = Game.time
-            if len(args):
-                stuff = task_array[0][time % len(task_array[0])].format(*args)
-            else:
-                stuff = task_array[0][time % len(task_array[0])]
-            if stuff:
-                self.creep.say(stuff, True)
-
     def log(self, format_string, *args):
         """
         Logs a given string

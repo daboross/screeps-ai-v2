@@ -159,7 +159,6 @@ class ReserveNow(MilitaryBase):
 
         if not self.creep.pos.isNearTo(controller.pos):
             self.move_to(controller)
-            self.report(speech.remote_reserve_moving)
             return False
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
@@ -171,7 +170,6 @@ class ReserveNow(MilitaryBase):
                 self.creep.claimController(controller)
                 controller.room.memory.sponsor = self.home.name
             self.creep.reserveController(controller)
-            self.report(speech.remote_reserve_reserving)
 
     def _calculate_time_to_replace(self):
         target = self.targets.get_new_target(self, target_reserve_now)

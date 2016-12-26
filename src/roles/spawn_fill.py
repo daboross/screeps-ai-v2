@@ -90,7 +90,6 @@ class SpawnFill(building.Builder, Refill):
                         return True
                     else:
                         if not self.creep.pos.isNearTo(target.pos):
-                            self.report(speech.spawn_fill_moving_to_target)
                             self.move_to(target)
                             return False
                         del self.memory.nbm
@@ -98,7 +97,6 @@ class SpawnFill(building.Builder, Refill):
                         result = self.creep.transfer(target, RESOURCE_ENERGY)
 
                         if result == OK:
-                            self.report(speech.spawn_fill_ok)
                             if self.creep.carry.energy > target.energyCapacity - target.energy:
                                 volatile_cache.mem("extensions_filled").set(target.id, True)
                                 if self.creep.carry.energy + target.energy - target.energyCapacity > 0:
@@ -114,7 +112,6 @@ class SpawnFill(building.Builder, Refill):
                         else:
                             self.log("Unknown result from spawn_fill-creep.transfer({}): {}", target, result)
                             self.targets.untarget(self, target_spawn_deposit)
-                            self.report(speech.spawn_fill_unknown_result)
                             return True
                         return False
 

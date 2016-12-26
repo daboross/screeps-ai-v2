@@ -41,18 +41,14 @@ class TowerFill(spawn_fill.SpawnFill):
                     return spawn_fill.SpawnFill.run(self)
                 if not self.creep.pos.isNearTo(target.pos):
                     self.move_to(target)
-                    self.report(speech.tower_fill_moving_to_tower)
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
-                if result == OK:
-                    self.report(speech.tower_fill_ok)
-                elif result == ERR_FULL:
+                if result == ERR_FULL:
                     self.targets.untarget(self, target_tower_fill)
                     return True
-                else:
+                elif result != OK:
                     self.log("Unknown result from tower_fill-creep.transfer({}): {}", target, result)
                     self.targets.untarget(self, target_tower_fill)
-                    self.report(speech.tower_fill_unknown_result)
 
             return spawn_fill.SpawnFill.run(self)
 

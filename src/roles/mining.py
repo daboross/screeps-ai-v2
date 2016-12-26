@@ -65,7 +65,6 @@ class EnergyMiner(TransportPickup):
                 self.move_to(sitting_target)
             else:
                 self.follow_energy_path(self.home.spawn, sitting_target)
-            self.report(speech.energy_miner_moving)
             return False
         elif distance_away > 1:
             creep = _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my)
@@ -100,7 +99,6 @@ class EnergyMiner(TransportPickup):
         sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
-            self.report(speech.energy_miner_flag_no_source)
             return False
         source = sources_list[0]
 
@@ -115,13 +113,8 @@ class EnergyMiner(TransportPickup):
         #         if current_work > source.energy / (source.ticksToRegeneration - 1) / HARVEST_POWER:
         #             return False  # skip a tick, to spread it out
         result = self.creep.harvest(source)
-        if result == OK:
-            self.report(speech.energy_miner_ok)
-        elif result == ERR_NOT_ENOUGH_RESOURCES:
-            self.report(speech.energy_miner_ner)
-        else:
+        if result != OK and result != ERR_NOT_ENOUGH_RESOURCES:
             self.log("Unknown result from mining-creep.harvest({}): {}", source, result)
-            self.report(speech.energy_miner_unknown_result)
 
         if self.creep.carryCapacity:
             if 'link' in self.memory:

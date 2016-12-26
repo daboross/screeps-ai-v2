@@ -3,6 +3,7 @@ import math
 import creep_wrappers
 import flags
 import spawning
+import speech
 from constants import *
 from control import defense
 from control.building import ConstructionMind
@@ -329,6 +330,16 @@ class HiveMind:
             "\t".join(["{} {}".format(amount, mineral) for mineral, amount in _.pairs(tally)])
         ))
         return "\n".join(result)
+
+    def sing(self):
+        creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName')
+        for room_name in Object.keys(creeps_by_room):
+            room = self.get_room(room_name)
+            if room:
+                room.sing(creeps_by_room[room_name])
+            else:
+                print("[hive] WARNING: No room found with name {}, which {} creeps were supposedly in!"
+                      .format(room_name, len(creeps_by_room[room])))
 
     def toString(self):
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))
@@ -2181,6 +2192,18 @@ class RoomMind:
             # This function modifies the role.
             spawning.validate_role(self.mem.next_role)
         return self.mem.next_role
+
+    def sing(self, creeps_here_now):
+        if '_ly' not in self.mem:
+            self.mem._ly = [_(speech.songs).keys().sample(), 0]
+        song_key, position = self.mem._ly
+        if song_key not in speech.songs or position >= len(speech.songs[song_key]):
+            song_key = _(speech.songs).keys().sample()
+            position = 0
+        note = speech.songs[song_key][position]
+        if note is not None:
+            _.sample(creeps_here_now).say(note, True)
+        self.mem._ly = [song_key, position + 1]
 
     def toString(self):
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
