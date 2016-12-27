@@ -418,7 +418,6 @@ class MineralMind:
                            "Emptying to {}".format(self.room.mem.empty_to))
 
     def run_fulfillment(self):
-        self.log("Running fulfillment for {} minerals.".format(len(self.fulfilling)))
         vmem = volatile_cache.mem("market")
         for mineral in Object.keys(self.fulfilling):
             if mineral in self.terminal.store:
