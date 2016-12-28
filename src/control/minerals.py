@@ -659,7 +659,7 @@ class MineralMind:
         elif len(orderstrings):
             return "{} is empty, and is fulfilling {}".format(self.room.name, ', '.join(orderstrings))
         else:
-            return "{} is empty."
+            return "{} is empty.".format(self.room.name)
 
 
 __pragma__('nofcall')
