@@ -255,7 +255,7 @@ class MineralHauler(RoleBase):
                     resource = _.findKey(container.store)
                     if resource:
                         self.creep.withdraw(container, resource)
-                    elif self.carry_sum():
+                    elif self.carry_sum() or not mineral.mineralAmount:
                         del self.memory.state
             else:
                 self.move_to(container.pos)
