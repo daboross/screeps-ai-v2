@@ -1,5 +1,6 @@
 import flags
 from constants import target_single_flag, INVADER_USERNAME
+from control import pathdef
 from roles.offensive import MilitaryBase
 from utilities import movement
 from utilities.screeps_constants import *
@@ -15,7 +16,7 @@ __pragma__('noalias', 'type')
 
 class Scout(MilitaryBase):
     def run(self):
-        destination = self.targets.get_existing_target(self, target_single_flag, flags.SCOUT)
+        destination = self.targets.get_existing_target(self, target_single_flag)
         if not destination:
             if not self.memory.idle_for:
                 self.log("WARNING: Scout does not have destination set!")
@@ -31,35 +32,47 @@ class Scout(MilitaryBase):
                           or (movement.xy_to_serialized_int(destination.pos.x, destination.pos.y)
                               + destination.pos.roomName) != destination.memory.explored_at
 
-        if still_exploring and self.memory.last_room != self.pos.roomName:
-            self.memory.last_room = self.pos.roomName
-            if self.room.enemy and self.pos.roomName != destination.pos.roomName:
+        if still_exploring:
+            # recalculate_path
+            if self.memory.rp:
+                pathdef.clear_serialized_cost_matrix(self.memory.rp)
+                if self.memory.rp == self.pos.roomName:
+                    self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
                 self.recalc_military_path(self.home.spawn, destination, {"ignore_swamp": True,
                                                                          "use_roads": False})
-            rx, ry = movement.parse_room_to_xy(self.pos.roomName)
-            # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
-            rrx = (-rx - 1 if rx < 0 else rx) % 10
-            rry = (-ry - 1 if ry < 0 else ry) % 10
-            if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
-                    and not (rrx == 5 and rry == 5):
-                # should be a source keeper room
-                if not len(flags.find_flags(self.room, flags.SK_LAIR_SOURCE_NOTED)):
-                    lair_count = 0
-                    for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
-                        if lair.structureType == STRUCTURE_KEEPER_LAIR:
-                            if not flags.look_for(self.room, lair, flags.SK_LAIR_SOURCE_NOTED):
-                                flags.create_flag(lair, flags.SK_LAIR_SOURCE_NOTED)
-                            lair_count += 1
-                    if lair_count:
-                        for source in self.room.find(FIND_SOURCES).concat(self.room.find(FIND_MINERALS)):
-                            if not flags.look_for(self.room, source, flags.SK_LAIR_SOURCE_NOTED):
-                                flags.create_flag(source, flags.SK_LAIR_SOURCE_NOTED)
-                    else:
-                        self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
-                                 .format(self.pos.roomName))
+                del self.memory.rp
 
-            self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
-            self.log("Scouted room {}, {}.".format(rx, ry))
+            if self.memory.last_room != self.pos.roomName:
+                self.memory.last_room = self.pos.roomName
+                if self.room.enemy and self.pos.roomName != destination.pos.roomName:
+                    self.recalc_military_path(self.home.spawn, destination, {"ignore_swamp": True,
+                                                                             "use_roads": False})
+                rx, ry = movement.parse_room_to_xy(self.pos.roomName)
+                # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
+                rrx = (-rx - 1 if rx < 0 else rx) % 10
+                rry = (-ry - 1 if ry < 0 else ry) % 10
+                lair_count = 0
+                if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
+                        and not (rrx == 5 and rry == 5):
+                    # should be a source keeper room
+                    if not len(flags.find_flags(self.room, flags.SK_LAIR_SOURCE_NOTED)):
+                        for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
+                            if lair.structureType == STRUCTURE_KEEPER_LAIR:
+                                if not flags.look_for(self.room, lair, flags.SK_LAIR_SOURCE_NOTED):
+                                    flags.create_flag(lair, flags.SK_LAIR_SOURCE_NOTED)
+                                lair_count += 1
+                        if lair_count:
+                            for source in self.room.find(FIND_SOURCES).concat(self.room.find(FIND_MINERALS)):
+                                if not flags.look_for(self.room, source, flags.SK_LAIR_SOURCE_NOTED):
+                                    flags.create_flag(source, flags.SK_LAIR_SOURCE_NOTED)
+                        else:
+                            self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
+                                     .format(self.pos.roomName))
+                if lair_count > 0:
+                    # recalculate_path_next
+                    self.memory.rp = self.pos.roomName
+                self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
+                self.log("Scouted room {}, {}.".format(rx, ry))
 
         if self.pos.isEqualTo(destination) or \
                 (self.pos.isNearTo(destination)

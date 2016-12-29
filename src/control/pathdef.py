@@ -120,6 +120,13 @@ def direction_to(origin, destination):
 __pragma__('fcall')
 
 
+def clear_serialized_cost_matrix(room_name):
+    for i in range(0, 10):
+        key = "{}_cost_matrix_{}".format(room_name, i)
+        if global_cache.has(key):
+            global_cache.rem(key)
+
+
 class HoneyTrails:
     """
     :type hive: control.hivemind.HiveMind
