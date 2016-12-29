@@ -23,9 +23,6 @@ JS_DIR="$BASEDIR/js_files"
 # Python source directory
 SRC_DIR="$BASEDIR/src"
 
-rm -rf target/
-mkdir -p target/
-
 cd "$SRC_DIR"
 "$TRANSCRYPT" -n -b -p .none main.py
 cd "$BASEDIR"

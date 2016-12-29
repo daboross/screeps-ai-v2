@@ -93,6 +93,7 @@ function move (direction) {
             break;
     }
     if (newX > 49 || newY > 49 || newX < 0 || newY < 0) {
+        this.__moved = true;
         return result;
     }
     var creeps = this.room.lookForAt(LOOK_CREEPS, newX, newY);
