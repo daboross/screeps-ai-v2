@@ -41,7 +41,7 @@ Cyan:
     Cyan: RANGED_DEFENSE    - Kiting defender spot
     Green: ATTACK_DISMANTLE - Dismantler Spot
     Yellow: RAID_OVER       - Raid Over Notice
-    Orange:
+    Orange: ENERGY_GRAB     - Energy grab spot
     Brown: SCOUT            - Scout Here
     Grey: ATTACK_POWER_BANK - Power bank attacker spot
     White: REAP_POWER_BANK  - Power bank carrier spot
@@ -174,11 +174,11 @@ flag_definitions = {
     TD_D_GOAD: (COLOR_CYAN, COLOR_BLUE),
     ATTACK_DISMANTLE: (COLOR_CYAN, COLOR_GREEN),
     RAID_OVER: (COLOR_CYAN, COLOR_YELLOW),
+    ENERGY_GRAB: (COLOR_CYAN, COLOR_ORANGE),
     SCOUT: (COLOR_CYAN, COLOR_BROWN),
     RANGED_DEFENSE: (COLOR_CYAN, COLOR_CYAN),
     ATTACK_POWER_BANK: (COLOR_CYAN, COLOR_GREY),
     REAP_POWER_BANK: (COLOR_CYAN, COLOR_WHITE),
-    ENERGY_GRAB: (COLOR_WHITE, COLOR_WHITE),  # TODO: change
     REMOTE_MINE: (COLOR_GREEN, COLOR_CYAN),
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
     RESERVE_NOW: (COLOR_GREEN, COLOR_GREY),
