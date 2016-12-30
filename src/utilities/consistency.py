@@ -129,6 +129,12 @@ def complete_refresh(hive):
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
+    for name in Memory.rooms:
+        mem = Memory.rooms[name]
+        if '_ly' in mem:
+            del mem['_ly']
+        if not len(mem):
+            del Memory.rooms[name]
 
 
 reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")

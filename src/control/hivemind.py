@@ -332,6 +332,8 @@ class HiveMind:
         return "\n".join(result)
 
     def sing(self):
+        if '_ly' not in Memory:
+            Memory['_ly'] = {}
         creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName')
         for room_name in Object.keys(creeps_by_room):
             room = self.get_room(room_name)
@@ -340,6 +342,10 @@ class HiveMind:
             else:
                 print("[hive] WARNING: No room found with name {}, which {} creeps were supposedly in!"
                       .format(room_name, len(creeps_by_room[room])))
+        if Game.time % 30 == 0:
+            for name in Object.keys(Memory['_ly']):
+                if name not in Game.rooms:
+                    del Memory['_ly'][name]
 
     def toString(self):
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))
@@ -2194,16 +2200,16 @@ class RoomMind:
         return self.mem.next_role
 
     def sing(self, creeps_here_now):
-        if '_ly' not in self.mem:
-            self.mem._ly = [_(speech.songs).keys().sample(), 0]
-        song_key, position = self.mem._ly
+        if self.name not in Memory['_ly']:
+            Memory['_ly'][self.name] = [_(speech.songs).keys().sample(), 0]
+        song_key, position = Memory['_ly'][self.name]
         if song_key not in speech.songs or position >= len(speech.songs[song_key]):
             song_key = _(speech.songs).keys().sample()
             position = 0
         note = speech.songs[song_key][position]
         if note is not None:
             _.sample(creeps_here_now).say(note, True)
-        self.mem._ly = [song_key, position + 1]
+        Memory['_ly'][self.name] = [song_key, position + 1]
 
     def toString(self):
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
