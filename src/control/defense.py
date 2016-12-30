@@ -254,13 +254,16 @@ class RoomDefense:
             return self._cache.get('any_broken_walls')
         else:
             broken = False
-            for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL) \
-                    .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART)):
-                if not _.find(flag.pos.lookFor(LOOK_STRUCTURES),
-                              lambda s: s.structureType == STRUCTURE_WALL
-                              or s.structureType == STRUCTURE_RAMPART):
-                    broken = True
-                    break
+            if self.room.being_bootstrapped() and not self.room.mem.prio_walls:
+                broken = True
+            else:
+                for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL) \
+                        .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART)):
+                    if not _.find(flag.pos.lookFor(LOOK_STRUCTURES),
+                                  lambda s: s.structureType == STRUCTURE_WALL
+                                  or s.structureType == STRUCTURE_RAMPART):
+                        broken = True
+                        break
             self._cache.set('any_broken_walls', broken)
             return broken
 
@@ -604,19 +607,20 @@ class RoomDefense:
             self.room.mem.attack_until = Game.time + 10 * 1000
 
         if Game.time % 5 == 1:
-            for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
-                    .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
-                wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
-                              lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
-                if not wall:
-                    if len(self.room.find(FIND_MY_CONSTRUCTION_SITES)) < 15 \
-                            and not _.find(self.room.room.lookForAt(LOOK_CONSTRUCTION_SITES, flag),
-                                           lambda s: s.structureType == STRUCTURE_WALL
-                                           or s.structureType == STRUCTURE_RAMPART):
-                        self.room.building.refresh_building_targets(True)
-                elif wall.hits < self.room.get_min_sane_wall_hits:
-                    self.room.building.refresh_repair_targets(True)
-            self.room.building.get_construction_targets()
+            if not self.room.being_bootstrapped() or self.room.mem.prio_walls:
+                for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
+                        .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
+                    wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
+                                  lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
+                    if not wall:
+                        if len(self.room.find(FIND_MY_CONSTRUCTION_SITES)) < 15 \
+                                and not _.find(self.room.room.lookForAt(LOOK_CONSTRUCTION_SITES, flag),
+                                               lambda s: s.structureType == STRUCTURE_WALL
+                                               or s.structureType == STRUCTURE_RAMPART):
+                            self.room.building.refresh_building_targets(True)
+                    elif wall.hits < self.room.get_min_sane_wall_hits:
+                        self.room.building.refresh_repair_targets(True)
+                self.room.building.get_construction_targets()
 
         if not len(self.all_hostiles()):
             if not (self.room.mem.alert_for < 0):
