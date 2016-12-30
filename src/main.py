@@ -30,7 +30,8 @@ from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
 from tools import profiling, memory_info
-from utilities import records, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move
+from utilities import records, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move, \
+    deathwatch
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -243,7 +244,10 @@ def main():
     records.finish_record('hive.poll-creeps')
     if Game.time % 5 == 1 or not _.isEmpty(Memory.hostiles):
         records.start_record()
-        # NOTE: this also runs running-away checks!
+        deathwatch.start_of_tick_check()
+        records.finish_record('deathwatch.check')
+        records.start_record()
+        # NOTE: this also runs running-away checks and deathwatch checks!
         defense.poll_hostiles(hive, autoactions.running_check_room)
         records.finish_record('defense.poll-hostiles')
     if Game.time % 25 == 7:

@@ -3,7 +3,7 @@ import math
 import flags
 from constants import INVADER_USERNAME, SK_USERNAME
 from tools import profiling
-from utilities import movement, hostile_utils, volatile_cache
+from utilities import movement, hostile_utils, volatile_cache, deathwatch
 from utilities.screeps_constants import *
 from utilities.screeps_constants import new_set
 
@@ -89,6 +89,7 @@ def poll_hostiles(hive, run_away_checks):
             room.mem.danger = danger
             try:
                 run_away_checks(room)
+                deathwatch.mark_creeps(room)
             except:
                 msg = "[hive] Error running run-away-checks in {}!\n{}".format(
                     room.name, __except0__.stack if __except0__ else 'e: {}'.format(__except0__)
