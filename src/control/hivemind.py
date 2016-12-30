@@ -983,62 +983,21 @@ class RoomMind:
         return consistency.reassign_room_roles(self)
 
     def paving(self):
+        if not self.my:
+            return False
         paving = self.get_cached_property("paving_here")
         if paving is None:
-            if self.my:
-                paving = (self.room.storage or self.spawn) and \
-                         (self.get_max_mining_op_count() >= 1 or self.room.storage) \
-                         and len(self.mining.available_mines) >= 1 \
-                         and self.room.energyCapacityAvailable >= 600
-            else:
-                paving = False
-                for flag in flags.find_flags(self, flags.REMOTE_MINE):
-                    if flag.memory.sponsor:
-                        # if we're a remote mine and our sponsor is paving, let's also pave.
-                        sponsor = self.hive.get_room(flag.memory.sponsor)
-                        if sponsor and sponsor.paving():
-                            paving = True
-                            break
+            paving = (self.room.storage or self.spawn) and \
+                     (self.get_max_mining_op_count() >= 1 or self.room.storage) \
+                     and len(self.mining.available_mines) >= 1 \
+                     and self.room.energyCapacityAvailable >= 600
             self.store_cached_property("paving_here", paving, 200)
 
         return self.get_cached_property("paving_here")
 
     def all_paved(self):
-        paved = self.get_cached_property("completely_paved")
-        if paved is not None:
-            return paved
-
-        paved = True
-        unreachable_rooms = False
-        if not _.find(self.find(FIND_STRUCTURES), {"structureType": STRUCTURE_ROAD}):
-            paved = False  # no roads
-        elif len(self.find(PYFIND_BUILDABLE_ROADS)) > len(_.filter(self.find(FIND_STRUCTURES),
-                                                                   {"structureType": STRUCTURE_ROAD})):
-            paved = False  # still paving
-        elif self.my:
-            for flag in self.mining.active_mines:
-                if flag.pos.roomName == self.name:
-                    continue
-                room = self.hive.get_room(flag.pos.roomName)
-                if room:
-                    if not room.all_paved():
-                        paved = False
-                        break
-                else:
-                    unreachable_rooms = True  # Cache for less time
-                    paved = False
         # TODO: better remote mine-specific paving detection, so we can disable this shortcut
-        if not paved and self.paving():
-            paved = True
-        if paved:
-            if unreachable_rooms:
-                self.store_cached_property("completely_paved", paved, 50)
-            else:
-                self.store_cached_property("completely_paved", paved, 200)
-        else:
-
-            self.store_cached_property("completely_paved", paved, 20)
-        return paved
+        return self.paving()
 
     def any_local_miners(self):
         """
