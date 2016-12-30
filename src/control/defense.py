@@ -115,6 +115,10 @@ def cleanup_stored_hostiles():
                     i += 1
                 else:
                     danger.splice(i, 1)
+            if not len(danger):
+                del mem.danger
+                if not len(mem):
+                    del Memory.rooms[name]
 
 
 def does_need_urgent_repair(s):
