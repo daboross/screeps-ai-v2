@@ -444,7 +444,7 @@ class MineralMind:
                 del self.fulfilling[mineral]
 
     def fulfill_now(self, mineral, target_obj):
-        if self.terminal.store[mineral] < 1000:
+        if self.terminal.store[mineral] < 1000 <= target_obj.amount:
             self.log("WARNING: fulfill_now() called with mineral: {}, target: {},"
                      "but {} < {}".format(mineral, JSON.stringify(target_obj), self.terminal.store[mineral], 1000))
             return ERR_NOT_ENOUGH_RESOURCES
