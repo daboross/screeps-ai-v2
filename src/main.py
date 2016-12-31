@@ -1,3 +1,5 @@
+import locations
+
 _memory_init = None
 
 
@@ -230,6 +232,10 @@ def main():
     records.finish_record('flags.move')
 
     records.start_record()
+    locations.init()
+    records.finish_record('locations.init')
+
+    records.start_record()
 
     PathFinder.use(True)
 
@@ -332,6 +338,7 @@ __pragma__('js', 'global').py = {
     "context": context,
     "consistency": consistency,
     "autoactions": autoactions,
+    "locations": locations,
     "defense": defense,
     "movement": movement,
     "hivemind": hivemind,
