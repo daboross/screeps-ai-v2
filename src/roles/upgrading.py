@@ -180,6 +180,14 @@ class Upgrader(RoleBase):
             self.memory.filling = True
             self.finished_energy_harvest()
 
+        if Game.time % 5 == 0 and not self.creep.hasActiveBodyparts(WORK) and \
+                not self.home.defense.healing_capable():
+            if self.home.spawn:
+                return self.recycle_me()
+            else:
+                self.creep.suicide()
+                return
+
         if self.home.upgrading_deprioritized() and self.creep.room.controller.ticksToDowngrade > 5000:
             if self.home.room.storage and self.empty_to_storage():
                 return False

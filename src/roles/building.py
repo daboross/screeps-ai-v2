@@ -1,7 +1,6 @@
 import math
 
 import flags
-import speech
 from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
     role_builder, target_destruction_site, role_upgrader, target_big_big_repair
 from role_base import RoleBase
@@ -52,6 +51,14 @@ class Builder(upgrading.Upgrader):
             # don't do this if we don't have targets
             self.targets.untarget_all(self)
             self.memory.filling = True
+
+        if Game.time % 5 == 0 and not self.creep.hasActiveBodyparts(WORK) and \
+                not self.home.defense.healing_capable():
+            if self.home.spawn:
+                return self.recycle_me()
+            else:
+                self.creep.suicide()
+                return
 
         if 'la' not in self.memory and not self.any_building_targets():
             destruct = self.targets.get_new_target(self, target_destruction_site)
