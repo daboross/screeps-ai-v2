@@ -4,7 +4,6 @@ import context
 import role_base
 from constants import INVADER_USERNAME, role_miner, role_simple_dismantle
 from control import defense, pathdef
-from tools import profiling
 from utilities import hostile_utils, movement, volatile_cache, walkby_move
 from utilities.screeps_constants import *
 
@@ -163,10 +162,6 @@ def get_path_away(origin, targets):
         })
 
     return path
-    # return result.path
-
-
-get_path_away = profiling.profiled(get_path_away, "autoactions.get_path_away")
 
 
 def get_cached_away_path(creep, targets):
@@ -299,9 +294,6 @@ def run_away_check(creep, hostile_path_targets):
         return False
 
 
-run_away_check = profiling.profiled(run_away_check, "autoactions.run_away_check")
-
-
 def instinct_check(creep):
     """
     :type creep: role_base.RoleBase
@@ -314,9 +306,6 @@ def instinct_check(creep):
     if run_away_check(creep):
         return True
     return False
-
-
-instinct_check = profiling.profiled(instinct_check, "autoactions.instinct_check")
 
 
 def running_check_room(room):

@@ -1,6 +1,5 @@
 import flags
 from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, UPGRADER_SPOT
-from tools import profiling
 from utilities import global_cache, hostile_utils, movement
 from utilities.screeps_constants import *
 
@@ -786,7 +785,3 @@ class HoneyTrails:
 
 
 __pragma__('nofcall')
-
-profiling.profile_whitelist(HoneyTrails, [
-    "find_path",
-])

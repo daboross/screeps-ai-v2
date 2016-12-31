@@ -7,7 +7,6 @@ from goals.refill import Refill
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -184,9 +183,6 @@ class EnergyMiner(TransportPickup):
         return path_length / moves_every + _.size(self.creep.body) * 3 + 15
 
 
-profiling.profile_whitelist(EnergyMiner, ["run"])
-
-
 class EnergyHauler(TransportPickup, SpawnFill, Refill):
     def run_local_refilling(self, pickup, fill):
         if not self.memory.filling:
@@ -271,9 +267,6 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         path_length = self.hive.honey.find_path_length(self.home.spawn, source)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
         return path_length * 1.7 + _.size(self.creep.body) * 3 + 15
-
-
-profiling.profile_whitelist(EnergyHauler, ["run"])
 
 
 class RemoteReserve(TransportPickup):
@@ -377,6 +370,3 @@ class RemoteReserve(TransportPickup):
         path_length = self.hive.honey.find_path_length(self.home.spawn, target_pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return path_length + _.size(self.creep.body) * 3 + 15
-
-
-profiling.profile_whitelist(RemoteReserve, ["run"])

@@ -30,7 +30,7 @@ from control.hivemind import HiveMind
 from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
-from tools import memory_info, profiling
+from tools import memory_info
 from utilities import consistency, deathwatch, global_cache, hostile_utils, movement, records, volatile_cache, \
     walkby_move
 from utilities.screeps_constants import *
@@ -113,9 +113,6 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
             raise e
 
 
-run_creep = profiling.profiled(run_creep, "main.run_creep")
-
-
 def run_room(targets, creeps_skipped, room):
     """
     :type targets: control.targets.TargetMind
@@ -175,9 +172,6 @@ def run_room(targets, creeps_skipped, room):
         print(e.stack if e else "e == null?? {}".format(e))
         if not e:
             raise e
-
-
-run_room = profiling.profiled(run_room, "main.run_room")
 
 
 def main():
@@ -332,7 +326,7 @@ def main():
     records.finish_main_record()
 
 
-module.exports.loop = profiling.wrap_main(main)
+module.exports.loop = main
 
 __pragma__('js', 'global').py = {
     "context": context,

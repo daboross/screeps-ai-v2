@@ -4,7 +4,6 @@ import flags
 import spawning
 from constants import *
 from control import defense
-from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
@@ -823,18 +822,3 @@ class TargetMind:
 
 
 __pragma__('nofcall')
-
-profiling.profile_whitelist(TargetMind, [
-    "_find_new_target",
-    "_find_new_source",
-    "_find_new_big_h_source",
-    "_find_new_harvester_deposit_site",
-    "_find_new_repair_site",
-    "_find_new_big_repair_site",
-    "_find_new_spawn_fill_site",
-    "_find_new_tower",
-    "_find_new_remote_miner_mine",
-    "_find_new_remote_hauler_mine",
-    "_find_closest_deposit_site",
-    "_find_new_reservable_controller",
-])

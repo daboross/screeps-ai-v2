@@ -2,7 +2,7 @@ import math
 from math import floor
 
 from constants import *
-from tools import naming, profiling
+from tools import naming
 from utilities import volatile_cache
 from utilities.screeps_constants import *
 
@@ -750,9 +750,6 @@ def carry_count(creep):
     if creep.creep:  # support RoleBase
         creep = creep.creep
     return creep.carryCapacity / 50
-
-
-run = profiling.profiled(run, "spawning.run")
 
 
 def ceil_sections(count, base=None):

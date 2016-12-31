@@ -4,7 +4,6 @@ import flags
 from constants import target_source, target_closest_energy_site, DEPOT, recycle_time, role_recycling, role_miner, \
     role_spawn_fill, role_tower_fill
 from control import pathdef
-from tools import profiling
 from utilities import movement, walkby_move
 from utilities.screeps_constants import *
 
@@ -609,15 +608,3 @@ class RoleBase:
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.name)
 
     __pragma__('nofcall')
-
-
-profiling.profile_whitelist(RoleBase, [
-    "_calculate_time_to_replace",
-    "_follow_path_to",
-    "move_to_with_queue",
-    "_try_move_to",
-    "move_to",
-    "harvest_energy",
-    "is_next_block_clear",
-    "repair_nearby_roads",
-])

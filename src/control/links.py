@@ -1,6 +1,5 @@
 import math
 
-from tools import profiling
 from utilities import volatile_cache
 from utilities.screeps_constants import *
 
@@ -234,5 +233,3 @@ class LinkingMind:
 
 
 __pragma__('nofcall')
-
-profiling.profile_whitelist(LinkingMind, ["tick_links"])

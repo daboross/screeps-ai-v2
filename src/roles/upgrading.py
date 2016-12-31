@@ -5,7 +5,6 @@ import spawning
 from constants import UPGRADER_SPOT, creep_base_worker, recycle_time, role_builder, role_link_manager, role_recycling, \
     role_upgrade_fill, role_upgrader, target_home_flag
 from role_base import RoleBase
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -318,18 +317,6 @@ class Upgrader(RoleBase):
             return _.size(self.creep.body) * 3 + 15
 
 
-profiling.profile_whitelist(Upgrader, [
-    "run",
-    "get_dedicated_upgrading_energy_structure",
-    "run_dedicated_upgrading",
-    "upgrade",
-    "harvest_from",
-    "should_pickup",
-    "run_individual_upgrading",
-    "build_swamp_roads",
-])
-
-
 class DedicatedUpgradeFiller(RoleBase):
     def run(self):
         if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
@@ -402,6 +389,3 @@ class DedicatedUpgradeFiller(RoleBase):
                              .format(target, RESOURCE_ENERGY, result))
             else:
                 self.move_to(target)
-
-
-profiling.profile_whitelist(DedicatedUpgradeFiller, ["run"])

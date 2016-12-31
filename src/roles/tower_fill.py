@@ -1,6 +1,5 @@
 from constants import recycle_time, role_recycling, role_spawn_fill, role_tower_fill, target_tower_fill
 from roles import spawn_fill
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -50,6 +49,3 @@ class TowerFill(spawn_fill.SpawnFill):
                     self.targets.untarget(self, target_tower_fill)
 
             return spawn_fill.SpawnFill.run(self)
-
-
-profiling.profile_whitelist(TowerFill, ["run"])

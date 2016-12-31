@@ -3,7 +3,6 @@ from constants import recycle_time, role_builder, role_recycling, role_spawn_fil
 from goals.refill import Refill
 from role_base import RoleBase
 from roles import building, upgrading
-from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
@@ -140,6 +139,3 @@ class SpawnFill(building.Builder, Refill):
             elif self.memory.running == role_builder:
                 return building.Builder.should_pickup(self, resource_type)
         return RoleBase.should_pickup(self, resource_type)
-
-
-profiling.profile_whitelist(SpawnFill, ["run"])

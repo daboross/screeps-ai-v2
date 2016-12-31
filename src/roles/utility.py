@@ -1,7 +1,6 @@
 from constants import recycle_time, role_cleanup, role_link_manager, role_recycling, target_closest_energy_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -135,9 +134,6 @@ class LinkManager(RoleBase):
         return self.hive.honey.find_path_length(self.home.spawn, link_pos) * 2 + _.size(self.creep.body) * 3
 
 
-profiling.profile_whitelist(LinkManager, ["run_creep", "run_links"])
-
-
 # TODO: Change the speech on this to something unique.
 class Cleanup(SpawnFill):
     def run(self):
@@ -239,6 +235,3 @@ class Cleanup(SpawnFill):
 
     def _calculate_time_to_replace(self):
         return 0  # Don't live-replace
-
-
-profiling.profile_whitelist(Cleanup, ["run"])

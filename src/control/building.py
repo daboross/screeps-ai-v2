@@ -4,7 +4,6 @@ import random
 
 import flags
 from constants import DEPOT
-from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
@@ -844,12 +843,3 @@ class ConstructionMind:
         target = self.find_loc_near_away_from(center, away_from)
         flags.create_flag(target, DEPOT)
         cache.add(cache_key)
-
-
-profiling.profile_whitelist(ConstructionMind, [
-    "get_construction_targets",
-    "get_repair_targets",
-    "get_big_repair_targets",
-    "get_destruction_targets",
-    "place_remote_mining_roads",
-])

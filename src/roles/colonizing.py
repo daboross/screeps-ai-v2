@@ -3,7 +3,6 @@ from constants import CLAIM_LATER, role_builder, role_mineral_steal, role_recycl
     target_single_flag
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -76,9 +75,6 @@ class Colonist(MilitaryBase):
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * 3 + 10
-
-
-profiling.profile_whitelist(Colonist, ["run"])
 
 
 class Claim(MilitaryBase):
@@ -215,6 +211,3 @@ class MineralSteal(TransportPickup):
     def _calculate_time_to_replace(self):
         # TODO: find a good time in a better way!
         return _.size(self.creep.body) * 3 + 15  # Don't live-replace as often.
-
-
-profiling.profile_whitelist(MineralSteal, ["run"])

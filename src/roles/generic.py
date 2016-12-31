@@ -3,7 +3,6 @@ from control import pathdef
 from goals.refill import Refill
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -111,9 +110,6 @@ class ReplacingExpendedCreep(RoleBase):
 
     def _calculate_time_to_replace(self):
         return 0
-
-
-profiling.profile_whitelist(ReplacingExpendedCreep, ["run"])
 
 
 class Recycling(Refill, MilitaryBase):

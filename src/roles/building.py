@@ -5,7 +5,6 @@ from constants import recycle_time, role_builder, role_recycling, role_upgrader,
     target_big_repair, target_construction, target_destruction_site, target_repair
 from role_base import RoleBase
 from roles import upgrading
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -378,17 +377,3 @@ class Builder(upgrading.Upgrader):
                     else:
                         self.log("Unknown result from btb-transfer({}, {}, {}): {}", refill_target, RESOURCE_ENERGY,
                                  amount, result)
-
-
-profiling.profile_whitelist(Builder, [
-    "run",
-    "build_swamp_roads",
-    "any_destruct_targets",
-    "any_building_targets",
-    "get_new_repair_target",
-    "get_new_construction_target",
-    "execute_repair_target",
-    "execute_construction_target",
-    "move_around_when_ok",
-    "refill_nearby",
-])

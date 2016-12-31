@@ -1,6 +1,5 @@
 import math
 
-from tools import profiling
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -150,9 +149,6 @@ def is_block_clear(room, x, y):
     return True
 
 
-is_block_clear = profiling.profiled(is_block_clear, 'movement.is_block_clear')
-
-
 def serialized_pos_to_pos_obj(room, xy):
     return {'x': xy & 0x3F, 'y': xy >> 6 & 0x3F, 'roomName': room}
 
@@ -179,9 +175,6 @@ def is_block_empty(room, x, y):
                 and site.siteureType != STRUCTURE_CONTAINER and site.siteureType != STRUCTURE_ROAD:
             return False
     return True
-
-
-is_block_empty = profiling.profiled(is_block_empty, 'movement.is_block_empty')
 
 
 def get_entrance_for_exit_pos(exit_pos):

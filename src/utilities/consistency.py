@@ -1,6 +1,5 @@
 import spawning
 from constants import *
-from tools import profiling
 from utilities import global_cache
 from utilities.screeps_constants import *
 
@@ -135,10 +134,3 @@ def complete_refresh(hive):
             del mem['_ly']
         if not len(mem):
             del Memory.rooms[name]
-
-
-reassign_room_roles = profiling.profiled(reassign_room_roles, "consistency.reassign_room_roles")
-
-clear_memory = profiling.profiled(clear_memory, "consistency.clear_memory")
-
-clear_cache = profiling.profiled(clear_cache, "consistency.clear_cache")

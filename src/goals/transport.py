@@ -1,7 +1,6 @@
 from constants import role_hauler, role_miner
 from control import pathdef
 from role_base import RoleBase
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -275,9 +274,3 @@ class TransportPickup(RoleBase):
             elif not self.creep.fatigue:
                 self.memory.last_pos = serialized_pos
                 del self.memory.standstill_for
-
-
-profiling.profile_whitelist(TransportPickup, [
-    'transport',
-    'follow_energy_path',
-])

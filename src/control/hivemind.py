@@ -13,7 +13,6 @@ from control.minerals import MineralMind
 from control.mining import MiningMind
 from control.pathdef import HoneyTrails
 from role_base import RoleBase
-from tools import profiling
 from utilities import consistency, movement
 from utilities.screeps_constants import *
 
@@ -352,11 +351,6 @@ class HiveMind:
     my_rooms = property(find_my_rooms)
     visible_rooms = property(find_visible_rooms)
 
-
-profiling.profile_whitelist(HiveMind, [
-    "poll_remote_mining_flags",
-    "poll_all_creeps",
-])
 
 _min_total_pause_remote_mining = 950 * 1000
 _min_energy_pause_remote_mining = 150 * 1000
@@ -2185,82 +2179,3 @@ class RoomMind:
     full_storage_use = property(get_full_storage_use)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
     min_sane_wall_hits = property(get_min_sane_wall_hits)
-
-
-profiling.profile_whitelist(RoomMind, [
-    "find",
-    "find_at",
-    "look_at",
-    "find_in_range",
-    "find_closest_by_range",
-    "look_for_in_area_around",
-    "register_to_role",
-    "recalculate_roles_alive",
-    "get_next_replacement_name",
-    "next_x_to_die_of_role",
-    "extra_creeps_with_carry_in_role",
-    "extra_creeps_with_work_in_role",
-    "register_new_replacing_creep",
-    "replacements_currently_needed_for",
-    "count_noneol_creeps_targeting",
-    "carry_mass_of_replacements_currently_needed_for",
-    "work_mass_of_replacements_currently_needed_for",
-    "precreep_tick_actions",
-    "reassign_roles",
-    "get_position",
-    "get_sources",
-    "get_spawns",
-    "get_creeps",
-    "get_upgrader_energy_struct",
-    "get_extra_fill_targets",
-    "get_work_mass",
-    "get_trying_to_get_full_storage_use",
-    "get_full_storage_use",
-    "being_bootstrapped",
-    "mining_ops_paused",
-    "upgrading_deprioritized",
-    "building_paused",
-    "overprioritize_building",
-    "_any_closest_to_me",
-    "conducting_siege",
-    "get_target_link_manager_count",
-    "get_target_wall_defender_count",
-    "get_target_simple_defender_count",
-    "get_target_colonist_work_mass",
-    "get_target_mineral_steal_mass",
-    "get_target_spawn_fill_backup_carry_mass",
-    "get_target_spawn_fill_mass",
-    "get_target_total_spawn_fill_mass",
-    "get_target_builder_work_mass",
-    "get_open_source_spaces",
-    "get_target_upgrade_fill_mass",
-    "get_target_upgrader_work_mass",
-    "get_upgrader_size",
-    "get_target_tower_fill_mass",
-    "get_target_room_reserve_count",
-    "get_next_spawn_fill_body_size",
-    "_check_role_reqs",
-    "wall_defense",
-    "_next_needed_local_mining_role",
-    "_next_needed_local_role",
-    "get_max_sections_for_role",
-    "get_variable_base",
-    "_next_cheap_military_role",
-    "_next_complex_defender",
-    "flags_without_target",
-    "get_spawn_for_flag",
-    "spawn_one_creep_per_flag",
-    "_next_tower_breaker_role",
-    "next_cheap_dismantle_goal",
-    "plan_next_role",
-    # "recalculate_roles_alive",
-    # "precreep_tick_actions",
-    # "poll_hostiles",
-    # "plan_next_role",
-    # "find",
-    # "find_at",
-    # "find_in_range",
-    # "find_closest_by_range",
-    # "look_at",
-    # "look_for_in_area_around",
-])

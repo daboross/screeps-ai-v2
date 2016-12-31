@@ -1,7 +1,6 @@
 from constants import INVADER_USERNAME, role_defender, role_recycling, role_wall_defender, target_rampart_defense
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
-from tools import profiling
 from utilities import hostile_utils, movement
 from utilities.screeps_constants import *
 
@@ -118,6 +117,3 @@ class WallDefender(RoleBase):
                     # TODO: in this case, look for a specific wall which has hostiles next to it! don't just blindly
                     # re-choose
                     self.targets.untarget(self, target_rampart_defense)
-
-
-profiling.profile_whitelist(RoleDefender, ["run"])

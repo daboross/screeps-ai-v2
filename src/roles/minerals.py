@@ -1,6 +1,5 @@
 from constants import role_mineral_hauler, role_mineral_miner, role_recycling
 from role_base import RoleBase
-from tools import profiling
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -92,7 +91,6 @@ class MineralMiner(RoleBase):
         return time
 
 
-profiling.profile_whitelist(MineralMiner, ["run"])
 _STORAGE_PICKUP = "storage_pickup"
 _STORAGE_DROPOFF = "storage_dropoff"
 _TERMINAL_PICKUP = "terminal_pickup"
@@ -413,15 +411,3 @@ class MineralHauler(RoleBase):
 
     def _calculate_time_to_replace(self):
         return _.size(self.creep.body) * 3  # Don't live replace mineral haulers
-
-
-profiling.profile_whitelist(MineralHauler, [
-    "determine_next_state",
-    "run",
-    "run_miner_harvbesting",
-    "run_storage_pickup",
-    "run_storage_dropoff",
-    "run_terminal_pickup",
-    "run_terminal_dropoff",
-    "run_lab_drop_off",
-])

@@ -2,7 +2,6 @@ import math
 
 import flags
 from constants import INVADER_USERNAME, REMOTE_MINE, SK_USERNAME
-from tools import profiling
 from utilities import deathwatch, hostile_utils, movement, volatile_cache
 from utilities.screeps_constants import *
 from utilities.screeps_constants import new_set
@@ -712,6 +711,3 @@ class RoomDefense:
                     break
 
     broken_walls = property(any_broken_walls)
-
-
-profiling.profile_whitelist(RoomDefense, ["tick", "tower_heal"])
