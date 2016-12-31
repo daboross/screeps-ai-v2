@@ -12,10 +12,17 @@ __pragma__('noalias', 'type')
 
 def start_of_tick_check():
     if Memory.deathwatch:
-        for name, room_name in Memory.deathwatch:
+        for name, room_name, threats in Memory.deathwatch:
             if name not in Game.creeps:
-                print('[death][{}] {}, a {}, died.'.format(name, _.get(Memory, ['creeps', name, 'role'], 'creep'),
-                                                           room_name))
+                msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format(
+                    name, _.get(Memory, ['creeps', name, 'role'], 'creep'),
+                    room_name,
+                    ("{} or {}".format(', '.join(threats[:len(threats) - 1]),
+                                       threats[len(threats) - 1])
+                     if len(threats) > 1 else threats[0])
+                )
+                print(msg)
+                Game.notify(msg)
                 meta = _.get(Memory, ['rooms', room_name, 'meta'])
                 if meta:
                     meta.clear_next = 0
@@ -31,8 +38,15 @@ def mark_creeps(room):
     count = len(hostiles)
     if count > 3:
         for creep in room.find(FIND_MY_CREEPS):
-            Memory.deathwatch.append([creep.name, creep.memory.home])
+            Memory.deathwatch.append([
+                creep.name, creep.memory.home,
+                _(hostiles).map(lambda h: _.get(h, ['owner, username'], 'unknown')).uniq().value()
+            ])
     else:
         for creep in room.find(FIND_MY_CREEPS):
             if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4):
-                Memory.deathwatch.append([creep.name, creep.memory.home])
+                Memory.deathwatch.append([
+                    creep.name, creep.memory.home,
+                    _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4)
+                        .map(lambda h: _.get(h, ['owner, username'], 'unknown')).uniq().value()
+                ])
