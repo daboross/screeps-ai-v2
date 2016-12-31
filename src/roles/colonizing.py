@@ -1,6 +1,5 @@
 import flags
-import speech
-from constants import role_builder, role_upgrader, role_recycling, target_reserve_now, role_mineral_steal, \
+from constants import CLAIM_LATER, role_builder, role_mineral_steal, role_recycling, role_upgrader, target_reserve_now, \
     target_single_flag
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
@@ -84,7 +83,7 @@ profiling.profile_whitelist(Colonist, ["run"])
 
 class Claim(MilitaryBase):
     def run(self):
-        claim_flag = self.targets.get_new_target(self, target_single_flag, flags.CLAIM_LATER)
+        claim_flag = self.targets.get_new_target(self, target_single_flag, CLAIM_LATER)
         if not claim_flag:
             self.recycle_me()
             return
@@ -126,14 +125,14 @@ class Claim(MilitaryBase):
             self.creep.claimController(target)
         room = self.hive.get_room(target.pos.roomName)
         room.mem.sponsor = self.home.name
-        if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_walls', False):
+        if _.get(flags.find_flags(room, CLAIM_LATER)[0], 'memory.prio_walls', False):
             room.mem.prio_walls = True
-        if _.get(flags.find_flags(room, flags.CLAIM_LATER)[0], 'memory.prio_spawn', False):
+        if _.get(flags.find_flags(room, CLAIM_LATER)[0], 'memory.prio_spawn', False):
             room.mem.prio_spawn = True
 
     def _calculate_time_to_replace(self):
         if self.creep.getActiveBodyparts(CLAIM) > 1:
-            target = self.targets.get_new_target(self, target_single_flag, flags.CLAIM_LATER)
+            target = self.targets.get_new_target(self, target_single_flag, CLAIM_LATER)
             if not target:
                 return -1
             path_len = self.get_military_path_length(self.home.spawn, target)
@@ -165,7 +164,7 @@ class ReserveNow(MilitaryBase):
             self.log("Remote reserve creep target owned by another player! {} has taken our reservation!",
                      controller.reservation.username)
         if not controller.reservation or controller.reservation.ticksToEnd < 4998:
-            if len(flags.find_flags(controller.room, flags.CLAIM_LATER)):
+            if len(flags.find_flags(controller.room, CLAIM_LATER)):
                 # claim this!
                 self.creep.claimController(controller)
                 controller.room.memory.sponsor = self.home.name

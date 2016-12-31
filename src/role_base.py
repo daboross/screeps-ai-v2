@@ -1,11 +1,11 @@
 import math
 
 import flags
-from constants import target_source, recycle_time, role_recycling, target_closest_energy_site, role_miner, role_spawn_fill, role_tower_fill
+from constants import target_source, target_closest_energy_site, DEPOT, recycle_time, role_recycling, role_miner, \
+    role_spawn_fill, role_tower_fill
 from control import pathdef
 from tools import profiling
-from utilities import movement
-from utilities import walkby_move
+from utilities import movement, walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -167,7 +167,8 @@ class RoleBase:
                              target.roomName, target.x, target.y, result)
 
     def harvest_energy(self):
-        if self.home.full_storage_use or (self.home.room.storage and not self.home.any_local_miners() and (self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill)):
+        if self.home.full_storage_use or (self.home.room.storage and not self.home.any_local_miners() and (
+                        self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill)):
             # Full storage use enabled! Just do that.
             storage = self.home.room.storage
             if self.carry_sum() == self.creep.carry.energy:  # don't do this if we have minerals
@@ -335,13 +336,13 @@ class RoleBase:
         return False
 
     def find_depot(self):
-        depots = flags.find_flags(self.home, flags.DEPOT)
+        depots = flags.find_flags(self.home, DEPOT)
         if len(depots):
             depot = depots[0].pos
         else:
             self.log("WARNING: No depots found in {}!".format(self.home.name))
             self.home.building.place_depot_flag()
-            depots = flags.find_flags_global(flags.DEPOT)
+            depots = flags.find_flags_global(DEPOT)
             if len(depots):
                 depot = depots[0].pos
             elif self.home.spawn:

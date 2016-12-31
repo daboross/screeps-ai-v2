@@ -1,5 +1,5 @@
 import flags
-from constants import target_single_flag, INVADER_USERNAME
+from constants import INVADER_USERNAME, SCOUT, SK_LAIR_SOURCE_NOTED, target_single_flag
 from control import pathdef
 from roles.offensive import MilitaryBase
 from utilities import movement
@@ -55,16 +55,16 @@ class Scout(MilitaryBase):
                 if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
                         and not (rrx == 5 and rry == 5):
                     # should be a source keeper room
-                    if not len(flags.find_flags(self.room, flags.SK_LAIR_SOURCE_NOTED)):
+                    if not len(flags.find_flags(self.room, SK_LAIR_SOURCE_NOTED)):
                         for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
                             if lair.structureType == STRUCTURE_KEEPER_LAIR:
-                                if not flags.look_for(self.room, lair, flags.SK_LAIR_SOURCE_NOTED):
-                                    flags.create_flag(lair, flags.SK_LAIR_SOURCE_NOTED)
+                                if not flags.look_for(self.room, lair, SK_LAIR_SOURCE_NOTED):
+                                    flags.create_flag(lair, SK_LAIR_SOURCE_NOTED)
                                 lair_count += 1
                         if lair_count:
                             for source in self.room.find(FIND_SOURCES).concat(self.room.find(FIND_MINERALS)):
-                                if not flags.look_for(self.room, source, flags.SK_LAIR_SOURCE_NOTED):
-                                    flags.create_flag(source, flags.SK_LAIR_SOURCE_NOTED)
+                                if not flags.look_for(self.room, source, SK_LAIR_SOURCE_NOTED):
+                                    flags.create_flag(source, SK_LAIR_SOURCE_NOTED)
                         else:
                             self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
                                      .format(self.pos.roomName))
@@ -132,7 +132,7 @@ class Scout(MilitaryBase):
                     Game.notify(message)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.SCOUT)
+        target = self.targets.get_new_target(self, target_single_flag, SCOUT)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target, {"ignore_swamp": True,

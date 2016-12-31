@@ -2,13 +2,12 @@ import math
 
 import flags
 import spawning
-from constants import creep_base_work_half_move_hauler, creep_base_work_full_move_hauler, creep_base_hauler, \
-    target_energy_miner_mine, role_miner, creep_base_3000miner, role_remote_mining_reserve, \
-    creep_base_reserving, target_energy_hauler_mine, role_hauler, creep_base_4000miner, creep_base_carry3000miner, \
-    creep_base_1500miner, creep_base_half_move_hauler
+from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_3000miner, creep_base_4000miner, \
+    creep_base_carry3000miner, creep_base_half_move_hauler, creep_base_hauler, creep_base_reserving, \
+    creep_base_work_full_move_hauler, creep_base_work_half_move_hauler, role_hauler, role_miner, \
+    role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
 from control import defense
-from utilities import movement
-from utilities import volatile_cache
+from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -171,9 +170,9 @@ class MiningMind:
         if self._local_mining_flags is None:
             result = []
             for source in self.room.sources:
-                flag = flags.look_for(self.room, source, flags.LOCAL_MINE)
+                flag = flags.look_for(self.room, source, LOCAL_MINE)
                 if not flag:
-                    name = flags.create_flag(source, flags.LOCAL_MINE)
+                    name = flags.create_flag(source, LOCAL_MINE)
                     if not name:
                         print("[{}][mining] Warning: Couldn't create local mining flag!".format(
                             self.room.name))
@@ -246,7 +245,7 @@ class MiningMind:
     def should_reserve(self, room_name):
         if self.room.room.energyCapacityAvailable < 1300:
             return False
-        flag_list = _.filter(flags.find_flags(room_name, flags.REMOTE_MINE), lambda f: f.memory.active)
+        flag_list = _.filter(flags.find_flags(room_name, REMOTE_MINE), lambda f: f.memory.active)
         if _.find(flag_list, lambda f: f.memory.sk_room):
             return False
         if _.find(flag_list, lambda f: f.memory.do_reserve):

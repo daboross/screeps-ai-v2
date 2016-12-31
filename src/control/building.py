@@ -1,11 +1,12 @@
 import math
+
 import random
 
 import flags
+from constants import DEPOT
 from tools import profiling
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
-from utilities.screeps_constants import new_set
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -841,7 +842,7 @@ class ConstructionMind:
         for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART):
             away_from.append({'pos': flag.pos, 'range': 1})
         target = self.find_loc_near_away_from(center, away_from)
-        flags.create_flag(target, flags.DEPOT)
+        flags.create_flag(target, DEPOT)
         cache.add(cache_key)
 
 

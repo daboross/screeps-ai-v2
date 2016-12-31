@@ -2,9 +2,8 @@ import math
 
 import flags
 import spawning
-import speech
-from constants import recycle_time, role_recycling, role_upgrader, role_builder, creep_base_worker, role_upgrade_fill, \
-    role_link_manager, target_home_flag
+from constants import UPGRADER_SPOT, creep_base_worker, recycle_time, role_builder, role_link_manager, role_recycling, \
+    role_upgrade_fill, role_upgrader, target_home_flag
 from role_base import RoleBase
 from tools import profiling
 from utilities.screeps_constants import *
@@ -71,8 +70,8 @@ class Upgrader(RoleBase):
 
         self.harvest_from(link)
 
-        spot = self.targets.get_new_target(self, target_home_flag, flags.UPGRADER_SPOT)
-        if spot and self.home.role_count(role_upgrader) <= len(flags.find_flags(self.home, flags.UPGRADER_SPOT)):
+        spot = self.targets.get_new_target(self, target_home_flag, UPGRADER_SPOT)
+        if spot and self.home.role_count(role_upgrader) <= len(flags.find_flags(self.home, UPGRADER_SPOT)):
             if self.pos.isEqualTo(spot.pos):
                 self.memory.set_till = Game.time + 30
             else:
@@ -214,7 +213,7 @@ class Upgrader(RoleBase):
             self.build_swamp_roads()
             self.harvest_energy()
         else:
-            spot = self.targets.get_new_target(self, target_home_flag, flags.UPGRADER_SPOT)
+            spot = self.targets.get_new_target(self, target_home_flag, UPGRADER_SPOT)
             target = self.home.room.controller
             if spot:
                 if self.pos.isEqualTo(spot.pos):

@@ -113,31 +113,11 @@ White:
     White: ENERGY_GRAB      - Energy grab spot
 """
 
-from tools import naming
-from utilities.screeps_constants import *
+from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
+    RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
+    SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, TD_D_GOAD, TD_H_D_STOP, TD_H_H_STOP, UPGRADER_SPOT, \
+    WALL_DEFENSE_HIGH, WALL_DEFENSE_MID
 
-__pragma__('noalias', 'name')
-__pragma__('noalias', 'undefined')
-__pragma__('noalias', 'Infinity')
-__pragma__('noalias', 'keys')
-__pragma__('noalias', 'get')
-__pragma__('noalias', 'set')
-__pragma__('noalias', 'type')
-
-# Generic / home-type flags flags: 0*
-DEPOT = 0
-UPGRADER_SPOT = 1
-SPAWN_FILL_WAIT = 2
-# PathFinding flags: 1*
-REROUTE = 10
-REROUTE_DESTINATION = 11
-SLIGHTLY_AVOID = 12
-SK_LAIR_SOURCE_NOTED = 13
-# Energy miner / hauler: 2*
-REMOTE_MINE = 20
-LOCAL_MINE = 21
-RESERVE_NOW = 22
-CLAIM_LATER = 23
 # Building main: 10*
 MAIN_BUILD = 100
 MAIN_DESTRUCT = 101
@@ -154,20 +134,17 @@ SUB_TERMINAL = 117
 SUB_WALL = 120
 SUB_ROAD = 121
 SUB_CONTAINER = 122
-# Military: 5*
-SCOUT = 50
-RANGED_DEFENSE = 51
-ATTACK_DISMANTLE = 52
-ENERGY_GRAB = 53
-WALL_DEFENSE_MID = 54
-WALL_DEFENSE_HIGH = 55
-RAID_OVER = 59
-# Overly specific / soon to be removed military: 6*
-TD_H_H_STOP = 60
-TD_H_D_STOP = 61
-TD_D_GOAD = 62
-ATTACK_POWER_BANK = 65
-REAP_POWER_BANK = 66
+
+from tools import naming
+from utilities.screeps_constants import *
+
+__pragma__('noalias', 'name')
+__pragma__('noalias', 'undefined')
+__pragma__('noalias', 'Infinity')
+__pragma__('noalias', 'keys')
+__pragma__('noalias', 'get')
+__pragma__('noalias', 'set')
+__pragma__('noalias', 'type')
 
 flag_definitions = {
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),

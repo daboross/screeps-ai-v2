@@ -14,8 +14,7 @@ from control.mining import MiningMind
 from control.pathdef import HoneyTrails
 from role_base import RoleBase
 from tools import profiling
-from utilities import consistency
-from utilities import movement
+from utilities import consistency, movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -125,7 +124,7 @@ class HiveMind:
     __pragma__('nofcall')
 
     def poll_remote_mining_flags(self):
-        flag_list = flags.find_flags_global(flags.REMOTE_MINE)
+        flag_list = flags.find_flags_global(REMOTE_MINE)
         room_to_flags = {}
         for flag in flag_list:
             room = self.get_room(flag.pos.roomName)
@@ -161,7 +160,7 @@ class HiveMind:
         if current_room and current_room.my:
             return current_room
 
-        mining_flags = flags.find_flags(current_room_name, flags.REMOTE_MINE)
+        mining_flags = flags.find_flags(current_room_name, REMOTE_MINE)
         for flag in mining_flags:
             if 'sponsor' in flag.memory:
                 sponsor = self.get_room(flag.memory.sponsor)
@@ -1193,9 +1192,9 @@ class RoomMind:
     def conducting_siege(self):
         if '_conducting_siege' not in self:
             self._conducting_siege = Game.cpu.bucket > 4500 and not not (
-                (self._any_closest_to_me(flags.TD_D_GOAD) or self._any_closest_to_me(flags.ATTACK_POWER_BANK)
-                 or self._any_closest_to_me(flags.ATTACK_DISMANTLE))
-                and self._any_closest_to_me(flags.TD_H_H_STOP) and self._any_closest_to_me(flags.TD_H_D_STOP)
+                (self._any_closest_to_me(TD_D_GOAD) or self._any_closest_to_me(ATTACK_POWER_BANK)
+                 or self._any_closest_to_me(ATTACK_DISMANTLE))
+                and self._any_closest_to_me(TD_H_H_STOP) and self._any_closest_to_me(TD_H_D_STOP)
             )
         return self._conducting_siege
 
@@ -1699,7 +1698,7 @@ class RoomMind:
         if '_target_room_reserve_count' not in self:
             count = 0
             if self.room.energyCapacityAvailable >= 650:
-                for flag in flags.find_flags_global(flags.RESERVE_NOW):
+                for flag in flags.find_flags_global(RESERVE_NOW):
                     room_name = flag.pos.roomName
                     room = Game.rooms[room_name]
                     if not room or (room.controller and not room.controller.my and not room.controller.owner):
@@ -1984,7 +1983,7 @@ class RoomMind:
         return self._check_role_reqs(requirements)
 
     def _next_cheap_military_role(self):
-        return self.spawn_one_creep_per_flag(flags.SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
+        return self.spawn_one_creep_per_flag(SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
 
     def wall_defense(self):
         return self._check_role_reqs([
@@ -1993,7 +1992,7 @@ class RoomMind:
 
     def _next_complex_defender(self):
         if self.room.energyCapacityAvailable >= 500:
-            flag_list = self.flags_without_target(flags.RANGED_DEFENSE)
+            flag_list = self.flags_without_target(RANGED_DEFENSE)
 
             if len(flag_list):
                 flag = flag_list[0]
@@ -2006,7 +2005,7 @@ class RoomMind:
 
     def _next_claim(self):
         if self.room.energyCapacityAvailable >= 650:
-            flag_list = self.flags_without_target(flags.CLAIM_LATER)
+            flag_list = self.flags_without_target(CLAIM_LATER)
 
             def _needs_claim(flag):
                 if Memory.enemy_rooms.includes(flag.pos.roomName) and self.room.energyCapacityAvailable < 650 * 5:
@@ -2035,39 +2034,39 @@ class RoomMind:
     def _next_tower_breaker_role(self):
         if not self.conducting_siege():
             return None
-        role_obj = self.spawn_one_creep_per_flag(flags.TD_H_H_STOP, role_td_healer, creep_base_half_move_healer,
+        role_obj = self.spawn_one_creep_per_flag(TD_H_H_STOP, role_td_healer, creep_base_half_move_healer,
                                                  creep_base_full_move_healer)
         if role_obj:
             return role_obj
-        role_obj = self.spawn_one_creep_per_flag(flags.TD_D_GOAD, role_td_goad, creep_base_goader,
+        role_obj = self.spawn_one_creep_per_flag(TD_D_GOAD, role_td_goad, creep_base_goader,
                                                  creep_base_full_move_goader)
         if role_obj:
             return role_obj
-        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE, role_simple_dismantle, creep_base_dismantler,
+        role_obj = self.spawn_one_creep_per_flag(ATTACK_DISMANTLE, role_simple_dismantle, creep_base_dismantler,
                                                  creep_base_full_move_dismantler)
 
         if role_obj:
             return role_obj
 
-        role_obj = self.spawn_one_creep_per_flag(flags.ENERGY_GRAB, role_energy_grab, creep_base_hauler,
+        role_obj = self.spawn_one_creep_per_flag(ENERGY_GRAB, role_energy_grab, creep_base_hauler,
                                                  creep_base_hauler)
 
         if role_obj:
             return role_obj
 
-        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
+        role_obj = self.spawn_one_creep_per_flag(ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
                                                  creep_base_full_move_power_attack)
         if role_obj:
             return role_obj
-        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
+        role_obj = self.spawn_one_creep_per_flag(ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
                                                  creep_base_full_move_power_attack)
         if role_obj:
             return role_obj
-        role_obj = self.spawn_one_creep_per_flag(flags.REAP_POWER_BANK, role_power_cleanup, creep_base_half_move_hauler,
+        role_obj = self.spawn_one_creep_per_flag(REAP_POWER_BANK, role_power_cleanup, creep_base_half_move_hauler,
                                                  creep_base_hauler)
         if role_obj:
             return role_obj
-        # for flag in flags.find_flags_global(flags.REAP_POWER_BANK):
+        # for flag in flags.find_flags_global(REAP_POWER_BANK):
         #     if self.hive.get_closest_owned_room(flag.pos.roomName).room_name == self.room_name:
         #         # TODO: don't duplicate in TargetMind
         #         room = self.hive.get_room(flag.pos.roomName)
@@ -2084,13 +2083,13 @@ class RoomMind:
         if self.conducting_siege() or self.under_siege():
             return
 
-        role_obj = self.spawn_one_creep_per_flag(flags.ENERGY_GRAB, role_energy_grab, creep_base_hauler,
+        role_obj = self.spawn_one_creep_per_flag(ENERGY_GRAB, role_energy_grab, creep_base_hauler,
                                                  creep_base_hauler)
 
         if role_obj:
             return role_obj
 
-        role_obj = self.spawn_one_creep_per_flag(flags.ATTACK_DISMANTLE,
+        role_obj = self.spawn_one_creep_per_flag(ATTACK_DISMANTLE,
                                                  role_simple_dismantle,
                                                  creep_base_dismantler,
                                                  creep_base_full_move_dismantler)

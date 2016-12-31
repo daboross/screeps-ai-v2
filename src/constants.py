@@ -148,6 +148,38 @@ default_roles = {
     creep_base_claim_attack: role_simple_claim,
 }
 
+# Flag types / hints
+
+# Generic / home-type flags flags: 0*
+DEPOT = 0
+UPGRADER_SPOT = 1
+SPAWN_FILL_WAIT = 2
+# PathFinding flags: 1*
+REROUTE = 10
+REROUTE_DESTINATION = 11
+SLIGHTLY_AVOID = 12
+SK_LAIR_SOURCE_NOTED = 13
+# Energy miner / hauler: 2*
+REMOTE_MINE = 20
+LOCAL_MINE = 21
+RESERVE_NOW = 22
+CLAIM_LATER = 23
+# Military: 5*
+SCOUT = 50
+RANGED_DEFENSE = 51
+ATTACK_DISMANTLE = 52
+ENERGY_GRAB = 53
+WALL_DEFENSE_MID = 54
+WALL_DEFENSE_HIGH = 55
+RAID_OVER = 59
+# Overly specific / soon to be removed military: 6*
+TD_H_H_STOP = 60
+TD_H_D_STOP = 61
+TD_D_GOAD = 62
+ATTACK_POWER_BANK = 65
+REAP_POWER_BANK = 66
+# Find constants
+
 PYFIND_REPAIRABLE_ROADS = 1001
 PYFIND_BUILDABLE_ROADS = 1002
 PYFIND_HURT_CREEPS = 1003

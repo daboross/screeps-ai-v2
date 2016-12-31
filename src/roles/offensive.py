@@ -2,13 +2,14 @@ import math
 
 import autoactions
 import flags
-from constants import target_single_flag, role_td_healer, target_single_flag2
+from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, ENERGY_GRAB, RAID_OVER, REAP_POWER_BANK, TD_D_GOAD, \
+    TD_H_D_STOP, TD_H_H_STOP, role_td_healer, target_single_flag, target_single_flag2
 from goals.transport import TransportPickup
 from role_base import RoleBase
 from roles.mining import EnergyHauler
 from utilities import hostile_utils, global_cache
 from utilities import movement
-from utilities.movement import center_pos, room_xy_to_name, parse_room_to_xy
+from utilities.movement import center_pos, parse_room_to_xy, room_xy_to_name
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -318,9 +319,9 @@ class MilitaryBase(RoleBase):
 
 class TowerDrainHealer(MilitaryBase):
     def run(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
+        target = self.targets.get_new_target(self, target_single_flag, TD_H_H_STOP)
         if not target:
-            if len(flags.find_flags(self.home, flags.RAID_OVER)):
+            if len(flags.find_flags(self.home, RAID_OVER)):
                 self.recycle_me()
             else:
                 self.log("TowerDrainHealer has no target!")
@@ -332,7 +333,7 @@ class TowerDrainHealer(MilitaryBase):
         autoactions.instinct_do_heal(self)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.TD_H_H_STOP)
+        target = self.targets.get_new_target(self, target_single_flag, TD_H_H_STOP)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target)
@@ -354,9 +355,9 @@ class TowerDrainer(MilitaryBase):
         if not self.memory.goading and self.creep.hits >= self.creep.hitsMax:
             self.memory.goading = True
             self.targets.untarget_all(self)
-        goad_target = self.targets.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
+        goad_target = self.targets.get_new_target(self, target_single_flag, TD_D_GOAD)
         if not goad_target:
-            if len(flags.find_flags(self.home, flags.RAID_OVER)):
+            if len(flags.find_flags(self.home, RAID_OVER)):
                 self.recycle_me()
             else:
                 self.log("TowerDrainer has no target!")
@@ -374,9 +375,9 @@ class TowerDrainer(MilitaryBase):
             else:
                 self.follow_military_path(self.home.spawn, goad_target, {'avoid_rooms': [goad_target.pos.roomName]})
         else:
-            heal_target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP)
+            heal_target = self.targets.get_new_target(self, target_single_flag2, TD_H_D_STOP)
             if not heal_target:
-                if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                if len(flags.find_flags(self.home, RAID_OVER)):
                     self.recycle_me()
                 else:
                     self.go_to_depot()
@@ -395,7 +396,7 @@ class TowerDrainer(MilitaryBase):
         autoactions.instinct_do_attack(self)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.TD_D_GOAD)
+        target = self.targets.get_new_target(self, target_single_flag, TD_D_GOAD)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target, {'avoid_rooms': [target.pos.roomName]})
@@ -414,9 +415,9 @@ class Dismantler(MilitaryBase):
             self.targets.untarget(self, target_single_flag2)
 
         if self.memory.dismantling:
-            target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
+            target = self.targets.get_new_target(self, target_single_flag, ATTACK_DISMANTLE)
             if not target:
-                if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                if len(flags.find_flags(self.home, RAID_OVER)):
                     if self.creep.ticksToLive < 300:
                         self.creep.suicide()
                     else:
@@ -470,9 +471,9 @@ class Dismantler(MilitaryBase):
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target)
         else:
-            target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP)
+            target = self.targets.get_new_target(self, target_single_flag2, TD_H_D_STOP)
             if not target:
-                if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                if len(flags.find_flags(self.home, RAID_OVER)):
                     if self.creep.ticksToLive < 300:
                         self.creep.suicide()
                     else:
@@ -493,7 +494,7 @@ class Dismantler(MilitaryBase):
                     self.go_to_depot()
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_DISMANTLE)
+        target = self.targets.get_new_target(self, target_single_flag, ATTACK_DISMANTLE)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target)
@@ -504,7 +505,7 @@ class Dismantler(MilitaryBase):
 
 class EnergyGrab(TransportPickup, EnergyHauler):
     def run(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.ENERGY_GRAB)
+        target = self.targets.get_new_target(self, target_single_flag, ENERGY_GRAB)
         if not target:
             if 'recycling_from' not in self.memory:
                 target = self.memory.recycling_from = self.pos
@@ -542,7 +543,7 @@ class EnergyGrab(TransportPickup, EnergyHauler):
         return self.transport(target, fill)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.ENERGY_GRAB)
+        target = self.targets.get_new_target(self, target_single_flag, ENERGY_GRAB)
         if not target:
             return -1
         path_len = self.path_length(self.home.spawn, target)
@@ -561,9 +562,9 @@ class PowerAttack(MilitaryBase):
             self.memory.healing = False
             self.targets.untarget_all(self)
 
-        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
+        target = self.targets.get_new_target(self, target_single_flag, ATTACK_POWER_BANK)
         if not target:
-            if len(flags.find_flags(self.home, flags.RAID_OVER)):
+            if len(flags.find_flags(self.home, RAID_OVER)):
                 if self.creep.ticksToLive < 300:
                     self.creep.suicide()
                 else:
@@ -572,10 +573,10 @@ class PowerAttack(MilitaryBase):
                 self.log("PowerAttack has no target!")
                 self.go_to_depot()
             return
-        heal_target = self.targets.get_new_target(self, target_single_flag2, flags.TD_H_D_STOP, target.pos)
+        heal_target = self.targets.get_new_target(self, target_single_flag2, TD_H_D_STOP, target.pos)
         if self.memory.healing:
             if not heal_target:
-                if len(flags.find_flags(self.home, flags.RAID_OVER)):
+                if len(flags.find_flags(self.home, RAID_OVER)):
                     if self.creep.ticksToLive < 300:
                         self.creep.suicide()
                     else:
@@ -600,9 +601,9 @@ class PowerAttack(MilitaryBase):
                 if struct:
                     self.creep.attack(struct)
                 else:
-                    for flag in flags.find_flags(self.room, flags.TD_H_H_STOP):
+                    for flag in flags.find_flags(self.room, TD_H_H_STOP):
                         flag.remove()
-                    for flag in flags.find_flags(self.room, flags.TD_H_D_STOP):
+                    for flag in flags.find_flags(self.room, TD_H_D_STOP):
                         flag.remove()
                     target.remove()
             if not self.creep.pos.isEqualTo(heal_target.pos):
@@ -614,7 +615,7 @@ class PowerAttack(MilitaryBase):
                     self.follow_military_path(self.home.spawn, heal_target)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.ATTACK_POWER_BANK)
+        target = self.targets.get_new_target(self, target_single_flag, ATTACK_POWER_BANK)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target)
@@ -629,9 +630,9 @@ class PowerCleanup(MilitaryBase):
         return resource_type is None or resource_type == RESOURCE_POWER
 
     def run(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.REAP_POWER_BANK)
+        target = self.targets.get_new_target(self, target_single_flag, REAP_POWER_BANK)
         if not target:
-            if len(flags.find_flags(self.home, flags.RAID_OVER)) or self.creep.ticksToLive < 100:
+            if len(flags.find_flags(self.home, RAID_OVER)) or self.creep.ticksToLive < 100:
                 self.recycle_me()
             else:
                 self.log("PowerAttack has no target!")
@@ -731,7 +732,7 @@ class PowerCleanup(MilitaryBase):
                 self.log("Unknown result from cleanup-creep.transfer({}, {}): {}", target, resource_type, result)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, flags.REAP_POWER_BANK)
+        target = self.targets.get_new_target(self, target_single_flag, REAP_POWER_BANK)
         if not target:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, target)

@@ -1,4 +1,4 @@
-from constants import role_miner, role_hauler
+from constants import role_hauler, role_miner
 from control import pathdef
 from role_base import RoleBase
 from tools import profiling

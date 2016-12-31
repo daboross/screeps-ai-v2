@@ -1,6 +1,6 @@
 import context
 import flags
-from constants import target_single_flag, PYFIND_HURT_CREEPS
+from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, SK_LAIR_SOURCE_NOTED, target_single_flag
 from control import defense
 from control import pathdef
 from roles.offensive import MilitaryBase
@@ -56,7 +56,7 @@ def kiting_cost_matrix(room_name):
         set_in_range(pos, 3, 5, 10)
         cost_matrix.set(pos.x, pos.y, 255)
 
-    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+    for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
         set_in_range(flag.pos, 4, 255, 0)
 
     for x in [0, 49]:
@@ -151,9 +151,9 @@ class KitingOffense(MilitaryBase):
                                 self.pos, movement.serialized_pos_to_pos_obj(h.room, h.pos)) <= 3)):
             self.creep.heal(self.creep)
 
-        marker_flag = self.targets.get_new_target(self, target_single_flag, flags.RANGED_DEFENSE)
+        marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)
         if marker_flag is None:
-            if self.pos.roomName == self.home.name and len(flags.find_flags(self.home, flags.RAID_OVER)):
+            if self.pos.roomName == self.home.name and len(flags.find_flags(self.home, RAID_OVER)):
                 if len(hostiles_nearby) or self.creep.hits < self.creep.hitsMax:
                     self.creep.heal(self.creep)
                 return False
@@ -319,7 +319,7 @@ class KitingOffense(MilitaryBase):
                 self.go_to_depot()
 
     def _calculate_time_to_replace(self):
-        marker_flag = self.targets.get_new_target(self, target_single_flag, flags.RANGED_DEFENSE)
+        marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)
         if not marker_flag:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, marker_flag)

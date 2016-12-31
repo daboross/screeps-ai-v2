@@ -1,13 +1,10 @@
-import speech
-from constants import target_spawn_deposit, recycle_time, role_recycling, role_spawn_fill, role_tower_fill, \
-    role_spawn_fill_backup, role_builder, role_upgrader
+from constants import recycle_time, role_builder, role_recycling, role_spawn_fill, role_spawn_fill_backup, \
+    role_tower_fill, role_upgrader, target_spawn_deposit
 from goals.refill import Refill
 from role_base import RoleBase
-from roles import building
-from roles import upgrading
+from roles import building, upgrading
 from tools import profiling
-from utilities import movement
-from utilities import volatile_cache
+from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

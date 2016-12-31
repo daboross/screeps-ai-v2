@@ -1,4 +1,4 @@
-from constants import role_mineral_hauler, role_recycling, role_mineral_miner
+from constants import role_mineral_hauler, role_mineral_miner, role_recycling
 from role_base import RoleBase
 from tools import profiling
 from utilities import movement

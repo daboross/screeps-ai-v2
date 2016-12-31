@@ -2,8 +2,7 @@ import math
 from math import floor
 
 from constants import *
-from tools import naming
-from tools import profiling
+from tools import naming, profiling
 from utilities import volatile_cache
 from utilities.screeps_constants import *
 

@@ -1,8 +1,7 @@
 import flags
+from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, UPGRADER_SPOT
 from tools import profiling
-from utilities import global_cache
-from utilities import hostile_utils
-from utilities import movement
+from utilities import global_cache, hostile_utils, movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -166,13 +165,13 @@ class HoneyTrails:
                         matrix.set(x, y, 2 * if_roads_multiplier)
 
     def mark_flags(self, room_name, matrix, opts):
-        for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+        for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
             for x in range(flag.pos.x - 4, flag.pos.x + 5):
                 for y in range(flag.pos.y - 4, flag.pos.y + 5):
                     matrix.set(x, y, 255)
 
-        slightly_avoid = flags.find_flags(room_name, flags.SLIGHTLY_AVOID) \
-            .concat(flags.find_flags(room_name, flags.UPGRADER_SPOT))
+        slightly_avoid = flags.find_flags(room_name, SLIGHTLY_AVOID) \
+            .concat(flags.find_flags(room_name, UPGRADER_SPOT))
         if len(slightly_avoid):
             cost = 10 if opts['future_chosen'] else (4 if opts['roads'] else 2)
             for flag in slightly_avoid:
@@ -293,7 +292,7 @@ class HoneyTrails:
             cost_matrix.set(pos.x, pos.y, 255)
 
         controller = room.room.controller and room.room.controller.my and not len(
-            flags.find_flags(room, flags.UPGRADER_SPOT))
+            flags.find_flags(room, UPGRADER_SPOT))
 
         for struct in room.find(FIND_STRUCTURES):
             if (struct.structureType != STRUCTURE_CONTROLLER or controller) \
@@ -392,7 +391,7 @@ class HoneyTrails:
             or (destination.roomName == room_name and len(room.look_at(LOOK_SOURCES, destination)))
         )
         avoid_controller = room.room.controller and room.room.controller.my and not len(
-            flags.find_flags(room, flags.UPGRADER_SPOT))
+            flags.find_flags(room, UPGRADER_SPOT))
 
         cost_matrix = __new__(PathFinder.CostMatrix())
         self.mark_exit_tiles(room_name, cost_matrix, opts)

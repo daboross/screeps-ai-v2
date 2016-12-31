@@ -2,11 +2,10 @@ import random
 
 import context
 import role_base
-from constants import INVADER_USERNAME, role_simple_dismantle, role_miner
-from control import defense
-from control import pathdef
+from constants import INVADER_USERNAME, role_miner, role_simple_dismantle
+from control import defense, pathdef
 from tools import profiling
-from utilities import volatile_cache, movement, hostile_utils, walkby_move
+from utilities import hostile_utils, movement, volatile_cache, walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

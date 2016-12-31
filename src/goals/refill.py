@@ -1,6 +1,6 @@
 import spawning
-from constants import target_refill, role_builder, role_upgrader, creep_base_full_upgrader, target_repair, \
-    target_construction, target_big_repair, role_hauler, role_spawn_fill
+from constants import creep_base_full_upgrader, role_builder, role_hauler, role_spawn_fill, role_upgrader, \
+    target_big_repair, target_construction, target_refill, target_repair
 from role_base import RoleBase
 from utilities import volatile_cache
 from utilities.screeps_constants import *

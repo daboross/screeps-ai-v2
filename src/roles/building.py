@@ -1,8 +1,8 @@
 import math
 
 import flags
-from constants import target_repair, target_construction, target_big_repair, role_recycling, recycle_time, \
-    role_builder, target_destruction_site, role_upgrader, target_big_big_repair
+from constants import recycle_time, role_builder, role_recycling, role_upgrader, target_big_big_repair, \
+    target_big_repair, target_construction, target_destruction_site, target_repair
 from role_base import RoleBase
 from roles import upgrading
 from tools import profiling

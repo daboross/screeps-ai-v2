@@ -1,5 +1,3 @@
-import locations
-
 _memory_init = None
 
 
@@ -23,16 +21,18 @@ import autoactions
 import constants
 import context
 import flags
+import locations
 import spawning
 from constants import *
-from control import hivemind, defense
+from control import defense
+from control import hivemind
 from control.hivemind import HiveMind
 from control.targets import TargetMind
 from creep_wrappers import wrap_creep
 from role_base import RoleBase
-from tools import profiling, memory_info
-from utilities import records, consistency, global_cache, hostile_utils, movement, volatile_cache, walkby_move, \
-    deathwatch
+from tools import memory_info, profiling
+from utilities import consistency, deathwatch, global_cache, hostile_utils, movement, records, volatile_cache, \
+    walkby_move
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

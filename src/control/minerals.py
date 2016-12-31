@@ -1,8 +1,7 @@
 import math
 
 from constants import role_mineral_hauler
-from utilities import movement
-from utilities import volatile_cache
+from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

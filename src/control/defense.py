@@ -1,9 +1,9 @@
 import math
 
 import flags
-from constants import INVADER_USERNAME, SK_USERNAME
+from constants import INVADER_USERNAME, REMOTE_MINE, SK_USERNAME
 from tools import profiling
-from utilities import movement, hostile_utils, volatile_cache, deathwatch
+from utilities import deathwatch, hostile_utils, movement, volatile_cache
 from utilities.screeps_constants import *
 from utilities.screeps_constants import new_set
 
@@ -82,7 +82,7 @@ def poll_hostiles(hive, run_away_checks):
                 if room.my:
                     room.reset_planned_role()
                 else:
-                    for flag in flags.find_flags(room, flags.REMOTE_MINE):
+                    for flag in flags.find_flags(room, REMOTE_MINE):
                         sponsor = hive.get_room(flag.memory.sponsor)
                         if sponsor:
                             sponsor.reset_planned_role()
@@ -271,7 +271,7 @@ class RoomDefense:
         if self._cache.has("this_room_mining_ops"):
             return self._cache.get("this_room_mining_ops")
         else:
-            any_ops = not not _.find(flags.find_flags(self, flags.REMOTE_MINE),
+            any_ops = not not _.find(flags.find_flags(self, REMOTE_MINE),
                                      lambda f: f.memory.active)
             self._cache.set("this_room_mining_ops", any_ops)
             return any_ops

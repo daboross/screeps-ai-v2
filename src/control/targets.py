@@ -5,8 +5,7 @@ import spawning
 from constants import *
 from control import defense
 from tools import profiling
-from utilities import movement
-from utilities import volatile_cache
+from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -430,7 +429,7 @@ class TargetMind:
             if stealing_from is not None:
                 self._unregister_targeter(target_spawn_deposit, stealing_from)
         elif creep.home.full_storage_use:
-            flag_list = flags.find_flags(creep.home, flags.SPAWN_FILL_WAIT)
+            flag_list = flags.find_flags(creep.home, SPAWN_FILL_WAIT)
             if len(flag_list):
                 best_id = _(flag_list).map(lambda f: "flag-{}".format(f.name)) \
                     .min(lambda fid: self.reverse_targets[target_spawn_deposit][fid] or 0)
@@ -651,7 +650,7 @@ class TargetMind:
         """
         closest_flag = None
         closest_distance = Infinity
-        for flag in flags.find_flags_global(flags.RESERVE_NOW):
+        for flag in flags.find_flags_global(RESERVE_NOW):
             room_name = flag.pos.roomName
             room = Game.rooms[room_name]
             if not room or (room.controller and not room.controller.my and not room.controller.owner):

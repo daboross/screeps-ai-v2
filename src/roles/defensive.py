@@ -1,9 +1,8 @@
-from constants import INVADER_USERNAME, target_rampart_defense, role_recycling, role_wall_defender, role_defender
+from constants import INVADER_USERNAME, role_defender, role_recycling, role_wall_defender, target_rampart_defense
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
 from tools import profiling
-from utilities import hostile_utils
-from utilities import movement
+from utilities import hostile_utils, movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

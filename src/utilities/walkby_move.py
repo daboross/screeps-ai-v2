@@ -1,7 +1,6 @@
 import flags
 from constants import *
-from utilities import hostile_utils
-from utilities import volatile_cache
+from utilities import hostile_utils, volatile_cache
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -194,7 +193,7 @@ def _create_basic_room_cost_matrix(room_name):
 def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
     multiplier = 2 if roads else 1
     # Add source keeper lairs
-    for flag in flags.find_flags(room_name, flags.SK_LAIR_SOURCE_NOTED):
+    for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
         for x in range(flag.pos.x - 4, flag.pos.x + 5):
             for y in range(flag.pos.y - 4, flag.pos.y + 5):
                 cost_matrix.set(x, y, 255)

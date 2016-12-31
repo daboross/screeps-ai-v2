@@ -1,6 +1,4 @@
-import speech
-from constants import role_cleanup, recycle_time, role_recycling, \
-    target_closest_energy_site, role_link_manager
+from constants import recycle_time, role_cleanup, role_link_manager, role_recycling, target_closest_energy_site
 from role_base import RoleBase
 from roles.spawn_fill import SpawnFill
 from tools import profiling

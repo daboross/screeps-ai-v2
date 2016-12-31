@@ -1,15 +1,6 @@
 from constants import *
-from roles import building, defensive, smart_offensive
-from roles import colonizing
-from roles import exploring
-from roles import generic
-from roles import minerals
-from roles import mining
-from roles import offensive
-from roles import spawn_fill
-from roles import tower_fill
-from roles import upgrading
-from roles import utility
+from roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, smart_offensive, \
+    spawn_fill, tower_fill, upgrading, utility
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')

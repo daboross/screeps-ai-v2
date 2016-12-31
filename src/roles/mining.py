@@ -1,9 +1,8 @@
 import math
 
 import flags
-import speech
-from constants import target_energy_miner_mine, target_energy_hauler_mine, target_closest_energy_site, \
-    role_hauler, role_miner, role_recycling, role_spawn_fill
+from constants import UPGRADER_SPOT, role_hauler, role_miner, role_recycling, role_spawn_fill, \
+    target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
 from goals.refill import Refill
 from goals.transport import TransportPickup
 from role_base import RoleBase
@@ -140,7 +139,7 @@ class EnergyMiner(TransportPickup):
                                                                              and abs(s.pos.y - y) <= 1)
                             if link_here:
                                 if not flags.look_for(self.room, __new__(RoomPosition(x, y, self.pos.roomName)),
-                                                      flags.UPGRADER_SPOT):
+                                                      UPGRADER_SPOT):
                                     if _.find(self.room.look_at(LOOK_STRUCTURES, x, y),
                                               lambda s: s.structureType == STRUCTURE_RAMPART):
                                         priority_here = 3
