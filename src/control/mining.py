@@ -51,6 +51,12 @@ class MiningMind:
         self._active_mining_flags = None
 
     def closest_deposit_point_to_mine(self, flag):
+        """
+        Gets the closest deposit point to the mine. Currently just returns storage or spawn, since we need to do more
+        changes in order to support links well anyways.
+        :param flag:
+        :return:
+        """
         key = "mine_{}_deposit".format(flag.name)
         target_id = self.room.get_cached_property(key)
         if target_id:
@@ -62,22 +68,32 @@ class MiningMind:
             main_link_id = self.room.links.main_link.id
             upgrader_link = self.room.get_upgrader_energy_struct()
             upgrader_link_id = upgrader_link and upgrader_link.id or None
-            best_priority = Infinity
-            best = None
-            for structure in self.room.find(FIND_MY_STRUCTURES):
-                if structure.structureType == STRUCTURE_LINK and structure.energyCapacity > 0:
-                    if structure.id == main_link_id or structure.id == upgrader_link_id:
-                        continue
-                    priority = movement.chebyshev_distance_room_pos(structure, flag)
-                    if priority <= 2:
-                        priority -= 14
-                elif structure.structureType == STRUCTURE_STORAGE and structure.storeCapacity > 0:
-                    priority = movement.chebyshev_distance_room_pos(structure, flag) - 10
+            storage = self.room.room.storage
+            if storage and storage.storeCapacity > 0:
+                distance = movement.chebyshev_distance_room_pos(storage, flag)
+                if distance <= 2:
+                    best_priority = -40
+                    best = storage
                 else:
-                    continue
-                if priority < best_priority:
-                    best_priority = priority
-                    best = structure
+                    best_priority = 0
+                    best = storage
+            else:
+                best_priority = Infinity
+                best = None
+            if best_priority > -40:
+                for link in self.room.links.links:
+                    if link.energyCapacity <= 0 or link.id == main_link_id:
+                        continue
+                    distance = movement.chebyshev_distance_room_pos(link, flag)
+                    if distance <= 2:
+                        priority = -20
+                    elif link.id == upgrader_link_id:
+                        continue
+                    else:
+                        priority = distance
+                    if priority < best_priority:
+                        best_priority = priority
+                        best = link
             target = best
         elif self.room.room.storage and self.room.room.storage.storeCapacity > 0:
             target = self.room.room.storage

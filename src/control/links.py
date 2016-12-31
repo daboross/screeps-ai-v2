@@ -28,6 +28,9 @@ class LinkingMind:
         self.enabled_last_turn = room.get_cached_property("links_enabled") or False
 
     def _get_links(self):
+        """
+        :rtype: list[StructureLink]
+        """
         if self._links is None:
             self._links = _.filter(self.room.find(FIND_MY_STRUCTURES),
                                    {"structureType": STRUCTURE_LINK})

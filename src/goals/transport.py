@@ -16,16 +16,11 @@ __pragma__('noalias', 'type')
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill):
-        debug = self.memory.debug
         total_carried_now = self.carry_sum()
         if self.memory.filling:
-            if debug:
-                self.log("Filling")
             target = pickup.pos
             if not self.creep.carryCapacity:
                 if self.creep.hits < self.creep.hitsMax and self.home.defense.healing_capable():
-                    if debug:
-                        self.log("Heading home to heal")
                     self.follow_energy_path(pickup, fill)
                 else:
                     self.log("All carry parts dead, committing suicide.")
@@ -35,20 +30,14 @@ class TransportPickup(RoleBase):
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
                 self.memory.filling = False
+                self.repair_nearby_roads()
                 self.follow_energy_path(pickup, fill)
-                if debug:
-                    self.log("Full, heading back")
                 return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
-                if debug:
-                    self.log("Heading out (from {} to {})", fill, pickup)
                 if total_carried_now:
                     self.repair_nearby_roads()
                 self.follow_energy_path(fill, pickup)
                 return
-            if debug:
-                self.log("Now near target (filling).")
-
             piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
             if len(piles):
                 if len(piles) > 1:
@@ -109,6 +98,7 @@ class TransportPickup(RoleBase):
                 if total_carried_now > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
                     self.follow_energy_path(pickup, fill)
+                    return
         else:
             # don't use up *all* the energy doing this
             if total_carried_now and total_carried_now + 50 >= self.creep.carryCapacity / 2:
@@ -161,6 +151,7 @@ class TransportPickup(RoleBase):
             if min(amount, empty) >= total_carried_now:
                 # self.memory.filling = True
                 self.follow_energy_path(fill, pickup)
+                return
 
     def path_length(self, origin, target):
         if origin.pos:

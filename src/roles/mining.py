@@ -221,9 +221,6 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                 return self.recycle_me()
 
     def run(self):
-        debug = self.memory.debug
-        if debug:
-            self.log("Running energy filling!")
         pickup = self.targets.get_existing_target(self, target_energy_hauler_mine)
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
@@ -235,27 +232,20 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             self.memory.last_role = role_hauler
             return
 
-        if self.carry_sum() > self.creep.carry.energy:
-            fill = self.home.room.storage
+        if _.size(self.creep.carry) > 1:
+            fill = self.home.room.storage or self.home.spawn
         else:
             fill = self.home.mining.closest_deposit_point_to_mine(pickup)
-            if fill and fill.energy >= fill.energyCapacity and fill.structureType == STRUCTURE_LINK and \
-                    not self.home.links.enabled:
-                fill = self.home.room.storage  # Just temporary, since we know a link manager will spawn eventually.
 
-        if not fill:
-            self.log("WARNING: Couldn't find fill site!")
-            if self.home.room.storage:
-                fill = self.home.room.storage
-            elif self.home.spawn:
-                fill = self.home.spawn
-            else:
-                self.log("WARNING: Remote hauler in room with no storage nor spawn!")
-                return
-        if fill == self.home.spawn and not self.memory.filling:
-            if self.pos.roomName == fill.pos.roomName:
+        if fill == undefined:
+            self.log('WARNING: Energy hauler in room without storage nor spawn. Repurposing as spawn fill.')
+            self.memory.role = role_spawn_fill
+            return
+
+        if fill.id == self.home.spawn.id:
+            if not self.memory.filling and self.pos.roomName == fill.pos.roomName:
                 return self.run_local_refilling(pickup, fill)
-            else:
+            elif 'running' in self.memory:
                 del self.memory.running
 
         return self.transport(pickup, fill)

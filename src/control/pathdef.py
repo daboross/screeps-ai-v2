@@ -656,31 +656,27 @@ class HoneyTrails:
         if not (keep_for > 0):
             all_viewed = True
             all_owned = True
-            all_paved = True
             for pos in path:
                 room = self.hive.get_room(pos.roomName)
                 if not room:
                     all_owned = False
                     all_viewed = False
-                    all_paved = False
                     break
                 if not room.my:
                     all_owned = False
-                if (not _.find(room.look_at(LOOK_STRUCTURES, pos.x, pos.y),
-                               lambda s: s.structureType == STRUCTURE_ROAD)
-                    and not _.find(room.look_at(LOOK_CONSTRUCTION_SITES, pos.x, pos.y)),
-                    lambda s: s.structureType == STRUCTURE_ROAD):
-                    all_paved = False
 
-            keep_for = 20000
-            if all_paved:
-                keep_for *= 4
-            if all_owned:
-                keep_for *= 2
-            if not all_viewed:
+            if all_viewed:
+                keep_for = 80 * 1000
+                if all_owned:
+                    keep_for *= 2
+            else:
                 # Don't constantly re-calculate super-long paths that we can't view the rooms for.
-                if len(Object.keys(room_to_path_obj)) < 4:
-                    keep_for /= 4
+                if len(Object.keys(room_to_path_obj)) < 3:
+                    keep_for = 4 * 1000
+                elif len(Object.keys(room_to_path_obj)) < 4:
+                    keep_for = 10 * 1000
+                else:
+                    keep_for = 40 * 1000
         serialized_path_obj = {key: Room.serializePath(value) for key, value in room_to_path_obj.items()}
         global_cache.set(key, serialized_path_obj, keep_for)
         return serialized_path_obj
@@ -689,8 +685,8 @@ class HoneyTrails:
         if opts and "current_room" in opts:
             current_room = opts["current_room"]
             if current_room:
-                if current_room.room: current_room = current_room.room
-                if current_room.name: current_room = current_room.name
+                current_room = current_room.room or current_room
+                current_room = current_room.name or current_room
         else:
             current_room = "full"
 

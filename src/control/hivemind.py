@@ -501,22 +501,18 @@ class RoomMind:
     mem = property(_get_mem)
 
     def get_cached_property(self, name):
-        if not self.mem.cache:
-            self.mem.cache = {}
-        if name in self.mem.cache and self.mem.cache[name].dead_at > Game.time:
-            if self.mem.cache[name].ttl_after_use:
-                self.mem.cache[name].last_used = Game.time
-            return self.mem.cache[name].value
+        if 'cache' not in self.mem:
+            return None
+        prop_mem = self.mem.cache[name]
+        if prop_mem and prop_mem.dead_at > Game.time:
+            return prop_mem.value
         else:
             return None
 
-    def store_cached_property(self, name, value, ttl, use_ttl=None):
+    def store_cached_property(self, name, value, ttl):
         if not self.mem.cache:
             self.mem.cache = {}
         self.mem.cache[name] = {"value": value, "dead_at": Game.time + ttl}
-        if use_ttl:
-            self.mem.cache[name].ttl_after_use = use_ttl
-            self.mem.cache[name].last_used = Game.time
 
     def store_cached_property_at(self, name, value, dead_at):
         if not self.mem.cache:
