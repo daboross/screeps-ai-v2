@@ -124,42 +124,50 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
-DEPOT = "depot"
-REMOTE_MINE = "harvest"
-CLAIM_LATER = "claim_later"
-RESERVE_NOW = "top_priority_reserve"
-SPAWN_FILL_WAIT = "spawnfill_wait"
-LOCAL_MINE = "local_mine"
-SK_LAIR_SOURCE_NOTED = "avoid_moving_through"
-SLIGHTLY_AVOID = "slightly_avoid"
-MAIN_DESTRUCT = "destruct"
-MAIN_BUILD = "build"
-SUB_WALL = "wall"
-SUB_RAMPART = "rampart"
-SUB_EXTENSION = "extension"
-SUB_SPAWN = "spawn"
-SUB_TOWER = "tower"
-SUB_STORAGE = "storage"
-SUB_LINK = "link"
-SUB_EXTRACTOR = "extractor"
-SUB_TERMINAL = "terminal"
-SUB_ROAD = "road"
-SUB_CONTAINER = "container"
-TD_H_H_STOP = "tdhhs"
-TD_H_D_STOP = "tdhts"
-TD_D_GOAD = "tddg"
-SCOUT = "scout_pit"
-RANGED_DEFENSE = "rdef"
-ATTACK_DISMANTLE = "tdad"
-ENERGY_GRAB = "egrab"
-RAID_OVER = "raid_over"
-ATTACK_POWER_BANK = "attack_power_bank"
-REAP_POWER_BANK = "reap_power_bank"
-WALL_DEFENSE_HIGH = "wdh"
-WALL_DEFENSE_MID = "wdm"
-UPGRADER_SPOT = "us"
-REROUTE = "portal_reroute"
-REROUTE_DESTINATION = "portal_reroute_destination"
+# Generic / home-type flags flags: 0*
+DEPOT = 0
+UPGRADER_SPOT = 1
+SPAWN_FILL_WAIT = 2
+# PathFinding flags: 1*
+REROUTE = 10
+REROUTE_DESTINATION = 11
+SLIGHTLY_AVOID = 12
+SK_LAIR_SOURCE_NOTED = 13
+# Energy miner / hauler: 2*
+REMOTE_MINE = 20
+LOCAL_MINE = 21
+RESERVE_NOW = 22
+CLAIM_LATER = 23
+# Building main: 10*
+MAIN_BUILD = 100
+MAIN_DESTRUCT = 101
+# Building owned structures: 11*
+SUB_RAMPART = 110
+SUB_SPAWN = 111
+SUB_EXTENSION = 112
+SUB_TOWER = 113
+SUB_STORAGE = 114
+SUB_LINK = 115
+SUB_EXTRACTOR = 116
+SUB_TERMINAL = 117
+# Building unowned structures: 12*
+SUB_WALL = 120
+SUB_ROAD = 121
+SUB_CONTAINER = 122
+# Military: 5*
+SCOUT = 50
+RANGED_DEFENSE = 51
+ATTACK_DISMANTLE = 52
+ENERGY_GRAB = 53
+WALL_DEFENSE_MID = 54
+WALL_DEFENSE_HIGH = 55
+RAID_OVER = 59
+# Overly specific / soon to be removed military: 6*
+TD_H_H_STOP = 60
+TD_H_D_STOP = 61
+TD_D_GOAD = 62
+ATTACK_POWER_BANK = 65
+REAP_POWER_BANK = 66
 
 flag_definitions = {
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
@@ -182,7 +190,7 @@ flag_definitions = {
     CLAIM_LATER: (COLOR_GREEN, COLOR_PURPLE),
     RESERVE_NOW: (COLOR_GREEN, COLOR_GREY),
     WALL_DEFENSE_HIGH: (COLOR_GREEN, COLOR_GREEN),
-    WALL_DEFENSE_MID: (COLOR_GREEN, COLOR_RED),  # conflict with RESERVE_NOW!
+    WALL_DEFENSE_MID: (COLOR_GREEN, COLOR_RED),
     REROUTE: (COLOR_WHITE, COLOR_GREEN),
     REROUTE_DESTINATION: (COLOR_WHITE, COLOR_YELLOW),
 }
