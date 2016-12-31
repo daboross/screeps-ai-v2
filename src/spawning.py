@@ -2,6 +2,7 @@ import math
 from math import floor
 
 from constants import *
+from tools import naming
 from tools import profiling
 from utilities import volatile_cache
 from utilities.screeps_constants import *
@@ -517,9 +518,9 @@ def run(room, spawn):
         if part == WORK:
             work += 1
 
-    name = random_four_digits()
+    name = naming.random_digits()
     if Game.creeps[name]:
-        name = random_four_digits()
+        name = naming.random_digits()
     home = room.name
 
     if replacing:
@@ -534,7 +535,7 @@ def run(room, spawn):
 
     if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.name):
         print("[{}][spawning] Warning: Generated too costly of a body for a {}! Available energy: {}, cost: {}."
-              .format(role, spawn.room.energyAvailable - ubos_cache.get(room.name),
+              .format(room.name, role, spawn.room.energyAvailable - ubos_cache.get(room.name),
                       _.sum(parts, lambda p: BODYPART_COST[p])))
         room.reset_planned_role()
         return
@@ -581,11 +582,6 @@ def run(room, spawn):
             room.register_new_replacing_creep(replacing, result)
         else:
             room.register_to_role(Game.creeps[result])
-
-
-def random_four_digits():
-    # JavaScript trickery here - TODO: pythonize
-    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
 
 
 def validate_role(role_obj):

@@ -113,6 +113,7 @@ White:
     White: ENERGY_GRAB      - Energy grab spot
 """
 
+from tools import naming
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -498,7 +499,7 @@ def find_closest_in_room(pos, flag_type):
 def __create_flag(position, flag_type, primary, secondary):
     if position.pos:
         position = position.pos
-    name = "{}_{}".format(flag_type, random_digits())
+    name = "{}_{}".format(flag_type, naming.random_digits())
     # TODO: Make some sort of utility for finding a visible position, so we can do this
     # even if all our spawns are dead!
     room = Game.rooms[position.roomName]
@@ -578,8 +579,3 @@ def look_for(room, position, main, sub=None):
             return []
         return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
-
-
-def random_digits():
-    # JavaScript trickery here - TODO: pythonize
-    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
