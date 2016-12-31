@@ -353,7 +353,9 @@ __pragma__('js', 'global').py = {
     "records": {
         'start': records.start_recording,
         'stop': records.stop_recording,
+        'start_sub': records.start_sub_recording,
         'output': records.output_records,
+        'output_sub': records.output_sub_records,
         'reset': records.reset_records,
     }
 }

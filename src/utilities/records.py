@@ -13,17 +13,25 @@ __pragma__('noalias', 'type')
 ###
 
 _recording_now = False
+_sub_recording_now = False
 _single_record_start = None
+_sub_record_start = None
 _main_loop_record_start = None
 _averages = None
+_sub_records = None
 
 
 def prep_recording():
-    global _recording_now, _averages
+    global _recording_now, _averages, _sub_recording_now, _sub_records
     _averages = Memory['_averages']
     if not _averages:
         _averages = Memory['_averages'] = {}
     _recording_now = not not _averages['_recording_now']
+    _sub_recording_now = _averages['_sub_recording_now'] or False
+    if _sub_recording_now:
+        _sub_records = _averages['_sub_records']
+        if not _sub_records:
+            _sub_records = _averages['_sub_records'] = {}
 
 
 def start_recording():
@@ -32,6 +40,12 @@ def start_recording():
 
 def stop_recording():
     Memory['_averages']['_recording_now'] = False
+    Memory['_sub_recording_now'] = False
+
+
+def start_sub_recording():
+    Memory['_averages']['_sub_recording_now'] = True
+    Memory['_averages']['_recording_now'] = True
 
 
 def reset_records():
@@ -57,6 +71,27 @@ def finish_record(identity):
             }
 
 
+def start_sub_record():
+    if _sub_recording_now:
+        global _sub_record_start
+        _sub_record_start = Game.cpu.getUsed()
+
+
+def finish_sub_record(identity):
+    global _sub_record_start
+    if _sub_recording_now and _sub_record_start is not None:
+        end = Game.cpu.getUsed()
+        if identity in _sub_records:
+            _sub_records[identity].calls += 1
+            _sub_records[identity].time += end - _sub_record_start
+        else:
+            _sub_records[identity] = {
+                'calls': 1,
+                'time': end - _sub_record_start,
+            }
+        _sub_record_start = None
+
+
 def start_main_record():
     if _recording_now:
         global _main_loop_record_start
@@ -78,6 +113,11 @@ def finish_main_record():
             _averages['_ticks'] += 1
         else:
             _averages['_ticks'] = 1
+        if _sub_recording_now:
+            if '_ticks' in _sub_records:
+                _sub_records['_ticks'] += 1
+            else:
+                _sub_records['_ticks'] = 1
 
 
 def record_memory_amount(time):
@@ -118,7 +158,7 @@ def output_records_full():
     rows = ["time\tcalls\ttime/t\tcalls/t\taverage\tname"]
     total_time_in_records = 0
     for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
-        if identity == '_recording_now' or identity == '_ticks' or identity == '_main' or identity == '_total':
+        if identity.startswith('_'):
             continue
         if identity != 'memory.init' and identity != 'code.compile':
             total_time_in_records += obj.time
@@ -173,7 +213,7 @@ def output_records():
     rows = ["time/t\tcalls/t\taverage\tname"]
     total_time_in_records = 0
     for identity, obj in _(_averages).pairs().sortBy(lambda t: -t[1].time).value():
-        if identity == '_recording_now' or identity == '_ticks' or identity == '_main' or identity == '_total':
+        if identity.startswith('_'):
             continue
 
         if identity != 'memory.init' and identity != 'code.compile':
@@ -211,4 +251,25 @@ def output_records():
         display_num(_averages['_total'] / _averages['_ticks']),
         'total (limit: {})'.format(Game.cpu.limit),
     ))
+    return "".join(rows)
+
+
+def output_sub_records():
+    if not _sub_records['_ticks']:
+        return "no data collected"
+    rows = ["time/t\tcalls/t\taverage\tname"]
+    total_time_in_records = 0
+    for identity, obj in _(_sub_records).pairs().sortBy(lambda t: -t[1].time).value():
+        if identity.startswith('_'):
+            continue
+
+        if identity != 'memory.init' and identity != 'code.compile':
+            total_time_in_records += obj.time
+
+        rows.push("\n{}\t{}\t{}\t{}".format(
+            display_num(obj.time / _sub_records['_ticks']),
+            display_num(obj.calls / _sub_records['_ticks'], 1),
+            display_num(obj.time / obj.calls),
+            identity,
+        ))
     return "".join(rows)
