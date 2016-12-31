@@ -132,7 +132,6 @@ SPAWN_FILL_WAIT = "spawnfill_wait"
 LOCAL_MINE = "local_mine"
 SK_LAIR_SOURCE_NOTED = "avoid_moving_through"
 SLIGHTLY_AVOID = "slightly_avoid"
-SOURCE_QUEUE_START = "source_stop"
 MAIN_DESTRUCT = "destruct"
 MAIN_BUILD = "build"
 SUB_WALL = "wall"
@@ -163,7 +162,6 @@ REROUTE = "portal_reroute"
 REROUTE_DESTINATION = "portal_reroute_destination"
 
 flag_definitions = {
-    SOURCE_QUEUE_START: (COLOR_BLUE, COLOR_RED),
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
     SPAWN_FILL_WAIT: (COLOR_BLUE, COLOR_CYAN),

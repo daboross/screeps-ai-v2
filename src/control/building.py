@@ -836,8 +836,6 @@ class ConstructionMind:
             away_from.append({'pos': spawn.pos, 'range': 4})
         for mineral in self.room.find(FIND_MINERALS):
             away_from.append({'pos': mineral.pos, 'range': 4})
-        for flag in flags.find_flags(self.room, flags.SOURCE_QUEUE_START):
-            away_from.append({'pos': flag.pos, 'range': 4})
         for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL):
             away_from.append({'pos': flag.pos, 'range': 1})
         for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART):
