@@ -1564,8 +1564,6 @@ class RoomMind:
                             parts = 1 * worker_size
                     max_parts = self.building.get_max_builder_work_parts()
                     if parts > max_parts:
-                        print("[{}] Reducing target builder parts from {} to {} to match demand."
-                              .format(self.name, parts, max_parts))
                         parts = max_parts
                     self._target_builder_work_mass = parts
         return self._target_builder_work_mass
