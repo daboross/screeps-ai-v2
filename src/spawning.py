@@ -323,14 +323,14 @@ def run(room, spawn):
     elif base is creep_base_worker:
         if energy >= 450:
             parts = []
-            if half_section:
-                parts.append(WORK)
             for i in range(0, num_sections):
                 parts.append(CARRY)
                 parts.append(CARRY)
-                parts.append(WORK)
                 parts.append(CARRY)
-            for i in range(0, num_sections * 4 + half_section):
+                parts.append(MOVE)
+            for i in range(0, num_sections + half_section):
+                parts.append(WORK)
+            for i in range(0, num_sections * 3 + half_section):
                 parts.append(MOVE)
             descriptive_level = "carry:{}-work:{}".format(num_sections * 3, num_sections)
         elif energy >= 400:
