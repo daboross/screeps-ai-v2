@@ -403,7 +403,7 @@ function activateCustomizations() {
         }
         var path_len = path.length;
         if (path_len < 5) {
-            return ERR_NO_PATH;
+            return ERR_NOT_FOUND;
         }
         var my_x = this.pos.x, my_y = this.pos.y;
         var x_to_check = +path.slice(0, 2);
