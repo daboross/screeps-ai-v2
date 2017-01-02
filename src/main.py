@@ -13,7 +13,7 @@ init_memory()
 
 _start_of_compile = Game.cpu.getUsed()
 
-require("perf")()
+require("customizations")
 
 import math
 
