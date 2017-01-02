@@ -173,12 +173,12 @@ class Upgrader(RoleBase):
             self.memory.filling = False
             self.finished_energy_harvest()
         elif not self.memory.filling and self.creep.carry.energy <= 0 \
-                and self.creep.getActiveBodyparts(CARRY) > self.creep.getActiveBodyparts(WORK):
+                and self.creep.getBodyparts(CARRY) > self.creep.getBodyparts(WORK):
             # If we're a dedicated upgrader, just wait for a spawn filler to come give us more energy.
             self.memory.filling = True
             self.finished_energy_harvest()
 
-        if Game.time % 5 == 0 and not self.creep.hasActiveBodyparts(WORK) and \
+        if Game.time % 5 == 0 and not (self.creep.hasActiveBodyparts(WORK) & self.creep.hasActiveBodyparts(CARRY)) and \
                 not self.home.defense.healing_capable():
             if self.home.spawn:
                 return self.recycle_me()
