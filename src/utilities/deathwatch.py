@@ -40,7 +40,7 @@ def mark_creeps(room):
         for creep in room.find(FIND_MY_CREEPS):
             Memory.deathwatch.append([
                 creep.name, creep.memory.home,
-                _(hostiles).map(lambda h: _.get(h, ['owner, username'], 'unknown')).uniq().value()
+                _(hostiles).map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value()
             ])
     else:
         for creep in room.find(FIND_MY_CREEPS):
