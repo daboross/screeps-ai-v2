@@ -11,9 +11,19 @@ def init_memory():
 
 init_memory()
 
+# noinspection PyUnboundLocalVariable
+__pragma__('skip')
+from utilities.screeps_constants import *
+
+__pragma__('noskip')
 _start_of_compile = Game.cpu.getUsed()
 
-require("customizations")
+# Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
+# code works correctly.
+__pragma__('js', '{}', """
+if (!global.__customizations_active) {
+    require("customizations");
+}""")
 
 import math
 
@@ -33,7 +43,6 @@ from role_base import RoleBase
 from tools import memory_info
 from utilities import consistency, deathwatch, global_cache, hostile_utils, movement, records, volatile_cache, \
     walkby_move
-from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
