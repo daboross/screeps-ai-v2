@@ -1,6 +1,7 @@
 import math
 
 import flags
+import locations
 import spawning
 from constants import *
 from control import defense
@@ -323,7 +324,9 @@ class TargetMind:
         target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:
             return None
-        if target_id.startswith and target_id.startswith("flag-"):
+        if len(target_id) == 4:
+            target = locations.get(target_id)
+        elif target_id.startswith and target_id.startswith("flag-"):
             target = Game.flags[target_id[5:]]
         else:
             target = Game.getObjectById(target_id)
@@ -337,7 +340,9 @@ class TargetMind:
         target_id = self._get_existing_target_id(ttype, creep.name)
         if not target_id:
             return None
-        if target_id.startswith("flag-"):
+        if len(target_id) == 4:
+            target = locations.get(target_id)
+        elif target_id.startswith("flag-"):
             target = Game.flags[target_id[5:]]
         else:
             target = Game.getObjectById(target_id)
