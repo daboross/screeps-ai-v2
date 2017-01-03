@@ -4,7 +4,6 @@ import flags
 import locations
 import spawning
 from constants import *
-from control import defense
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
@@ -324,12 +323,11 @@ class TargetMind:
         target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:
             return None
-        if len(target_id) == 4:
+        target = Game.getObjectById(target_id)
+        if target is None:
             target = locations.get(target_id)
-        elif target_id.startswith and target_id.startswith("flag-"):
-            target = Game.flags[target_id[5:]]
-        else:
-            target = Game.getObjectById(target_id)
+            if target is None and target_id.startswith and target_id.startswith("flag-"):
+                target = Game.flags[target_id[5:]]
         if not target:
             self._unregister_targeter(ttype, creep.name)
             if not second_time:
@@ -340,12 +338,13 @@ class TargetMind:
         target_id = self._get_existing_target_id(ttype, creep.name)
         if not target_id:
             return None
-        if len(target_id) == 4:
+
+        target = Game.getObjectById(target_id)
+        if target is None:
             target = locations.get(target_id)
-        elif target_id.startswith("flag-"):
-            target = Game.flags[target_id[5:]]
-        else:
-            target = Game.getObjectById(target_id)
+            if target is None and target_id.startswith and target_id.startswith("flag-"):
+                target = Game.flags[target_id[5:]]
+
         if not target:
             self._unregister_targeter(ttype, creep.name)
         return target
