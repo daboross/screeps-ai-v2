@@ -80,7 +80,7 @@ def _get_hint():
     if hint is undefined:
         hint = None
     Object.defineProperty(this, 'hint', {
-        'value': hint,
+        'get': __pragma__('js', '{}', '() => hint'),
         'set': _set_hint,
         'enumerable': True,
         'configurable': True,
@@ -90,12 +90,31 @@ def _get_hint():
 
 def _set_hint(hint):
     Object.defineProperty(this, 'hint', {
-        'value': hint,
+        'get': __pragma__('js', '{}', '() => hint'),
         'set': _set_hint,
         'enumerable': True,
         'configurable': True,
     })
     _mem_hints[this.name] = hint
+
+
+def _deserialized_pos_to_string():
+    things = [
+        "[Location ",
+        this.name,
+    ]
+    if this.hint:
+        things.push(" (type: ", this.hint, ")")
+    things.push(
+        ": ",
+        this.x,
+        ",",
+        this.y,
+        " ",
+        this.roomName,
+        "]"
+    )
+    return ''.join(things)
 
 
 DeserializedPos.prototype.update = _update_deserialized_pos_xy
@@ -107,6 +126,8 @@ Object.defineProperty(DeserializedPos.prototype, 'hint', {
     'configurable': True,
 })
 
+DeserializedPos.prototype.toString = _deserialized_pos_to_string
+
 
 def _deserialize(string, name):
     return __new__(DeserializedPos(string, name))
@@ -115,6 +136,8 @@ def _deserialize(string, name):
 def _serialize(position, expiration=None):
     if position.pos is not undefined:
         position = position.pos
+    if position.x == undefined or position.y == undefined or position.roomName == undefined:
+        raise ValueError("Invalid position: {}".format(position))
     parts = [position.x | position.y << 6, position.roomName]
     if expiration != undefined:
         parts.append(expiration)
@@ -161,7 +184,7 @@ def get(name):
     :rtype: Location | None
     """
     serialized_result = _mem[name]
-    if serialized_result is undefined:
+    if serialized_result == undefined:
         return None
     else:
         return _deserialize(serialized_result, name)
@@ -193,9 +216,22 @@ def create(position, hint=None, expiration=None):
     return get(name)  # The first get operation will set _mem_expirations
 
 
+def delete_location(name):
+    """
+    Deletes a location with the given name
+    :param name: The name to delete
+    :type name: str
+    """
+    del _mem_expirations[name]
+    del _mem_hints[name]
+    del _mem[name]
+
+
 def clean_old_positions():
     for name in Object.keys(_mem_expirations):
         if _mem_expirations[name] < Game.time:
+            exp = _mem_expirations[name]
+            print("[locations] Expiring location {}: {} < {}".format(get(name), exp, Game.time))
             del _mem_expirations[name]
             del _mem_hints[name]
             del _mem[name]
