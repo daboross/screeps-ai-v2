@@ -1,6 +1,6 @@
 import flags
 from constants import CLAIM_LATER, role_builder, role_mineral_steal, role_recycling, role_upgrader, target_reserve_now, \
-    target_single_flag
+    target_single_flag, role_tower_fill_once
 from goals.transport import TransportPickup
 from roles.offensive import MilitaryBase
 from utilities import movement
@@ -63,6 +63,9 @@ class Colonist(MilitaryBase):
                 self.memory.role = role_builder
             else:
                 self.memory.role = role_upgrader
+            if _.some(room.defense.towers(), lambda t: t.energy < t.energyCapacity * 0.9):
+                self.memory.old_role = self.memory.role
+                self.memory.role = role_tower_fill_once
             meta = room.mem.meta
             if meta:
                 meta.clear_next = 0  # clear next tick
