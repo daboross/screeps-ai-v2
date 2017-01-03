@@ -72,6 +72,7 @@ class HiveMind:
         self._my_rooms = None
         self._all_rooms = None
         self._room_to_mind = {}
+        self.has_polled_for_creeps = False
 
     def find_my_rooms(self):
         """
@@ -212,6 +213,7 @@ class HiveMind:
                     Memory.meta.unowned_room_alerted = True
             else:
                 room._creeps = new_creep_lists[name]
+        self.has_polled_for_creeps = True
 
     def balance_rooms(self):
         if not _.some(self.my_rooms, lambda r: r.rcl >= 8 and not r.minerals.has_no_terminal_or_storage()):
@@ -673,7 +675,7 @@ class RoomMind:
 
     def get_creeps(self):
         if '_creeps' not in self:
-            if self.my:
+            if self.my and not self.hive.has_polled_for_creeps:
                 print("[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!"
                       .format(self.name, self.name))
                 creeps = []
