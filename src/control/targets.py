@@ -494,7 +494,7 @@ class TargetMind:
                 if max_work is Infinity:
                     current_max = Infinity
                 else:
-                    current_max = min(max_work, math.ceil((this_hits_max * 0.9 - structure.hits) / 50))
+                    current_max = min(max_work, math.ceil((this_hits_max - structure.hits) / 50))
                 current_workforce = self.workforce_of(target_repair, struct_id)
                 if not current_workforce or current_workforce < current_max:
                     #     or current_workforce < smallest_num_builders + 1:
@@ -505,9 +505,6 @@ class TargetMind:
                     #     smallest_num_builders = current_workforce
                     #     closest_distance = distance
                     #     best_id = struct_id
-        if max_work is _MAX_REPAIR_WORKFORCE and len(repair_targets):
-            # TODO: do this through multiple best_id variables in the above loop, not like this.
-            return self._find_new_repair_site(creep, max_hits, Infinity)
         return None
 
     def _find_new_big_repair_site(self, creep, max_hits):
