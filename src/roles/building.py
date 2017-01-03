@@ -51,7 +51,7 @@ class Builder(upgrading.Upgrader):
             self.targets.untarget_all(self)
             self.memory.filling = True
 
-        if Game.time % 5 == 0 and not self.creep.hasActiveBodyparts(WORK) and \
+        if Game.time % 5 == 0 and not (self.creep.hasActiveBodyparts(WORK) & self.creep.hasActiveBodyparts(CARRY)) and \
                 not self.home.defense.healing_capable():
             if self.home.spawn:
                 return self.recycle_me()
