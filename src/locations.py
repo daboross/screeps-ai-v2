@@ -10,6 +10,7 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
 _mem_hints = None
+_mem_expirations = None
 _mem = None
 _created_objects = None
 _last_update = 0
@@ -53,12 +54,14 @@ __pragma__('noskip')
 # Old-style JavaScript class for the sake of performance
 # noinspection PyPep8Naming
 def DeserializedPos(string, name):
-    xy_str, room = string.split('|')
+    xy_str, room, expiration = string.split('|')
     xy = int(xy_str)
     this.x = xy & 0x3F
     this.y = xy >> 6 & 0x3F
     this.roomName = room
     this.name = name
+    if expiration != undefined:
+        _mem_expirations[name] = Game.time + expiration
 
 
 DeserializedPos.prototype = Object.create(RoomPosition.prototype)
@@ -109,26 +112,34 @@ def _deserialize(string, name):
     return __new__(DeserializedPos(string, name))
 
 
-def _serialize(position):
+def _serialize(position, expiration=None):
     if position.pos is not undefined:
         position = position.pos
-    return '|'.join([position.x | position.y << 6, position.roomName])
+    parts = [position.x | position.y << 6, position.roomName]
+    if expiration != undefined:
+        parts.append(expiration)
+    return '|'.join(parts)
 
 
 def init():
-    global _mem, _mem_hints, _created_objects
+    global _mem, _mem_hints, _mem_expirations
     if '_locations' not in Memory:
         # use a dash here to force JavaScript to turn this into a 'random access' object rather than a regular object.
         Memory['_locations'] = {'-': None}
     if '_hints' not in Memory:
         Memory['_hints'] = {'-': None}
+    if '_exp' not in Memory:
+        Memory['_exp'] = {'-': None}
     _mem = Memory['_locations']
     _mem_hints = Memory['_hints']
+    _mem_expirations = Memory['_exp']
 
 
 def serialized(name):
     """
-    Returns the serialized position from the give name (in the form of {x | y << 6}'|'{roomName})
+    Returns the serialized position from the give name (in the form of {x | y << 6}'|'{roomName}).
+
+    Warning: does not update expirations memory!
     :param name: The name
     :return: The serialized position, or None
     :type name: str
@@ -143,7 +154,7 @@ def serialized(name):
 
 def get(name):
     """
-    Gets an existing location with the given name
+    Gets an existing location with the given name. Updates expiration date.
     :type name: str
     :param name: The name of the location to get
     :return: The location object, or None
@@ -156,20 +167,35 @@ def get(name):
         return _deserialize(serialized_result, name)
 
 
-def create(position, hint=None):
+def create(position, hint=None, expiration=None):
     """
     Creates a location with the given position and hint.
     :param position: An object with x, y, and roomName properties
     :param hint: The hint
+    :param expiration: Time after no use that the position should expire (defaults to 10,000 ticks). -1 to disable.
     :return: A location object
     :type position: Any
     :type hint: int
+    :type expiration: int
     :rtype: Location
     """
     name = naming.random_digits()
     while name in _mem:
         name += naming.random_digits()
-    _mem[name] = _serialize(position)
+    if expiration == undefined:
+        expiration = 10 * 1000
+    elif expiration <= 0:
+        expiration = None
+    _mem[name] = _serialize(position, expiration)
     if hint != undefined:
         _mem_hints[name] = hint
-    return get(name)
+
+    return get(name)  # The first get operation will set _mem_expirations
+
+
+def clean_old_positions():
+    for name in Object.keys(_mem_expirations):
+        if _mem_expirations[name] < Game.time:
+            del _mem_expirations[name]
+            del _mem_hints[name]
+            del _mem[name]

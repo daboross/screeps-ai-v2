@@ -227,6 +227,8 @@ def main():
 
     records.start_record()
     locations.init()
+    if Game.time % 320 == 94:
+        locations.clean_old_positions()
     records.finish_record('locations.init')
 
     records.start_record()
