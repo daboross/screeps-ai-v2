@@ -179,8 +179,8 @@ def is_block_empty(room, x, y):
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
     for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
-        if site.my and site.siteureType != STRUCTURE_RAMPART \
-                and site.siteureType != STRUCTURE_CONTAINER and site.siteureType != STRUCTURE_ROAD:
+        if site.my and site.structureType != STRUCTURE_RAMPART \
+                and site.structureType != STRUCTURE_CONTAINER and site.structureType != STRUCTURE_ROAD:
             return False
     return True
 
