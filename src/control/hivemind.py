@@ -5,7 +5,6 @@ import flags
 import spawning
 import speech
 from constants import *
-from control import defense
 from control.building import ConstructionMind
 from control.defense import RoomDefense
 from control.links import LinkingMind
@@ -520,6 +519,11 @@ class RoomMind:
         if not self.mem.cache:
             self.mem.cache = {}
         self.mem.cache[name] = {"value": value, "dead_at": dead_at}
+
+    def delete_cached_property(self, name):
+        if not self.mem.cache:
+            return
+        del self.mem.cache[name]
 
     def find(self, parameter):
         if self._find_cache.has(parameter):
@@ -1380,24 +1384,8 @@ class RoomMind:
 
     def get_target_wall_defender_count(self):
         if self.under_siege():
-            rampart_count = _.sum(self.find(FIND_MY_STRUCTURES),
-                                  lambda s:
-                                  s.structureType == STRUCTURE_RAMPART
-                                  and movement.is_block_empty(self, s.pos.x, s.pos.y))
-            if len(defense.stored_hostiles_near(self.name)):  # Here or neighboring rooms
-                flag_count = _.sum(self.find(FIND_FLAGS),
-                                   lambda s:
-                                   s.color == COLOR_GREEN
-                                   and (s.secondaryColor == COLOR_GREEN
-                                        or s.secondaryColor == COLOR_RED))
-            else:
-                flag_count = _.sum(self.find(FIND_FLAGS),
-                                   lambda s:
-                                   s.color == COLOR_GREEN
-                                   and s.secondaryColor == COLOR_GREEN)
-            return min(rampart_count, flag_count)
-        else:
-            return 0
+            hot, cold = self.defense.get_current_defender_spots()
+            return len(hot) + len(cold) / 2
 
     def get_target_simple_defender_count(self, first=False):
         """

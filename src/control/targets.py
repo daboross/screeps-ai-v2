@@ -670,45 +670,33 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        hostiles = defense.stored_hostiles_near(creep.home.name)
-
-        def priority(wall):
-            current_priority = 0
-            if len(hostiles):
-                closest_distance = 5000
-                for h in hostiles:
-                    distance = movement.chebyshev_distance_room_pos(
-                        movement.serialized_pos_to_pos_obj(h.room, h.pos), creep.pos)
-                    if distance < closest_distance:
-                        closest_distance = distance
-            else:
-                closest_distance = 5000
-            current_priority -= closest_distance * 50  # Closer = better
-            current_priority += max(abs(25 - wall.pos.x), abs(25 - wall.pos.y))  # Closer to edges = better
-            current_priority -= movement.chebyshev_distance_room_pos(creep, wall) / 50  # Closer = better
-            if closest_distance <= 1:
-                current_priority += 15000
-            elif closest_distance <= 3:
-                current_priority += 12500
-            elif _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_GREEN}):
-                if closest_distance <= 5:
-                    current_priority += 10000
-                current_priority += 10000  # Green flag = better
-            elif _.find(wall.pos.lookFor(LOOK_FLAGS), {'color': COLOR_GREEN, "secondaryColor": COLOR_RED}):
-                if closest_distance <= 5:
-                    current_priority += 10000
-                current_priority += 5000  # Red flag = better
-
-            return current_priority
-
-        value = _(creep.home.find(FIND_MY_STRUCTURES).concat(creep.home.find(FIND_MY_CONSTRUCTION_SITES))) \
-            .filter(lambda wall: wall.structureType == STRUCTURE_RAMPART
-                                 and movement.is_block_empty(creep.home, wall.pos.x, wall.pos.y)
-                                 and not self.targets[target_rampart_defense][wall.id]) \
-            .max(priority)
-        if value != -Infinity:
-            return value.id
-        return None
+        hot_spots, cold_spots = creep.home.defense.get_current_defender_spots()
+        nearest = None
+        nearest_distance = Infinity
+        for location in hot_spots:
+            if not self.targets[target_rampart_defense][location.name]:
+                distance = movement.chebyshev_distance_room_pos(location, creep)
+                if distance < nearest_distance:
+                    nearest = location
+                    nearest_distance = distance
+        if nearest is None:
+            for location in cold_spots:
+                if not self.targets[target_rampart_defense][location.name]:
+                    distance = movement.chebyshev_distance_room_pos(location, creep)
+                    if distance < nearest_distance:
+                        nearest = location
+                        nearest_distance = distance
+            if nearest is None:
+                for location in creep.home.defense.get_old_defender_spots():
+                    if not self.targets[target_rampart_defense][location.name]:
+                        distance = movement.chebyshev_distance_room_pos(location, creep)
+                        if distance < nearest_distance:
+                            nearest = location
+                            nearest_distance = distance
+        if nearest:
+            return nearest.name
+        else:
+            return None
 
     def _find_closest_flag(self, creep, flag_type, pos):
         if not pos:

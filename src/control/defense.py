@@ -1,7 +1,8 @@
 import math
 
 import flags
-from constants import INVADER_USERNAME, REMOTE_MINE, SK_USERNAME
+import locations
+from constants import INVADER_USERNAME, REMOTE_MINE, SK_USERNAME, RAMPART_DEFENSE, role_wall_defender
 from utilities import deathwatch, hostile_utils, movement, volatile_cache
 from utilities.screeps_constants import *
 from utilities.screeps_constants import new_set
@@ -225,6 +226,10 @@ class RoomDefense:
     def __init__(self, room):
         self.room = room
         self._cache = new_map()
+        if self.room.my:
+            self.mem = self.room.mem.defense
+            if self.mem == undefined:
+                self.mem = self.room.mem.defense = {}
 
     __pragma__('fcall')
 
@@ -454,6 +459,26 @@ class RoomDefense:
                                 - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100
                                 ) \
                         .value()
+                    if self.mem.debug:
+                        print("Chose hostiles:\n{}".format(
+                            '\n'.join(
+                                ["{},{}: {}, {}, {}, {}, {}".format(
+                                    c.pos.x, c.pos.y,
+
+                                    # Higher danger level = more important
+                                    - self.danger_level(c) * 5000,
+                                    # More defenders = more important
+                                    - len(self.defenders_near(c)) * 500,
+                                    # Further away from closest target = less important
+                                    + movement.minimum_chebyshev_distance(c, protect),
+                                    # Further away average distance from targets = less important
+                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(
+                                        protect) / 50,
+                                    # More hits = less important
+                                    - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100,
+                                ) for c in hostiles]
+                            )
+                        ))
                 else:
                     hostiles = _.filter(hostiles, self.danger_level)
             self._cache.set('active_hostiles', hostiles)
@@ -516,7 +541,94 @@ class RoomDefense:
         message = "{} activating live defenses.".format(self.room.name)
         Game.notify(message)
         console.log(message)
-        # TODO: place / manipulate RED/GREEN and GREEN/GREEN flags depending on where the hostiles were found.
+        self.set_protection_all_walls()
+
+    def set_protection_all_walls(self):
+        all_nearby_hostiles = stored_hostiles_near(self.room.name)
+        protect = new_map()
+
+        if not len(all_nearby_hostiles):
+            enemy_positions = [movement.serialized_pos_to_pos_obj(enemy.room, enemy.pos)
+                               for enemy in all_nearby_hostiles]
+        else:
+            enemy_positions = self.room.find(FIND_EXIT)
+        already_checked = []
+        for enemy in enemy_positions:
+            if _.some(already_checked, lambda x: movement.chebyshev_distance_room_pos(x, enemy) <= 4):
+                continue
+            already_checked.append(enemy)
+
+            path_obj = self.hive.honey.find_path(enemy, self.room.spawn, {
+                'use_roads': False,
+                'ignore_swamp': True,
+                'current_room': self.room.name
+            })
+            for position in path_obj:
+                is_rampart = False
+                is_other = False
+                for struct in self.room.look_at(LOOK_STRUCTURES, position.x, position.y):
+                    if struct.structureType == STRUCTURE_RAMPART:
+                        is_rampart = True
+                    elif struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER:
+                        is_other = True  # Don't assign defender creeps to say, ramparts over spawns.
+                if is_rampart and not is_other:
+                    protect.set(movement.xy_to_serialized_int(position.x, position.y), 0)
+        current_iteration = Array.js_from(protect.entries())
+        print("[defense] Found inital walls: {} from {} paths".format(len(current_iteration), len(already_checked)))
+        while True:
+            next_iteration = []
+            for origin_xy, priority in current_iteration:
+                origin_x = origin_xy & 0x3F
+                origin_y = origin_xy >> 6 & 0x3F
+                new_priority = priority + 1
+                for x in range(origin_x - 1, origin_x + 2):
+                    for y in range(origin_y - 1, origin_y + 2):
+                        serialized = movement.xy_to_serialized_int(x, y)
+                        if protect.has(serialized):
+                            continue
+                        is_rampart = False
+                        is_wall = False
+                        is_other = False
+                        for struct in self.room.look_at(LOOK_STRUCTURES, x, y):
+                            if struct.structureType == STRUCTURE_RAMPART:
+                                is_rampart = True
+                            elif struct.structureType == STRUCTURE_WALL:
+                                is_wall = True
+                                is_other = True
+                            elif struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER:
+                                is_other = True  # Don't assign defender creeps to say, ramparts over spawns.
+
+                        if is_wall or is_rampart:
+                            if is_rampart and not is_other:
+                                protect.set(serialized, new_priority)
+                            if new_priority < 5:
+                                next_iteration.append([serialized, new_priority])
+            if len(next_iteration):
+                current_iteration = next_iteration
+            else:
+                break
+
+        if self.mem.known_locations:
+            for name in self.mem.known_locations:
+                locations.delete_location(name)
+            del self.mem.known_locations
+        self._cache.delete('live_defender_spots')
+        self.room.delete_cached_property('rcrnd')  # recently calculated ramparts needing defense
+
+        spots = []
+        hot = []
+        cold = []
+        for pos, priority in _.sortBy(Array.js_from(protect.entries()), lambda x: x[1]):
+            loc = locations.create(pos)
+            spots.push(loc.name)
+            if priority <= 1:
+                hot.push(loc.name)
+            else:
+                cold.push(loc.name)
+        print("[{}][defense] Found {} ramparts to protect during initial seed.".format(
+            self.room.name, len(spots)))
+        self.mem.known_locations = spots
+        self.room.store_cached_property('rcrnd', [hot, cold], 50)
 
     def towers(self):
         if self._cache.has('towers'):
@@ -607,7 +719,7 @@ class RoomDefense:
             self.tower_heal()
             return
 
-        if self.room.mem.attack:
+        if self.room.mem.attack and _.some(self.all_hostiles(), lambda h: h.owner.username != INVADER_USERNAME):
             self.room.mem.attack_until = Game.time + 10 * 1000
 
         if Game.time % 5 == 1:
@@ -663,6 +775,7 @@ class RoomDefense:
                     for tower in towers:
                         tower.heal(damaged_warriors[0])
             tower_index = 0
+            some_left = False
             for hostile in hostiles:
                 # TODO: healer confusing logic here?
                 healing_possible = self.healing_possible_on(hostile)
@@ -702,6 +815,7 @@ class RoomDefense:
                     #  between damage/healing power!
                     print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
                           .format(self.room.name, hostile.pos, healing_possible, attack_possible))
+                    some_left = True
                     continue
                 for my_defender in nearby_defenders:
                     my_defender.creep.attack(hostile)
@@ -713,6 +827,189 @@ class RoomDefense:
                     tower.attack(hostile)
                     hits_left -= tower_damage(tower.pos.getRangeTo(hostile))
                 if tower_index >= len(towers):
+                    some_left = True
                     break
+            if some_left:
+                self.check_for_noninvader_raid()
+        elif self.room.spawn:
+            self.check_for_noninvader_raid()
+
+    def check_for_noninvader_raid(self):
+        if self.room.mem.attack:
+            return
+        total_noninvader = 0
+        hostiles = self.dangerous_hostiles()
+        user = None
+        for hostile in hostiles:
+            if hostile.owner.username != INVADER_USERNAME:
+                user = hostile.owner.username
+                for part in hostile.body:
+                    if part.type == ATTACK:
+                        if part.boost:
+                            total_noninvader += _.get(BOOSTS, [ATTACK, part.boost, 'attack'], 1)
+                        else:
+                            total_noninvader += 1
+                    elif part.type == RANGED_ATTACK:
+                        if part.boost:
+                            total_noninvader += _.get(BOOSTS, [RANGED_ATTACK, part.boost, 'rangedAttack'], 1)
+                        else:
+                            total_noninvader += 1
+                    elif part.type == HEAL:
+                        if part.boost:
+                            total_noninvader += _.get(BOOSTS, [HEAL, part.boost, 'heal'], 1) * 2
+                        else:
+                            total_noninvader += 2
+                    elif part.type == WORK:
+                        if part.boost:
+                            total_noninvader += _.get(BOOSTS, [WORK, part.boost, 'dismantle'], 1)
+                        else:
+                            total_noninvader += 0.5
+        if total_noninvader >= 10:
+            message = (
+                "\nDANGER: -----"
+                "\nOver 10 hostile player bodyparts detected directly in {}. Game time: {}"
+                "\n"
+                "\nCreeps:"
+                "\n{}"
+                "\n"
+                "\nThis has triggered active-defense mode in {}"
+                "\nDANGER: -----"
+            ).format(
+                self.room.name, Game.time,
+                "\n".join(["owner: {}, body: {}".format(h.owner.username, JSON.stringify(_.countBy(h.body, 'type')))
+                           for h in hostiles if h.owner.username != INVADER_USERNAME]),
+                self.room.name,
+            )
+            console.log(message)
+            Game.notify(message)
+            self.activate_live_defenses()
+
+    def get_current_defender_spots(self):
+        if self._cache.has('live_defender_spots'):
+            return self._cache.get('live_defender_spots')
+        cached = self.room.get_cached_property('rcrnd')  # recently calculated ramparts needing defense
+        if cached:
+            hot, cold = cached
+            hot = _(hot).map(locations.get).filter().value()
+            cold = _(cold).map(locations.get).filter().value()
+            self._cache.set('live_defender_spots', [hot, cold])
+            return hot, cold
+
+        last_used = self.mem.kllu  # known locations last used
+        if last_used == undefined:
+            last_used = self.mem.kllu = {}
+        if not len(self.dangerous_hostiles()):
+            hot = []
+            cold = []
+            if self.mem.known_locations:
+                to_remove = []
+                for name in self.mem.known_locations:
+                    location = locations.get(name)
+                    if location is not None:
+                        if name not in last_used:
+                            last_used[name] = Game.time
+                        elif Game.time - last_used[name] > 1500:
+                            to_remove.push(name)
+                        cold.push(location)
+                if len(to_remove):
+                    _.pull(self.mem.known_locations, to_remove)
+                    if self.mem.ods:  # old defender spots
+                        existing_old = new_set()
+                        for name in self.mem.ods:
+                            existing_old.add(locations.serialized(name))
+                        for name in to_remove:
+                            if not existing_old.has(locations.serialized(name)):
+                                self.mem.ods.push(name)
+                        if len(self.mem.ods) > len(self.room.role_count(role_wall_defender)):
+                            self.mem.ods.splice(0, len(self.mem.ods)
+                                                - len(self.room.role_count(role_wall_defender)))
+                    else:
+                        self.mem.ods = to_remove
+            self.room.store_cached_property('rcrnd', [hot, cold], 30)
+            self._cache.set('live_defender_spots', [hot, cold])
+            return hot, cold
+        serialized_locations = self.mem.known_locations
+
+        hot_found = new_set()
+        hot_spots = []
+        cold_spots = []
+        if serialized_locations != undefined:
+            old_locs = []
+            for name in serialized_locations:
+                location = locations.get(name)
+                if location:
+                    nearby = self.room.look_for_in_area_around(LOOK_CREEPS, location, 1)
+                    if _.some(nearby,
+                              lambda x: not x.creep.my and not Memory.meta.friends.includes(x.creep.owner.username)):
+                        hot_spots.append(location)
+                        hot_found.add(movement.xy_to_serialized_int(location.x, location.y))
+                    else:
+                        cold_spots.append(location)
+                else:
+                    old_locs.append(name)
+            if len(old_locs):
+                _.pull(serialized_locations, old_locs)
+        else:
+            serialized_locations = self.mem.known_locations = []
+        ramparts_undefended = []  # Slow, but faster than lodash
+        for rampart in self.room.find(FIND_MY_STRUCTURES):
+            if rampart.setPublic:  # method only accessible for STRUCTURE_RAMPART, faster than checking structureType
+                serialized = movement.xy_to_serialized_int(rampart.pos.x, rampart.pos.y)
+                if not hot_found.has(serialized):
+                    nearby = self.room.look_for_in_area_around(LOOK_CREEPS, rampart, 1)
+                    total_offense = 0
+                    for obj in nearby:
+                        creep = obj.creep
+                        if not creep.my and not Memory.meta.friends.includes(creep.owner.username):
+                            offense = max(creep.getBodyparts(WORK) * DISMANTLE_POWER,
+                                          creep.getBodyparts(ATTACK) * ATTACK_POWER)
+                            if _.some(hot_spots, lambda x: movement.chebyshev_distance_room_pos(x, creep) <= 1):
+                                offense /= 3
+                            total_offense += offense
+                    if total_offense:
+                        ramparts_undefended.push([rampart, total_offense])
+        # NOTE: This code may very well prioritize stocking multiple ramparts directly next to each other (all in range
+        #  of a single creep), over defending all different points of invasion. However undesirable this is, it seems
+        #  to be a reasonable behavior given that the alternative would use that much more CPU.
+        # NOTE again: the above is only true if two creeps target during the same cache period.
+        num_undefended = len(ramparts_undefended)
+        if num_undefended:
+            if num_undefended > 1 and len(cold_spots):
+                ramparts_undefended = _.sortBy(ramparts_undefended, lambda x: x[1])
+            for rampart, in ramparts_undefended:
+                if len(cold_spots):
+                    nearest = None
+                    nearest_distance = Infinity
+                    for spot in cold_spots:
+                        distance = movement.chebyshev_distance_room_pos(spot, rampart)
+                        if distance < nearest_distance:
+                            nearest_distance = distance
+                            nearest = spot
+                    assert isinstance(nearest, locations.Location)
+                    nearest.update(rampart.pos.x, rampart.pos.y, rampart.pos.roomName)
+                    _.pull(cold_spots, [nearest])
+                    hot_spots.append(nearest)
+                else:
+                    new_obj = locations.create(rampart, RAMPART_DEFENSE, 2000)
+                    hot_spots.push(new_obj)
+                    serialized_locations.push(new_obj.name)
+        self._cache.set('live_defender_spots', [hot_spots, cold_spots])
+        self.room.store_cached_property('rcrnd', [[s.name for s in hot_spots],
+                                                  [s.name for s in cold_spots]], 3)
+        for loc in hot_spots:
+            last_used[loc.name] = Game.time
+        return [hot_spots, cold_spots]
+
+    def get_old_defender_spots(self):
+        if self._cache.has('old_defender_spots'):
+            return self._cache.get('old_defender_spots')
+        result = []
+        if self.mem.ods:  # old defender spots
+            for name in self.mem.ods:
+                loc = locations.get(name)
+                if loc is not None:
+                    result.push(loc)
+        self._cache.set('old_defender_spots', result)
+        return result
 
     broken_walls = property(any_broken_walls)

@@ -1,4 +1,4 @@
-from constants import INVADER_USERNAME, role_defender, role_recycling, role_wall_defender, target_rampart_defense
+from constants import INVADER_USERNAME, role_defender, role_recycling, target_rampart_defense
 from role_base import RoleBase
 from roles.offensive import MilitaryBase
 from utilities import hostile_utils, movement
@@ -91,29 +91,28 @@ class WallDefender(RoleBase):
     def run(self):
         target = self.targets.get_new_target(self, target_rampart_defense)
         if not target:
-            self.log("WARNING: No wall to defend!")
-        if target:
-            if not self.creep.pos.isEqualTo(target.pos):
-                self.move_to(target)
-            elif not _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
-                            lambda s: s.structureType == STRUCTURE_RAMPART):
-                self.move_to(self.pos.findClosestByRange(FIND_MY_STRUCTURES,
-                                                         {'filter': lambda s: s.structureType == STRUCTURE_RAMPART
-                                                                              and not len(s.pos.lookFor(LOOK_CREEPS))}))
-                return
-        all_hostiles = self.room.defense.all_hostiles()
-        highest_priority = _.find(all_hostiles, lambda f: f.pos.isNearTo(self.pos))  # hostiles are already sorted
+            self.go_to_depot()
+            self.log('no new target! target: {}'.format(target))
+            #self.recycle_me()
+            return
 
-        if highest_priority:
-            self.creep.attack(highest_priority)
+        nearby_enemies = self.room.look_for_in_area_around(LOOK_CREEPS, self, 1)
+
+        if len(nearby_enemies):
+            biggest_threat = _.max(nearby_enemies, lambda x: self.home.defense.danger_level(x.creep))
+            if self.home.defense.danger_level(biggest_threat.creep) > 0:
+                result = self.creep.attack(biggest_threat.creep)
+                if result != OK:
+                    self.log("Unknown result from creep.attack({}): {}".format(biggest_threat.creep, result))
         else:
-            tcheck = (Game.time * 2 + self.creep.ticksToLive) % 50
-            if tcheck <= 5:  # In case the enemies are bouncing in and out - let's give a good window to find a new wall
-                if not self.room.mem.attack and not len(all_hostiles):
-                    self.memory.role = role_recycling
-                    self.memory.last_role = role_wall_defender
-                    return False
-                elif self.pos.isEqualTo(target.pos) and len(all_hostiles):
-                    # TODO: in this case, look for a specific wall which has hostiles next to it! don't just blindly
-                    # re-choose
+            if self.pos.isEqualTo(target) and len(self.home.defense.dangerous_hostiles()):
+                if _.some(self.home.defense.get_current_defender_spots()[0],
+                          lambda loc: not self.targets.targets[target_rampart_defense][loc.name]):
+                    self.log("Found a new hot spot: untargeting.")
                     self.targets.untarget(self, target_rampart_defense)
+
+        if not self.pos.isEqualTo(target):
+            try:
+                self.move_to(target)
+            except:
+                self.log("Error moving to {}".format(target))
