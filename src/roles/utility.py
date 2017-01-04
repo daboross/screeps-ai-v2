@@ -74,9 +74,14 @@ class LinkManager(RoleBase):
                 self.ensure_ok(result, "transfer", storage, RESOURCE_ENERGY)
 
             else:
-                self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, self.creep.carryCapacity / 2
-                                                   - self.creep.carry.energy), "withdraw", storage,
-                               RESOURCE_ENERGY)
+                target = storage
+                result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
+                                             - self.creep.carry.energy)
+                if result == ERR_NOT_ENOUGH_RESOURCES:
+                    target = self.home.links.main_link
+                    result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
+                                                 - self.creep.carry.energy)
+                self.ensure_ok(result, "withdraw", target, RESOURCE_ENERGY)
             return False
 
         self.home.links.note_link_manager(self)
