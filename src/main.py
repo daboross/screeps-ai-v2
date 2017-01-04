@@ -329,7 +329,7 @@ def main():
             print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
             Memory.skipped_last_turn = creeps_skipped
 
-    if Game.cpu.bucket is undefined or Game.cpu.bucket >= 6000:
+    if Game.cpu.bucket is undefined or Game.cpu.bucket >= 6000 and not Memory.meta.quiet:
         records.start_record()
         hive.sing()
         records.finish_record('hive.sing')
