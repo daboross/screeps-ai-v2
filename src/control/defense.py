@@ -341,26 +341,31 @@ class RoomDefense:
             return 0
         elif Memory.meta.friends.includes(user):
             return 0
+        elif hostile.my:
+            return 0
         elif self.room.my:
-            structs_near = len(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1))
+            structs_near = _.some(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1),
+                                  lambda s: s.structureType == STRUCTURE_RAMPART
+                                            or s.structureType == STRUCTURE_WALL
+                                            or s.structureType == STRUCTURE_TOWER
+                                            or s.structureType == STRUCTURE_SPAWN)
             if structs_near and hostile.hasBodyparts(WORK):
-                return 6
+                return 100 + hostile.getActiveBodyparts(WORK) * DISMANTLE_POWER
             elif structs_near and hostile.hasBodyparts(ATTACK):
-                return 5
+                return 100 + hostile.getActiveBodyparts(ATTACK) * ATTACK_POWER
             elif hostile.hasActiveBodyparts(RANGED_ATTACK):
-                return 4
+                return 10
             elif hostile.hasBodyparts(ATTACK):
                 if (self.any_broken_walls() or structs_near or
                         _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
                                lambda obj: obj.creep.my)):
-                    return 3
+                    return 7
                 else:
-                    return 2
+                    return 5
             elif hostile.hasBodyparts(WORK):
-                return 2
+                return 5
             elif 1 < hostile.pos.x < 48 and 1 < hostile.pos.y < 48:
-                # Specifically for E17N55, so we don't attack haulers who have wondered just on the room boundary
-                return 1
+                return 0.2
             else:
                 return 0
         else:
@@ -437,16 +442,16 @@ class RoomDefense:
                         .filter(self.danger_level) \
                         .sortBy(lambda c:
                                 # Higher danger level = more important
-                                - self.danger_level(c) * 200
+                                - self.danger_level(c) * 5000
                                 # More defenders = more important
-                                - len(self.defenders_near(c)) * 100
+                                - len(self.defenders_near(c)) * 500
                                 # Further away from closest target = less important
                                 + movement.minimum_chebyshev_distance(c, protect)
                                 # Further away average distance from targets = less important
                                 + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
                                   / 50
                                 # More hits = less important
-                                - (c.hitsMax - c.hits - self.healing_possible_on(c)) / 100
+                                - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100
                                 ) \
                         .value()
                 else:

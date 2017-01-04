@@ -113,7 +113,15 @@ def chebyshev_distance_room_pos(pos1, pos2):
 
 
 def minimum_chebyshev_distance(comparison_pos, targets):
-    return _.min(targets, lambda p: chebyshev_distance_room_pos(comparison_pos, p))
+    min_distance = Infinity
+    for target in targets:
+        distance = chebyshev_distance_room_pos(comparison_pos, target)
+        if distance < min_distance:
+            min_distance = distance
+    if min_distance is Infinity:
+        return 0
+    else:
+        return min_distance
 
 
 def distance_room_pos(room_pos_1, room_pos_2):
