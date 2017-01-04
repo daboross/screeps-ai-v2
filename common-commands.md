@@ -114,6 +114,8 @@ py.get_room("W49N25").minerals.fulfill_market_order('E9N11', 'H', 6000, '57d90b4
 # "Just fill it" version:
 py.get_room("E11N34").minerals.fill_order('5828b5dc5d912caa0137185e')
 
+# Cancel all orders being filled
+_(py.hive().my_rooms).filter(room => room.minerals && !room.minerals.has_no_terminal_or_storage()).forEach(function (room) { delete room.minerals.mem.fulfilling; })
 
 # Force a room's builders to only consider repairing until the next cache refresh
 Memory.rooms.E17N55.cache.building_targets = []; Memory.rooms.E17N55.non_wall_construction_targets = [];

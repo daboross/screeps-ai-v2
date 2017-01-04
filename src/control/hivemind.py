@@ -233,7 +233,8 @@ class HiveMind:
             .filter(lambda r: r.rcl >= 6 and not r.minerals.has_no_terminal_or_storage()) \
             .map(map_to_walls).value()
         biggest_rcl8_room = _(rooms_with_walls) \
-            .filter(lambda t: t[0].rcl >= 8 and _.isEmpty(t[0].minerals.fulfilling[RESOURCE_ENERGY])) \
+            .filter(lambda t: t[0].rcl >= 8 and _.isEmpty(t[0].minerals.fulfilling[RESOURCE_ENERGY])
+                              and not t[0].mem.prepping_defenses) \
             .max(lambda t: t[1])
         smallest_room = _.min(rooms_with_walls, lambda t: t[1])
 
@@ -313,6 +314,14 @@ class HiveMind:
               .format(max_to_send, biggest_rcl8_room.name, smallest_room.name))
 
         biggest_rcl8_room.minerals.send_minerals(smallest_room.name, RESOURCE_ENERGY, max_to_send)
+
+    def send_everything(self, target_room):
+        target_room = target_room.name or target_room
+
+        for room in self.my_rooms:
+            if room.name != target_room and not room.minerals.has_no_terminal_or_storage():
+                del room.minerals.fulfilling[RESOURCE_ENERGY]
+                room.minerals.send_minerals(target_room, RESOURCE_ENERGY, 200 * 1000)
 
     def mineral_report(self):
         result = []
@@ -1616,7 +1625,8 @@ class RoomMind:
             elif self.rcl == 8:
                 if len(self.possible_remote_mining_operations) >= 3 \
                         and _.sum(self.room.storage.store) > 250 * 1000 \
-                        and self.room.storage.store.energy > 100 * 1000:
+                        and self.room.storage.store.energy > 100 * 1000 \
+                        and not self.mem.prepping_defenses:
                     wm = 15
                 elif _.sum(self.room.storage.store) > 700 * 1000 \
                         and self.room.storage.store.energy > 200 * 1000:
