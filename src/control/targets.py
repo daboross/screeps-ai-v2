@@ -365,15 +365,15 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-        has_work = not not creep.creep.getActiveBodyparts(WORK)
+        has_work = not not creep.creep.hasActiveBodyparts(WORK)
         any_miners = not not creep.home.role_count(role_miner)
         highest_priority = -Infinity
         best_source = None
-        for source in creep.home.find(FIND_SOURCES):
-            if not has_work and not _.find(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
+        for source in creep.home.sources:
+            if not has_work and not _.some(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
                                            lambda c: c.memory.role == role_miner):
                 continue
-            distance = movement.distance_room_pos(source.pos, creep.pos)
+            distance = movement.chebyshev_distance_room_pos(source.pos, creep.pos)
             current_work_force = self.workforce_of(target_source, source.id)
             if any_miners:
                 energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
@@ -383,6 +383,8 @@ class TargetMind:
                 priority = oss * 10 - 100 * current_work_force / oss - distance
             if source.energy <= 0:
                 priority -= 200
+            if not priority:
+                print("[targets] Strange priority result for source {}: {}".format(source, priority))
             if priority > highest_priority:
                 best_source = source.id
                 highest_priority = priority
@@ -627,7 +629,6 @@ class TargetMind:
         """
         :type creep: role_base.RoleBase
         """
-
         if not pos:
             pos = creep.pos
         if creep.home.full_storage_use:
