@@ -346,6 +346,18 @@ class HiveMind:
                 if name not in Game.rooms:
                     del Memory['_ly'][name]
 
+    def wrap_creep(self, creep):
+        """
+        :type creep: Creep
+        :rtype: role_base.RoleBase
+        """
+        home = self.get_room(creep.memory.home)
+        if home:
+            return creep_wrappers.wrap_creep(self, self.targets, home, creep)
+        else:
+            raise ValueError("[hive]Invalid value to wrap_creep: {} with memory {}"
+                             .format(creep, JSON.stringify(creep.memory)))
+
     def toString(self):
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))
 

@@ -307,16 +307,27 @@ class Builder(upgrading.Upgrader):
         if not target.structureType and target.color:
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
             # available targets.
-            site = _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES), 'my')
+            site = _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES))
             if site:
-                self.targets.manually_register(self, target_construction, site.id)
-                target = site
+                if site.my:
+                    self.targets.manually_register(self, target_construction, site.id)
+                    target = site
+                else:
+                    self.move_to(site)
             else:
-                self.log("WARNING: Couldn't find site for flag at {}! Refreshing building targets..."
-                         .format(target.pos))
-                self.home.building.refresh_building_targets()
-                self.targets.untarget(self, target_construction)
-                self.move_to(target)
+                creeps = target.pos.lookFor(LOOK_CREEPS)
+                if len(creeps):
+                    if not _.find(creeps, lambda c: not c.my):
+                        mine = _.find(creeps, 'my')
+                        if not mine.__moved:
+                            self.hive.wrap_creep(mine).go_to_depot()
+                else:
+                    self.log("WARNING: Couldn't find site for flag at {}! Refreshing building targets..."
+                             .format(target.pos))
+                    self.home.building.refresh_building_targets()
+                    self.targets.untarget(self, target_construction)
+                    if not self.creep.pos.inRangeTo(target, 2):
+                        self.move_to(target)
                 return False
         if not self.creep.pos.inRangeTo(target.pos, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
