@@ -327,7 +327,7 @@ class TowerDrainHealer(MilitaryBase):
                 self.log("TowerDrainHealer has no target!")
                 self.go_to_depot()
             return
-        if not self.creep.pos.isEqualTo(target.pos):
+        if not self.pos.isEqualTo(target):
             self.follow_military_path(self.home.spawn, target)
 
         autoactions.instinct_do_heal(self)
@@ -364,7 +364,7 @@ class TowerDrainer(MilitaryBase):
                 self.recycle_me()
             return
         if self.memory.goading:
-            if self.creep.pos.isEqualTo(goad_target.pos):
+            if self.pos.isEqualTo(goad_target):
                 pass
             elif movement.chebyshev_distance_room_pos(self.pos, goad_target) < 50:
                 self.creep.moveTo(goad_target, {
@@ -382,7 +382,7 @@ class TowerDrainer(MilitaryBase):
                 else:
                     self.go_to_depot()
                 return
-            if self.creep.pos.isEqualTo(heal_target.pos):
+            if self.pos.isEqualTo(heal_target):
                 pass
             elif movement.chebyshev_distance_room_pos(self.pos, heal_target) < 50:
                 self.creep.moveTo(heal_target, {  # TODO: make a military moveTo method like this
@@ -426,7 +426,7 @@ class Dismantler(MilitaryBase):
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
                 return
-            if self.creep.pos.isNearTo(target.pos):
+            if self.pos.isNearTo(target):
                 struct = self.room.look_at(LOOK_STRUCTURES, target.pos)[0]
                 if struct:
                     self.creep.dismantle(struct)
@@ -487,7 +487,7 @@ class Dismantler(MilitaryBase):
             else:
                 room = self.hive.get_room(target.pos.roomName)
                 if room and _.find(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_td_healer):
-                    if not self.creep.pos.isEqualTo(target.pos):
+                    if not self.pos.isEqualTo(target):
                         self.creep.moveTo(target)
                         self.follow_military_path(self.home.spawn, target)
                 else:
@@ -590,13 +590,13 @@ class PowerAttack(MilitaryBase):
             else:
                 room = self.hive.get_room(heal_target.pos.roomName)
                 if room and _.find(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_td_healer):
-                    if not self.creep.pos.isEqualTo(heal_target.pos):
+                    if not self.pos.isEqualTo(heal_target):
                         self.creep.moveTo(heal_target)
                         self.follow_military_path(self.home.spawn, heal_target)
                 else:
                     self.go_to_depot()
         else:
-            if self.creep.pos.isNearTo(target.pos):
+            if self.pos.isNearTo(target):
                 struct = self.room.look_at(LOOK_STRUCTURES, target.pos)[0]
                 if struct:
                     self.creep.attack(struct)
@@ -606,7 +606,7 @@ class PowerAttack(MilitaryBase):
                     for flag in flags.find_flags(self.room, TD_H_D_STOP):
                         flag.remove()
                     target.remove()
-            if not self.creep.pos.isEqualTo(heal_target.pos):
+            if not self.pos.isEqualTo(heal_target):
                 if self.pos.roomName == target.pos.roomName:
                     result = self.creep.moveTo(heal_target)
                     if result != OK and result != ERR_TIRED:
@@ -667,7 +667,7 @@ class PowerCleanup(MilitaryBase):
                                     len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0):
 
                             # we've confirmed now that this is a valid target! congrats.
-                            distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
+                            distance = movement.distance_squared_room_pos(self, resource)
                             if distance < closest_distance:
                                 closest = resource
                                 closest_distance = distance
@@ -691,7 +691,7 @@ class PowerCleanup(MilitaryBase):
 
             self.memory.last_energy_target = pile.pos.x | (pile.pos.y << 6)
 
-            if not self.creep.pos.isNearTo(pile.pos):
+            if not self.pos.isNearTo(pile):
                 self.move_to(pile)
                 return False
 
@@ -709,12 +709,12 @@ class PowerCleanup(MilitaryBase):
                 self.go_to_depot()
                 return
 
-            if self.creep.pos.roomName != storage.pos.roomName:
+            if self.pos.roomName != storage.pos.roomName:
                 self.follow_military_path(target, storage)
                 return False
 
             target = storage
-            if not self.creep.pos.isNearTo(target.pos):
+            if not self.pos.isNearTo(target):
                 self.move_to(target)
                 return False
 

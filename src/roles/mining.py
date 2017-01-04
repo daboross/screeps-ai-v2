@@ -48,7 +48,7 @@ class EnergyMiner(TransportPickup):
                                                                          self.memory.container_pos))
         else:
             sitting_target = source_flag.pos
-        distance_away = self.creep.pos.getRangeTo(source_flag)
+        distance_away = self.pos.getRangeTo(source_flag)
         if distance_away > 2:
             if self.pos.roomName == source_flag.pos.roomName:
                 if distance_away <= 3:
@@ -315,7 +315,7 @@ class RemoteReserve(TransportPickup):
             self.creep.suicide()
             return
 
-        if self.creep.pos.roomName != claim_room:
+        if self.pos.roomName != claim_room:
             if Game.rooms[claim_room]:
                 target = Game.rooms[claim_room].controller.pos
             else:
@@ -330,14 +330,14 @@ class RemoteReserve(TransportPickup):
             return True
 
         if controller.reservation and controller.reservation.ticksToEnd > 4999:
-            if self.creep.pos.isNearTo(controller.pos):
+            if self.pos.isNearTo(controller):
                 self.creep.suicide()
                 return False
             else:
                 del self.memory.claiming
                 return True
 
-        if not self.creep.pos.isNearTo(controller.pos):
+        if not self.pos.isNearTo(controller):
             self.move_to(controller)
             return False
 

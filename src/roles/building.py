@@ -283,12 +283,12 @@ class Builder(upgrading.Upgrader):
                 nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
                 self.refill_nearby(nearby)
             return False
-        if not self.creep.pos.inRangeTo(target.pos, 2):
+        if not self.pos.inRangeTo(target, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!
             self.build_swamp_roads()
             self.move_to(target)
-            if not self.creep.pos.inRangeTo(target.pos, 3):
+            if not self.pos.inRangeTo(target, 3):
                 return False
 
         result = self.creep.repair(target)
@@ -326,15 +326,15 @@ class Builder(upgrading.Upgrader):
                              .format(target.pos))
                     self.home.building.refresh_building_targets()
                     self.targets.untarget(self, target_construction)
-                    if not self.creep.pos.inRangeTo(target, 2):
+                    if not self.pos.inRangeTo(target, 2):
                         self.move_to(target)
                 return False
-        if not self.creep.pos.inRangeTo(target.pos, 2):
+        if not self.pos.inRangeTo(target, 2):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!
             self.build_swamp_roads()
             self.move_to(target)
-            if not self.creep.pos.inRangeTo(target.pos, 3):
+            if not self.pos.inRangeTo(target, 3):
                 if self.home.role_count(role_builder) > 10:
                     nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
                     self.refill_nearby(nearby)
@@ -343,7 +343,8 @@ class Builder(upgrading.Upgrader):
         result = self.creep.build(target)
         if result == OK:
             if target.structureType == STRUCTURE_WALL or target.structureType == STRUCTURE_RAMPART:
-                self.memory.building_walls_at = target.pos.x | (target.pos.y << 6)
+                pos = target.pos or target
+                self.memory.building_walls_at = pos.x | (pos.y << 6)
         elif result == ERR_INVALID_TARGET:
             self.targets.untarget(self, target_construction)
         else:
@@ -353,7 +354,7 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_destruction_target(self, target):
-        if not self.pos.isNearTo(target.pos):
+        if not self.pos.isNearTo(target):
             # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
             # source faster!
             self.build_swamp_roads()

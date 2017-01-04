@@ -170,7 +170,7 @@ class Cleanup(SpawnFill):
                                     break
 
                             # we've confirmed now that this is a valid target! congrats.
-                            distance = movement.distance_squared_room_pos(self.creep.pos, resource.pos)
+                            distance = movement.distance_squared_room_pos(self.pos, resource)
                             if distance < closest_distance:
                                 closest = resource
                                 closest_distance = distance
@@ -185,7 +185,7 @@ class Cleanup(SpawnFill):
 
             self.memory.last_energy_target = pile.pos.x | (pile.pos.y << 6)
 
-            if not self.creep.pos.isNearTo(pile.pos):
+            if not self.pos.isNearTo(pile):
                 self.move_to(pile)
                 return False
 
@@ -203,7 +203,7 @@ class Cleanup(SpawnFill):
                 # return False
                 return SpawnFill.run(self)
 
-            if self.creep.pos.roomName != storage.pos.roomName:
+            if self.pos.roomName != storage.pos.roomName:
                 self.move_to(storage)
                 return False
 
@@ -217,10 +217,10 @@ class Cleanup(SpawnFill):
             #     target = storage
             if target.structureType == STRUCTURE_LINK:
                 self.home.links.register_target_deposit(target, self, self.creep.carry.energy,
-                                                        self.creep.pos.getRangeTo(target.pos))
+                                                        self.pos.getRangeTo(target))
 
-            if not self.creep.pos.isNearTo(target.pos):
-                if self.creep.pos.isNearTo(storage):
+            if not self.pos.isNearTo(target):
+                if self.pos.isNearTo(storage):
                     # being blocked by a link manager to get to the link
                     target = storage
                 else:

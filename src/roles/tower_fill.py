@@ -38,7 +38,7 @@ class TowerFill(spawn_fill.SpawnFill):
             if target:
                 if not self.home.role_count(role_spawn_fill) and target.energy >= target.energyCapacity / 2:
                     return spawn_fill.SpawnFill.run(self)
-                if not self.creep.pos.isNearTo(target.pos):
+                if not self.pos.isNearTo(target):
                     self.move_to(target)
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
@@ -69,7 +69,7 @@ class TowerFillOnce(RoleBase):
         else:
             target = self.targets.get_new_target(self, target_tower_fill)
             if target:
-                if not self.creep.pos.isNearTo(target.pos):
+                if not self.pos.isNearTo(target):
                     self.move_to(target)
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)

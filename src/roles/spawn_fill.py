@@ -77,7 +77,7 @@ class SpawnFill(building.Builder, Refill):
                     if not self.home.full_storage_use:
                         self.memory.running = "refill"
                         return self.refill_creeps()
-                    if not self.creep.pos.isEqualTo(target.pos):
+                    if not self.pos.isEqualTo(target):
                         self.move_to(target)
                     return False
                 else:
@@ -85,7 +85,7 @@ class SpawnFill(building.Builder, Refill):
                         self.targets.untarget(self, target_spawn_deposit)
                         return True
                     else:
-                        if not self.creep.pos.isNearTo(target.pos):
+                        if not self.pos.isNearTo(target):
                             self.move_to(target)
                             return False
                         del self.memory.nbm
@@ -98,7 +98,7 @@ class SpawnFill(building.Builder, Refill):
                                 if self.creep.carry.energy + target.energy - target.energyCapacity > 0:
                                     self.targets.untarget(self, target_spawn_deposit)
                                     new_target = self.targets.get_new_target(self, target_spawn_deposit)
-                                    if new_target and not self.creep.pos.isNearTo(new_target.pos):
+                                    if new_target and not self.pos.isNearTo(new_target):
                                         self.move_to(new_target)
                                 else:
                                     self.harvest_energy()  # Get a head start on this too!

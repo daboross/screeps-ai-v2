@@ -207,7 +207,7 @@ def instinct_do_attack(creep):
         return
     best = None
     best_priority = -Infinity
-    for enemy in creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.creep.pos):
+    for enemy in creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.pos):
         priority = enemy.hitsMax - enemy.hits
         if enemy.hasActiveBodyparts(RANGED_ATTACK):
             priority += 3000

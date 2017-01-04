@@ -22,15 +22,14 @@ class Colonist(MilitaryBase):
             closest_room_name = None
             for room in self.home.subsidiaries:
                 if not len(room.spawns) and _.sum(room.role_counts) < 3:
-                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.name))
+                    distance = movement.distance_squared_room_pos(self.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
                         closest_room_name = room.name
 
             if not closest_room_name:
                 for room in self.home.subsidiaries:
                     if not len(room.spawns):
-                        distance = movement.distance_squared_room_pos(self.creep.pos,
-                                                                      movement.center_pos(room.name))
+                        distance = movement.distance_squared_room_pos(self.pos,movement.center_pos(room.name))
                         if distance < closest_distance:
                             closest_room_name = room.name
 
@@ -86,7 +85,7 @@ class Claim(MilitaryBase):
         if not claim_flag:
             self.recycle_me()
             return
-        if self.creep.pos.roomName != claim_flag.pos.roomName:
+        if self.pos.roomName != claim_flag.pos.roomName:
             target = claim_flag.pos
             if 'checkpoint' not in self.memory or \
                             movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
@@ -108,13 +107,13 @@ class Claim(MilitaryBase):
             return True
 
         if target.my:
-            self.memory.home = self.creep.room.name
+            self.memory.home = self.pos.roomName
             self.targets.untarget_all(self)
             # I guess we can try and claim something else, if we have the life? otherwise this will go and activate the
             # recycle code.
             return True
 
-        if not target.pos.isNearTo(self.creep.pos):
+        if not self.pos.isNearTo(target):
             self.move_to(target)
             return False
 
@@ -149,13 +148,13 @@ class ReserveNow(MilitaryBase):
             self.recycle_me()
             return False
 
-        if self.creep.pos.roomName != reserve_flag.pos.roomName:
+        if self.pos.roomName != reserve_flag.pos.roomName:
             self.follow_military_path(self.home.spawn, reserve_flag)
             return False
 
         controller = self.creep.room.controller
 
-        if not self.creep.pos.isNearTo(controller.pos):
+        if not self.pos.isNearTo(controller):
             self.move_to(controller)
             return False
 
@@ -187,7 +186,7 @@ class MineralSteal(TransportPickup):
             for room in self.hive.my_rooms:
                 if room.room.storage and room.room.storage.storeCapacity <= 0 \
                         and _.sum(room.room.storage.store) > room.room.storage.store.energy:
-                    distance = movement.distance_squared_room_pos(self.creep.pos, movement.center_pos(room.name))
+                    distance = movement.distance_squared_room_pos(self.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
                         closest_room_name = room.name
 

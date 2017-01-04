@@ -153,7 +153,7 @@ class Upgrader(RoleBase):
             return
         if link.structureType == STRUCTURE_LINK:
             self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
-                                                     self.creep.pos.getRangeTo(link))
+                                                     self.pos.getRangeTo(link))
         result = self.creep.withdraw(link, RESOURCE_ENERGY)
         if result != OK and result != ERR_NOT_IN_RANGE and result != ERR_NOT_ENOUGH_RESOURCES:
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
@@ -228,7 +228,7 @@ class Upgrader(RoleBase):
                     self.build_swamp_roads()
                     self.move_to(spot)
             else:
-                if not self.creep.pos.inRangeTo(target.pos, 3):
+                if not self.pos.inRangeTo(target, 3):
                     self.build_swamp_roads()
                     self.move_to(target)
                     return False
@@ -285,28 +285,13 @@ class Upgrader(RoleBase):
                     if result != OK:
                         self.log("Unknown result from passingby-road-repair on {}: {}".format(repair, result))
                 else:
-                    build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)
+                    build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.pos)
                     if len(build):
                         build = _.find(build, lambda s: s.structureType == STRUCTURE_ROAD)
                         if build:
                             result = self.creep.build(build)
                             if result != OK:
                                 self.log("Unknown result from passingby-road-build on {}: {}".format(build, result))
-        pass
-        # repair = _.find(self.room.find_in_range(PYFIND_REPAIRABLE_ROADS, 2, self.creep.pos),
-        #                 lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
-        # if repair:
-        #     result = self.creep.repair(repair)
-        #     if result != OK:
-        #         self.log("Unknown result from passingby-road-repair on {}: {}".format(repair[0], result))
-        # else:
-        #     build = _.find(self.room.find_in_range(PYFIND_BUILDABLE_ROADS, 2, self.creep.pos),
-        #                    lambda r: Game.map.getTerrainAt(r.pos.x, r.pos.y, r.pos.roomName) == 'swamp')
-        #     if build:
-        #         result = self.creep.build(build)
-        #         if result != OK:
-        #             self.log("Unknown result from passingby-road-build on {}: {}".format(build[0], result))
-
     def _calculate_time_to_replace(self):
         if self.home.spawn:
             path_length = self.hive.honey.find_path_length(self.home.spawn, self.home.room.controller)

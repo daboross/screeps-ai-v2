@@ -69,7 +69,7 @@ class ReplacingExpendedCreep(RoleBase):
         if old_creep.ticksToLive > 1:
             if self.creep.spawning:
                 return
-            if not self.creep.pos.isNearTo(old_creep):
+            if not self.pos.isNearTo(old_creep):
                 self.move_to(old_creep)
                 return
 
@@ -137,7 +137,7 @@ class Recycling(Refill, MilitaryBase):
         if self.carry_sum() > 0:
             storage = self.home.room.storage
             if storage and _.sum(storage.store) < storage.storeCapacity:
-                if self.creep.pos.isNearTo(storage.pos):
+                if self.pos.isNearTo(storage):
                     for rtype in Object.keys(self.creep.carry):
                         if self.creep.carry[rtype] > 0:
                             result = self.creep.transfer(storage, rtype)

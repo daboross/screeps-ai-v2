@@ -49,7 +49,7 @@ class Refill(RoleBase):
                 self.targets.untarget(self, target_refill)
                 target = self.targets.get_new_target(self, target_refill)
         if target:
-            if not self.creep.pos.isNearTo(target.pos):
+            if not self.pos.isNearTo(target):
                 self.move_to(target)
                 if Game.cpu.bucket >= 4000:
                     other = _.find(self.home.find_in_range(FIND_MY_STRUCTURES, 1, self.pos),
@@ -132,7 +132,7 @@ class Refill(RoleBase):
                     if self.creep.carry.energy - target_empty > 0:
                         self.targets.untarget(self, target_refill)
                         new_target = self.targets.get_new_target(self, target_refill)
-                        if new_target and not self.creep.pos.isNearTo(new_target.pos):
+                        if new_target and not self.pos.isNearTo(new_target):
                             self.move_to(new_target)
             elif result == ERR_FULL:
                 if not latched:

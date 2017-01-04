@@ -30,7 +30,7 @@ class MineralMiner(RoleBase):
             self.go_to_depot()
             return False
 
-        if not self.creep.pos.isNearTo(mineral.pos):
+        if not self.pos.isNearTo(mineral):
             self.move_to(mineral)
             return False
 
@@ -55,7 +55,7 @@ class MineralMiner(RoleBase):
 
             if self.memory.container:
                 transfer_target = Game.getObjectById(self.memory.container)
-                if not self.creep.pos.isNearTo(transfer_target):
+                if not self.pos.isNearTo(transfer_target):
                     pos = None
                     for x in range(mineral.pos.x - 1, mineral.pos.x + 2):
                         for y in range(mineral.pos.y - 1, mineral.pos.y + 2):
@@ -69,7 +69,7 @@ class MineralMiner(RoleBase):
                         self.basic_move_to(pos)
                         return
             else:
-                hauler = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, self.creep.pos, 1),
+                hauler = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1),
                                 lambda c: c.creep.memory.role == role_mineral_hauler)
                 if hauler:
                     transfer_target = hauler[0]
@@ -248,7 +248,7 @@ class MineralHauler(RoleBase):
             else:
                 container = Game.getObjectById(self.memory.containers[0])
             container_filled = _.sum(container.store)
-            if self.creep.pos.isNearTo(container.pos):
+            if self.pos.isNearTo(container):
                 if container_filled + self.carry_sum() >= self.creep.carryCapacity or not mineral.mineralAmount:
                     resource = _.findKey(container.store)
                     if resource:
@@ -256,7 +256,7 @@ class MineralHauler(RoleBase):
                     elif self.carry_sum() or not mineral.mineralAmount:
                         del self.memory.state
             else:
-                self.move_to(container.pos)
+                self.move_to(container)
 
             return False
         else:
@@ -271,7 +271,7 @@ class MineralHauler(RoleBase):
                     del self.memory.state
                     return True
 
-            if not self.creep.pos.isNearTo(miner.pos):
+            if not self.pos.isNearTo(miner):
                 self.move_to(miner)  # Miner does the work of giving us the minerals, no need to pick any up.
 
     def run_storage_pickup(self):
@@ -280,7 +280,7 @@ class MineralHauler(RoleBase):
         if now_carrying >= self.creep.carryCapacity:
             del self.memory.state
             return True
-        if not self.creep.pos.isNearTo(mind.storage):
+        if not self.pos.isNearTo(mind.storage):
             self.move_to(mind.storage)
             return False
         for resource, needed_in_terminal in mind.adding_to_terminal() \
@@ -306,7 +306,7 @@ class MineralHauler(RoleBase):
         if now_carrying <= 0:
             del self.memory.state
             return True
-        if not self.creep.pos.isNearTo(mind.storage):
+        if not self.pos.isNearTo(mind.storage):
             self.move_to(mind.storage)
             return False
         resource = _.findKey(self.creep.carry)
@@ -320,7 +320,7 @@ class MineralHauler(RoleBase):
         if now_carrying >= self.creep.carryCapacity:
             del self.memory.state
             return True
-        if not self.creep.pos.isNearTo(mind.terminal):
+        if not self.pos.isNearTo(mind.terminal):
             self.move_to(mind.terminal)
             return False
         for resource, remove_from_terminal in mind.removing_from_terminal():
@@ -344,7 +344,7 @@ class MineralHauler(RoleBase):
         if now_carrying <= 0:
             del self.memory.state
             return True
-        if not self.creep.pos.isNearTo(mind.terminal):
+        if not self.pos.isNearTo(mind.terminal):
             self.move_to(mind.terminal)
             return False
 
@@ -400,7 +400,7 @@ class MineralHauler(RoleBase):
             del self.memory.state
             return True
 
-        if not self.pos.isNearTo(target.pos):
+        if not self.pos.isNearTo(target):
             self.move_to(target)
             return False
 

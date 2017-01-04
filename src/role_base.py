@@ -184,14 +184,14 @@ class RoleBase:
                 if target.structureType == STRUCTURE_LINK:
                     self.home.links.register_target_withdraw(target, self,
                                                              self.creep.carryCapacity - self.creep.carry.energy,
-                                                             self.creep.pos.getRangeTo(target))
+                                                             self.pos.getRangeTo(target))
             else:
                 target = storage
 
-            if not self.creep.pos.isNearTo(target.pos):
+            if not self.pos.isNearTo(target):
                 # TODO: 5 should ideally be instead 1/4 of the distance to this creep's next target.
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
-                                self.creep.pos.getRangeTo(target.pos) > 5:
+                                self.pos.getRangeTo(target) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
                     self.memory.filling = False
@@ -227,7 +227,7 @@ class RoleBase:
             self.go_to_depot()
             return False
 
-        if source.pos.roomName != self.creep.pos.roomName:
+        if self.pos.roomName != source.pos.roomName :
             self.move_to(source)
             return False
 
@@ -236,7 +236,7 @@ class RoleBase:
             pile = _.max(piles, 'amount')
             if not self.creep.pos.isNearTo(pile):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
-                        and self.creep.pos.getRangeTo(pile.pos) > 5:
+                        and self.pos.getRangeTo(pile) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
                 self.move_to(pile)
@@ -253,9 +253,9 @@ class RoleBase:
                               {"structureType": STRUCTURE_CONTAINER})
         if len(containers) > 0:
             container = containers[0]
-            if not self.creep.pos.isNearTo(container):
+            if not self.pos.isNearTo(container):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
-                        and self.creep.pos.getRangeTo(container.pos) > 5:
+                        and self.pos.getRangeTo(container) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
                 self.move_to(container)
@@ -269,9 +269,9 @@ class RoleBase:
         # TODO: this assumes that different sources are at least 3 away.
         miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_miner)
         if miner:
-            if not self.creep.pos.isNearTo(miner):
+            if not self.pos.isNearTo(miner):
                 if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
-                                self.creep.pos.getRangeTo(miner.pos) > 5:
+                                self.pos.getRangeTo(miner) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
                 if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
@@ -280,7 +280,7 @@ class RoleBase:
                 self.move_to(miner)
             return False  # waiting for the miner to gather energy.
 
-        if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.creep.pos), lambda c: c.memory.role == role_miner):
+        if _.find(self.room.find_in_range(FIND_MY_CREEPS, 2, self.pos), lambda c: c.memory.role == role_miner):
             self.go_to_depot()
             return False
         if not self.creep.hasActiveBodyparts(WORK):
@@ -293,7 +293,7 @@ class RoleBase:
                 self.targets.untarget(self, target_source)
             elif self.creep.carry.energy >= 100:
                 self.memory.filling = False
-        if not self.creep.pos.isNearTo(source.pos):
+        if not self.pos.isNearTo(source):
             self.move_to(source)
             return False
 
@@ -312,7 +312,7 @@ class RoleBase:
             return False
         if self.creep.carry.energy <= 0:
             return False
-        road = _.find(self.room.look_at(LOOK_STRUCTURES, self.creep.pos),
+        road = _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
                       lambda s: s.structureType == STRUCTURE_ROAD)
         if road:
             if road.hits < road.hitsMax and road.hitsMax - road.hits \
@@ -323,7 +323,7 @@ class RoleBase:
                 else:
                     self.log("Unknown result from passingby-road-repair on {}: {}".format(road, result))
         else:
-            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.creep.pos)
+            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.pos)
             if len(build):
                 build = _.find(build, lambda s: s.structureType == STRUCTURE_ROAD)
                 if build:
@@ -372,7 +372,7 @@ class RoleBase:
                 self._log_recycling()
                 self.creep.suicide()
             return
-        if not self.creep.pos.isNearTo(spawn.pos):
+        if not self.pos.isNearTo(spawn):
             if self.pos.getRangeTo(spawn) + 20 > self.creep.ticksToLive:
                 self._log_recycling()
                 self.creep.suicide()
@@ -392,7 +392,7 @@ class RoleBase:
         if total > 0:
             storage = self.home.room.storage
             if storage:
-                if self.creep.pos.isNearTo(storage.pos):
+                if self.pos.isNearTo(storage):
                     for rtype in Object.keys(self.creep.carry):
                         if self.creep.carry[rtype] > 0:
                             result = self.creep.transfer(storage, rtype)
@@ -426,7 +426,7 @@ class RoleBase:
     def move_around_clockwise(self, target):
         if self.creep.fatigue > 0:
             return
-        direction = target.pos.getDirectionTo(self.creep.pos)
+        direction = target.pos.getDirectionTo(self.pos)
         if direction == TOP_LEFT or direction == TOP:
             self.creep.move(RIGHT)
         elif direction == TOP_RIGHT or direction == RIGHT:
@@ -439,7 +439,7 @@ class RoleBase:
     def move_around_counter_clockwise(self, target):
         if self.creep.fatigue > 0:
             return
-        direction = target.pos.getDirectionTo(self.creep.pos)
+        direction = target.pos.getDirectionTo(self.pos)
         if direction == TOP_RIGHT or direction == TOP:
             self.creep.move(LEFT)
         elif direction == BOTTOM_RIGHT or direction == RIGHT:
