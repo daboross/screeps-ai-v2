@@ -240,7 +240,7 @@ class MineralHauler(RoleBase):
 
         if 'containers' not in self.memory:
             self.memory.containers = _(self.home.find_in_range(FIND_STRUCTURES, 2, mineral.pos)) \
-                .filter(lambda s: s.structureType == STRUCTURE_CONTAINER).map('id')
+                .filter('structureType', STRUCTURE_CONTAINER).pluck('id').value()
 
         if len(self.memory.containers):
             if len(self.memory.containers) > 1:

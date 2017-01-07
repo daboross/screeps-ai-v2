@@ -341,7 +341,7 @@ def run(room, spawn):
             descriptive_level = "carry:1-work:1"
         else:
             print("[{}][spawning] Too few extensions to build a worker!".format(room.name))
-            if Game.time % 30 == 3:
+            if (Game.time + room.get_unique_owned_index()) % 30 == 3:
                 room.reset_planned_role()
             return
     elif base is creep_base_defender:

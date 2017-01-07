@@ -40,6 +40,8 @@ class MiningMind:
     :type room: control.hivemind.RoomMind
     :type hive: control.hivemind.HiveMind
     :type targets: control.targets.TargetMind
+    :type active_mines: list[Flag]
+    :type available_mines: list[Flag]
     """
 
     def __init__(self, room):
