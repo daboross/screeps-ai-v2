@@ -1,3 +1,4 @@
+from constants import INVADER_USERNAME
 from utilities import movement
 from utilities.screeps_constants import *
 
@@ -14,15 +15,17 @@ def start_of_tick_check():
     if Memory.deathwatch:
         for name, room_name, threats in Memory.deathwatch:
             if name not in Game.creeps:
-                msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format(
-                    name, _.get(Memory, ['creeps', name, 'role'], 'creep'),
-                    room_name,
-                    ("{} or {}".format(', '.join(threats[:len(threats) - 1]),
-                                       threats[len(threats) - 1])
-                     if len(threats) > 1 else threats[0])
-                )
-                print(msg)
-                Game.notify(msg)
+                if not _.every(threats, lambda t: t == INVADER_USERNAME or t == 'unknown'):
+                    threats = ['an invader' if t == INVADER_USERNAME else t for t in threats]
+                    msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format(
+                        name, _.get(Memory, ['creeps', name, 'role'], 'creep'),
+                        room_name,
+                        ("{} or {}".format(', '.join(threats[:len(threats) - 1]),
+                                           threats[len(threats) - 1])
+                         if len(threats) > 1 else threats[0])
+                    )
+                    print(msg)
+                    Game.notify(msg)
                 meta = _.get(Memory, ['rooms', room_name, 'meta'])
                 if meta:
                     meta.clear_next = 0
