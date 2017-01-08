@@ -206,10 +206,12 @@ def run(room, spawn):
 
     if base is creep_base_1500miner:
         parts = []
-        if energy < 350:
+        work_cost = BODYPART_COST[WORK]
+        move_cost = BODYPART_COST[MOVE]
+        if energy < work_cost * 3 + move_cost:  # 350 on official servers
             print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
-            num_work = math.floor((energy - 50) / 100)
-            num_move = math.floor((energy - num_work * 100) / 50)
+            num_work = math.floor((energy - move_cost) / work_cost)
+            num_move = math.floor((energy - num_work * work_cost) / move_cost)
         else:
             num_move = num_sections or 3
             num_work = 3
@@ -219,11 +221,13 @@ def run(room, spawn):
             parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_3000miner:
+        work_cost = BODYPART_COST[WORK]
+        move_cost = BODYPART_COST[MOVE]
         parts = []
-        if energy < 550:
+        if energy < work_cost * 5 + move_cost: # 550 on offical servers
             print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
-            num_work = math.floor((energy - 50) / 100)
-            num_move = math.floor((energy - num_work * 100) / 50)
+            num_work = math.floor((energy - move_cost) / work_cost)
+            num_move = math.floor((energy - num_work * work_cost) / move_cost)
         else:
             num_move = num_sections or 5
             num_work = 5
@@ -233,11 +237,13 @@ def run(room, spawn):
             parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_4000miner:
+        work_cost = BODYPART_COST[WORK]
+        move_cost = BODYPART_COST[MOVE]
         parts = []
-        if energy < 750:
+        if energy < work_cost * 7 + move_cost: # 750 on official servers
             print("[{}][spawning] Building sub-optimal dedicated miner!".format(room.name))
-            num_work = math.floor((energy - 50) / 100)
-            num_move = math.floor((energy - num_work * 100) / 50)
+            num_work = math.floor((energy - move_cost) / work_cost)
+            num_move = math.floor((energy - num_work * work_cost) / move_cost)
         else:
             num_move = num_sections or 7
             num_work = 7
@@ -247,7 +253,10 @@ def run(room, spawn):
             parts.append(MOVE)
         descriptive_level = "work:{}-move:{}".format(num_work, num_move)
     elif base is creep_base_carry3000miner:
-        if energy < 600:
+        work_cost = BODYPART_COST[WORK]
+        move_cost = BODYPART_COST[MOVE]
+        carry_cost = BODYPART_COST[CARRY]
+        if energy < work_cost * 5 + move_cost + carry_cost:
             print("[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!"
                   .format(room.name))
             if Game.time % 30 == 3:
@@ -270,10 +279,20 @@ def run(room, spawn):
             parts.append(CLAIM)
         descriptive_level = num_sections
     elif base is creep_base_claiming:
-        if energy < 800:
-            parts = [MOVE, CLAIM, MOVE]
-        else:
+        claim_cost = BODYPART_COST[CLAIM]
+        move_cost = BODYPART_COST[MOVE]
+        if energy >= claim_cost + move_cost * 4:
             parts = [MOVE, MOVE, MOVE, CLAIM, MOVE]
+        elif energy >= claim_cost + move_cost * 2:
+            parts = [MOVE, CLAIM, MOVE]
+        elif energy > claim_cost + move_cost:
+            parts = [CLAIM, MOVE]
+        else:
+            print("[{}][spawning] Too few extensions to build a claim creep!"
+                  .format(room.name))
+            if Game.time % 30 == 3:
+                room.reset_planned_role()
+            return
     elif base is creep_base_claim_attack:
         parts = []
         for i in range(0, half_section):
@@ -321,7 +340,10 @@ def run(room, spawn):
             parts.append(MOVE)
         descriptive_level = num_sections * 2 + 1
     elif base is creep_base_worker:
-        if energy >= 450:
+        move_cost = BODYPART_COST[MOVE]
+        carry_cost = BODYPART_COST[CARRY]
+        work_cost = BODYPART_COST[WORK]
+        if energy >= move_cost * 4 + carry_cost * 3 + work_cost:  # 450 on official servers
             parts = []
             for i in range(0, num_sections):
                 parts.append(CARRY)
@@ -333,15 +355,15 @@ def run(room, spawn):
             for i in range(0, num_sections * 3 + half_section):
                 parts.append(MOVE)
             descriptive_level = "carry:{}-work:{}".format(num_sections * 3, num_sections)
-        elif energy >= 400:
+        elif energy >= move_cost * 3 + carry_cost * 2 + work_cost:  # 400 on official servers
             parts = [MOVE, MOVE, MOVE, CARRY, CARRY, WORK]
             descriptive_level = "carry:2-work:1"
-        elif energy >= 250:
+        elif energy >= move_cost * 2 + carry_cost + work_cost:  # 250 on official servers
             parts = [MOVE, MOVE, CARRY, WORK]
             descriptive_level = "carry:1-work:1"
         else:
-            print("[{}][spawning] Too few extensions to build a worker!".format(room.name))
-            if (Game.time + room.get_unique_owned_index()) % 30 == 3:
+            print("[{}][spawning] Too few extensions to build a worker ({}/{} energy)!".format(room.name, energy, 250))
+            if Game.time % 30 == 3:
                 room.reset_planned_role()
             return
     elif base is creep_base_defender:
@@ -385,36 +407,39 @@ def run(room, spawn):
         descriptive_level = num_sections
     elif base is creep_base_mammoth_miner:
         parts = [MOVE, CARRY]
-        energy_counter = 100
+        move_cost = BODYPART_COST[MOVE]
+        carry_cost = BODYPART_COST[CARRY]
+        work_cost = BODYPART_COST[WORK]
+        energy_counter = move_cost + carry_cost
         part_counter = 2
         move_counter = 0.25
         # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like
         # this for now.
         for i in range(0, 2):
-            if part_counter >= 50:
+            if part_counter >= MAX_CREEP_SIZE:
                 break
-            if energy_counter >= energy - 50:
+            if energy_counter >= energy - move_cost:
                 break
             # parts.append(CARRY)
-            # energy_counter += 50
+            # energy_counter += carry_cost
             # part_counter += 1
             # move_counter += 0.25
             for j in range(0, 25):
                 if move_counter >= 1:
-                    if part_counter >= 50:
+                    if part_counter >= MAX_CREEP_SIZE:
                         break
-                    if energy_counter >= energy - 50:
+                    if energy_counter >= energy - move_cost:
                         break
                     parts.append(MOVE)
-                    energy_counter += 50
+                    energy_counter += move_cost
                     part_counter += 1
                     move_counter -= 1
-                if part_counter >= 50:
+                if part_counter >= MAX_CREEP_SIZE:
                     break
-                if energy_counter >= energy - 100:
+                if energy_counter >= energy - work_cost:
                     break
                 parts.append(WORK)
-                energy_counter += 100
+                energy_counter += work_cost
                 part_counter += 1
                 move_counter += 0.25
     elif base is creep_base_goader:
@@ -708,11 +733,11 @@ def max_sections_of(room, base):
     if max_by_cost == 0:
         max_by_cost = floor((energy - initial_section_cost(base)) / lower_energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
-    max_by_parts = floor((50 - initial_base_parts) / len(scalable_sections[base]))
+    max_by_parts = floor((MAX_CREEP_SIZE - initial_base_parts) / len(scalable_sections[base]))
     num_sections = min(max_by_cost, max_by_parts)
     if base in half_sections:
         current_parts = initial_base_parts + num_sections * len(scalable_sections[base])
-        if current_parts + len(half_sections[base]) <= 50:
+        if current_parts + len(half_sections[base]) <= MAX_CREEP_SIZE:
             current_energy = cost_of_sections(base, num_sections, energy)
             if current_energy + half_section_cost(base) <= energy:
                 num_sections += 0.5
@@ -749,7 +774,7 @@ def work_count(creep):
 def carry_count(creep):
     if creep.creep:  # support RoleBase
         creep = creep.creep
-    return creep.carryCapacity / 50
+    return creep.carryCapacity / CARRY_CAPACITY
 
 
 def ceil_sections(count, base=None):

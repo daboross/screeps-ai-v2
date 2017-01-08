@@ -164,6 +164,7 @@ __all__ = [
     "RAMPART_HITS_MAX",
     "WALL_HITS",
     "WALL_HITS_MAX",
+    "MAX_CREEP_SIZE",
     # JavaScript things
     "typeof",
     "require",
