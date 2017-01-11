@@ -513,7 +513,7 @@ class ConstructionMind:
         return False
 
     def build_road(self, mine_flag):
-        current_method_version = 0
+        current_method_version = 1
 
         last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name
         cached_version = self.room.get_cached_property(last_built_roads_key)
@@ -554,7 +554,7 @@ class ConstructionMind:
 
         need_more_sites = 0
 
-        def check_route(serialized_obj, not_near_end_of, not_near_start_of):
+        def check_route(serialized_obj, not_near_start_of, not_near_end_of):
             nonlocal site_count, need_more_sites
             for room_name in Object.keys(serialized_obj):
                 if room_name == 'full':
@@ -674,7 +674,7 @@ class ConstructionMind:
         else:
             # NOTE: For now, just pretending this works like we want it to!
             mine_path = honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
-                'paved_mine': mine_flag,
+                'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
 
@@ -698,7 +698,7 @@ class ConstructionMind:
             if closest.isNearTo(spawn):
                 continue
             spawn_path = honey.completely_repath_and_get_raw_path(spawn, closest, {
-                'paved_mine': [mine_flag, spawn],
+                'paved_for': [mine_flag, spawn],
                 # NOTE: We really aren't going to be using this path for anything besides paving,
                 #  but it should be small.
                 'keep_for': min_repath_mine_roads_every * 2,
