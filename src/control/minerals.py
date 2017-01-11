@@ -211,7 +211,9 @@ class MineralMind:
     def adding_to_terminal(self):
         if self._adding_to_terminal is None:
             adding = []
-            for resource, target in self.get_all_terminal_targets().items():
+            all_targets = self.get_all_terminal_targets()
+            for resource in Object.keys(self.get_all_terminal_targets()):
+                target = all_targets[resource]
                 current = self.terminal.store[resource] or 0
                 if current < target:
                     adding.append([resource, target - current])

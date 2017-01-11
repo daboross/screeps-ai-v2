@@ -677,7 +677,9 @@ class HoneyTrails:
                     keep_for = 10 * 1000
                 else:
                     keep_for = 40 * 1000
-        serialized_path_obj = {key: Room.serializePath(value) for key, value in room_to_path_obj.items()}
+        serialized_path_obj = {}
+        for room_name in Object.keys(room_to_path_obj):
+            serialized_path_obj[room_name] = Room.serializePath(room_to_path_obj[room_name])
         global_cache.set(key, serialized_path_obj, keep_for)
         return serialized_path_obj
 
