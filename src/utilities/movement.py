@@ -40,6 +40,11 @@ def parse_room_to_xy(room_name):
     return x, y
 
 
+def is_valid_room_name(room_name):
+    matches = room_regex.exec(room_name)
+    return not not matches
+
+
 def room_xy_to_name(room_x, room_y):
     return "{}{}{}{}".format(
         "E" if room_x > 0 else "W",

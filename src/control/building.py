@@ -557,7 +557,7 @@ class ConstructionMind:
         def check_route(serialized_obj, not_near_start_of, not_near_end_of):
             nonlocal site_count, need_more_sites
             for room_name in Object.keys(serialized_obj):
-                if room_name == 'full':
+                if not movement.is_valid_room_name(room_name):  # Special key
                     continue
                 if room_name not in Game.rooms:
                     if not missing_rooms.includes(room_name):
