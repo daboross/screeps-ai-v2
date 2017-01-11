@@ -30,7 +30,7 @@ py.cc('W15S15')
 JSON.stringify(Memory.hostiles, 3, 3)
 
 # Expire everything soon
-for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() * 100; }
+for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() * 1000; }
 
 # Remove construction sites in W15S15
 Game.rooms.W15S15.find(FIND_MY_CONSTRUCTION_SITES).forEach(site => site.remove());
