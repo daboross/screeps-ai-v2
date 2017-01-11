@@ -1282,7 +1282,7 @@ class RoomMind:
                     structure = self.room.storage
                 else:
                     all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
-                    if all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
+                    if self.links.main_link and all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
                         structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
                             .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
                     elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):

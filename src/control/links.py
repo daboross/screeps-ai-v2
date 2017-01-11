@@ -1,6 +1,6 @@
 import math
 
-from utilities import volatile_cache
+from utilities import volatile_cache, movement
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -39,8 +39,10 @@ class LinkingMind:
     def get_main_link(self):
         if self._main_link is None:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
-                self._main_link = self.room.find_closest_by_range(FIND_MY_STRUCTURES, self.room.room.storage.pos,
-                                                                  {"structureType": STRUCTURE_LINK})
+                self._main_link = _.min(self._links,
+                                        lambda l: movement.chebyshev_distance_room_pos(self.room.room.storage, l))
+                if movement.chebyshev_distance_room_pos(self._main_link, self.room.room.storage) > 2:
+                    self._main_link = None
             else:
                 self._main_link = None
         return self._main_link
