@@ -268,16 +268,17 @@ def cleanup_old_values(hive):
     path_mem = _get_mem()
     for room_name in Object.keys(path_mem):
         data_list = path_mem[room_name]
-        to_remove = []
-        for data_string in data_list:
+        to_remove_indices = []
+        for index, data_string in enumerate(data_list):
             end_of_name_data = data_string.codePointAt(0)
             mine_name_length = data_string.codePointAt(1)
             mine_name = data_string[2:2 + mine_name_length]
             spawn_id = data_string[2 + mine_name_length:end_of_name_data]
             if not active_mines.has(mine_name) or (spawn_id != no_spawn_name_name
                                                    and Game.getObjectById(spawn_id) is None):
-                to_remove.push(data_string)
-                print('[mining_paths] Removing path for mine: {}, spawn: {}.'.format(mine_name, spawn_id))
-        _.pull(data_list, to_remove)
+                to_remove_indices.push(index)
+                print('[mining_paths] Removing path in {} for mine: {}, spawn: {}.'
+                      .format(room_name, mine_name, spawn_id))
+        _.pullAt(data_list, to_remove_indices)
         if not len(data_list):
             del path_mem[room_name]
