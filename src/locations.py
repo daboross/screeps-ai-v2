@@ -229,7 +229,7 @@ def delete_location(name):
 
 def clean_old_positions():
     for name in Object.keys(_mem_expirations):
-        if _mem_expirations[name] < Game.time:
+        if name != '-' and _mem_expirations[name] < Game.time:
             exp = _mem_expirations[name]
             print("[locations] Expiring location {}: {} < {}".format(get(name), exp, Game.time))
             del _mem_expirations[name]
