@@ -1,3 +1,5 @@
+from control import building
+
 _memory_init = None
 
 
@@ -34,7 +36,7 @@ import flags
 import locations
 import spawning
 from constants import *
-from control import defense
+from control import defense, mining_paths
 from control import hivemind
 from control.hivemind import HiveMind
 from control.targets import TargetMind
@@ -169,9 +171,18 @@ def run_room(targets, creeps_skipped, room):
             records.finish_record('room.tick')
             for creep in room.creeps:
                 run_creep(room.hive, targets, creeps_skipped, room, creep)
-            records.start_record()
-            room.building.place_remote_mining_roads()
-            records.finish_record('building.roads')
+            if Game.cpu.bucket >= 4500 and (Game.time + room.get_unique_owned_index()) % 50 == 0:
+                try:
+                    records.start_record()
+                    actually_did_anything = room.building.build_most_needed_road()
+                    if actually_did_anything:
+                        records.finish_record('building.roads.check-pavement')
+                    else:
+                        records.finish_record('building.roads.cache-checks-only')
+                except:
+                    records.finish_record('building.roads.errored')
+                    report_error(__except0__, "Error running road building in {}.".format(room.name))
+
             records.start_record()
             room.building.place_home_ramparts()
             records.finish_record('building.ramparts')
@@ -269,6 +280,16 @@ def main():
         records.start_record()
         consistency.complete_refresh(hive)
         records.finish_record('cache.complete-refresh')
+
+    if Game.time % 600 == 550:
+        records.start_record()
+        mining_paths.cleanup_old_values(hive)
+        records.finish_record('mining-paths.cleanup')
+    # vv purposefully one tick after the above ^^
+    if Game.time % 600 == 551:
+        records.start_record()
+        building.clean_up_all_road_construction_sites()
+        records.finish_record('building.clean-up-road-construction-sites')
 
     records.start_record()
     hive.poll_all_creeps()
@@ -368,6 +389,8 @@ __pragma__('js', 'global').py = {
     "volatile": volatile_cache,
     "cache": global_cache,
     "hostile_utils": hostile_utils,
+    "building": building,
+    "mining_paths": mining_paths,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,

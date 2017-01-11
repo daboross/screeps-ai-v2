@@ -2,8 +2,11 @@ import math
 
 import random
 
+import context
 import flags
-from constants import DEPOT
+from constants import DEPOT, min_repath_mine_roads_every, max_repath_mine_roads_every, min_repave_mine_roads_every, \
+    max_repave_mine_roads_every
+from control import mining_paths
 from utilities import movement, volatile_cache
 from utilities.screeps_constants import *
 
@@ -14,6 +17,11 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+
+_cache_key_placed_roads_for_mine = 'prfm'
+_cache_key_found_roads_for_mine = 'frfm'
+_build_roads_constant_missing_rooms = 'mr'
+_build_roads_constant_not_enough_sites = 'ns'
 
 building_priorities = {
     STRUCTURE_EXTENSION: 0,
@@ -497,249 +505,205 @@ class ConstructionMind:
         self.room.store_cached_property("destruct_targets", target_list, 200)
         return target_list
 
-    def place_remote_mining_roads(self):
-        if Game.cpu.bucket < 4500:
-            return
+    def build_most_needed_road(self):
+        for mine_flag in self.room.mining.active_mines:
+            re_checked = self.build_road(mine_flag)
+            if re_checked:
+                return True
+        return False
 
-        if (Game.time + self.room.get_unique_owned_index()) % 30 != 3:
-            return
-        current_method_version = 23
-        latest_key = "{}-{}-{}".format(current_method_version, self.room.rcl, len(self.room.mining.active_mines))
-        last_run_version = self.room.get_cached_property("placed_mining_roads")
-        if last_run_version and last_run_version == latest_key:
-            return
-        elif last_run_version == "missing_rooms":
-            if Game.time % 30 != 3:
-                return  # don't check every tick
-            missing_rooms = self.room.get_cached_property("pmr_missing_rooms")
-            for name in missing_rooms:
-                if Game.rooms[name]:
-                    break  # Re-pave if we can now see a room we couldn't before!
+    def build_road(self, mine_flag):
+        current_method_version = 0
+
+        last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name
+        cached_version = self.room.get_cached_property(last_built_roads_key)
+
+        deposit_point = self.room.mining.closest_deposit_point_to_mine(mine_flag)
+
+        if not deposit_point:
+            return False
+
+        latest_version = str(current_method_version) + "-" + deposit_point.id
+        if cached_version == latest_version:
+            return False
+        elif cached_version is not None and cached_version.startswith(_build_roads_constant_missing_rooms):
+            only_search_rooms = cached_version[len(_build_roads_constant_missing_rooms):].split('-')
+            for name in only_search_rooms:
+                if name in Game.rooms:
+                    break
             else:
-                return
-        elif last_run_version == "too_many_sites":
-            if Game.time % 30 != 3:
-                return
-            if len(Game.constructionSites) >= 50:
-                return
-        if not self.room.paving():
-            self.room.store_cached_property("placed_mining_roads", latest_key, 100)
-            return
+                return False
+        elif cached_version is not None and cached_version.startswith(_build_roads_constant_not_enough_sites):
+            needed = int(cached_version[len(_build_roads_constant_not_enough_sites):])
+            current = _.size(Game.constructionSites) + (volatile_cache.volatile().get("construction_sites_placed") or 0)
+            if min(needed, 25) < MAX_CONSTRUCTION_SITES * 0.8 - current:
+                return False
+        print("[{}][building] Building roads for {}.".format(self.room.name, mine_flag.name))
+        last_found_roads_key = _cache_key_found_roads_for_mine + mine_flag.name
+        latest_found_roads = self.room.get_cached_property(last_found_roads_key)
+        if latest_found_roads != latest_version:
+            self._repath_roads_for(mine_flag, deposit_point)
+            self.room.store_cached_property(last_found_roads_key, latest_version,
+                                            random.randint(min_repath_mine_roads_every, max_repath_mine_roads_every))
 
-        if not self.room.my:
-            raise Error("Place remote mining roads ran for non-owned room")
+        checked_positions = {}
+        missing_rooms = []
+        all_modified_rooms = []
+        hive = self.hive
+        site_count = _.size(Game.constructionSites) + (volatile_cache.volatile().get("construction_sites_placed") or 0)
 
-        already_ran_one_this_turn = volatile_cache.mem("run_once").has("place_remote_mining_roads")
-        if already_ran_one_this_turn:
-            return
-        else:
-            volatile_cache.mem("run_once").set("place_remote_mining_roads", True)
+        need_more_sites = 0
 
-        single_mine_num = self.room.get_cached_property("run_only_mine")
-        if single_mine_num is None and len(self.room.mining.active_mines) > 5:
-            single_mine_num = 0
-
-        # stagger updates after a version change.
-        # Really don't do this often either - this is an expensive operation.
-        # Calculate this here so we can pass it to HoneyTrails for how long to keep paths.
-        ttl = random.randint(200 * 1000, 220 * 1000)
-
-        volatile = volatile_cache.volatile()
-
-        checked_positions_per_room = new_map()
-        future_road_positions_per_room = {}
-        preexisting_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
-        placed_count = 0
-        path_count = 0
-
-        # TODO: this does assume that each remote mining room will be unique to one owned room (no remote mining rooms
-        # with one mine sponsored by one room, and another mine sponsored by another).
-        # I hope this is a safe assumption to make for now.
-        road_opts = {'decided_future_roads': future_road_positions_per_room, "keep_for": ttl + 10}
-        spawn_road_opts = {'range': 3, 'decided_future_roads': future_road_positions_per_room, "keep_for": ttl + 10}
-        any_non_visible_rooms = False
-        non_visible_rooms = None
-
-        def check_route(mine, positions):
-            nonlocal checked_positions_per_room, future_road_positions_per_room, path_count, \
-                placed_count, any_non_visible_rooms, non_visible_rooms
-            if mine.pos:
-                mine = mine.pos
-            path_count += 1
-            for pos in positions:
-                if checked_positions_per_room.has(pos.roomName):
-                    checked_positions = checked_positions_per_room.get(pos.roomName)
-                else:
-                    checked_positions = new_set()
-                    checked_positions_per_room.set(pos.roomName, checked_positions)
-
-                room = self.hive.get_room(pos.roomName)
-                if not room:
-                    # We don't have visibility to this active mine! let's just wait on this one
-                    any_non_visible_rooms = True
-                    if non_visible_rooms is None:
-                        non_visible_rooms = new_set()
-                    non_visible_rooms.add(pos.roomName)
+        def check_route(serialized_obj, not_near_end_of, not_near_start_of):
+            nonlocal site_count, need_more_sites
+            for room_name in Object.keys(serialized_obj):
+                if room_name == 'full':
                     continue
-
-                # I don't know how to do this more efficiently in JavaScript - a list [x, y] doesn't have a good
-                # equals, and thus wouldn't be unique in the set - but this *is* unique.
-                pos_key = pos.x | pos.y << 6
-                if not checked_positions.has(pos_key):
-                    destruct_flag = flags.look_for(room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                    if destruct_flag:
-                        destruct_flag.remove()
-                    if not _.find(room.look_at(LOOK_STRUCTURES, pos.x, pos.y),
-                                  {"structureType": STRUCTURE_ROAD}) \
-                            and not len(room.look_at(LOOK_CONSTRUCTION_SITES, pos.x, pos.y)):
-                        if placed_count + preexisting_count >= 100:
-                            break
-                        if abs(pos.x - mine.x) > 1 or abs(pos.y - mine.y) > 1:
-                            room.room.createConstructionSite(pos.x, pos.y, STRUCTURE_ROAD)
-                        placed_count += 1
-                    checked_positions.add(pos_key)
-                    if pos.roomName in future_road_positions_per_room:
-                        future_road_positions_per_room[pos.roomName].push(pos)
-                    else:
-                        future_road_positions_per_room[pos.roomName] = [pos]
-
-        if single_mine_num is not None:
-            mines = list(reversed(self.room.mining.active_mines))
-            if single_mine_num < len(mines):
-                mine = mines[single_mine_num]
-                target = None
-                if mine.pos.roomName != self.room.name or (self.room.rcl >= 4 and self.room.room.storage
-                                                           and self.room.room.storage.storeCapacity):
-
-                    deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
-                    if deposit_point:
-                        target = self.room.get_cached_property("run_only_mine_target_num") or 0
-                        if target == 0:
-                            self.hive.honey.clear_cached_path(deposit_point, mine)
-                            check_route(mine, reversed(self.hive.honey.list_of_room_positions_in_path(
-                                deposit_point, mine, road_opts)))
-                        elif target == 1:
-                            self.hive.honey.clear_cached_path(mine, deposit_point)
-                            check_route(mine, self.hive.honey.list_of_room_positions_in_path(
-                                mine, deposit_point, road_opts))
-                        elif target == 2:
-                            for spawn in self.room.spawns:
-                                self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                                check_route(mine, self.hive.honey.list_of_room_positions_in_path(
-                                    mine, spawn, spawn_road_opts))
-
-                if (target is None) or (placed_count + preexisting_count < 100 and not any_non_visible_rooms):
-                    if target is not None and target < 2:
-                        self.room.store_cached_property("run_only_mine_target_num", target + 1, 500)
-                    else:
-                        self.room.store_cached_property("run_only_mine_target_num", 0, 500)
-                        self.room.store_cached_property("run_only_mine", single_mine_num + 1, 500)
-                print("[{}][building] Searched target {}/3 of mine {}/{} for remote mining roads.".format(
-                    self.room.name, target, single_mine_num + 1, len(mines)))
-                return
-            print("[{}][building] Finished searching all mines one at a time!".format(self.room.name))
-            self.room.store_cached_property("run_only_mine", 0, 0)
-            del self.room.mem.cache['run_only_mine_target_num']
-
-        else:
-            try:
-                # Prioritize paths for far-away mines (last in the original array)
-                for mine in reversed(self.room.mining.active_mines):
-                    if mine.pos.roomName == self.room.name \
-                            and (self.room.rcl < 4 or not self.room.room.storage
-                                 or not self.room.room.storage.storeCapacity):
+                if room_name not in Game.rooms:
+                    if not missing_rooms.includes(room_name):
+                        missing_rooms.push(room_name)
+                    continue
+                if not all_modified_rooms.includes(room_name):
+                    all_modified_rooms.push(room_name)
+                if room_name in checked_positions:
+                    checked_here = checked_positions[room_name]
+                else:
+                    checked_here = checked_positions[room_name] = new_set()
+                room = hive.get_room(room_name)
+                path = Room.deserializePath(serialized_obj[room_name])
+                if room_name == not_near_end_of:
+                    rest = path.slice(-2)
+                    path = path.slice(0, -2)
+                    print("[building][debug] Not paving two positions at end of path: {}"
+                          .format(', '.join(['({}, {}, {})'.format(p.x, p.y, room_name) for p in rest])))
+                if room_name == not_near_start_of:
+                    rest = path.slice(0, 2)
+                    path = path.slice(2)
+                    print("[building][debug] Not paving two positions at start of path: {}"
+                          .format(', '.join(['({}, {}, {})'.format(p.x, p.y, room_name) for p in rest])))
+                for position in path:
+                    xy_key = movement.xy_to_serialized_int(position.x, position.y)
+                    if checked_here.has(xy_key):
                         continue
+                    else:
+                        checked_here.add(xy_key)
+                    structures = room.look_at(LOOK_STRUCTURES, position.x, position.y)
+                    if not _.some(structures, 'structureType', STRUCTURE_ROAD):
+                        if site_count >= MAX_CONSTRUCTION_SITES * 0.9:
+                            need_more_sites += 1
+                        else:
+                            room.room.createConstructionSite(position.x, position.y, STRUCTURE_ROAD)
+                            site_count += 1
 
-                    deposit_point = self.room.mining.closest_deposit_point_to_mine(mine)
-                    if not deposit_point:
-                        # If we have no storage nor spawn, don't pave.
-                        continue
-                    # It's important to run check_route on this path before doing another path, since this updates the
-                    # future_road_positions_per_room object.
-                    self.hive.honey.clear_cached_path(deposit_point, mine)
-                    check_route(mine,
-                                reversed(self.hive.honey.list_of_room_positions_in_path(deposit_point, mine,
-                                                                                        road_opts)))
-                    self.hive.honey.clear_cached_path(mine, deposit_point)
-                    check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, deposit_point, road_opts))
-                    for spawn in self.room.spawns:
-                        self.hive.honey.clear_cached_path(mine, spawn, spawn_road_opts)
-                        check_route(mine, self.hive.honey.list_of_room_positions_in_path(mine, spawn, spawn_road_opts))
-            except:
-                if not __except0__:
-                    # we've run out of CPU!
-                    self.room.store_cached_property("run_only_mine", 0, 100)
-                __pragma__('js', 'throw __except0__;')
-                raise __except0__
-
-        for room_name in Object.keys(checked_positions_per_room):
-            checked_positions = checked_positions_per_room.get(room_name)
-            room = self.hive.get_room(room_name)
-
-            for road in room.find(FIND_STRUCTURES):
-                if road.structureType == STRUCTURE_ROAD:
-                    pos_key = road.pos.x * 64 + road.pos.y
-                    if not checked_positions.has(pos_key):
-                        if flags.look_for(room, road.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
-                            continue
-                        destruct_flag = flags.look_for(room, road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                        if not destruct_flag:
-                            flags.create_ms_flag(road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-
-            for site in room.find(FIND_MY_CONSTRUCTION_SITES):
-                if site.structureType == STRUCTURE_ROAD:
-                    pos_key = site.pos.x * 64 + site.pos.y
-                    if not checked_positions.has(pos_key):
-                        if flags.look_for(room, site.pos, flags.MAIN_BUILD, flags.SUB_ROAD):
-                            continue
-                        destruct_flag = flags.look_for(room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD)
-                        if destruct_flag:
-                            site.remove()
-                            destruct_flag.remove()
-                        elif site.progress / site.progressTotal < 0.2:
-                            site.remove()
-
-            for flag in flags.find_ms_flags(room, flags.MAIN_DESTRUCT, flags.SUB_ROAD):
-                if not _.find(room.look_at(LOOK_STRUCTURES, flag.pos), {"structureType": STRUCTURE_ROAD}) \
-                        and not _.find(room.look_at(LOOK_CONSTRUCTION_SITES, flag.pos),
-                                       {"structureType": STRUCTURE_ROAD}):
-                    flag.remove()
-
-        if volatile.has("construction_sites_placed"):
-            volatile.set("construction_sites_placed", volatile.get("construction_sites_placed") + placed_count)
+        honey = self.hive.honey
+        if deposit_point.pos.isNearTo(mine_flag):
+            all_positions = []
         else:
-            volatile.set("construction_sites_placed", placed_count)
+            route_to_mine = honey.get_serialized_path_obj(mine_flag, deposit_point, {
+                'paved_for': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
+            check_route(route_to_mine, (mine_flag.pos or mine_flag).roomName, None)
 
-        if any_non_visible_rooms:
-            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms)".format(
-                self.room.name, _.sum(checked_positions_per_room.values(), 'size'),
-                placed_count, path_count))
-        elif placed_count + preexisting_count >= 100:
-            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths (hit site limit)".format(
-                self.room.name, _.sum(checked_positions_per_room.values(), 'size'),
-                placed_count, path_count))
+            all_positions = honey.list_of_room_positions_in_path(mine_flag, deposit_point, {
+                'paved_for': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
+
+        for spawn in self.room.spawns:
+            # TODO: this is used in both this method and the one above, and should be a utility.
+            if len(all_positions):
+                closest = None
+                closest_distance = Infinity
+                for index, pos in enumerate(all_positions):
+                    # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
+                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
+                        distance += 10
+                    if distance < closest_distance:
+                        closest = pos
+                        closest_distance = distance
+                if closest.isNearTo(mine_flag) and closest.roomName != (mine_flag.pos or mine_flag).roomName:
+                    no_pave_end = closest.roomName
+                else:
+                    no_pave_end = None
+            else:
+                closest = mine_flag.pos or mine_flag
+                no_pave_end = closest.roomName
+            if closest.isNearTo(spawn):
+                continue
+            route_to_spawn = honey.get_serialized_path_obj(spawn, closest, {
+                'paved_for': [mine_flag, spawn],
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
+            check_route(route_to_spawn, None, no_pave_end)
+
+        # # Now, clean up sites which we don't need anymore!
+        for room_name in all_modified_rooms:
+            room = hive.get_room(room_name)
+            if room and not room.my:
+                all_planned_sites_set = mining_paths.get_set_of_all_serialized_positions_in(room_name)
+                for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+                    xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
+                    if site.structureType == STRUCTURE_ROAD and not all_planned_sites_set.has(xy):
+                        print("[building] Would remove {} (at {})".format(site, site.pos))
+                        # site.remove()
+
+        if need_more_sites > 0:
+            self.room.store_cached_property(last_built_roads_key,
+                                            _build_roads_constant_not_enough_sites + str(need_more_sites),
+                                            min_repath_mine_roads_every)
+            print("[{}][building] Stopped: need more sites. ({}/{})".format(self.room.name,
+                                                                            MAX_CONSTRUCTION_SITES - site_count,
+                                                                            need_more_sites))
+        elif len(missing_rooms) > 0:
+            self.room.store_cached_property(last_built_roads_key,
+                                            _build_roads_constant_missing_rooms + '-'.join(missing_rooms),
+                                            min_repath_mine_roads_every)
+            print("[{}][building] Stopped: missing rooms. ({})".format(self.room.name, ', '.join(missing_rooms)))
         else:
-            print("[{}][building] Found {} pos ({} new) for remote roads, from {} paths.".format(
-                self.room.name, _.sum(list(checked_positions_per_room.values()), 'size'),
-                placed_count, path_count))
+            self.room.store_cached_property(last_built_roads_key, latest_version,
+                                            random.randint(min_repave_mine_roads_every, max_repave_mine_roads_every))
+        return True
 
-        if any_non_visible_rooms:
-            self.room.store_cached_property("placed_mining_roads", "missing_rooms", ttl)
-            self.room.store_cached_property("pmr_missing_rooms", list(non_visible_rooms.values()), ttl)
-        elif placed_count + preexisting_count >= 100:
-            self.room.store_cached_property("placed_mining_roads", "too_many_sites", ttl)
+    def _repath_roads_for(self, mine_flag, deposit_point):
+        honey = self.hive.honey
+
+        if deposit_point.pos.isNearTo(mine_flag):
+            mine_path = []
         else:
-            self.room.store_cached_property("placed_mining_roads", latest_key, ttl)
-            # Done!
+            # NOTE: For now, just pretending this works like we want it to!
+            mine_path = honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
+                'paved_mine': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
 
-    def re_place_mining_roads(self):
-        cache = self.room.mem.cache
-        if 'placed_mining_roads' in cache:
-            cache.placed_mining_roads.dead_at = Game.time + 1
-        if 'paving_here' in cache:
-            cache.paving_here.dead_at = Game.time + 1
-        if 'all_paved' in cache:
-            cache.all_paved.dead_at = Game.time + 1
+        mining_paths.register_new_mining_path(mine_flag, None, mine_path)
+
+        for spawn in self.room.spawns:
+            # TODO: this is used in both this method and the one above, and should be a utility.
+            if len(mine_path):
+                closest = None
+                closest_distance = Infinity
+                for index, pos in enumerate(mine_path):
+                    # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
+                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
+                        distance += 10
+                    if distance < closest_distance:
+                        closest = pos
+                        closest_distance = distance
+            else:
+                closest = mine_flag.pos or mine_flag
+            if closest.isNearTo(spawn):
+                continue
+            spawn_path = honey.completely_repath_and_get_raw_path(spawn, closest, {
+                'paved_mine': [mine_flag, spawn],
+                # NOTE: We really aren't going to be using this path for anything besides paving,
+                #  but it should be small.
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
+            mining_paths.register_new_mining_path(mine_flag, spawn, spawn_path)
 
     def place_home_ramparts(self):
         last_run = self.room.get_cached_property("placed_ramparts")
@@ -843,3 +807,45 @@ class ConstructionMind:
         target = self.find_loc_near_away_from(center, away_from)
         flags.create_flag(target, DEPOT)
         cache.add(cache_key)
+
+
+def clean_up_all_road_construction_sites():
+    rooms_to_sites = _.groupBy(Game.constructionSites, 'pos.roomName')
+    for room_name in Object.keys(rooms_to_sites):
+        if _.get(Game.rooms, [room_name, 'controller', 'my'], False):
+            continue
+        planned_roads = mining_paths.get_set_of_all_serialized_positions_in(room_name)
+        for site in rooms_to_sites[room_name]:
+            xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
+            if site.structureType == STRUCTURE_ROAD:
+                if not planned_roads.has(xy):
+                    print("[building][debug] Would remove road site at {}.".format(site.pos))
+                    # site.remove()
+            else:
+                msg = "[building] WARNING: Construction site for a {} found in unowned room {}. Non-road construction" \
+                      " sites are generally not supported in unowned rooms!".format(site.structureType, room_name)
+                print(msg)
+                Game.notify(msg)
+
+
+def repave(mine_name):
+    """
+    Command which is useful for use from console.
+    :param mine_name: The name of a mine flag
+    :return:
+    """
+    flag = Game.flags[mine_name]
+    if not flag:
+        return "error: flag {} does not exist!".format(mine_name)
+    if 'sponsor' in flag.memory:
+        sponsor = flag.memory.sponsor
+    else:
+        sponsor = flag.name.split('_')[0]
+    room = context.hive().get_room(sponsor)
+    if not room:
+        return "error: room {} not visible.".format(sponsor)
+    if not room.my:
+        return "error: room {} not owned.".format(sponsor)
+    room.delete_cached_property(_cache_key_found_roads_for_mine + flag.name)
+    room.delete_cached_property(_cache_key_placed_roads_for_mine + flag.name)
+    room.building.build_road(flag)

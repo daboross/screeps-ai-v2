@@ -1,3 +1,4 @@
+from constants import global_cache_mining_roads_suffix, max_repath_mine_roads_every
 from utilities.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -46,7 +47,9 @@ def cleanup():
             del r[key]
         else:
             if key.includes("cost_matrix"):
-                min_last_use = Game.time - 10000
+                min_last_use = Game.time - max_repath_mine_roads_every * 1.2
+            elif key.endswith(global_cache_mining_roads_suffix):
+                min_last_use = Game.time - max_repath_mine_roads_every
             else:
                 min_last_use = Game.time - CREEP_LIFE_TIME
             if r[key].l < min_last_use:

@@ -192,3 +192,12 @@ request_priority_imminent_threat_defense = 1
 request_priority_economy = 5
 request_priority_helping_party = 9
 request_priority_low = 20
+
+
+min_repath_mine_roads_every = 200 * 1000
+max_repath_mine_roads_every = 250 * 1000
+
+min_repave_mine_roads_every = 20 * 1000
+max_repave_mine_roads_every = 25 * 1000
+
+global_cache_mining_roads_suffix = '_mrd'

@@ -248,7 +248,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             elif 'running' in self.memory:
                 del self.memory.running
 
-        return self.transport(pickup, fill)
+        return self.transport(pickup, fill, self.home.paving())
 
     def _calculate_time_to_replace(self):
         source = self.targets.get_new_target(self, target_energy_hauler_mine)

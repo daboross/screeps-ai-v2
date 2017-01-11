@@ -15,13 +15,16 @@ __pragma__('noalias', 'type')
 
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
-    def transport(self, pickup, fill):
+    def transport(self, pickup, fill, paved):
         total_carried_now = self.carry_sum()
         if self.memory.filling:
             target = pickup.pos
             if not self.creep.carryCapacity:
                 if self.creep.hits < self.creep.hitsMax and self.home.defense.healing_capable():
-                    self.follow_energy_path(pickup, fill)
+                    if paved:
+                        self.follow_energy_path(pickup, fill, pickup)
+                    else:
+                        self.follow_energy_path(pickup, fill)
                 else:
                     self.log("All carry parts dead, committing suicide.")
                     self.creep.suicide()
@@ -30,13 +33,16 @@ class TransportPickup(RoleBase):
                 # TODO: once we have custom path serialization, and we can know how far along on the path we are, use
                 # the percentage of how long on the path we are to calculate how much energy we should have to turn back
                 self.memory.filling = False
-                self.repair_nearby_roads()
-                self.follow_energy_path(pickup, fill)
+                if paved:
+                    self.repair_nearby_roads()
+                    self.follow_energy_path(pickup, fill, pickup)
+                else:
+                    self.follow_energy_path(pickup, fill)
                 return
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
                 if total_carried_now:
                     self.repair_nearby_roads()
-                self.follow_energy_path(fill, pickup)
+                self.follow_energy_path(fill, pickup, pickup)
                 return
             piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
             if len(piles):
@@ -54,7 +60,10 @@ class TransportPickup(RoleBase):
                             # If there is a road needing repairing here, let's not start moving until we have energy to
                             # repair with (i.e. next tick).
                             self.memory.filling = False
-                            self.follow_energy_path(pickup, fill)
+                            if paved:
+                                self.follow_energy_path(pickup, fill, pickup)
+                            else:
+                                self.follow_energy_path(pickup, fill)
                         elif Game.time % 6 == 1 and self.creep.ticksToLive < 10 + self.path_length(fill, pickup):
                             self.memory.filling = False
                             self.follow_energy_path(fill, pickup)
@@ -85,7 +94,10 @@ class TransportPickup(RoleBase):
 
                     if amount > self.creep.carryCapacity - total_carried_now:
                         self.memory.filling = False
-                        self.follow_energy_path(pickup, fill)
+                        if paved:
+                            self.follow_energy_path(pickup, fill, pickup)
+                        else:
+                            self.follow_energy_path(pickup, fill)
                 else:
                     if self.pos.isNearTo(target):
                         self.creep.move(pathdef.direction_to(self.pos, container))
@@ -97,7 +109,10 @@ class TransportPickup(RoleBase):
                           lambda o: o.my and o.creep.memory.role == role_miner):
                 if total_carried_now > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
-                    self.follow_energy_path(pickup, fill)
+                    if paved:
+                        self.follow_energy_path(pickup, fill, pickup)
+                    else:
+                        self.follow_energy_path(pickup, fill)
                     return
         else:
             # don't use up *all* the energy doing this
@@ -121,7 +136,10 @@ class TransportPickup(RoleBase):
                                                         self.pos.getRangeTo(target))
 
             if self.pos.roomName != target.roomName or not self.pos.isNearTo(target):
-                self.follow_energy_path(pickup, fill)
+                if paved:
+                    self.follow_energy_path(pickup, fill, pickup)
+                else:
+                    self.follow_energy_path(pickup, fill)
                 return
 
             energy_only = fill.structureType == STRUCTURE_LINK or fill.structureType == STRUCTURE_SPAWN
@@ -161,7 +179,7 @@ class TransportPickup(RoleBase):
 
         return self.hive.honey.find_path_length(origin, target)
 
-    def follow_energy_path(self, origin, target):
+    def follow_energy_path(self, origin, target, mine=None):
         if origin.pos:
             origin = origin.pos
         if target.pos:
@@ -170,7 +188,12 @@ class TransportPickup(RoleBase):
             return
         if origin.isNearTo(target):
             origin = self.home.spawn.pos
-        path = self.hive.honey.find_serialized_path(origin, target, {'current_room': self.pos.roomName})
+
+        opts = {
+            'current_room': self.pos.roomName,
+            'paved_for': mine,
+        }
+        path = self.hive.honey.find_serialized_path(origin, target, opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
         if result == ERR_NOT_FOUND or result == ERR_NO_PATH:
@@ -179,7 +202,7 @@ class TransportPickup(RoleBase):
                 return
             if not self.memory.next_ppos or self.memory.off_path_for > 10:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
-                all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target)
+                all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, opts)
                 closest = None
                 closest_distance = Infinity
                 for index, pos in enumerate(all_positions):
@@ -189,6 +212,7 @@ class TransportPickup(RoleBase):
                         if room and not movement.is_block_clear(room, pos.x, pos.y):
                             continue  # Don't try and target where the miner is right now!
                     # subtract how far we are on the path!
+                    # NOTE: 0.7 is used in building._repath_roads_for and should be changed there if changed here.
                     distance = movement.chebyshev_distance_room_pos(self.pos, pos) - index * 0.7
                     if pos.roomName != self.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
@@ -215,9 +239,9 @@ class TransportPickup(RoleBase):
                     # the path is incorrect!
                     self.log("WARNING: Path from {} to {} found to be cached incorrectly - it should contain {}, but"
                              " it doesn't.".format(origin, target, new_target))
-                    self.log("Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}".format(
-                        self.pos.roomName, JSON.stringify(path, 0, 4)))
-                    self.hive.honey.clear_cached_path(origin, target)
+                    self.log("Path (tbd) retrieved from HoneyTrails with options ({}):\n{}".format(
+                        opts, JSON.stringify(path, 0, 4)))
+                    self.hive.honey.clear_cached_path(origin, target, opts)
             elif self.pos.isNearTo(new_target):
                 self.basic_move_to(new_target)
                 return
@@ -254,7 +278,7 @@ class TransportPickup(RoleBase):
                                        lambda c: c.memory.role != role_hauler and c.memory.role != role_miner)):
                     del self.memory.next_ppos
                     found_mine = False
-                    for pos in self.hive.honey.find_path(origin, target, {'current_room': self.pos.roomName}):
+                    for pos in self.hive.honey.find_path(origin, target, opts):
                         if pos.x == self.pos.x and pos.y == self.pos.y:
                             found_mine = True
                         elif found_mine:

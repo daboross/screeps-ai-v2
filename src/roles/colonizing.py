@@ -208,7 +208,7 @@ class MineralSteal(TransportPickup):
 
         fill = self.home.room.storage
 
-        return self.transport(pickup, fill)
+        return self.transport(pickup, fill, False)
 
     def _calculate_time_to_replace(self):
         # TODO: find a good time in a better way!
