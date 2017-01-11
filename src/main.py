@@ -55,6 +55,27 @@ __pragma__('noalias', 'type')
 walkby_move.apply_move_prototype()
 
 
+def report_error(err, description):
+    if err == undefined:
+        if err is None:
+            err_description = "null error"
+        elif err is undefined:
+            err_description = "undefined error"
+        else:
+            err_description = err + " error"
+    else:
+        if err.stack == undefined:
+            err_description = "error has undefined stack: {}".format(err)
+        else:
+            err_description = "error {} has stack: {}".format(err, err.stack)
+
+    msg = "[main] Error: {}\n{}".format(description, err_description)
+    print(msg)
+    Game.notify(msg)
+    if err == undefined:
+        __pragma__('js', 'throw err;')
+
+
 def run_creep(hive, targets, creeps_skipped, room, creep):
     """
     :type hive: control.hivemind.HiveMind
@@ -110,16 +131,12 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
                                                                         creep.memory.role))
         records.finish_record(creep.memory.role)
     except:
-        e = __except0__
-        role = creep.memory.role
-        Game.notify("Error running role {}! Creep {} from room {} not run this tick.\n{}".format(
-            role if role else "[no role]", creep.name, creep.memory.home, e.stack if e else "e == null??"
-        ), 10)
-        print("[{}][{}] Error running role {}!".format(creep.memory.home, creep.name,
-                                                       role if role else "[no role]"))
-        print(e.stack if e else "e == null?? {}".format(e))
-        if not e:
-            raise e
+        report_error(
+            __except0__,
+            "Error running role {}, creep {} at {} from room {} not run this tick.".format(
+                creep.memory.role, creep.name, creep.pos, creep.memory.home
+            )
+        )
 
 
 def run_room(targets, creeps_skipped, room):
@@ -173,14 +190,7 @@ def run_room(targets, creeps_skipped, room):
         room.minerals.tick_terminal()
         records.finish_record('terminal.tick')
     except:
-        e = __except0__
-        Game.notify("Error running room {}!\n{}".format(
-            room.name, e.stack if e else "e == null??"
-        ), 10)
-        print("[{}] Error running room {}!".format(room.name, room.name))
-        print(e.stack if e else "e == null?? {}".format(e))
-        if not e:
-            raise e
+        report_error(__except0__, "Error running room {}".format(room.name))
 
 
 def main():
