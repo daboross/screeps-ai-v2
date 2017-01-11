@@ -255,6 +255,11 @@ def main():
         consistency.clear_cache()
         records.finish_record('cache.clean')
 
+    if Game.time % 100000 == 6798:
+        records.start_record()
+        consistency.complete_refresh(hive)
+        records.finish_record('cache.complete-refresh')
+
     records.start_record()
     hive.poll_all_creeps()
     records.finish_record('hive.poll-creeps')

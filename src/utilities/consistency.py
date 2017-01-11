@@ -114,23 +114,32 @@ def complete_refresh(hive):
         room.recalculate_roles_alive()
         room.reset_planned_role()
     # Double check for creeps in memory that aren't alive (maybe in rooms which are no longer owned?)
-    for name, mem in _.pairs(Memory.creeps):
+    for name in Object.keys(Memory.creeps):
         if name not in Game.creeps:
+            mem = Memory.creeps[name]
             print('[consistency] Clearing rouge creep: {} ({})'.format(name, mem.home))
             del Memory.creeps[name]
     # Double check for creeps in TargetMind which aren't alive:
-    for name, targets in _.pairs(_.get(Memory, 'targets.targeters_using')):
+    target_mem = _.get(Memory, 'targets.targeters_using')
+    for name in Object.keys(target_mem):
         if name not in Game.creeps:
+            targets = target_mem[name]
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
             hive.targets._unregister_all(name)
     # Remove deprecated Memory paths that are no longer in use:
-    for key in ['cpu_usage']:
+    for key in ['cpu_usage', 'profiler']:
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
-    for name in Memory.rooms:
+    for name in Object.keys(Memory.rooms):
         mem = Memory.rooms[name]
         if '_ly' in mem:
             del mem['_ly']
         if not len(mem):
             del Memory.rooms[name]
+    for name in Object.keys(Memory.flags):
+        mem = Memory.flags[name]
+        if 'remote_miner_targeting' in mem:
+            del mem['remote_miner_targeting']
+        if not len(mem):
+            del Memory.flags[name]
