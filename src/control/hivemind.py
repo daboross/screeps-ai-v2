@@ -455,6 +455,7 @@ class RoomMind:
         self._spawns = undefined
         self._spawn = undefined
         self._unique_owned_index = undefined
+        self._paving = undefined
 
         # properties generally set via a poll in hive mind
         self._creeps = undefined
@@ -999,17 +1000,24 @@ class RoomMind:
         return consistency.reassign_room_roles(self)
 
     def paving(self):
-        if not self.my:
-            return False
-        paving = self.get_cached_property("paving_here")
-        if paving is None:
-            paving = (self.room.storage or self.spawn) and \
-                     (self.get_max_mining_op_count() >= 1 or self.room.storage) \
-                     and len(self.mining.available_mines) >= 1 \
-                     and self.room.energyCapacityAvailable >= 600
-            self.store_cached_property("paving_here", paving, 200)
-
-        return self.get_cached_property("paving_here")
+        if '_paving' not in self:
+            if not self.my:
+                self._paving = False
+            else:
+                paving = self.get_cached_property("paving_here")
+                if paving is None:
+                    needed_energy_capacity = (
+                        BODYPART_COST[WORK] * 2
+                        + BODYPART_COST[MOVE] * 4
+                        + BODYPART_COST[CARRY] * 6
+                    )
+                    paving = (self.room.storage or self.spawn) and \
+                             (self.get_max_mining_op_count() >= 1 or self.room.storage) \
+                             and len(self.mining.available_mines) >= 1 \
+                             and self.room.energyCapacityAvailable >= needed_energy_capacity
+                    self.store_cached_property("paving_here", paving, 200)
+                self._paving = paving
+        return self._paving
 
     def all_paved(self):
         # TODO: better remote mine-specific paving detection, so we can disable this shortcut
