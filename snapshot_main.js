@@ -681,7 +681,7 @@ if (!global.__customizations_active) {
     activateCustomizations()
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-01-10 22:18:16
+// Transcrypt'ed from Python, 2017-01-11 15:40:27
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -3833,7 +3833,7 @@ function main () {
                             return false;
                         });},
                         get build_road () {return __get__ (this, function (self, mine_flag) {
-                            var current_method_version = 0;
+                            var current_method_version = 1;
                             var last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name;
                             var cached_version = self.room.get_cached_property (last_built_roads_key);
                             var deposit_point = self.room.mining.closest_deposit_point_to_mine (mine_flag);
@@ -3879,11 +3879,11 @@ function main () {
                             var hive = self.hive;
                             var site_count = _.size (Game.constructionSites) + (volatile_cache.volatile ().get ('construction_sites_placed') || 0);
                             var need_more_sites = 0;
-                            var check_route = function (serialized_obj, not_near_end_of, not_near_start_of) {
+                            var check_route = function (serialized_obj, not_near_start_of, not_near_end_of) {
                                 var __iterable0__ = Object.keys (serialized_obj);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var room_name = __iterable0__ [__index0__];
-                                    if (room_name == 'full') {
+                                    if (!(movement.is_valid_room_name (room_name))) {
                                         continue;
                                     }
                                     if (!(room_name in Game.rooms)) {
@@ -4011,7 +4011,8 @@ function main () {
                                         var site = __iterable1__ [__index1__];
                                         var xy = movement.xy_to_serialized_int (site.pos.x, site.pos.y);
                                         if (site.structureType == STRUCTURE_ROAD && !(all_planned_sites_set.has (xy))) {
-                                            print ('[building] Would remove {} (at {})'.format (site, site.pos));
+                                            print ('[building] Removing {} at {}'.format (site, site.pos));
+                                            site.remove ();
                                         }
                                     }
                                 }
@@ -4033,11 +4034,11 @@ function main () {
                             var honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
                                 var mine_path = list ([]);
+                                mining_paths.register_new_mining_path (mine_flag, mine_path);
                             }
                             else {
-                                var mine_path = honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, dict ({'paved_mine': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
+                                var mine_path = honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
                             }
-                            mining_paths.register_new_mining_path (mine_flag, null, mine_path);
                             var __iterable0__ = self.room.spawns;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var spawn = __iterable0__ [__index0__];
@@ -4063,10 +4064,10 @@ function main () {
                                     var closest = mine_flag.pos || mine_flag;
                                 }
                                 if (closest.isNearTo (spawn)) {
+                                    mining_paths.register_new_mining_path (list ([mine_flag, spawn]), list ([]));
                                     continue;
                                 }
-                                var spawn_path = honey.completely_repath_and_get_raw_path (spawn, closest, dict ({'paved_mine': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
-                                mining_paths.register_new_mining_path (mine_flag, spawn, spawn_path);
+                                honey.completely_repath_and_get_raw_path (spawn, closest, dict ({'paved_for': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
                             }
                         });},
                         get place_home_ramparts () {return __get__ (this, function (self) {
@@ -4224,7 +4225,8 @@ function main () {
                                 var xy = movement.xy_to_serialized_int (site.pos.x, site.pos.y);
                                 if (site.structureType == STRUCTURE_ROAD) {
                                     if (!(planned_roads.has (xy))) {
-                                        print ('[building][debug] Would remove road site at {}.'.format (site.pos));
+                                        print ('[building][debug] Removing {} at {}.'.format (site, site.pos));
+                                        site.remove ();
                                     }
                                 }
                                 else {
@@ -9841,9 +9843,35 @@ function main () {
                             return mem;
                         }
                     };
-                    var register_new_mining_path = function (mine_flag, spawn, raw_path) {
-                        if (!(mine_flag.name) || spawn && !(spawn.id)) {
-                            var __except0__ = ValueError ('Invalid mine flag or spawn ({}, {}): no name/id'.format (mine_flag, spawn));
+                    var _parse_mine_data = function (mine_data) {
+                        if (_.isArray (mine_data)) {
+                            if (len (mine_data) > 2 || len (mine_data) < 1 || !(mine_data [0].name) || mine_data [1] && !(mine_data [1].id)) {
+                                var msg = '[mining_paths] WARNING: Unknown kind of mine data: {} ({}, {})'.format (JSON.stringify (mine_data), mine_data [0], mine_data [1]);
+                                print (msg);
+                                Game.notify (msg);
+                                return tuple ([null, null]);
+                            }
+                            var mine_name = mine_data [0].name;
+                            var spawn_id = (mine_data [1] ? mine_data [1].id : no_spawn_name_name);
+                        }
+                        else {
+                            if (!(mine_data.name)) {
+                                var msg = '[mining_paths] WARNING: Unknown kind of mine data: {} ({})'.format (JSON.stringify (mine_data), mine_data);
+                                print (msg);
+                                Game.notify (msg);
+                                return tuple ([null, null]);
+                            }
+                            var mine_name = mine_data.name;
+                            var spawn_id = no_spawn_name_name;
+                        }
+                        return tuple ([mine_name, spawn_id]);
+                    };
+                    var register_new_mining_path = function (mine_data, raw_path) {
+                        var __left0__ = _parse_mine_data (mine_data);
+                        var mine_name = __left0__ [0];
+                        var spawn_id = __left0__ [1];
+                        if (mine_name === null || spawn_id === null) {
+                            var __except0__ = ValueError ('Invalid mine data ({}): no name/id'.format (mine_data));
                             __except0__.__cause__ = null;
                             throw __except0__;
                         }
@@ -9851,7 +9879,6 @@ function main () {
                         if (len (raw_path)) {
                             var last_room = raw_path [0].roomName;
                             var room_pos_points = dict ([[last_room, serialized_string]]);
-                            var debug = last_room == 'E11N51';
                             var __iterable0__ = raw_path;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var pos = __iterable0__ [__index0__];
@@ -9865,20 +9892,13 @@ function main () {
                                         room_pos_points [pos.roomName] = __left0__;
                                     }
                                     var last_room = pos.roomName;
-                                    var debug = last_room == 'E11N51';
                                 }
                                 serialized_string.push (String.fromCodePoint (pos.x | pos.y << 6));
-                                if (debug) {
-                                    print ('[mining_paths][debug] Added position {}'.format (pos));
-                                }
                             }
                         }
                         else {
                             var room_pos_points = dict ({});
                         }
-                        var mine_name = mine_flag.name;
-                        var spawn_id = (spawn ? spawn.id : no_spawn_name_name);
-                        print ('[mining_paths][debug] Registering mining path for mine {} spawn {}.'.format (mine_name, spawn_id));
                         var our_key_start = ((String.fromCodePoint ((len (mine_name) + len (spawn_id)) + 2) + String.fromCodePoint (len (mine_name))) + mine_name) + spawn_id;
                         var gmem = _get_mem ();
                         var rooms_this_is_in = Object.keys (room_pos_points);
@@ -9928,7 +9948,7 @@ function main () {
                         }
                         return the_set;
                     };
-                    var debug_str_of_pos = function (room_name) {
+                    var debug_str = function (room_name) {
                         var map_of_values = new_map ();
                         var gmem = _get_mem ();
                         if (!(room_name in gmem)) {
@@ -9968,25 +9988,11 @@ function main () {
                     };
                     var set_decreasing_cost_matrix_costs = function (room_name, mine_path_data, cost_matrix, base_plains, base_swamp, lowest_possible) {
                         var lowest_possible = max (lowest_possible, 1);
-                        if (_.isArray (mine_path_data)) {
-                            if (len (mine_path_data) > 2 || len (mine_path_data) < 1 || !(mine_path_data [0].name) || mine_path_data [1] && !(mine_path_data [1].id)) {
-                                var msg = '[mining_paths] WARNING: Unknown kind of mine data passed into set_decreasing_cost_matrix_costs: {} ({}, {})'.format (JSON.stringify (mine_path_data), mine_path_data [0], mine_path_data [1]);
-                                print (msg);
-                                Game.notify (msg);
-                                return ;
-                            }
-                            var mine_name = mine_path_data [0].name;
-                            var spawn_id = (mine_path_data [1] ? mine_path_data [1].id : no_spawn_name_name);
-                        }
-                        else {
-                            if (!(mine_path_data.name)) {
-                                var msg = '[mining_paths] WARNING: Unknown kind of mine data passed into set_decreasing_cost_matrix_costs: {} ({})'.format (JSON.stringify (mine_path_data), mine_path_data);
-                                print (msg);
-                                Game.notify (msg);
-                                return ;
-                            }
-                            var mine_name = mine_path_data.name;
-                            var spawn_id = no_spawn_name_name;
+                        var __left0__ = _parse_mine_data (mine_path_data);
+                        var mine_name = __left0__ [0];
+                        var spawn_id = __left0__ [1];
+                        if (mine_name === null || spawn_id === null) {
+                            return ;
                         }
                         var key_to_avoid = ((String.fromCodePoint ((len (mine_name) + len (spawn_id)) + 2) + String.fromCodePoint (len (mine_name))) + mine_name) + spawn_id;
                         var gmem = _get_mem ();
@@ -10074,20 +10080,22 @@ function main () {
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var room_name = __iterable0__ [__index0__];
                             var data_list = path_mem [room_name];
-                            var to_remove = list ([]);
-                            var __iterable1__ = data_list;
+                            var to_remove_indices = list ([]);
+                            var __iterable1__ = enumerate (data_list);
                             for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                var data_string = __iterable1__ [__index1__];
+                                var __left0__ = __iterable1__ [__index1__];
+                                var index = __left0__ [0];
+                                var data_string = __left0__ [1];
                                 var end_of_name_data = data_string.codePointAt (0);
                                 var mine_name_length = data_string.codePointAt (1);
                                 var mine_name = data_string.__getslice__ (2, 2 + mine_name_length, 1);
                                 var spawn_id = data_string.__getslice__ (2 + mine_name_length, end_of_name_data, 1);
                                 if (!(active_mines.has (mine_name)) || spawn_id != no_spawn_name_name && Game.getObjectById (spawn_id) === null) {
-                                    to_remove.push (data_string);
-                                    print ('[mining_paths] Removing path for mine: {}, spawn: {}.'.format (mine_name, spawn_id));
+                                    to_remove_indices.push (index);
+                                    print ('[mining_paths] Removing path in {} for mine: {}, spawn: {}.'.format (room_name, mine_name, spawn_id));
                                 }
                             }
-                            _.pull (data_list, to_remove);
+                            _.pullAt (data_list, to_remove_indices);
                             if (!(len (data_list))) {
                                 delete path_mem [room_name];
                             }
@@ -10098,8 +10106,9 @@ function main () {
                     '</use>')
                     __pragma__ ('<all>')
                         __all__._get_mem = _get_mem;
+                        __all__._parse_mine_data = _parse_mine_data;
                         __all__.cleanup_old_values = cleanup_old_values;
-                        __all__.debug_str_of_pos = debug_str_of_pos;
+                        __all__.debug_str = debug_str;
                         __all__.get_set_of_all_serialized_positions_in = get_set_of_all_serialized_positions_in;
                         __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.new_map = new_map;
@@ -10132,10 +10141,14 @@ function main () {
                     var movement = __init__ (__world__.utilities.movement);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
-                    var pathfinder_path_to_room_to_path_obj = function (origin, input) {
+                    var _path_cached_data_key_full_path = 'full';
+                    var _path_cached_data_key_room_order = 'o';
+                    var _path_cached_data_key_length = 'l';
+                    var pathfinder_path_to_room_to_path_obj = function (origin, input_path) {
                         var result_obj = dict ({});
-                        var full_path = list ([]);
-                        result_obj ['full'] = full_path;
+                        var __left0__ = list ([]);
+                        result_obj [_path_cached_data_key_room_order] = __left0__;
+                        var list_of_rooms = __left0__;
                         var last_room = null;
                         var current_path = null;
                         var __left0__ = tuple ([origin.x, origin.y]);
@@ -10144,13 +10157,64 @@ function main () {
                         var __left0__ = tuple ([null, null]);
                         var reroute_end_dx = __left0__ [0];
                         var reroute_end_dy = __left0__ [1];
-                        var __iterable0__ = input;
+                        var __iterable0__ = input_path;
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var pos = __iterable0__ [__index0__];
                             if (last_room != pos.roomName) {
-                                var current_path = list ([]);
-                                result_obj [pos.roomName] = current_path;
-                                var last_room = pos.roomName;
+                                if ((pos.roomName in result_obj)) {
+                                    var msg = '[honey] WARNING: Visiting same room ({}) twice in path from {} to {}! This is not fully supported, please be advised!'.format (pos.roomName, origin, input_path [len (input_path) - 1]);
+                                    console.log (msg);
+                                    Game.notify (msg);
+                                    var current_path = result_obj [pos.roomName];
+                                    while (true) {
+                                        var last_pos = current_path [len (current_path) - 1];
+                                        var x_diff = last_pos.x - pos.x;
+                                        var y_diff = last_pos.y - pos.y;
+                                        if (x_diff < -(1)) {
+                                            var dx = 1;
+                                            if (y_diff < -(1)) {
+                                                var dy = 1;
+                                            }
+                                            else if (y_diff > 1) {
+                                                var dy = -(1);
+                                            }
+                                            else {
+                                                var dy = 1;
+                                            }
+                                        }
+                                        else if (x_diff > 1) {
+                                            var dx = -(1);
+                                            if (y_diff < -(1)) {
+                                                var dy = 1;
+                                            }
+                                            else if (y_diff > 1) {
+                                                var dy = -(1);
+                                            }
+                                            else {
+                                                var dy = 0;
+                                            }
+                                        }
+                                        else {
+                                            var dx = 0;
+                                            if (y_diff < -(1)) {
+                                                var dy = 1;
+                                            }
+                                            else if (y_diff > 1) {
+                                                var dy = -(1);
+                                            }
+                                            else {
+                                                break;
+                                            }
+                                        }
+                                        current_path.push (dict ({'x': last_pos.x + dx, 'y': last_pos.y + dy, 'dx': dx, 'dy': dy, 'direction': get_direction (dx, dy)}));
+                                    }
+                                }
+                                else {
+                                    var current_path = list ([]);
+                                    result_obj [pos.roomName] = current_path;
+                                    var last_room = pos.roomName;
+                                    list_of_rooms.push (pos.roomName);
+                                }
                             }
                             if (reroute_end_dx !== null) {
                                 var dx = reroute_end_dx;
@@ -10194,8 +10258,8 @@ function main () {
                             var last_y = pos.y;
                             var item = dict ({'x': pos.x, 'y': pos.y, 'dx': dx, 'dy': dy, 'direction': direction});
                             current_path.append (item);
-                            full_path.append (item);
                         }
+                        result_obj [_path_cached_data_key_length] = (len (input_path) - len (list_of_rooms)) + 1;
                         return result_obj;
                     };
                     var get_direction = function (dx, dy) {
@@ -10974,7 +11038,8 @@ function main () {
                                     var mine_name = paved_for [0].name;
                                     var spawn_id = paved_for [1].id;
                                 }
-                                print ('[honey] Calculated new path for paved_for mine {} (spawn {}).'.format (mine_name, spawn_id));
+                                print ('[honey] Registering new paved path for mine {}, spawn {}.'.format (mine_name, spawn_id));
+                                mining_paths.register_new_mining_path (paved_for, path);
                             }
                             return path;
                         }, '_get_raw_path');},
@@ -11040,7 +11105,12 @@ function main () {
                             var __iterable0__ = Object.keys (room_to_path_obj);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var room_name = __iterable0__ [__index0__];
-                                serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                                if (room_name == _path_cached_data_key_room_order || room_name == _path_cached_data_key_length) {
+                                    serialized_path_obj [room_name] = room_to_path_obj [room_name];
+                                }
+                                else {
+                                    serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                                }
                             }
                             global_cache.set (cache_key, serialized_path_obj, keep_for);
                             return serialized_path_obj;
@@ -11068,24 +11138,33 @@ function main () {
                                 var __iterable0__ = Object.keys (room_to_path_obj);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var room_name = __iterable0__ [__index0__];
-                                    serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                                    if (room_name == _path_cached_data_key_room_order || room_name == _path_cached_data_key_length) {
+                                        serialized_path_obj [room_name] = room_to_path_obj [room_name];
+                                    }
+                                    else {
+                                        serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                                    }
                                 }
                                 global_cache.set (cache_key, serialized_path_obj, keep_for);
                             }
                             return path;
                         }, 'completely_repath_and_get_raw_path');},
                         get find_serialized_path () {return __get__ (this, function (self, origin, destination, opts) {
-                            if (typeof opts == 'undefined' || (opts != null && opts .hasOwnProperty ("__kwargtrans__"))) {;
-                                var opts = null;
-                            };
                             if (opts && ('current_room' in opts)) {
                                 var current_room = opts ['current_room'];
                                 if (current_room) {
                                     var current_room = current_room.name || current_room;
                                 }
+                                else {
+                                    var __except0__ = ValueError ('find_serialized_path requires a current_room argument.');
+                                    __except0__.__cause__ = null;
+                                    throw __except0__;
+                                }
                             }
                             else {
-                                var current_room = 'full';
+                                var __except0__ = ValueError ('find_serialized_path requires a current_room argument.');
+                                __except0__.__cause__ = null;
+                                throw __except0__;
                             }
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
                             if ((current_room in serialized_path_obj)) {
@@ -11096,22 +11175,21 @@ function main () {
                             }
                         }, 'find_serialized_path');},
                         get find_path () {return __get__ (this, function (self, origin, destination, opts) {
-                            if (typeof opts == 'undefined' || (opts != null && opts .hasOwnProperty ("__kwargtrans__"))) {;
-                                var opts = null;
-                            };
                             if (opts && ('current_room' in opts)) {
                                 var current_room = opts ['current_room'];
                                 if (current_room) {
-                                    if (current_room.room) {
-                                        var current_room = current_room.room;
-                                    }
-                                    if (current_room.name) {
-                                        var current_room = current_room.name;
-                                    }
+                                    var current_room = current_room.name || current_room;
+                                }
+                                else {
+                                    var __except0__ = ValueError ('find_path requires a current_room argument.');
+                                    __except0__.__cause__ = null;
+                                    throw __except0__;
                                 }
                             }
                             else {
-                                var current_room = 'full';
+                                var __except0__ = ValueError ('find_path requires a current_room argument.');
+                                __except0__.__cause__ = null;
+                                throw __except0__;
                             }
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
                             if (serialized_path_obj === null || !(current_room in serialized_path_obj)) {
@@ -11169,15 +11247,19 @@ function main () {
                             }
                             var path_obj = self.get_serialized_path_obj (origin, destination, opts);
                             var final_list = list ([]);
-                            var __iterable0__ = _.pairs (path_obj);
+                            if ((_path_cached_data_key_room_order in path_obj)) {
+                                var list_of_names = path_obj [_path_cached_data_key_room_order];
+                            }
+                            else {
+                                var list_of_names = Object.keys (path_obj);
+                            }
+                            var __iterable0__ = list_of_names;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var __left0__ = __iterable0__ [__index0__];
-                                var room_name = __left0__ [0];
-                                var serialized_path = __left0__ [1];
-                                if (room_name == 'full') {
+                                var room_name = __iterable0__ [__index0__];
+                                if (!(movement.is_valid_room_name (room_name))) {
                                     continue;
                                 }
-                                var path = Room.deserializePath (serialized_path);
+                                var path = Room.deserializePath (path_obj [room_name]);
                                 var __iterable1__ = path;
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                     var pos = __iterable1__ [__index1__];
@@ -11193,7 +11275,25 @@ function main () {
                                 var opts = null;
                             };
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
-                            return (len (serialized_path_obj ['full']) - len (Object.keys (serialized_path_obj))) - 1;
+                            if ((_path_cached_data_key_full_path in serialized_path_obj)) {
+                                return (len (serialized_path_obj [_path_cached_data_key_full_path]) - _.sum (Object.keys (serialized_path_obj), (function __lambda__ (n) {
+                                    return movement.is_valid_room_name (n);
+                                }))) - 2;
+                            }
+                            else if ((_path_cached_data_key_length in serialized_path_obj)) {
+                                return serialized_path_obj [_path_cached_data_key_length];
+                            }
+                            else {
+                                var total = 1;
+                                var __iterable0__ = Object.keys (serialized_path_obj);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var room_name = __iterable0__ [__index0__];
+                                    if (movement.is_valid_room_name (room_name)) {
+                                        total += len (serialized_path_obj [room_name]) - 4;
+                                    }
+                                }
+                                return total;
+                            }
                         }, 'find_path_length');}
                     });
                     __pragma__ ('<use>' +
@@ -11211,6 +11311,9 @@ function main () {
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__._path_cached_data_key_full_path = _path_cached_data_key_full_path;
+                        __all__._path_cached_data_key_length = _path_cached_data_key_length;
+                        __all__._path_cached_data_key_room_order = _path_cached_data_key_room_order;
                         __all__.clear_serialized_cost_matrix = clear_serialized_cost_matrix;
                         __all__.direction_to = direction_to;
                         __all__.get_direction = get_direction;
@@ -21992,6 +22095,10 @@ function main () {
                         }
                         return tuple ([x, y]);
                     };
+                    var is_valid_room_name = function (room_name) {
+                        var matches = room_regex.exec (room_name);
+                        return !(!(matches));
+                    };
                     var room_xy_to_name = function (room_x, room_y) {
                         return '{}{}{}{}'.format ((room_x > 0 ? 'E' : 'W'), (room_x < 0 ? -(room_x) - 1 : room_x), (room_y > 0 ? 'S' : 'N'), (room_y < 0 ? -(room_y) - 1 : room_y));
                     };
@@ -22177,6 +22284,7 @@ function main () {
                         __all__.get_entrance_for_exit_pos_with_room = get_entrance_for_exit_pos_with_room;
                         __all__.is_block_clear = is_block_clear;
                         __all__.is_block_empty = is_block_empty;
+                        __all__.is_valid_room_name = is_valid_room_name;
                         __all__.minimum_chebyshev_distance = minimum_chebyshev_distance;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
