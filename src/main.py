@@ -165,10 +165,10 @@ def run_room(targets, creeps_skipped, room):
         records.start_record()
         room.links.tick_links()
         records.finish_record('links.tick')
-        if Game.time % 25 == 17:
+        if Game.time % 525 == 17:
             records.start_record()
-            room.mining.poll_flag_energy_sitting()
-            records.finish_record('mining.flags')
+            room.mining.cleanup_old_flag_sitting_values()
+            records.finish_record('mining.cleanup_flags')
         records.start_record()
         room.minerals.tick_terminal()
         records.finish_record('terminal.tick')

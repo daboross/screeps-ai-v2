@@ -163,13 +163,14 @@ class MiningMind:
         # else:
         return ideal_mass
 
-    def poll_flag_energy_sitting(self):
+    def cleanup_old_flag_sitting_values(self):
         for flag in self.available_mines:
             if 'sitting' in flag.memory and flag.memory.sitting < Game.time - flag.memory.sitting_set \
                     and Game.time - flag.memory.sitting_set > 10:
                 del flag.memory.sitting
                 del flag.memory.sitting_set
-                del flag.memory.remote_miner_targeting
+                if not len(flag.memory):
+                    del Memory.flags[flag.name]
 
     def energy_sitting_at(self, flag):
         if 'sitting' not in flag.memory or Game.time > flag.memory.sitting_set + 10:
