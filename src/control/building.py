@@ -294,7 +294,7 @@ class ConstructionMind:
         total_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
         new_sites = []
         if _.sum(self.room.find(FIND_CONSTRUCTION_SITES), not_road) < 15 \
-                and total_count < 100:
+                and total_count < MAX_CONSTRUCTION_SITES:
             currently_existing = _(self.room.find(FIND_STRUCTURES)) \
                 .concat(self.room.find(FIND_MY_CONSTRUCTION_SITES)) \
                 .countBy('structureType').value()
@@ -365,7 +365,7 @@ class ConstructionMind:
                     currently_existing[structure_type] = (currently_existing[structure_type] or 0) + 1
                     # Don't go all-out and set construction sites for everything at once! That's a recipe to run into
                     # the 100-site limit!
-                    if len(new_sites) >= 4 or total_count >= 100:
+                    if len(new_sites) >= 4 or total_count >= MAX_CONSTRUCTION_SITES:
                         break
 
             volatile.set("construction_sites_placed", total_count)
@@ -761,7 +761,7 @@ class ConstructionMind:
         prev_sites_placed = volatile.get("construction_sites_placed") or 0
         sites_placed_now = 0
 
-        if site_count + prev_sites_placed >= 90:
+        if site_count + prev_sites_placed >= MAX_CONSTRUCTION_SITES * 0.9:
             return
 
         ramparts = new_set()
@@ -789,7 +789,7 @@ class ConstructionMind:
                       .format(self.room.name, structure))
                 structure.pos.createConstructionSite(STRUCTURE_RAMPART)
                 sites_placed_now += 1
-                if site_count + prev_sites_placed + sites_placed_now >= 100 or sites_placed_now >= 5:
+                if site_count + prev_sites_placed + sites_placed_now >= MAX_CONSTRUCTION_SITES or sites_placed_now >= 5:
                     break
 
         volatile.set("construction_sites_placed", sites_placed_now)

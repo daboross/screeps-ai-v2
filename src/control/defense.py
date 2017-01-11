@@ -781,7 +781,8 @@ class RoomDefense:
                 healing_possible = self.healing_possible_on(hostile)
                 nearby_defenders = self.defenders_near(hostile)
                 attack_possible = _.sum(nearby_defenders, lambda c: (not c.creep.defense_override
-                                                                     and c.creep.getActiveBodyparts(ATTACK)) or 0) * 30 \
+                                                                     and c.creep.getActiveBodyparts(ATTACK)) or 0) \
+                                  * ATTACK_POWER \
                                   + _.sum(towers.slice(tower_index),
                                           lambda t: tower_damage(t.pos.getRangeTo(hostile)))
                 if hostile.hasActiveBoostedBodyparts(TOUGH):

@@ -364,7 +364,7 @@ class Builder(upgrading.Upgrader):
         result = self.creep.dismantle(target)
         if result == OK:
             self.move_around(target)
-            if target.hits < self.creep.getActiveBodyparts(WORK) * 50:  # we've fully destroyed it
+            if target.hits < self.creep.getActiveBodyparts(WORK) * DISMANTLE_POWER:  # we've fully destroyed it
                 # check to see if we've opened up any new spots for construction sites with our destroyed structure.
                 self.home.building.refresh_building_targets()
         else:

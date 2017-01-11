@@ -165,6 +165,7 @@ __all__ = [
     "WALL_HITS",
     "WALL_HITS_MAX",
     "MAX_CREEP_SIZE",
+    "MAX_CONSTRUCTION_SITES",
     # JavaScript things
     "typeof",
     "require",
@@ -179,6 +180,7 @@ __all__ = [
     "undefined",
     "Map",
     "Set",
+    "String",
     "isFinite",
     "js_isNaN",
     "_",

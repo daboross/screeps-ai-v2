@@ -48,7 +48,7 @@ def cleanup():
             if key.includes("cost_matrix"):
                 min_last_use = Game.time - 10000
             else:
-                min_last_use = Game.time - 1500
+                min_last_use = Game.time - CREEP_LIFE_TIME
             if r[key].l < min_last_use:
                 del r[key]
 

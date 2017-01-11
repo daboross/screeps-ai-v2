@@ -1166,13 +1166,18 @@ class RoomMind:
     def overprioritize_building(self):
         if '_overprioritize_building' not in self:
             if self.spawn:
-                prioritize = ((self.room.energyCapacityAvailable < 550
-                               and self.get_open_source_spaces() < len(self.sources) * 2)
-                              or (self.rcl >= 3 and not len(self.defense.towers()))
-                              or (self.rcl >= 3 and self.room.energyCapacityAvailable < 650)
-                              or (self.rcl >= 4 and self.room.energyCapacityAvailable < 1300)) \
-                             and len(self.building.get_construction_targets()) \
-                             and (self.room.controller.ticksToDowngrade > 100)
+                prioritize = (
+                    ((self.room.energyCapacityAvailable
+                      < BODYPART_COST[WORK] * 5 + BODYPART_COST[MOVE]  # 550 on official servers
+                      and self.get_open_source_spaces() < len(self.sources) * 2)
+                     or (self.rcl >= 3 and not len(self.defense.towers()))
+                     or (self.rcl >= 3 and self.room.energyCapacityAvailable
+                         < BODYPART_COST[CLAIM] + BODYPART_COST[MOVE])  # 650 on official servers
+                     or (self.rcl >= 4 and self.room.energyCapacityAvailable
+                         < BODYPART_COST[CLAIM] * 2 + BODYPART_COST[MOVE] * 2))  # 1300 on official servers
+                    and len(self.building.get_construction_targets())
+                    and (self.room.controller.ticksToDowngrade > 100)
+                )
             else:
                 prioritize = not self.being_bootstrapped()
             self._overprioritize_building = prioritize
