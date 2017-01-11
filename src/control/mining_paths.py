@@ -41,9 +41,42 @@ def _get_mem():
         return mem
 
 
-def register_new_mining_path(mine_flag, spawn, raw_path):
-    if not mine_flag.name or (spawn and not spawn.id):
-        raise ValueError("Invalid mine flag or spawn ({}, {}): no name/id".format(mine_flag, spawn))
+def _parse_mine_data(mine_data):
+    """
+    Gets a mine_name and spawn_id from a mine_data array or object. mine_data may either be a Flag with a name property,
+    or an array containing a Flag and a StructureSpawn.
+
+    If no spawn is passed in, spawn_id will be equal to the `no_spawn_name_name` constant.
+    :return: [mine_name, spawn_id] or [None, None] if an error has occurred.
+    """
+    if _.isArray(mine_data):
+        if len(mine_data) > 2 or len(mine_data) < 1 \
+                or not mine_data[0].name or (mine_data[1] and not mine_data[1].id):
+            msg = (
+                "[mining_paths] WARNING: Unknown kind of mine data: {} ({}, {})"
+                    .format(JSON.stringify(mine_data), mine_data[0], mine_data[1])
+            )
+            print(msg)
+            Game.notify(msg)
+            return None, None
+        mine_name = mine_data[0].name
+        spawn_id = mine_data[1].id if mine_data[1] else no_spawn_name_name
+    else:
+        if not mine_data.name:
+            msg = ("[mining_paths] WARNING: Unknown kind of mine data: {} ({})"
+                   .format(JSON.stringify(mine_data), mine_data))
+            print(msg)
+            Game.notify(msg)
+            return None, None
+        mine_name = mine_data.name
+        spawn_id = no_spawn_name_name
+    return mine_name, spawn_id
+
+
+def register_new_mining_path(mine_data, raw_path):
+    mine_name, spawn_id = _parse_mine_data(mine_data)
+    if mine_name is None or spawn_id is None:
+        raise ValueError("Invalid mine data ({}): no name/id".format(mine_data))
     serialized_string = []
     if len(raw_path):
         last_room = raw_path[0].roomName
@@ -63,8 +96,6 @@ def register_new_mining_path(mine_flag, spawn, raw_path):
     else:
         room_pos_points = {}
 
-    mine_name = mine_flag.name
-    spawn_id = spawn.id if spawn else no_spawn_name_name
     print("[mining_paths][debug] Registering mining path for mine {} spawn {}.".format(mine_name, spawn_id))
     our_key_start = (
         String.fromCodePoint(len(mine_name) + len(spawn_id) + 2)
@@ -114,7 +145,7 @@ def get_set_of_all_serialized_positions_in(room_name):
     return the_set
 
 
-def debug_str_of_pos(room_name):
+def debug_str(room_name):
     map_of_values = new_map()
 
     gmem = _get_mem()
@@ -154,31 +185,10 @@ def set_decreasing_cost_matrix_costs(room_name, mine_path_data, cost_matrix, bas
     """
     lowest_possible = max(lowest_possible, 1)
 
-    if _.isArray(mine_path_data):
-        if len(mine_path_data) > 2 or len(mine_path_data) < 1 \
-                or not mine_path_data[0].name or (mine_path_data[1] and not mine_path_data[1].id):
-            msg = (
-                "[mining_paths] WARNING: Unknown kind of mine data"
-                " passed into set_decreasing_cost_matrix_costs: {} ({}, {})"
-                    .format(JSON.stringify(mine_path_data), mine_path_data[0], mine_path_data[1])
-            )
-            print(msg)
-            Game.notify(msg)
-            return
-        mine_name = mine_path_data[0].name
-        spawn_id = mine_path_data[1].id if mine_path_data[1] else no_spawn_name_name
-    else:
-        if not mine_path_data.name:
-            msg = (
-                "[mining_paths] WARNING: Unknown kind of mine data"
-                " passed into set_decreasing_cost_matrix_costs: {} ({})"
-                    .format(JSON.stringify(mine_path_data), mine_path_data)
-            )
-            print(msg)
-            Game.notify(msg)
-            return
-        mine_name = mine_path_data.name
-        spawn_id = no_spawn_name_name
+    mine_name, spawn_id = _parse_mine_data(mine_path_data)
+    if mine_name is None or spawn_id is None:
+        return
+
     key_to_avoid = (
         String.fromCodePoint(len(mine_name) + len(spawn_id) + 2)
         + String.fromCodePoint(len(mine_name))

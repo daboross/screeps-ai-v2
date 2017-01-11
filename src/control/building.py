@@ -671,14 +671,14 @@ class ConstructionMind:
 
         if deposit_point.pos.isNearTo(mine_flag):
             mine_path = []
+            mining_paths.register_new_mining_path(mine_flag, mine_path)
         else:
-            # NOTE: For now, just pretending this works like we want it to!
+            # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
+            # when 'paved_for' is passed in.
             mine_path = honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-
-        mining_paths.register_new_mining_path(mine_flag, None, mine_path)
 
         for spawn in self.room.spawns:
             # TODO: this is used in both this method and the one above, and should be a utility.
@@ -696,14 +696,16 @@ class ConstructionMind:
             else:
                 closest = mine_flag.pos or mine_flag
             if closest.isNearTo(spawn):
+                mining_paths.register_new_mining_path([mine_flag, spawn], [])
                 continue
-            spawn_path = honey.completely_repath_and_get_raw_path(spawn, closest, {
+            # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
+            # when 'paved_for' is passed in.
+            honey.completely_repath_and_get_raw_path(spawn, closest, {
                 'paved_for': [mine_flag, spawn],
                 # NOTE: We really aren't going to be using this path for anything besides paving,
                 #  but it should be small.
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-            mining_paths.register_new_mining_path(mine_flag, spawn, spawn_path)
 
     def place_home_ramparts(self):
         last_run = self.room.get_cached_property("placed_ramparts")

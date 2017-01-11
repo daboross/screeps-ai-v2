@@ -675,15 +675,17 @@ class HoneyTrails:
             origin, destination, result.ops))
         path = result.path
         if result.incomplete:
-            print("[honey] WARNING: Calculated incomplete path."
-                  " Chebyshev distance: {}."
-                  " Path distance found: {}."
-                  " Ops used: {}."
-                  " Max ops: {}."
-                  " Max rooms: {}.".format(
-                movement.chebyshev_distance_room_pos(origin, destination),
-                len(result.path), result.ops, max_ops, max_rooms,
-            ))
+            print(
+                "[honey] WARNING: Calculated incomplete path."
+                " Chebyshev distance: {}."
+                " Path distance found: {}."
+                " Ops used: {}."
+                " Max ops: {}."
+                " Max rooms: {}.".format(
+                    movement.chebyshev_distance_room_pos(origin, destination),
+                    len(result.path), result.ops, max_ops, max_rooms,
+                )
+            )
             if roads_better:
                 print("[honey] Trying recalculation without preferring roads.")
                 return self._get_raw_path(origin, destination, _.create(opts, {'use_roads': False}))
@@ -718,7 +720,8 @@ class HoneyTrails:
             else:
                 mine_name = paved_for[0].name
                 spawn_id = paved_for[1].id
-            print("[honey] Calculated new path for paved_for mine {} (spawn {}).".format(mine_name, spawn_id))
+            print("[honey] Registering new paved path for mine {}, spawn {}.".format(mine_name, spawn_id))
+            mining_paths.register_new_mining_path(paved_for, path)
         return path
 
     def get_serialized_path_obj(self, origin, destination, opts=None):
