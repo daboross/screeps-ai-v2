@@ -103,14 +103,27 @@ function activateCustomizations() {
     // Custom addition
     Creep.prototype.getActiveBodypartsBoostEquivalent = function (type, action) {
         var total = 0;
+        var typeBoosts, boostPowers, actionPower;
+
+        typeBoosts = BOOSTS[type];
         for (var i = this.body.length; i-- > 0;) {
             var x = this.body[i];
             if (x.hits <= 0) {
                 break;
             }
             if (x.type == type) {
-                if (x.boost !== undefined) {
-                    total += BOOSTS[type][x.boost][action];
+                if (x.boost !== undefined && typeBoosts !== undefined) {
+                    boostPowers = typeBoosts[x.boost]
+                    if (boostPowers !== undefined) {
+                        actionPower = boostPowers[action];
+                        if (actionPower !== undefined) {
+                            total += actionPower;
+                        } else {
+                            total += 1;
+                        }
+                    } else {
+                        total += 1;
+                    }
                 } else {
                     total += 1;
                 }
@@ -122,11 +135,24 @@ function activateCustomizations() {
     // Custom additionF
     Creep.prototype.getBodypartsBoostEquivalent = function (type, action) {
         var total = 0;
+        var typeBoosts, boostPowers, actionPower;
+
+        typeBoosts = BOOSTS[type];
         for (var i = this.body.length; i-- > 0;) {
             var x = this.body[i];
             if (x.type == type) {
-                if (x.boost !== undefined) {
-                    total += BOOSTS[type][x.boost][action];
+                if (x.boost !== undefined && typeBoosts !== undefined) {
+                    boostPowers = typeBoosts[x.boost]
+                    if (boostPowers !== undefined) {
+                        actionPower = boostPowers[action];
+                        if (actionPower !== undefined) {
+                            total += actionPower;
+                        } else {
+                            total += 1;
+                        }
+                    } else {
+                        total += 1;
+                    }
                 } else {
                     total += 1;
                 }
@@ -654,7 +680,8 @@ function activateCustomizations() {
 if (!global.__customizations_active) {
     activateCustomizations()
 }
-
+"use strict";
+// Transcrypt'ed from Python, 2017-01-10 22:18:16
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -828,7 +855,7 @@ function main () {
                         get __init__ () {return __get__ (this, function (self) {
                             self.interpreter_name = 'python';
                             self.transpiler_name = 'transcrypt';
-                            self.transpiler_version = '3.6.3';
+                            self.transpiler_version = '3.6.4';
                             self.target_subdir = '__javascript__';
                         });}
                     });
@@ -887,13 +914,11 @@ function main () {
                             if (len (self.__args__) > 1) {
                                 return str (tuple (self.__args__));
                             }
+                            else if (len (self.__args__)) {
+                                return str (self.__args__ [0]);
+                            }
                             else {
-                                if (len (self.__args__)) {
-                                    return str (self.__args__ [0]);
-                                }
-                                else {
-                                    return '';
-                                }
+                                return '';
                             }
                         });}
                     });
@@ -1064,21 +1089,19 @@ function main () {
                             if (length < 1) {
                                 console.log ();
                             }
+                            else if (length == 1) {
+                                console.log (args [0]);
+                            }
                             else {
-                                if (length == 1) {
-                                    console.log (args [0]);
-                                }
-                                else {
-                                    console.log (sep.join (function () {
-                                        var __accu0__ = [];
-                                        var __iterable0__ = args;
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var arg = __iterable0__ [__index0__];
-                                            __accu0__.append (str (arg));
-                                        }
-                                        return __accu0__;
-                                    } ()));
-                                }
+                                console.log (sep.join (function () {
+                                    var __accu0__ = [];
+                                    var __iterable0__ = args;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var arg = __iterable0__ [__index0__];
+                                        __accu0__.append (str (arg));
+                                    }
+                                    return __accu0__;
+                                } ()));
                             }
                         });}
                     });
@@ -1171,7 +1194,18 @@ function main () {
     }
     __all__.__kwargtrans__ = __kwargtrans__;
 
-    // Property installer function, no member since that would bloat classes
+    // 'Oneshot' dict promotor, used to enrich __all__ and help globals () return a true dict
+    var __globals__ = function (anObject) {
+        if (isinstance (anObject, dict)) {  // Don't attempt to promote (enrich) again, since it will make a copy
+            return anObject;
+        }
+        else {
+            return dict (anObject)
+        }
+    }
+    __all__.__globals__ = __globals__
+
+    // Python property installer function, no member since that would bloat classes
     var property = function (getter, setter) {  // Returns a property descriptor rather than a property
         if (!setter) {  // ??? Make setter optional instead of dummy?
             setter = function () {};
@@ -1179,6 +1213,14 @@ function main () {
         return {get: function () {return getter (this)}, set: function (value) {setter (this, value)}, enumerable: true};
     }
     __all__.property = property;
+
+    // Conditional JavaScript property installer function, prevents redefinition of properties if multiple Transcrypt apps are on one page
+    var __setProperty__ = function (anObject, name, descriptor) {
+        if (!anObject.hasOwnProperty (name)) {
+            Object.defineProperty (anObject, name, descriptor);
+        }
+    }
+    __all__.__setProperty__ = __setProperty__
 
     // Assert function, call to it only generated when compiling with --dassert option
     function assert (condition, message) {  // Message may be undefined
@@ -1211,17 +1253,16 @@ function main () {
         aList.sort ();
         return aList;
     };
+    __all__.dir = dir;
 
     var setattr = function (obj, name, value) {
         obj [name] = value;
     };
-
     __all__.setattr = setattr;
 
     var getattr = function (obj, name) {
         return obj [name];
     };
-
     __all__.getattr= getattr;
 
     var hasattr = function (obj, name) {
@@ -1371,7 +1412,7 @@ function main () {
         try {                   // Most frequent use case first
             return '__class__' in anObject ? isA (anObject.__class__) : anObject instanceof classinfo;
         }
-        catch (exception) {     // Using isinstance on primitives asumed rare
+        catch (exception) {     // Using isinstance on primitives assumed rare
             var aType = py_typeof (anObject);
             return aType == classinfo || (aType == bool && classinfo == int);
         }
@@ -2101,7 +2142,7 @@ function main () {
     // The object 'before the dot' won't be available at call time in that case, unless implicitly via the function bound to it
     // While for Python methods this mechanism is generated by the compiler, for JavaScript methods it has to be provided manually
     // Call memoizing is unattractive here, since every string would then have to hold a reference to a bound format method
-    Object.defineProperty (String.prototype, 'format', {
+    __setProperty__ (String.prototype, 'format', {
         get: function () {return __get__ (this, function (self) {
             var args = tuple ([] .slice.apply (arguments).slice (1));
             var autoIndex = 0;
@@ -2123,8 +2164,7 @@ function main () {
                 }
             });
         });},
-        enumerable: true,
-        configurable: true
+        enumerable: true
     });
 
     String.prototype.isnumeric = function () {
@@ -2348,17 +2388,17 @@ function main () {
         // So dict literals rather than bare Object literals will be passed to JavaScript libraries
         // Some JavaScript libraries call all enumerable callable properties of an object that's passed to them
         // So the properties of a dict should be non-enumerable
-        Object.defineProperty (instance, '__class__', {value: dict, enumerable: false, writable: true});
-        Object.defineProperty (instance, 'py_keys', {value: __keys__, enumerable: false});
-        Object.defineProperty (instance, '__iter__', {value: function () {new __PyIterator__ (this.py_keys ());}, enumerable: false});
-        Object.defineProperty (instance, Symbol.iterator, {value: function () {new __JsIterator__ (this.py_keys ());}, enumerable: false});
-        Object.defineProperty (instance, 'py_items', {value: __items__, enumerable: false});
-        Object.defineProperty (instance, 'py_del', {value: __del__, enumerable: false});
-        Object.defineProperty (instance, 'py_clear', {value: __clear__, enumerable: false});
-        Object.defineProperty (instance, 'py_get', {value: __getdefault__, enumerable: false});
-        Object.defineProperty (instance, 'py_setdefault', {value: __setdefault__, enumerable: false});
-        Object.defineProperty (instance, 'py_pop', {value: __pop__, enumerable: false});
-        Object.defineProperty (instance, 'py_update', {value: __update__, enumerable: false});
+        __setProperty__ (instance, '__class__', {value: dict, enumerable: false, writable: true});
+        __setProperty__ (instance, 'py_keys', {value: __keys__, enumerable: false});
+        __setProperty__ (instance, '__iter__', {value: function () {new __PyIterator__ (this.py_keys ());}, enumerable: false});
+        __setProperty__ (instance, Symbol.iterator, {value: function () {new __JsIterator__ (this.py_keys ());}, enumerable: false});
+        __setProperty__ (instance, 'py_items', {value: __items__, enumerable: false});
+        __setProperty__ (instance, 'py_del', {value: __del__, enumerable: false});
+        __setProperty__ (instance, 'py_clear', {value: __clear__, enumerable: false});
+        __setProperty__ (instance, 'py_get', {value: __getdefault__, enumerable: false});
+        __setProperty__ (instance, 'py_setdefault', {value: __setdefault__, enumerable: false});
+        __setProperty__ (instance, 'py_pop', {value: __pop__, enumerable: false});
+        __setProperty__ (instance, 'py_update', {value: __update__, enumerable: false});
         return instance;
     }
 
@@ -2373,7 +2413,7 @@ function main () {
     }
 
     // Python classes, methods and functions are all translated to JavaScript functions
-    Object.defineProperty (Function.prototype, '__setdoc__', {value: __setdoc__, enumerable: false, configurable: true});
+    __setProperty__ (Function.prototype, '__setdoc__', {value: __setdoc__, enumerable: false});
 
     // General operator overloading, only the ones that make most sense in matrix and complex operations
 
@@ -2650,32 +2690,24 @@ function main () {
                                         var enemy_range = 5;
                                     }
                                 }
+                                else if (h.ranged || h.attack) {
+                                    var enemy_range = 10;
+                                }
                                 else {
-                                    if (h.ranged || h.attack) {
-                                        var enemy_range = 10;
-                                    }
-                                    else {
-                                        continue;
-                                    }
+                                    continue;
                                 }
                             }
+                            else if (h.user == INVADER_USERNAME) {
+                                var enemy_range = 5;
+                            }
+                            else if (h.ranged) {
+                                var enemy_range = 7;
+                            }
+                            else if (h.attack) {
+                                var enemy_range = 5;
+                            }
                             else {
-                                if (h.user == INVADER_USERNAME) {
-                                    var enemy_range = 5;
-                                }
-                                else {
-                                    if (h.ranged) {
-                                        var enemy_range = 7;
-                                    }
-                                    else {
-                                        if (h.attack) {
-                                            var enemy_range = 5;
-                                        }
-                                        else {
-                                            continue;
-                                        }
-                                    }
-                                }
+                                continue;
                             }
                             var pos = new RoomPosition (h.pos & 63, h.pos >> 6 & 63, h.room);
                             enemy_positions.append (dict ({'pos': pos, 'range': enemy_range * 4}));
@@ -2818,22 +2850,18 @@ function main () {
                         }
                         var best = null;
                         var best_priority = -(Infinity);
-                        var __iterable0__ = creep.room.find_in_range (FIND_HOSTILE_CREEPS, 1, creep.creep.pos);
+                        var __iterable0__ = creep.room.find_in_range (FIND_HOSTILE_CREEPS, 1, creep.pos);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var enemy = __iterable0__ [__index0__];
                             var priority = enemy.hitsMax - enemy.hits;
                             if (enemy.hasActiveBodyparts (RANGED_ATTACK)) {
                                 priority += 3000;
                             }
-                            else {
-                                if (enemy.hasActiveBodyparts (ATTACK)) {
-                                    priority += 2000;
-                                }
-                                else {
-                                    if (enemy.hasActiveBodyparts (WORK)) {
-                                        priority += 1000;
-                                    }
-                                }
+                            else if (enemy.hasActiveBodyparts (ATTACK)) {
+                                priority += 2000;
+                            }
+                            else if (enemy.hasActiveBodyparts (WORK)) {
+                                priority += 1000;
                             }
                             if (priority > best_priority) {
                                 var best_priority = priority;
@@ -3094,6 +3122,7 @@ function main () {
                     var role_upgrade_fill = 'ufiller';
                     var role_builder = 'builder';
                     var role_tower_fill = 'tower_fill';
+                    var role_tower_fill_once = 'tfo';
                     var role_miner = 'miner';
                     var role_hauler = 'hauler';
                     var role_remote_mining_reserve = 'remote_reserve_controller';
@@ -3152,6 +3181,11 @@ function main () {
                     var request_priority_economy = 5;
                     var request_priority_helping_party = 9;
                     var request_priority_low = 20;
+                    var min_repath_mine_roads_every = 200 * 1000;
+                    var max_repath_mine_roads_every = 250 * 1000;
+                    var min_repave_mine_roads_every = 20 * 1000;
+                    var max_repave_mine_roads_every = 25 * 1000;
+                    var global_cache_mining_roads_suffix = '_mrd';
                     __pragma__ ('<use>' +
                         'utilities.screeps_constants' +
                     '</use>')
@@ -3211,6 +3245,11 @@ function main () {
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.old_role_names = old_role_names;
@@ -3246,6 +3285,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -3306,17 +3346,28 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var context = {};
                     var flags = {};
                     var math = {};
                     var random = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     __nest__ (random, '', __init__ (__world__.random));
+                    __nest__ (context, '', __init__ (__world__.context));
                     __nest__ (flags, '', __init__ (__world__.flags));
                     var DEPOT = __init__ (__world__.constants).DEPOT;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var mining_paths = __init__ (__world__.control.mining_paths);
                     var movement = __init__ (__world__.utilities.movement);
                     var volatile_cache = __init__ (__world__.utilities.volatile_cache);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
+                    var _cache_key_placed_roads_for_mine = 'prfm';
+                    var _cache_key_found_roads_for_mine = 'frfm';
+                    var _build_roads_constant_missing_rooms = 'mr';
+                    var _build_roads_constant_not_enough_sites = 'ns';
                     var building_priorities = dict ([[STRUCTURE_EXTENSION, 0], [STRUCTURE_SPAWN, 1], [STRUCTURE_LINK, 1], [STRUCTURE_TOWER, 2], [STRUCTURE_STORAGE, 3], [STRUCTURE_WALL, 6], [STRUCTURE_RAMPART, 6], [STRUCTURE_TERMINAL, 8]]);
                     var rcl_lt4_priorities = dict ([[STRUCTURE_SPAWN, 0], [STRUCTURE_TOWER, 1], [STRUCTURE_EXTENSION, 2], [STRUCTURE_ROAD, 3], [STRUCTURE_WALL, 11], [STRUCTURE_RAMPART, 12]]);
                     var default_priority = 10;
@@ -3336,18 +3387,14 @@ function main () {
                                     return -(2);
                                 }
                             }
-                            else {
-                                if (structure_type == STRUCTURE_LINK) {
-                                    if (room.being_bootstrapped ()) {
-                                        return 4;
-                                    }
+                            else if (structure_type == STRUCTURE_LINK) {
+                                if (room.being_bootstrapped ()) {
+                                    return 4;
                                 }
-                                else {
-                                    if ((structure_type == STRUCTURE_WALL || structure_type == STRUCTURE_EXTENSION) && room.being_bootstrapped ()) {
-                                        if (room.mem.prio_walls) {
-                                            return -(1);
-                                        }
-                                    }
+                            }
+                            else if ((structure_type == STRUCTURE_WALL || structure_type == STRUCTURE_EXTENSION) && room.being_bootstrapped ()) {
+                                if (room.mem.prio_walls) {
+                                    return -(1);
                                 }
                             }
                         }
@@ -3356,10 +3403,8 @@ function main () {
                                 return rcl_lt4_priorities [structure_type];
                             }
                         }
-                        else {
-                            if ((structure_type in building_priorities)) {
-                                return building_priorities [structure_type];
-                            }
+                        else if ((structure_type in building_priorities)) {
+                            return building_priorities [structure_type];
                         }
                         return default_priority;
                     };
@@ -3449,18 +3494,16 @@ function main () {
                                     return self.room.min_sane_wall_hits;
                                 }
                             }
-                            else {
-                                if (struct.structureType == STRUCTURE_RAMPART) {
-                                    if (big_repair) {
-                                        return min (self.room.max_sane_wall_hits, struct.hitsMax);
-                                    }
-                                    else {
-                                        return min (self.room.min_sane_wall_hits, struct.hitsMax);
-                                    }
+                            else if (struct.structureType == STRUCTURE_RAMPART) {
+                                if (big_repair) {
+                                    return min (self.room.max_sane_wall_hits, struct.hitsMax);
                                 }
                                 else {
-                                    return struct.hitsMax;
+                                    return min (self.room.min_sane_wall_hits, struct.hitsMax);
                                 }
+                            }
+                            else {
+                                return struct.hitsMax;
                             }
                         });},
                         get _get_is_relatively_decayed_callback () {return __get__ (this, function (self, big_repair) {
@@ -3503,13 +3546,11 @@ function main () {
                                 if (sites_and_repair < 4) {
                                     var num = 1;
                                 }
+                                else if (sites_and_repair < 12) {
+                                    var num = 2;
+                                }
                                 else {
-                                    if (sites_and_repair < 12) {
-                                        var num = 2;
-                                    }
-                                    else {
-                                        var num = 4;
-                                    }
+                                    var num = 4;
                                 }
                             }
                             else {
@@ -3613,7 +3654,7 @@ function main () {
                             var volatile = volatile_cache.volatile ();
                             var total_count = len (Game.constructionSites) + (volatile.get ('construction_sites_placed') || 0);
                             var new_sites = list ([]);
-                            if (_.sum (self.room.find (FIND_CONSTRUCTION_SITES), not_road) < 15 && total_count < 100) {
+                            if (_.sum (self.room.find (FIND_CONSTRUCTION_SITES), not_road) < 15 && total_count < MAX_CONSTRUCTION_SITES) {
                                 var currently_existing = _ (self.room.find (FIND_STRUCTURES)).concat (self.room.find (FIND_MY_CONSTRUCTION_SITES)).countBy ('structureType').value ();
                                 var all_walls = self.room.rcl < 5 && self.room.being_bootstrapped () && self.room.mem.prio_walls;
                                 var prio_spawn = self.room.rcl < 5 && self.room.being_bootstrapped () && !(!(self.room.mem.prio_spawn));
@@ -3642,15 +3683,11 @@ function main () {
                                         if (all_walls && structure_type == STRUCTURE_RAMPART || structure_type == STRUCTURE_WALL) {
                                             var selected = true;
                                         }
-                                        else {
-                                            if (no_walls && !(all_walls) && !(prio_spawn) && structure_type != STRUCTURE_RAMPART && structure_type != STRUCTURE_WALL) {
-                                                var selected = true;
-                                            }
-                                            else {
-                                                if (prio_spawn && structure_type == STRUCTURE_SPAWN) {
-                                                    var selected = true;
-                                                }
-                                            }
+                                        else if (no_walls && !(all_walls) && !(prio_spawn) && structure_type != STRUCTURE_RAMPART && structure_type != STRUCTURE_WALL) {
+                                            var selected = true;
+                                        }
+                                        else if (prio_spawn && structure_type == STRUCTURE_SPAWN) {
+                                            var selected = true;
                                         }
                                         if (!(selected)) {
                                             continue;
@@ -3661,7 +3698,7 @@ function main () {
                                         flag.pos.createConstructionSite (structure_type);
                                         new_sites.append ('flag-{}'.format (flag.name));
                                         currently_existing [structure_type] = (currently_existing [structure_type] || 0) + 1;
-                                        if (len (new_sites) >= 4 || total_count >= 100) {
+                                        if (len (new_sites) >= 4 || total_count >= MAX_CONSTRUCTION_SITES) {
                                             break;
                                         }
                                     }
@@ -3784,301 +3821,252 @@ function main () {
                             self.room.store_cached_property ('destruct_targets', target_list, 200);
                             return target_list;
                         });},
-                        get place_remote_mining_roads () {return __get__ (this, function (self) {
-                            if (Game.cpu.bucket < 4500) {
-                                return ;
-                            }
-                            if (__mod__ (Game.time + self.room.get_unique_owned_index (), 30) != 3) {
-                                return ;
-                            }
-                            var current_method_version = 23;
-                            var latest_key = '{}-{}-{}'.format (current_method_version, self.room.rcl, len (self.room.mining.active_mines));
-                            var last_run_version = self.room.get_cached_property ('placed_mining_roads');
-                            if (last_run_version && last_run_version == latest_key) {
-                                return ;
-                            }
-                            else {
-                                if (last_run_version == 'missing_rooms') {
-                                    if (__mod__ (Game.time, 30) != 3) {
-                                        return ;
-                                    }
-                                    var missing_rooms = self.room.get_cached_property ('pmr_missing_rooms');
-                                    var __break0__ = false;
-                                    var __iterable0__ = missing_rooms;
-                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                        var name = __iterable0__ [__index0__];
-                                        if (Game.rooms [name]) {
-                                            __break0__ = true;
-                                            break;
-                                        }
-                                    }
-                                    if (!__break0__) {
-                                        return ;
-                                    }
-                                }
-                                else {
-                                    if (last_run_version == 'too_many_sites') {
-                                        if (__mod__ (Game.time, 30) != 3) {
-                                            return ;
-                                        }
-                                        if (len (Game.constructionSites) >= 50) {
-                                            return ;
-                                        }
-                                    }
+                        get build_most_needed_road () {return __get__ (this, function (self) {
+                            var __iterable0__ = self.room.mining.active_mines;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var mine_flag = __iterable0__ [__index0__];
+                                var re_checked = self.build_road (mine_flag);
+                                if (re_checked) {
+                                    return true;
                                 }
                             }
-                            if (!(self.room.paving ())) {
-                                self.room.store_cached_property ('placed_mining_roads', latest_key, 100);
-                                return ;
+                            return false;
+                        });},
+                        get build_road () {return __get__ (this, function (self, mine_flag) {
+                            var current_method_version = 0;
+                            var last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name;
+                            var cached_version = self.room.get_cached_property (last_built_roads_key);
+                            var deposit_point = self.room.mining.closest_deposit_point_to_mine (mine_flag);
+                            if (!(deposit_point)) {
+                                return false;
                             }
-                            if (!(self.room.my)) {
-                                var __except0__ = Error ('Place remote mining roads ran for non-owned room');
-                                __except0__.__cause__ = null;
-                                throw __except0__;
+                            var latest_version = (str (current_method_version) + '-') + deposit_point.id;
+                            if (cached_version == latest_version) {
+                                return false;
                             }
-                            var already_ran_one_this_turn = volatile_cache.mem ('run_once').has ('place_remote_mining_roads');
-                            if (already_ran_one_this_turn) {
-                                return ;
-                            }
-                            else {
-                                volatile_cache.mem ('run_once').set ('place_remote_mining_roads', true);
-                            }
-                            var single_mine_num = self.room.get_cached_property ('run_only_mine');
-                            if (single_mine_num === null && len (self.room.mining.active_mines) > 5) {
-                                var single_mine_num = 0;
-                            }
-                            var ttl = random.randint (200 * 1000, 220 * 1000);
-                            var volatile = volatile_cache.volatile ();
-                            var checked_positions_per_room = new_map ();
-                            var future_road_positions_per_room = dict ({});
-                            var preexisting_count = len (Game.constructionSites) + (volatile.get ('construction_sites_placed') || 0);
-                            var placed_count = 0;
-                            var path_count = 0;
-                            var road_opts = dict ({'decided_future_roads': future_road_positions_per_room, 'keep_for': ttl + 10});
-                            var spawn_road_opts = dict ({'range': 3, 'decided_future_roads': future_road_positions_per_room, 'keep_for': ttl + 10});
-                            var any_non_visible_rooms = false;
-                            var non_visible_rooms = null;
-                            var check_route = function (mine, positions) {
-                                if (mine.pos) {
-                                    var mine = mine.pos;
-                                }
-                                path_count++;
-                                var __iterable0__ = positions;
+                            else if (cached_version !== null && cached_version.startswith (_build_roads_constant_missing_rooms)) {
+                                var only_search_rooms = cached_version.__getslice__ (len (_build_roads_constant_missing_rooms), null, 1).py_split ('-');
+                                var __break0__ = false;
+                                var __iterable0__ = only_search_rooms;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var pos = __iterable0__ [__index0__];
-                                    if (checked_positions_per_room.has (pos.roomName)) {
-                                        var checked_positions = checked_positions_per_room.get (pos.roomName);
+                                    var name = __iterable0__ [__index0__];
+                                    if ((name in Game.rooms)) {
+                                        __break0__ = true;
+                                        break;
                                     }
-                                    else {
-                                        var checked_positions = new_set ();
-                                        checked_positions_per_room.set (pos.roomName, checked_positions);
-                                    }
-                                    var room = self.hive.get_room (pos.roomName);
-                                    if (!(room)) {
-                                        any_non_visible_rooms = true;
-                                        if (non_visible_rooms === null) {
-                                            non_visible_rooms = new_set ();
-                                        }
-                                        non_visible_rooms.add (pos.roomName);
+                                }
+                                if (!__break0__) {
+                                    return false;
+                                }
+                            }
+                            else if (cached_version !== null && cached_version.startswith (_build_roads_constant_not_enough_sites)) {
+                                var needed = int (cached_version.__getslice__ (len (_build_roads_constant_not_enough_sites), null, 1));
+                                var current = _.size (Game.constructionSites) + (volatile_cache.volatile ().get ('construction_sites_placed') || 0);
+                                if (min (needed, 25) < MAX_CONSTRUCTION_SITES * 0.8 - current) {
+                                    return false;
+                                }
+                            }
+                            print ('[{}][building] Building roads for {}.'.format (self.room.name, mine_flag.name));
+                            var last_found_roads_key = _cache_key_found_roads_for_mine + mine_flag.name;
+                            var latest_found_roads = self.room.get_cached_property (last_found_roads_key);
+                            if (latest_found_roads != latest_version) {
+                                self._repath_roads_for (mine_flag, deposit_point);
+                                self.room.store_cached_property (last_found_roads_key, latest_version, random.randint (min_repath_mine_roads_every, max_repath_mine_roads_every));
+                            }
+                            var checked_positions = dict ({});
+                            var missing_rooms = list ([]);
+                            var all_modified_rooms = list ([]);
+                            var hive = self.hive;
+                            var site_count = _.size (Game.constructionSites) + (volatile_cache.volatile ().get ('construction_sites_placed') || 0);
+                            var need_more_sites = 0;
+                            var check_route = function (serialized_obj, not_near_end_of, not_near_start_of) {
+                                var __iterable0__ = Object.keys (serialized_obj);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var room_name = __iterable0__ [__index0__];
+                                    if (room_name == 'full') {
                                         continue;
                                     }
-                                    var pos_key = pos.x | pos.y << 6;
-                                    if (!(checked_positions.has (pos_key))) {
-                                        var destruct_flag = flags.look_for (room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD);
-                                        if (destruct_flag) {
-                                            destruct_flag.remove ();
+                                    if (!(room_name in Game.rooms)) {
+                                        if (!(missing_rooms.includes (room_name))) {
+                                            missing_rooms.push (room_name);
                                         }
-                                        if (!(_.find (room.look_at (LOOK_STRUCTURES, pos.x, pos.y), dict ({'structureType': STRUCTURE_ROAD}))) && !(len (room.look_at (LOOK_CONSTRUCTION_SITES, pos.x, pos.y)))) {
-                                            if (placed_count + preexisting_count >= 100) {
-                                                break;
+                                        continue;
+                                    }
+                                    if (!(all_modified_rooms.includes (room_name))) {
+                                        all_modified_rooms.push (room_name);
+                                    }
+                                    if ((room_name in checked_positions)) {
+                                        var checked_here = checked_positions [room_name];
+                                    }
+                                    else {
+                                        var __left0__ = new_set ();
+                                        var checked_here = __left0__;
+                                        checked_positions [room_name] = __left0__;
+                                    }
+                                    var room = hive.get_room (room_name);
+                                    var path = Room.deserializePath (serialized_obj [room_name]);
+                                    if (room_name == not_near_end_of) {
+                                        var rest = path.slice (-(2));
+                                        var path = path.slice (0, -(2));
+                                        print ('[building][debug] Not paving two positions at end of path: {}'.format (', '.join (function () {
+                                            var __accu0__ = [];
+                                            var __iterable1__ = rest;
+                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                                var p = __iterable1__ [__index1__];
+                                                __accu0__.append ('({}, {}, {})'.format (p.x, p.y, room_name));
                                             }
-                                            if (abs (pos.x - mine.x) > 1 || abs (pos.y - mine.y) > 1) {
-                                                room.room.createConstructionSite (pos.x, pos.y, STRUCTURE_ROAD);
+                                            return __accu0__;
+                                        } ())));
+                                    }
+                                    if (room_name == not_near_start_of) {
+                                        var rest = path.slice (0, 2);
+                                        var path = path.slice (2);
+                                        print ('[building][debug] Not paving two positions at start of path: {}'.format (', '.join (function () {
+                                            var __accu0__ = [];
+                                            var __iterable1__ = rest;
+                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                                var p = __iterable1__ [__index1__];
+                                                __accu0__.append ('({}, {}, {})'.format (p.x, p.y, room_name));
                                             }
-                                            placed_count++;
-                                        }
-                                        checked_positions.add (pos_key);
-                                        if ((pos.roomName in future_road_positions_per_room)) {
-                                            future_road_positions_per_room [pos.roomName].push (pos);
+                                            return __accu0__;
+                                        } ())));
+                                    }
+                                    var __iterable1__ = path;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var position = __iterable1__ [__index1__];
+                                        var xy_key = movement.xy_to_serialized_int (position.x, position.y);
+                                        if (checked_here.has (xy_key)) {
+                                            continue;
                                         }
                                         else {
-                                            future_road_positions_per_room [pos.roomName] = list ([pos]);
+                                            checked_here.add (xy_key);
+                                        }
+                                        var structures = room.look_at (LOOK_STRUCTURES, position.x, position.y);
+                                        if (!(_.some (structures, 'structureType', STRUCTURE_ROAD))) {
+                                            if (site_count >= MAX_CONSTRUCTION_SITES * 0.9) {
+                                                need_more_sites++;
+                                            }
+                                            else {
+                                                room.room.createConstructionSite (position.x, position.y, STRUCTURE_ROAD);
+                                                site_count++;
+                                            }
                                         }
                                     }
                                 }
                             };
-                            if (single_mine_num !== null) {
-                                var mines = list (py_reversed (self.room.mining.active_mines));
-                                if (single_mine_num < len (mines)) {
-                                    var mine = mines [single_mine_num];
-                                    var target = null;
-                                    if (mine.pos.roomName != self.room.name || self.room.rcl >= 4 && self.room.room.storage && self.room.room.storage.storeCapacity) {
-                                        var deposit_point = self.room.mining.closest_deposit_point_to_mine (mine);
-                                        if (deposit_point) {
-                                            var target = self.room.get_cached_property ('run_only_mine_target_num') || 0;
-                                            if (target == 0) {
-                                                self.hive.honey.clear_cached_path (deposit_point, mine);
-                                                check_route (mine, py_reversed (self.hive.honey.list_of_room_positions_in_path (deposit_point, mine, road_opts)));
-                                            }
-                                            else {
-                                                if (target == 1) {
-                                                    self.hive.honey.clear_cached_path (mine, deposit_point);
-                                                    check_route (mine, self.hive.honey.list_of_room_positions_in_path (mine, deposit_point, road_opts));
-                                                }
-                                                else {
-                                                    if (target == 2) {
-                                                        var __iterable0__ = self.room.spawns;
-                                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                            var spawn = __iterable0__ [__index0__];
-                                                            self.hive.honey.clear_cached_path (mine, spawn, spawn_road_opts);
-                                                            check_route (mine, self.hive.honey.list_of_room_positions_in_path (mine, spawn, spawn_road_opts));
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                    if (target === null || placed_count + preexisting_count < 100 && !(any_non_visible_rooms)) {
-                                        if (target !== null && target < 2) {
-                                            self.room.store_cached_property ('run_only_mine_target_num', target + 1, 500);
-                                        }
-                                        else {
-                                            self.room.store_cached_property ('run_only_mine_target_num', 0, 500);
-                                            self.room.store_cached_property ('run_only_mine', single_mine_num + 1, 500);
-                                        }
-                                    }
-                                    print ('[{}][building] Searched target {}/3 of mine {}/{} for remote mining roads.'.format (self.room.name, target, single_mine_num + 1, len (mines)));
-                                    return ;
-                                }
-                                print ('[{}][building] Finished searching all mines one at a time!'.format (self.room.name));
-                                self.room.store_cached_property ('run_only_mine', 0, 0);
-                                delete self.room.mem.cache ['run_only_mine_target_num'];
+                            var honey = self.hive.honey;
+                            if (deposit_point.pos.isNearTo (mine_flag)) {
+                                var all_positions = list ([]);
                             }
                             else {
-                                try {
-                                    var __iterable0__ = py_reversed (self.room.mining.active_mines);
-                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                        var mine = __iterable0__ [__index0__];
-                                        if (mine.pos.roomName == self.room.name && (self.room.rcl < 4 || !(self.room.room.storage) || !(self.room.room.storage.storeCapacity))) {
-                                            continue;
-                                        }
-                                        var deposit_point = self.room.mining.closest_deposit_point_to_mine (mine);
-                                        if (!(deposit_point)) {
-                                            continue;
-                                        }
-                                        self.hive.honey.clear_cached_path (deposit_point, mine);
-                                        check_route (mine, py_reversed (self.hive.honey.list_of_room_positions_in_path (deposit_point, mine, road_opts)));
-                                        self.hive.honey.clear_cached_path (mine, deposit_point);
-                                        check_route (mine, self.hive.honey.list_of_room_positions_in_path (mine, deposit_point, road_opts));
-                                        var __iterable1__ = self.room.spawns;
-                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                            var spawn = __iterable1__ [__index1__];
-                                            self.hive.honey.clear_cached_path (mine, spawn, spawn_road_opts);
-                                            check_route (mine, self.hive.honey.list_of_room_positions_in_path (mine, spawn, spawn_road_opts));
-                                        }
-                                    }
-                                }
-                                catch (__except0__) {
-                                    if (!(__except0__)) {
-                                        self.room.store_cached_property ('run_only_mine', 0, 100);
-                                    }
-                                    throw __except0__;
-                                    var __except1__ = __except0__;
-                                    __except1__.__cause__ = null;
-                                    throw __except1__;
-                                }
+                                var route_to_mine = honey.get_serialized_path_obj (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
+                                check_route (route_to_mine, (mine_flag.pos || mine_flag).roomName, null);
+                                var all_positions = honey.list_of_room_positions_in_path (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
                             }
-                            var __iterable0__ = Object.keys (checked_positions_per_room);
+                            var __iterable0__ = self.room.spawns;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var spawn = __iterable0__ [__index0__];
+                                if (len (all_positions)) {
+                                    var closest = null;
+                                    var closest_distance = Infinity;
+                                    var __iterable1__ = enumerate (all_positions);
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var __left0__ = __iterable1__ [__index1__];
+                                        var index = __left0__ [0];
+                                        var pos = __left0__ [1];
+                                        var distance = movement.chebyshev_distance_room_pos (spawn, pos) - index * 0.7;
+                                        if (pos.roomName != spawn.pos.roomName || pos.x < 2 || pos.x > 48 || pos.y < 2 || pos.y > 48) {
+                                            distance += 10;
+                                        }
+                                        if (distance < closest_distance) {
+                                            var closest = pos;
+                                            var closest_distance = distance;
+                                        }
+                                    }
+                                    if (closest.isNearTo (mine_flag) && closest.roomName != (mine_flag.pos || mine_flag).roomName) {
+                                        var no_pave_end = closest.roomName;
+                                    }
+                                    else {
+                                        var no_pave_end = null;
+                                    }
+                                }
+                                else {
+                                    var closest = mine_flag.pos || mine_flag;
+                                    var no_pave_end = closest.roomName;
+                                }
+                                if (closest.isNearTo (spawn)) {
+                                    continue;
+                                }
+                                var route_to_spawn = honey.get_serialized_path_obj (spawn, closest, dict ({'paved_for': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
+                                check_route (route_to_spawn, null, no_pave_end);
+                            }
+                            var __iterable0__ = all_modified_rooms;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var room_name = __iterable0__ [__index0__];
-                                var checked_positions = checked_positions_per_room.get (room_name);
-                                var room = self.hive.get_room (room_name);
-                                var __iterable1__ = room.find (FIND_STRUCTURES);
-                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                    var road = __iterable1__ [__index1__];
-                                    if (road.structureType == STRUCTURE_ROAD) {
-                                        var pos_key = road.pos.x * 64 + road.pos.y;
-                                        if (!(checked_positions.has (pos_key))) {
-                                            if (flags.look_for (room, road.pos, flags.MAIN_BUILD, flags.SUB_ROAD)) {
-                                                continue;
-                                            }
-                                            var destruct_flag = flags.look_for (room, road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD);
-                                            if (!(destruct_flag)) {
-                                                flags.create_ms_flag (road.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD);
-                                            }
+                                var room = hive.get_room (room_name);
+                                if (room && !(room.my)) {
+                                    var all_planned_sites_set = mining_paths.get_set_of_all_serialized_positions_in (room_name);
+                                    var __iterable1__ = room.find (FIND_MY_CONSTRUCTION_SITES);
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var site = __iterable1__ [__index1__];
+                                        var xy = movement.xy_to_serialized_int (site.pos.x, site.pos.y);
+                                        if (site.structureType == STRUCTURE_ROAD && !(all_planned_sites_set.has (xy))) {
+                                            print ('[building] Would remove {} (at {})'.format (site, site.pos));
                                         }
                                     }
                                 }
-                                var __iterable1__ = room.find (FIND_MY_CONSTRUCTION_SITES);
-                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                    var site = __iterable1__ [__index1__];
-                                    if (site.structureType == STRUCTURE_ROAD) {
-                                        var pos_key = site.pos.x * 64 + site.pos.y;
-                                        if (!(checked_positions.has (pos_key))) {
-                                            if (flags.look_for (room, site.pos, flags.MAIN_BUILD, flags.SUB_ROAD)) {
-                                                continue;
-                                            }
-                                            var destruct_flag = flags.look_for (room, site.pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD);
-                                            if (destruct_flag) {
-                                                site.remove ();
-                                                destruct_flag.remove ();
-                                            }
-                                            else {
-                                                if (site.progress / site.progressTotal < 0.2) {
-                                                    site.remove ();
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                var __iterable1__ = flags.find_ms_flags (room, flags.MAIN_DESTRUCT, flags.SUB_ROAD);
-                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                    var flag = __iterable1__ [__index1__];
-                                    if (!(_.find (room.look_at (LOOK_STRUCTURES, flag.pos), dict ({'structureType': STRUCTURE_ROAD}))) && !(_.find (room.look_at (LOOK_CONSTRUCTION_SITES, flag.pos), dict ({'structureType': STRUCTURE_ROAD})))) {
-                                        flag.remove ();
-                                    }
-                                }
                             }
-                            if (volatile.has ('construction_sites_placed')) {
-                                volatile.set ('construction_sites_placed', volatile.get ('construction_sites_placed') + placed_count);
+                            if (need_more_sites > 0) {
+                                self.room.store_cached_property (last_built_roads_key, _build_roads_constant_not_enough_sites + str (need_more_sites), min_repath_mine_roads_every);
+                                print ('[{}][building] Stopped: need more sites. ({}/{})'.format (self.room.name, MAX_CONSTRUCTION_SITES - site_count, need_more_sites));
+                            }
+                            else if (len (missing_rooms) > 0) {
+                                self.room.store_cached_property (last_built_roads_key, _build_roads_constant_missing_rooms + '-'.join (missing_rooms), min_repath_mine_roads_every);
+                                print ('[{}][building] Stopped: missing rooms. ({})'.format (self.room.name, ', '.join (missing_rooms)));
                             }
                             else {
-                                volatile.set ('construction_sites_placed', placed_count);
+                                self.room.store_cached_property (last_built_roads_key, latest_version, random.randint (min_repave_mine_roads_every, max_repave_mine_roads_every));
                             }
-                            if (any_non_visible_rooms) {
-                                print ('[{}][building] Found {} pos ({} new) for remote roads, from {} paths (missing rooms)'.format (self.room.name, _.sum (checked_positions_per_room.values (), 'size'), placed_count, path_count));
-                            }
-                            else {
-                                if (placed_count + preexisting_count >= 100) {
-                                    print ('[{}][building] Found {} pos ({} new) for remote roads, from {} paths (hit site limit)'.format (self.room.name, _.sum (checked_positions_per_room.values (), 'size'), placed_count, path_count));
-                                }
-                                else {
-                                    print ('[{}][building] Found {} pos ({} new) for remote roads, from {} paths.'.format (self.room.name, _.sum (list (checked_positions_per_room.values ()), 'size'), placed_count, path_count));
-                                }
-                            }
-                            if (any_non_visible_rooms) {
-                                self.room.store_cached_property ('placed_mining_roads', 'missing_rooms', ttl);
-                                self.room.store_cached_property ('pmr_missing_rooms', list (non_visible_rooms.values ()), ttl);
-                            }
-                            else {
-                                if (placed_count + preexisting_count >= 100) {
-                                    self.room.store_cached_property ('placed_mining_roads', 'too_many_sites', ttl);
-                                }
-                                else {
-                                    self.room.store_cached_property ('placed_mining_roads', latest_key, ttl);
-                                }
-                            }
+                            return true;
                         });},
-                        get re_place_mining_roads () {return __get__ (this, function (self) {
-                            var cache = self.room.mem.cache;
-                            if (('placed_mining_roads' in cache)) {
-                                cache.placed_mining_roads.dead_at = Game.time + 1;
+                        get _repath_roads_for () {return __get__ (this, function (self, mine_flag, deposit_point) {
+                            var honey = self.hive.honey;
+                            if (deposit_point.pos.isNearTo (mine_flag)) {
+                                var mine_path = list ([]);
                             }
-                            if (('paving_here' in cache)) {
-                                cache.paving_here.dead_at = Game.time + 1;
+                            else {
+                                var mine_path = honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, dict ({'paved_mine': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
                             }
-                            if (('all_paved' in cache)) {
-                                cache.all_paved.dead_at = Game.time + 1;
+                            mining_paths.register_new_mining_path (mine_flag, null, mine_path);
+                            var __iterable0__ = self.room.spawns;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var spawn = __iterable0__ [__index0__];
+                                if (len (mine_path)) {
+                                    var closest = null;
+                                    var closest_distance = Infinity;
+                                    var __iterable1__ = enumerate (mine_path);
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var __left0__ = __iterable1__ [__index1__];
+                                        var index = __left0__ [0];
+                                        var pos = __left0__ [1];
+                                        var distance = movement.chebyshev_distance_room_pos (spawn, pos) - index * 0.7;
+                                        if (pos.roomName != spawn.pos.roomName || pos.x < 2 || pos.x > 48 || pos.y < 2 || pos.y > 48) {
+                                            distance += 10;
+                                        }
+                                        if (distance < closest_distance) {
+                                            var closest = pos;
+                                            var closest_distance = distance;
+                                        }
+                                    }
+                                }
+                                else {
+                                    var closest = mine_flag.pos || mine_flag;
+                                }
+                                if (closest.isNearTo (spawn)) {
+                                    continue;
+                                }
+                                var spawn_path = honey.completely_repath_and_get_raw_path (spawn, closest, dict ({'paved_mine': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
+                                mining_paths.register_new_mining_path (mine_flag, spawn, spawn_path);
                             }
                         });},
                         get place_home_ramparts () {return __get__ (this, function (self) {
@@ -4102,7 +4090,7 @@ function main () {
                             var site_count = len (Game.constructionSites);
                             var prev_sites_placed = volatile.get ('construction_sites_placed') || 0;
                             var sites_placed_now = 0;
-                            if (site_count + prev_sites_placed >= 90) {
+                            if (site_count + prev_sites_placed >= MAX_CONSTRUCTION_SITES * 0.9) {
                                 return ;
                             }
                             var ramparts = new_set ();
@@ -4114,10 +4102,8 @@ function main () {
                                 if (structure.structureType == STRUCTURE_RAMPART) {
                                     ramparts.add (pos_key);
                                 }
-                                else {
-                                    if (protect_with_ramparts.includes (structure.structureType) && (structure.structureType != STRUCTURE_EXTENSION || len (self.room.mining.active_mines) > 1)) {
-                                        need_ramparts.set (pos_key, structure);
-                                    }
+                                else if (protect_with_ramparts.includes (structure.structureType) && (structure.structureType != STRUCTURE_EXTENSION || len (self.room.mining.active_mines) > 1)) {
+                                    need_ramparts.set (pos_key, structure);
                                 }
                             }
                             var __iterable0__ = self.room.find (FIND_MY_CONSTRUCTION_SITES);
@@ -4141,7 +4127,7 @@ function main () {
                                     print ('[{}][building] Protecting {} with a rampart.'.format (self.room.name, structure));
                                     structure.pos.createConstructionSite (STRUCTURE_RAMPART);
                                     sites_placed_now++;
-                                    if ((site_count + prev_sites_placed) + sites_placed_now >= 100 || sites_placed_now >= 5) {
+                                    if ((site_count + prev_sites_placed) + sites_placed_now >= MAX_CONSTRUCTION_SITES || sites_placed_now >= 5) {
                                         break;
                                     }
                                 }
@@ -4223,8 +4209,58 @@ function main () {
                             cache.add (cache_key);
                         });}
                     });
+                    var clean_up_all_road_construction_sites = function () {
+                        var rooms_to_sites = _.groupBy (Game.constructionSites, 'pos.roomName');
+                        var __iterable0__ = Object.keys (rooms_to_sites);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room_name = __iterable0__ [__index0__];
+                            if (_.get (Game.rooms, list ([room_name, 'controller', 'my']), false)) {
+                                continue;
+                            }
+                            var planned_roads = mining_paths.get_set_of_all_serialized_positions_in (room_name);
+                            var __iterable1__ = rooms_to_sites [room_name];
+                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                var site = __iterable1__ [__index1__];
+                                var xy = movement.xy_to_serialized_int (site.pos.x, site.pos.y);
+                                if (site.structureType == STRUCTURE_ROAD) {
+                                    if (!(planned_roads.has (xy))) {
+                                        print ('[building][debug] Would remove road site at {}.'.format (site.pos));
+                                    }
+                                }
+                                else {
+                                    var msg = '[building] WARNING: Construction site for a {} found in unowned room {}. Non-road construction sites are generally not supported in unowned rooms!'.format (site.structureType, room_name);
+                                    print (msg);
+                                    Game.notify (msg);
+                                }
+                            }
+                        }
+                    };
+                    var repave = function (mine_name) {
+                        var flag = Game.flags [mine_name];
+                        if (!(flag)) {
+                            return 'error: flag {} does not exist!'.format (mine_name);
+                        }
+                        if (('sponsor' in flag.memory)) {
+                            var sponsor = flag.memory.sponsor;
+                        }
+                        else {
+                            var sponsor = flag.name.py_split ('_') [0];
+                        }
+                        var room = context.hive ().get_room (sponsor);
+                        if (!(room)) {
+                            return 'error: room {} not visible.'.format (sponsor);
+                        }
+                        if (!(room.my)) {
+                            return 'error: room {} not owned.'.format (sponsor);
+                        }
+                        room.delete_cached_property (_cache_key_found_roads_for_mine + flag.name);
+                        room.delete_cached_property (_cache_key_placed_roads_for_mine + flag.name);
+                        room.building.build_road (flag);
+                    };
                     __pragma__ ('<use>' +
                         'constants' +
+                        'context' +
+                        'control.mining_paths' +
                         'flags' +
                         'math' +
                         'random' +
@@ -4235,10 +4271,20 @@ function main () {
                     __pragma__ ('<all>')
                         __all__.ConstructionMind = ConstructionMind;
                         __all__.DEPOT = DEPOT;
+                        __all__._build_roads_constant_missing_rooms = _build_roads_constant_missing_rooms;
+                        __all__._build_roads_constant_not_enough_sites = _build_roads_constant_not_enough_sites;
+                        __all__._cache_key_found_roads_for_mine = _cache_key_found_roads_for_mine;
+                        __all__._cache_key_placed_roads_for_mine = _cache_key_placed_roads_for_mine;
                         __all__.building_priorities = building_priorities;
+                        __all__.clean_up_all_road_construction_sites = clean_up_all_road_construction_sites;
                         __all__.default_priority = default_priority;
                         __all__.get_priority = get_priority;
                         __all__.max_priority_for_non_wall_sites = max_priority_for_non_wall_sites;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
+                        __all__.mining_paths = mining_paths;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -4246,6 +4292,7 @@ function main () {
                         __all__.protect_with_ramparts = protect_with_ramparts;
                         __all__.rampart_priorities = rampart_priorities;
                         __all__.rcl_lt4_priorities = rcl_lt4_priorities;
+                        __all__.repave = repave;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
                 }
@@ -4258,19 +4305,17 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
-                    var constants = {};
                     var flags = {};
                     var locations = {};
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
-                    __nest__ (constants, '', __init__ (__world__.constants));
                     __nest__ (flags, '', __init__ (__world__.flags));
                     __nest__ (locations, '', __init__ (__world__.locations));
                     var INVADER_USERNAME = __init__ (__world__.constants).INVADER_USERNAME;
                     var REMOTE_MINE = __init__ (__world__.constants).REMOTE_MINE;
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
-                    var target_rampart_defense = __init__ (__world__.constants).target_rampart_defense;
                     var RAMPART_DEFENSE = __init__ (__world__.constants).RAMPART_DEFENSE;
+                    var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
                     var deathwatch = __init__ (__world__.utilities.deathwatch);
                     var hostile_utils = __init__ (__world__.utilities.hostile_utils);
                     var movement = __init__ (__world__.utilities.movement);
@@ -4293,10 +4338,8 @@ function main () {
                         if (range > 20) {
                             return 150;
                         }
-                        else {
-                            if (range < 5) {
-                                return 600;
-                            }
+                        else if (range < 5) {
+                            return 600;
                         }
                         return (25 - range) * 30;
                     };
@@ -4346,10 +4389,8 @@ function main () {
                                     Game.notify (msg);
                                 }
                             }
-                            else {
-                                if ((room.name in Memory.rooms)) {
-                                    delete room.mem.danger;
-                                }
+                            else if ((room.name in Memory.rooms)) {
+                                delete room.mem.danger;
                             }
                         }
                     };
@@ -4455,9 +4496,6 @@ function main () {
                                     self.room.mem.defense = __left0__;
                                 }
                             }
-                            else {
-                                self.mem = null;
-                            }
                         });},
                         get _hive () {return __get__ (this, function (self) {
                             return self.room.hive;
@@ -4557,88 +4595,67 @@ function main () {
                                     return 2;
                                 }
                             }
-                            else {
-                                if (user == SK_USERNAME) {
-                                    return 0;
+                            else if (user == SK_USERNAME) {
+                                return 0;
+                            }
+                            else if (Memory.meta.friends.includes (user)) {
+                                return 0;
+                            }
+                            else if (hostile.my) {
+                                return 0;
+                            }
+                            else if (self.room.my) {
+                                var structs_near = _.some (self.room.look_for_in_area_around (LOOK_STRUCTURES, hostile, 1), (function __lambda__ (s) {
+                                    return s.structureType == STRUCTURE_RAMPART || s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_TOWER || s.structureType == STRUCTURE_SPAWN;
+                                }));
+                                if (structs_near && hostile.hasBodyparts (WORK)) {
+                                    return 100 + hostile.getActiveBodyparts (WORK) * DISMANTLE_POWER;
                                 }
-                                else {
-                                    if (Memory.meta.friends.includes (user)) {
-                                        return 0;
+                                else if (structs_near && hostile.hasBodyparts (ATTACK)) {
+                                    return 100 + hostile.getActiveBodyparts (ATTACK) * ATTACK_POWER;
+                                }
+                                else if (hostile.hasActiveBodyparts (RANGED_ATTACK)) {
+                                    return 10;
+                                }
+                                else if (hostile.hasBodyparts (ATTACK)) {
+                                    if (self.any_broken_walls () || structs_near || _.find (self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 1), (function __lambda__ (obj) {
+                                        return obj.creep.my;
+                                    }))) {
+                                        return 7;
                                     }
                                     else {
-                                        if (self.room.my) {
-                                            var structs_near = len (self.room.look_for_in_area_around (LOOK_STRUCTURES, hostile, 1));
-                                            if (structs_near && hostile.hasBodyparts (WORK)) {
-                                                return 6;
-                                            }
-                                            else {
-                                                if (structs_near && hostile.hasBodyparts (ATTACK)) {
-                                                    return 5;
-                                                }
-                                                else {
-                                                    if (hostile.hasActiveBodyparts (RANGED_ATTACK)) {
-                                                        return 4;
-                                                    }
-                                                    else {
-                                                        if (hostile.hasBodyparts (ATTACK)) {
-                                                            if (self.any_broken_walls () || structs_near || _.find (self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 1), (function __lambda__ (obj) {
-                                                                return obj.creep.my;
-                                                            }))) {
-                                                                return 3;
-                                                            }
-                                                            else {
-                                                                return 2;
-                                                            }
-                                                        }
-                                                        else {
-                                                            if (hostile.hasBodyparts (WORK)) {
-                                                                return 2;
-                                                            }
-                                                            else {
-                                                                if ((1 < hostile.pos.x && hostile.pos.x < 48) && (1 < hostile.pos.y && hostile.pos.y < 48)) {
-                                                                    return 1;
-                                                                }
-                                                                else {
-                                                                    return 0;
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            if (hostile.hasActiveBodyparts (RANGED_ATTACK)) {
-                                                return 4;
-                                            }
-                                            else {
-                                                if (hostile.hasActiveBodyparts (ATTACK)) {
-                                                    return 1;
-                                                }
-                                                else {
-                                                    if (_.find (hostile.body, (function __lambda__ (p) {
-                                                        return p.type == ATTACK || p.type == RANGED_ATTACK;
-                                                    }))) {
-                                                        return 0.7;
-                                                    }
-                                                    else {
-                                                        if ((hostile.hasBodyparts (CARRY) || hostile.hasBodyparts (WORK)) && self.this_room_mining_ops ()) {
-                                                            return 0.5;
-                                                        }
-                                                        else {
-                                                            if (hostile.hasActiveBodyparts (TOUGH)) {
-                                                                return 0.3;
-                                                            }
-                                                            else {
-                                                                return 0;
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        return 5;
                                     }
                                 }
+                                else if (hostile.hasBodyparts (WORK)) {
+                                    return 5;
+                                }
+                                else if ((1 < hostile.pos.x && hostile.pos.x < 48) && (1 < hostile.pos.y && hostile.pos.y < 48)) {
+                                    return 0.2;
+                                }
+                                else {
+                                    return 0;
+                                }
+                            }
+                            else if (hostile.hasActiveBodyparts (RANGED_ATTACK)) {
+                                return 4;
+                            }
+                            else if (hostile.hasActiveBodyparts (ATTACK)) {
+                                return 1;
+                            }
+                            else if (_.find (hostile.body, (function __lambda__ (p) {
+                                return p.type == ATTACK || p.type == RANGED_ATTACK;
+                            }))) {
+                                return 0.7;
+                            }
+                            else if ((hostile.hasBodyparts (CARRY) || hostile.hasBodyparts (WORK)) && self.this_room_mining_ops ()) {
+                                return 0.5;
+                            }
+                            else if (hostile.hasActiveBodyparts (TOUGH)) {
+                                return 0.3;
+                            }
+                            else {
+                                return 0;
                             }
                         }, '_calc_danger_level');},
                         get danger_level () {return __get__ (this, function (self, hostile) {
@@ -4655,41 +4672,52 @@ function main () {
                             if (self._cache.has ('active_hostiles')) {
                                 return self._cache.get ('active_hostiles');
                             }
+                            else if (self.room.enemy) {
+                                var hostiles = list ([]);
+                                self._cache.set ('active_hostiles', hostiles);
+                                return hostiles;
+                            }
                             else {
-                                if (self.room.enemy) {
+                                if (self.room.my && self.room.room.controller.safeMode > 1000) {
                                     var hostiles = list ([]);
-                                    self._cache.set ('active_hostiles', hostiles);
-                                    return hostiles;
                                 }
                                 else {
-                                    if (self.room.my && self.room.room.controller.safeMode > 1000) {
-                                        var hostiles = list ([]);
+                                    var hostiles = self.all_hostiles ();
+                                }
+                                if (len (hostiles)) {
+                                    if (self.room.my) {
+                                        var protect = self.room.spawns.concat (self.towers ());
+                                        if (self.room.room.storage) {
+                                            protect.push (self.room.room.storage);
+                                        }
+                                        if (!(len (protect))) {
+                                            protect.push (movement.center_pos (self.room.name));
+                                        }
+                                        var hostiles = _ (hostiles).filter (self.danger_level).sortBy ((function __lambda__ (c) {
+                                            return (((-(self.danger_level (c)) * 5000 - len (self.defenders_near (c)) * 500) + movement.minimum_chebyshev_distance (c, protect)) + (_.sum (protect, (function __lambda__ (s) {
+                                                return movement.chebyshev_distance_room_pos (c, s);
+                                            })) / len (protect)) / 50) - (((c.hitsMax - c.hits) + self.healing_possible_on (c)) / c.hitsMax) / 100;
+                                        })).value ();
+                                        if (self.mem.debug) {
+                                            print ('Chose hostiles:\n{}'.format ('\n'.join (function () {
+                                                var __accu0__ = [];
+                                                var __iterable0__ = hostiles;
+                                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                    var c = __iterable0__ [__index0__];
+                                                    __accu0__.append ('{},{}: {}, {}, {}, {}, {}'.format (c.pos.x, c.pos.y, -(self.danger_level (c)) * 5000, -(len (self.defenders_near (c))) * 500, +(movement.minimum_chebyshev_distance (c, protect)), (+(_.sum (protect, (function __lambda__ (s) {
+                                                        return movement.chebyshev_distance_room_pos (c, s);
+                                                    }))) / len (protect)) / 50, (-((c.hitsMax - c.hits) + self.healing_possible_on (c)) / c.hitsMax) / 100));
+                                                }
+                                                return __accu0__;
+                                            } ())));
+                                        }
                                     }
                                     else {
-                                        var hostiles = self.all_hostiles ();
+                                        var hostiles = _.filter (hostiles, self.danger_level);
                                     }
-                                    if (len (hostiles)) {
-                                        if (self.room.my) {
-                                            var protect = self.room.spawns.concat (self.towers ());
-                                            if (self.room.room.storage) {
-                                                protect.push (self.room.room.storage);
-                                            }
-                                            if (!(len (protect))) {
-                                                protect.push (movement.center_pos (self.room.name));
-                                            }
-                                            var hostiles = _ (hostiles).filter (self.danger_level).sortBy ((function __lambda__ (c) {
-                                                return (((-(self.danger_level (c)) * 200 - len (self.defenders_near (c)) * 100) + movement.minimum_chebyshev_distance (c, protect)) + (_.sum (protect, (function __lambda__ (s) {
-                                                    return movement.chebyshev_distance_room_pos (c, s);
-                                                })) / len (protect)) / 50) - ((c.hitsMax - c.hits) - self.healing_possible_on (c)) / 100;
-                                            })).value ();
-                                        }
-                                        else {
-                                            var hostiles = _.filter (hostiles, self.danger_level);
-                                        }
-                                    }
-                                    self._cache.set ('active_hostiles', hostiles);
-                                    return hostiles;
                                 }
+                                self._cache.set ('active_hostiles', hostiles);
+                                return hostiles;
                             }
                         }, 'dangerous_hostiles');},
                         get remote_hostiles () {return __get__ (this, function (self) {
@@ -4738,6 +4766,141 @@ function main () {
                             var message = '{} activating live defenses.'.format (self.room.name);
                             Game.notify (message);
                             console.log (message);
+                            self.set_protection_all_walls ();
+                        });},
+                        get set_protection_all_walls () {return __get__ (this, function (self) {
+                            var all_nearby_hostiles = stored_hostiles_near (self.room.name);
+                            var protect = new_map ();
+                            if (!(len (all_nearby_hostiles))) {
+                                var enemy_positions = function () {
+                                    var __accu0__ = [];
+                                    var __iterable0__ = all_nearby_hostiles;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var enemy = __iterable0__ [__index0__];
+                                        __accu0__.append (movement.serialized_pos_to_pos_obj (enemy.room, enemy.pos));
+                                    }
+                                    return __accu0__;
+                                } ();
+                            }
+                            else {
+                                var enemy_positions = self.room.find (FIND_EXIT);
+                            }
+                            var already_checked = list ([]);
+                            var __iterable0__ = enemy_positions;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var enemy = __iterable0__ [__index0__];
+                                if (_.some (already_checked, (function __lambda__ (x) {
+                                    return movement.chebyshev_distance_room_pos (x, enemy) <= 4;
+                                }))) {
+                                    continue;
+                                }
+                                already_checked.append (enemy);
+                                var path_obj = self.hive.honey.find_path (enemy, self.room.spawn, dict ({'use_roads': false, 'ignore_swamp': true, 'current_room': self.room.name}));
+                                var __iterable1__ = path_obj;
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var position = __iterable1__ [__index1__];
+                                    var is_rampart = false;
+                                    var is_other = false;
+                                    var __iterable2__ = self.room.look_at (LOOK_STRUCTURES, position.x, position.y);
+                                    for (var __index2__ = 0; __index2__ < __iterable2__.length; __index2__++) {
+                                        var struct = __iterable2__ [__index2__];
+                                        if (struct.structureType == STRUCTURE_RAMPART) {
+                                            var is_rampart = true;
+                                        }
+                                        else if (struct.structureType != STRUCTURE_ROAD && struct.structureType != STRUCTURE_CONTAINER) {
+                                            var is_other = true;
+                                        }
+                                    }
+                                    if (is_rampart && !(is_other)) {
+                                        protect.set (movement.xy_to_serialized_int (position.x, position.y), 0);
+                                    }
+                                }
+                            }
+                            var current_iteration = Array.from (protect.entries ());
+                            print ('[defense] Found inital walls: {} from {} paths'.format (len (current_iteration), len (already_checked)));
+                            while (true) {
+                                var next_iteration = list ([]);
+                                var __iterable0__ = current_iteration;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var __left0__ = __iterable0__ [__index0__];
+                                    var origin_xy = __left0__ [0];
+                                    var priority = __left0__ [1];
+                                    var origin_x = origin_xy & 63;
+                                    var origin_y = origin_xy >> 6 & 63;
+                                    var new_priority = priority + 1;
+                                    for (var x = origin_x - 1; x < origin_x + 2; x++) {
+                                        for (var y = origin_y - 1; y < origin_y + 2; y++) {
+                                            var serialized = movement.xy_to_serialized_int (x, y);
+                                            if (protect.has (serialized)) {
+                                                continue;
+                                            }
+                                            var is_rampart = false;
+                                            var is_wall = false;
+                                            var is_other = false;
+                                            var __iterable1__ = self.room.look_at (LOOK_STRUCTURES, x, y);
+                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                                var struct = __iterable1__ [__index1__];
+                                                if (struct.structureType == STRUCTURE_RAMPART) {
+                                                    var is_rampart = true;
+                                                }
+                                                else if (struct.structureType == STRUCTURE_WALL) {
+                                                    var is_wall = true;
+                                                    var is_other = true;
+                                                }
+                                                else if (struct.structureType != STRUCTURE_ROAD && struct.structureType != STRUCTURE_CONTAINER) {
+                                                    var is_other = true;
+                                                }
+                                            }
+                                            if (is_wall || is_rampart) {
+                                                if (is_rampart && !(is_other)) {
+                                                    protect.set (serialized, new_priority);
+                                                }
+                                                if (new_priority < 5) {
+                                                    next_iteration.append (list ([serialized, new_priority]));
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                if (len (next_iteration)) {
+                                    var current_iteration = next_iteration;
+                                }
+                                else {
+                                    break;
+                                }
+                            }
+                            if (self.mem.known_locations) {
+                                var __iterable0__ = self.mem.known_locations;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var name = __iterable0__ [__index0__];
+                                    locations.delete_location (name);
+                                }
+                                delete self.mem.known_locations;
+                            }
+                            self._cache.delete ('live_defender_spots');
+                            self.room.delete_cached_property ('rcrnd');
+                            var spots = list ([]);
+                            var hot = list ([]);
+                            var cold = list ([]);
+                            var __iterable0__ = _.sortBy (Array.from (protect.entries ()), (function __lambda__ (x) {
+                                return x [1];
+                            }));
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var pos = __left0__ [0];
+                                var priority = __left0__ [1];
+                                var loc = locations.create (pos);
+                                spots.push (loc.name);
+                                if (priority <= 1) {
+                                    hot.push (loc.name);
+                                }
+                                else {
+                                    cold.push (loc.name);
+                                }
+                            }
+                            print ('[{}][defense] Found {} ramparts to protect during initial seed.'.format (self.room.name, len (spots)));
+                            self.mem.known_locations = spots;
+                            self.room.store_cached_property ('rcrnd', list ([hot, cold]), 50);
                         });},
                         get towers () {return __get__ (this, function (self) {
                             if (self._cache.has ('towers')) {
@@ -4783,46 +4946,40 @@ function main () {
                                             towers [0].heal (creep);
                                             break;
                                         }
+                                        else if (len (towers) < 1) {
+                                            break;
+                                        }
                                         else {
-                                            if (len (towers) < 1) {
-                                                break;
-                                            }
-                                            else {
-                                                var closest_distance = Infinity;
-                                                var closest_index = -(1);
-                                                for (var i = 0; i < len (towers); i++) {
-                                                    var distance = movement.chebyshev_distance_room_pos (creep.pos, towers [i].pos);
-                                                    if (distance < closest_distance) {
-                                                        var closest_index = i;
-                                                        var closest_distance = distance;
-                                                    }
+                                            var closest_distance = Infinity;
+                                            var closest_index = -(1);
+                                            for (var i = 0; i < len (towers); i++) {
+                                                var distance = movement.chebyshev_distance_room_pos (creep.pos, towers [i].pos);
+                                                if (distance < closest_distance) {
+                                                    var closest_index = i;
+                                                    var closest_distance = distance;
                                                 }
-                                                var tower = towers.splice (closest_index, 1) [0];
-                                                tower.heal (creep);
                                             }
+                                            var tower = towers.splice (closest_index, 1) [0];
+                                            tower.heal (creep);
                                         }
                                     }
+                                }
+                                else if (len (damaged) > 1) {
+                                    towers [0].heal (_.min (damaged, (function __lambda__ (c) {
+                                        return movement.chebyshev_distance_room_pos (c, towers [0]);
+                                    })));
                                 }
                                 else {
-                                    if (len (damaged) > 1) {
-                                        towers [0].heal (_.min (damaged, (function __lambda__ (c) {
-                                            return movement.chebyshev_distance_room_pos (c, towers [0]);
-                                        })));
-                                    }
-                                    else {
-                                        towers [0].heal (damaged [0]);
-                                    }
+                                    towers [0].heal (damaged [0]);
                                 }
                             }
-                            else {
-                                if (__mod__ (Game.time, 7) == 0) {
-                                    var urgent_repair = _.find (self.room.find (FIND_STRUCTURES), does_need_urgent_repair);
-                                    if (urgent_repair) {
-                                        var __iterable0__ = self.towers ();
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var tower = __iterable0__ [__index0__];
-                                            tower.repair (urgent_repair);
-                                        }
+                            else if (__mod__ (Game.time, 7) == 0) {
+                                var urgent_repair = _.find (self.room.find (FIND_STRUCTURES), does_need_urgent_repair);
+                                if (urgent_repair) {
+                                    var __iterable0__ = self.towers ();
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var tower = __iterable0__ [__index0__];
+                                        tower.repair (urgent_repair);
                                     }
                                 }
                             }
@@ -4870,7 +5027,9 @@ function main () {
                                 self.tower_heal ();
                                 return ;
                             }
-                            if (self.room.mem.attack) {
+                            if (self.room.mem.attack && _.some (self.all_hostiles (), (function __lambda__ (h) {
+                                return h.owner.username != INVADER_USERNAME;
+                            }))) {
                                 self.room.mem.attack_until = Game.time + 10 * 1000;
                             }
                             if (__mod__ (Game.time, 5) == 1) {
@@ -4888,10 +5047,8 @@ function main () {
                                                 self.room.building.refresh_building_targets (true);
                                             }
                                         }
-                                        else {
-                                            if (wall.hits < self.room.get_min_sane_wall_hits) {
-                                                self.room.building.refresh_repair_targets (true);
-                                            }
+                                        else if (wall.hits < self.room.get_min_sane_wall_hits) {
+                                            self.room.building.refresh_repair_targets (true);
                                         }
                                     }
                                     self.room.building.get_construction_targets ();
@@ -4931,6 +5088,7 @@ function main () {
                                     }
                                 }
                                 var tower_index = 0;
+                                var some_left = false;
                                 var __iterable0__ = hostiles;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var hostile = __iterable0__ [__index0__];
@@ -4938,7 +5096,7 @@ function main () {
                                     var nearby_defenders = self.defenders_near (hostile);
                                     var attack_possible = _.sum (nearby_defenders, (function __lambda__ (c) {
                                         return !(c.creep.defense_override) && c.creep.getActiveBodyparts (ATTACK) || 0;
-                                    })) * 30 + _.sum (towers.slice (tower_index), (function __lambda__ (t) {
+                                    })) * ATTACK_POWER + _.sum (towers.slice (tower_index), (function __lambda__ (t) {
                                         return tower_damage (t.pos.getRangeTo (hostile));
                                     }));
                                     if (hostile.hasActiveBoostedBodyparts (TOUGH)) {
@@ -4970,6 +5128,7 @@ function main () {
                                     }
                                     if (healing_possible > attack_possible) {
                                         print ('[{}] Not attacking hostile at {}: {} heal possible, {} damage possible.'.format (self.room.name, hostile.pos, healing_possible, attack_possible));
+                                        var some_left = true;
                                         continue;
                                     }
                                     var __iterable1__ = nearby_defenders;
@@ -4986,9 +5145,83 @@ function main () {
                                         hits_left -= tower_damage (tower.pos.getRangeTo (hostile));
                                     }
                                     if (tower_index >= len (towers)) {
+                                        var some_left = true;
                                         break;
                                     }
                                 }
+                                if (some_left) {
+                                    self.check_for_noninvader_raid ();
+                                }
+                            }
+                            else if (self.room.spawn) {
+                                self.check_for_noninvader_raid ();
+                            }
+                        });},
+                        get check_for_noninvader_raid () {return __get__ (this, function (self) {
+                            if (self.room.mem.attack) {
+                                return ;
+                            }
+                            var total_noninvader = 0;
+                            var hostiles = self.dangerous_hostiles ();
+                            var user = null;
+                            var __iterable0__ = hostiles;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var hostile = __iterable0__ [__index0__];
+                                if (hostile.owner.username != INVADER_USERNAME) {
+                                    var user = hostile.owner.username;
+                                    var __iterable1__ = hostile.body;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var part = __iterable1__ [__index1__];
+                                        if (part.type == ATTACK) {
+                                            if (part.boost) {
+                                                total_noninvader += _.get (BOOSTS, list ([ATTACK, part.boost, 'attack']), 1);
+                                            }
+                                            else {
+                                                total_noninvader++;
+                                            }
+                                        }
+                                        else if (part.type == RANGED_ATTACK) {
+                                            if (part.boost) {
+                                                total_noninvader += _.get (BOOSTS, list ([RANGED_ATTACK, part.boost, 'rangedAttack']), 1);
+                                            }
+                                            else {
+                                                total_noninvader++;
+                                            }
+                                        }
+                                        else if (part.type == HEAL) {
+                                            if (part.boost) {
+                                                total_noninvader += _.get (BOOSTS, list ([HEAL, part.boost, 'heal']), 1) * 2;
+                                            }
+                                            else {
+                                                total_noninvader += 2;
+                                            }
+                                        }
+                                        else if (part.type == WORK) {
+                                            if (part.boost) {
+                                                total_noninvader += _.get (BOOSTS, list ([WORK, part.boost, 'dismantle']), 1);
+                                            }
+                                            else {
+                                                total_noninvader += 0.5;
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if (total_noninvader >= 10) {
+                                var message = '\nDANGER: -----\nOver 10 hostile player bodyparts detected directly in {}. Game time: {}\n\nCreeps:\n{}\n\nThis has triggered active-defense mode in {}\nDANGER: -----'.format (self.room.name, Game.time, '\n'.join (function () {
+                                    var __accu0__ = [];
+                                    var __iterable0__ = hostiles;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var h = __iterable0__ [__index0__];
+                                        if (h.owner.username != INVADER_USERNAME) {
+                                            __accu0__.append ('owner: {}, body: {}'.format (h.owner.username, JSON.stringify (_.countBy (h.body, 'type'))));
+                                        }
+                                    }
+                                    return __accu0__;
+                                } ()), self.room.name);
+                                console.log (message);
+                                Game.notify (message);
+                                self.activate_live_defenses ();
                             }
                         });},
                         get get_current_defender_spots () {return __get__ (this, function (self) {
@@ -4997,7 +5230,67 @@ function main () {
                             }
                             var cached = self.room.get_cached_property ('rcrnd');
                             if (cached) {
-                                return cached;
+                                var __left0__ = cached;
+                                var hot = __left0__ [0];
+                                var cold = __left0__ [1];
+                                var hot = _ (hot).map (locations.get).filter ().value ();
+                                var cold = _ (cold).map (locations.get).filter ().value ();
+                                self._cache.set ('live_defender_spots', list ([hot, cold]));
+                                return tuple ([hot, cold]);
+                            }
+                            var last_used = self.mem.kllu;
+                            if (last_used == undefined) {
+                                var __left0__ = dict ({});
+                                var last_used = __left0__;
+                                self.mem.kllu = __left0__;
+                            }
+                            if (!(len (self.dangerous_hostiles ()))) {
+                                var hot = list ([]);
+                                var cold = list ([]);
+                                if (self.mem.known_locations) {
+                                    var to_remove = list ([]);
+                                    var __iterable0__ = self.mem.known_locations;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var name = __iterable0__ [__index0__];
+                                        var location = locations.get (name);
+                                        if (location !== null) {
+                                            if (!(name in last_used)) {
+                                                last_used [name] = Game.time;
+                                            }
+                                            else if (Game.time - last_used [name] > 1500) {
+                                                to_remove.push (name);
+                                            }
+                                            cold.push (location);
+                                        }
+                                    }
+                                    if (len (to_remove)) {
+                                        _.pull (self.mem.known_locations, to_remove);
+                                        if (self.mem.ods) {
+                                            var existing_old = new_set ();
+                                            var __iterable0__ = self.mem.ods;
+                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                var name = __iterable0__ [__index0__];
+                                                existing_old.add (locations.serialized (name));
+                                            }
+                                            var __iterable0__ = to_remove;
+                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                var name = __iterable0__ [__index0__];
+                                                if (!(existing_old.has (locations.serialized (name)))) {
+                                                    self.mem.ods.push (name);
+                                                }
+                                            }
+                                            if (len (self.mem.ods) > len (self.room.role_count (role_wall_defender))) {
+                                                self.mem.ods.splice (0, len (self.mem.ods) - len (self.room.role_count (role_wall_defender)));
+                                            }
+                                        }
+                                        else {
+                                            self.mem.ods = to_remove;
+                                        }
+                                    }
+                                }
+                                self.room.store_cached_property ('rcrnd', list ([hot, cold]), 30);
+                                self._cache.set ('live_defender_spots', list ([hot, cold]));
+                                return tuple ([hot, cold]);
                             }
                             var serialized_locations = self.mem.known_locations;
                             var hot_found = new_set ();
@@ -5012,7 +5305,7 @@ function main () {
                                     if (location) {
                                         var nearby = self.room.look_for_in_area_around (LOOK_CREEPS, location, 1);
                                         if (_.some (nearby, (function __lambda__ (x) {
-                                            return !(x.creep.my) && !(x.creep.owner.username in Memory.meta.friends);
+                                            return !(x.creep.my) && !(Memory.meta.friends.includes (x.creep.owner.username));
                                         }))) {
                                             hot_spots.append (location);
                                             hot_found.add (movement.xy_to_serialized_int (location.x, location.y));
@@ -5047,7 +5340,7 @@ function main () {
                                         for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                             var obj = __iterable1__ [__index1__];
                                             var creep = obj.creep;
-                                            if (!(creep.my) && !(creep.owner.username in Memory.meta.friends)) {
+                                            if (!(creep.my) && !(Memory.meta.friends.includes (creep.owner.username))) {
                                                 var offense = max (creep.getBodyparts (WORK) * DISMANTLE_POWER, creep.getBodyparts (ATTACK) * ATTACK_POWER);
                                                 if (_.some (hot_spots, (function __lambda__ (x) {
                                                     return movement.chebyshev_distance_room_pos (x, creep) <= 1;
@@ -5092,12 +5385,53 @@ function main () {
                                     }
                                     else {
                                         var new_obj = locations.create (rampart, RAMPART_DEFENSE, 2000);
-                                        hot_spots.append (new_obj);
-                                        serialized_locations.append (new_obj.name);
+                                        hot_spots.push (new_obj);
+                                        serialized_locations.push (new_obj.name);
                                     }
                                 }
                             }
-                            self.room.store_cached_property ('live_defender_spots', list ([hot_spots, cold_spots]), 3);
+                            self._cache.set ('live_defender_spots', list ([hot_spots, cold_spots]));
+                            self.room.store_cached_property ('rcrnd', list ([function () {
+                                var __accu0__ = [];
+                                var __iterable0__ = hot_spots;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var s = __iterable0__ [__index0__];
+                                    __accu0__.append (s.name);
+                                }
+                                return __accu0__;
+                            } (), function () {
+                                var __accu0__ = [];
+                                var __iterable0__ = cold_spots;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var s = __iterable0__ [__index0__];
+                                    __accu0__.append (s.name);
+                                }
+                                return __accu0__;
+                            } ()]), 3);
+                            var __iterable0__ = hot_spots;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var loc = __iterable0__ [__index0__];
+                                last_used [loc.name] = Game.time;
+                            }
+                            return list ([hot_spots, cold_spots]);
+                        });},
+                        get get_old_defender_spots () {return __get__ (this, function (self) {
+                            if (self._cache.has ('old_defender_spots')) {
+                                return self._cache.get ('old_defender_spots');
+                            }
+                            var result = list ([]);
+                            if (self.mem.ods) {
+                                var __iterable0__ = self.mem.ods;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var name = __iterable0__ [__index0__];
+                                    var loc = locations.get (name);
+                                    if (loc !== null) {
+                                        result.push (loc);
+                                    }
+                                }
+                            }
+                            self._cache.set ('old_defender_spots', result);
+                            return result;
                         });}
                     });
                     Object.defineProperty (RoomDefense, 'hive', property.call (RoomDefense, RoomDefense._hive));;
@@ -5129,9 +5463,9 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.poll_hostiles = poll_hostiles;
+                        __all__.role_wall_defender = role_wall_defender;
                         __all__.stored_hostiles_in = stored_hostiles_in;
                         __all__.stored_hostiles_near = stored_hostiles_near;
-                        __all__.target_rampart_defense = target_rampart_defense;
                         __all__.tower_damage = tower_damage;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
@@ -5210,6 +5544,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -5245,6 +5584,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -5265,7 +5605,6 @@ function main () {
                     var target_source = __init__ (__world__.constants).target_source;
                     var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
-                    var defense = __init__ (__world__.control.defense);
                     var ConstructionMind = __init__ (__world__.control.building).ConstructionMind;
                     var RoomDefense = __init__ (__world__.control.defense).RoomDefense;
                     var LinkingMind = __init__ (__world__.control.links).LinkingMind;
@@ -5299,13 +5638,11 @@ function main () {
                         if (optional_y !== null && optional_y !== undefined) {
                             return tuple ([pos, optional_y, null]);
                         }
+                        else if (pos.pos) {
+                            return tuple ([pos.pos.x, pos.pos.y, pos.pos.roomName]);
+                        }
                         else {
-                            if (pos.pos) {
-                                return tuple ([pos.pos.x, pos.pos.y, pos.pos.roomName]);
-                            }
-                            else {
-                                return tuple ([pos.x, pos.y, pos.roomName]);
-                            }
+                            return tuple ([pos.x, pos.y, pos.roomName]);
                         }
                     };
                     var clamp_room_coord = function (coord) {
@@ -5489,17 +5826,15 @@ function main () {
                                         Memory.meta.unowned_room_alerted = true;
                                     }
                                 }
+                                else if (!(room.my)) {
+                                    print ("[hive] One or more creeps has {} as its home, but {} isn't owned!".format (name, name));
+                                    if (!(Memory.meta.unowned_room_alerted)) {
+                                        Game.notify ("[hive] One or more creeps has {} as its home, but {} isn't owned!".format (name, name));
+                                        Memory.meta.unowned_room_alerted = true;
+                                    }
+                                }
                                 else {
-                                    if (!(room.my)) {
-                                        print ("[hive] One or more creeps has {} as its home, but {} isn't owned!".format (name, name));
-                                        if (!(Memory.meta.unowned_room_alerted)) {
-                                            Game.notify ("[hive] One or more creeps has {} as its home, but {} isn't owned!".format (name, name));
-                                            Memory.meta.unowned_room_alerted = true;
-                                        }
-                                    }
-                                    else {
-                                        room._creeps = new_creep_lists [name];
-                                    }
+                                    room._creeps = new_creep_lists [name];
                                 }
                             }
                             self.has_polled_for_creeps = true;
@@ -5528,7 +5863,7 @@ function main () {
                                 return r.rcl >= 6 && !(r.minerals.has_no_terminal_or_storage ());
                             })).map (map_to_walls).value ();
                             var biggest_rcl8_room = _ (rooms_with_walls).filter ((function __lambda__ (t) {
-                                return t [0].rcl >= 8 && _.isEmpty (t [0].minerals.fulfilling [RESOURCE_ENERGY]);
+                                return t [0].rcl >= 8 && _.isEmpty (t [0].minerals.fulfilling [RESOURCE_ENERGY]) && !(t [0].mem.prepping_defenses);
                             })).max ((function __lambda__ (t) {
                                 return t [1];
                             }));
@@ -5600,6 +5935,17 @@ function main () {
                             print ('[hive] Balancing rooms: sending {} energy from {} to {}.'.format (max_to_send, biggest_rcl8_room.name, smallest_room.name));
                             biggest_rcl8_room.minerals.send_minerals (smallest_room.name, RESOURCE_ENERGY, max_to_send);
                         });},
+                        get send_everything () {return __get__ (this, function (self, target_room) {
+                            var target_room = target_room.name || target_room;
+                            var __iterable0__ = self.my_rooms;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room = __iterable0__ [__index0__];
+                                if (room.name != target_room && !(room.minerals.has_no_terminal_or_storage ())) {
+                                    delete room.minerals.fulfilling [RESOURCE_ENERGY];
+                                    room.minerals.send_minerals (target_room, RESOURCE_ENERGY, 200 * 1000);
+                                }
+                            }
+                        });},
                         get mineral_report () {return __get__ (this, function (self) {
                             var result = list ([]);
                             var tally = dict ({});
@@ -5659,6 +6005,17 @@ function main () {
                                         delete Memory ['_ly'] [name];
                                     }
                                 }
+                            }
+                        });},
+                        get wrap_creep () {return __get__ (this, function (self, creep) {
+                            var home = self.get_room (creep.memory.home);
+                            if (home) {
+                                return creep_wrappers.wrap_creep (self, self.targets, home, creep);
+                            }
+                            else {
+                                var __except0__ = ValueError ('[hive]Invalid value to wrap_creep: {} with memory {}'.format (creep, JSON.stringify (creep.memory)));
+                                __except0__.__cause__ = null;
+                                throw __except0__;
                             }
                         });},
                         get toString () {return __get__ (this, function (self) {
@@ -5721,10 +6078,8 @@ function main () {
                                         Memory.enemy_rooms.push (room.name);
                                     }
                                 }
-                                else {
-                                    if (Memory.enemy_rooms.includes (self.name) && !(enemy_structures)) {
-                                        Memory.enemy_rooms.splice (Memory.enemy_rooms.indexOf (self.name), 1);
-                                    }
+                                else if (Memory.enemy_rooms.includes (self.name) && !(enemy_structures)) {
+                                    Memory.enemy_rooms.splice (Memory.enemy_rooms.indexOf (self.name), 1);
                                 }
                             }
                             else {
@@ -5764,6 +6119,12 @@ function main () {
                             }
                             self.mem.cache [name] = dict ({'value': value, 'dead_at': dead_at});
                         }, 'store_cached_property_at');},
+                        get delete_cached_property () {return __get__ (this, function (self, name) {
+                            if (!(self.mem.cache)) {
+                                return ;
+                            }
+                            delete self.mem.cache [name];
+                        }, 'delete_cached_property');},
                         get find () {return __get__ (this, function (self, parameter) {
                             if (self._find_cache.has (parameter)) {
                                 return self._find_cache.get (parameter);
@@ -5774,29 +6135,23 @@ function main () {
                                         return !(Memory.meta.friends.includes (c.owner.username));
                                     })}));
                                 }
+                                else if (parameter === PYFIND_REPAIRABLE_ROADS) {
+                                    var result = _.filter (self.find (FIND_STRUCTURES), (function __lambda__ (s) {
+                                        return (s.structureType == STRUCTURE_ROAD && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD)) || s.structureType == STRUCTURE_CONTAINER && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))) && s.hits < s.hitsMax;
+                                    }));
+                                }
+                                else if (parameter === PYFIND_BUILDABLE_ROADS) {
+                                    var result = _.filter (self.find (FIND_CONSTRUCTION_SITES), (function __lambda__ (s) {
+                                        return s.structureType == STRUCTURE_ROAD && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD)) || s.structureType == STRUCTURE_CONTAINER && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER));
+                                    }));
+                                }
+                                else if (parameter === PYFIND_HURT_CREEPS) {
+                                    var result = _.filter (self.find (FIND_MY_CREEPS), (function __lambda__ (c) {
+                                        return c.hits < c.hitsMax;
+                                    }));
+                                }
                                 else {
-                                    if (parameter === PYFIND_REPAIRABLE_ROADS) {
-                                        var result = _.filter (self.find (FIND_STRUCTURES), (function __lambda__ (s) {
-                                            return (s.structureType == STRUCTURE_ROAD && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD)) || s.structureType == STRUCTURE_CONTAINER && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER))) && s.hits < s.hitsMax;
-                                        }));
-                                    }
-                                    else {
-                                        if (parameter === PYFIND_BUILDABLE_ROADS) {
-                                            var result = _.filter (self.find (FIND_CONSTRUCTION_SITES), (function __lambda__ (s) {
-                                                return s.structureType == STRUCTURE_ROAD && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_ROAD)) || s.structureType == STRUCTURE_CONTAINER && !(flags.look_for (self, s, flags.MAIN_DESTRUCT, flags.SUB_CONTAINER));
-                                            }));
-                                        }
-                                        else {
-                                            if (parameter === PYFIND_HURT_CREEPS) {
-                                                var result = _.filter (self.find (FIND_MY_CREEPS), (function __lambda__ (c) {
-                                                    return c.hits < c.hitsMax;
-                                                }));
-                                            }
-                                            else {
-                                                var result = self.room.find (parameter);
-                                            }
-                                        }
-                                    }
+                                    var result = self.room.find (parameter);
                                 }
                                 self._find_cache.set (parameter, result);
                                 return result;
@@ -6245,15 +6600,21 @@ function main () {
                             return consistency.reassign_room_roles (self);
                         }, 'reassign_roles');},
                         get paving () {return __get__ (this, function (self) {
-                            if (!(self.my)) {
-                                return false;
+                            if (!('_paving' in self)) {
+                                if (!(self.my)) {
+                                    self._paving = false;
+                                }
+                                else {
+                                    var paving = self.get_cached_property ('paving_here');
+                                    if (paving === null) {
+                                        var needed_energy_capacity = (BODYPART_COST [WORK] * 2 + BODYPART_COST [MOVE] * 4) + BODYPART_COST [CARRY] * 6;
+                                        var paving = (self.room.storage || self.spawn) && (self.get_max_mining_op_count () >= 1 || self.room.storage) && len (self.mining.available_mines) >= 1 && self.room.energyCapacityAvailable >= needed_energy_capacity;
+                                        self.store_cached_property ('paving_here', paving, 200);
+                                    }
+                                    self._paving = paving;
+                                }
                             }
-                            var paving = self.get_cached_property ('paving_here');
-                            if (paving === null) {
-                                var paving = (self.room.storage || self.spawn) && (self.get_max_mining_op_count () >= 1 || self.room.storage) && len (self.mining.available_mines) >= 1 && self.room.energyCapacityAvailable >= 600;
-                                self.store_cached_property ('paving_here', paving, 200);
-                            }
-                            return self.get_cached_property ('paving_here');
+                            return self._paving;
                         }, 'paving');},
                         get all_paved () {return __get__ (this, function (self) {
                             return self.paving ();
@@ -6317,34 +6678,30 @@ function main () {
                                 if (self.room.storage && (self.room.storage.store [RESOURCE_ENERGY] >= _min_stored_energy_to_draw_from_before_refilling || !(self.spawn) && self.room.storage.store [RESOURCE_ENERGY] > 0)) {
                                     self._full_storage_use = true;
                                 }
-                                else {
-                                    if (self.room.storage && !(self.room.storage.storeCapacity)) {
-                                        if (self.room.storage.store.energy > 0) {
-                                            self._full_storage_use = true;
-                                        }
-                                        else {
-                                            self._full_storage_use = false;
-                                            if (!(self.room.storage.my)) {
-                                                self.room.storage.destroy ();
-                                            }
-                                        }
+                                else if (self.room.storage && !(self.room.storage.storeCapacity)) {
+                                    if (self.room.storage.store.energy > 0) {
+                                        self._full_storage_use = true;
                                     }
                                     else {
-                                        if (self.trying_to_get_full_storage_use) {
-                                            if (self.mem.full_storage_use && self.room.storage.store [RESOURCE_ENERGY] <= _max_energy_disable_full_storage_use) {
-                                                print ('[{}] Disabling full storage use.'.format (self.name));
-                                                self.mem.full_storage_use = false;
-                                            }
-                                            if (!(self.mem.full_storage_use) && self.room.storage.store [RESOURCE_ENERGY] > _min_energy_enable_full_storage_use) {
-                                                print ('[{}] Enabling full storage use.'.format (self.name));
-                                                self.mem.full_storage_use = true;
-                                            }
-                                            self._full_storage_use = self.mem.full_storage_use;
-                                        }
-                                        else {
-                                            self._full_storage_use = false;
+                                        self._full_storage_use = false;
+                                        if (!(self.room.storage.my)) {
+                                            self.room.storage.destroy ();
                                         }
                                     }
+                                }
+                                else if (self.trying_to_get_full_storage_use) {
+                                    if (self.mem.full_storage_use && self.room.storage.store [RESOURCE_ENERGY] <= _max_energy_disable_full_storage_use) {
+                                        print ('[{}] Disabling full storage use.'.format (self.name));
+                                        self.mem.full_storage_use = false;
+                                    }
+                                    if (!(self.mem.full_storage_use) && self.room.storage.store [RESOURCE_ENERGY] > _min_energy_enable_full_storage_use) {
+                                        print ('[{}] Enabling full storage use.'.format (self.name));
+                                        self.mem.full_storage_use = true;
+                                    }
+                                    self._full_storage_use = self.mem.full_storage_use;
+                                }
+                                else {
+                                    self._full_storage_use = false;
                                 }
                             }
                             return self._full_storage_use;
@@ -6376,29 +6733,27 @@ function main () {
                                 if (self.rcl < 4 || !(self.room.storage) || self.room.storage.storeCapacity <= 0) {
                                     self._upgrading_paused = false;
                                 }
+                                else if (self.conducting_siege () && (self.room.storage.store.energy < 100 * 1000 || self.rcl < 7 && self.room.storage.store.energy < 500 * 1000)) {
+                                    self._upgrading_paused = true;
+                                }
                                 else {
-                                    if (self.conducting_siege () && (self.room.storage.store.energy < 100 * 1000 || self.rcl < 7 && self.room.storage.store.energy < 500 * 1000)) {
-                                        self._upgrading_paused = true;
+                                    if (self.rcl >= 8) {
+                                        if (self.mem.upgrading_paused && self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading) {
+                                            self.mem.upgrading_paused = false;
+                                        }
+                                        if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < _rcl8_energy_to_pause_upgrading) {
+                                            self.mem.upgrading_paused = true;
+                                        }
                                     }
                                     else {
-                                        if (self.rcl >= 8) {
-                                            if (self.mem.upgrading_paused && self.room.storage.store.energy > _rcl8_energy_to_resume_upgrading) {
-                                                self.mem.upgrading_paused = false;
-                                            }
-                                            if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < _rcl8_energy_to_pause_upgrading) {
-                                                self.mem.upgrading_paused = true;
-                                            }
+                                        if (self.mem.upgrading_paused && self.room.storage.store.energy > _energy_to_resume_upgrading) {
+                                            self.mem.upgrading_paused = false;
                                         }
-                                        else {
-                                            if (self.mem.upgrading_paused && self.room.storage.store.energy > _energy_to_resume_upgrading) {
-                                                self.mem.upgrading_paused = false;
-                                            }
-                                            if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < _energy_to_pause_upgrading) {
-                                                self.mem.upgrading_paused = true;
-                                            }
+                                        if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < _energy_to_pause_upgrading) {
+                                            self.mem.upgrading_paused = true;
                                         }
-                                        self._upgrading_paused = !(!(self.mem.upgrading_paused));
                                     }
+                                    self._upgrading_paused = !(!(self.mem.upgrading_paused));
                                 }
                             }
                             return self._upgrading_paused;
@@ -6408,27 +6763,25 @@ function main () {
                                 if (self.rcl < 4 || !(self.room.storage) || self.room.storage.storeCapacity <= 0) {
                                     self._building_paused = false;
                                 }
+                                else if (self.conducting_siege () && self.rcl < 7) {
+                                    self._building_paused = true;
+                                }
                                 else {
-                                    if (self.conducting_siege () && self.rcl < 7) {
-                                        self._building_paused = true;
+                                    if (self.mem.building_paused && self.room.storage.store.energy > _energy_to_resume_building) {
+                                        self.mem.building_paused = false;
+                                    }
+                                    if (!(self.mem.building_paused) && self.room.storage.store.energy < _energy_to_pause_building) {
+                                        self.mem.building_paused = true;
+                                    }
+                                    if (self.mem.building_paused) {
+                                        self._building_paused = self.spawn && len (_.filter (self.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
+                                            return s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION;
+                                        }))) > len (_.filter (self.find (FIND_MY_CONSTRUCTION_SITES), (function __lambda__ (s) {
+                                            return s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION;
+                                        })));
                                     }
                                     else {
-                                        if (self.mem.building_paused && self.room.storage.store.energy > _energy_to_resume_building) {
-                                            self.mem.building_paused = false;
-                                        }
-                                        if (!(self.mem.building_paused) && self.room.storage.store.energy < _energy_to_pause_building) {
-                                            self.mem.building_paused = true;
-                                        }
-                                        if (self.mem.building_paused) {
-                                            self._building_paused = self.spawn && len (_.filter (self.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
-                                                return s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION;
-                                            }))) > len (_.filter (self.find (FIND_MY_CONSTRUCTION_SITES), (function __lambda__ (s) {
-                                                return s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION;
-                                            })));
-                                        }
-                                        else {
-                                            self._building_paused = false;
-                                        }
+                                        self._building_paused = false;
                                     }
                                 }
                             }
@@ -6437,7 +6790,7 @@ function main () {
                         get overprioritize_building () {return __get__ (this, function (self) {
                             if (!('_overprioritize_building' in self)) {
                                 if (self.spawn) {
-                                    var prioritize = (self.room.energyCapacityAvailable < 550 && self.get_open_source_spaces () < len (self.sources) * 2 || self.rcl >= 3 && !(len (self.defense.towers ())) || self.rcl >= 3 && self.room.energyCapacityAvailable < 650 || self.rcl >= 4 && self.room.energyCapacityAvailable < 1300) && len (self.building.get_construction_targets ()) && self.room.controller.ticksToDowngrade > 100;
+                                    var prioritize = (self.room.energyCapacityAvailable < BODYPART_COST [WORK] * 5 + BODYPART_COST [MOVE] && self.get_open_source_spaces () < len (self.sources) * 2 || self.rcl >= 3 && !(len (self.defense.towers ())) || self.rcl >= 3 && self.room.energyCapacityAvailable < BODYPART_COST [CLAIM] + BODYPART_COST [MOVE] || self.rcl >= 4 && self.room.energyCapacityAvailable < BODYPART_COST [CLAIM] * 2 + BODYPART_COST [MOVE] * 2) && len (self.building.get_construction_targets ()) && self.room.controller.ticksToDowngrade > 100;
                                 }
                                 else {
                                     var prioritize = !(self.being_bootstrapped ());
@@ -6480,37 +6833,27 @@ function main () {
                                 if (len (self.spawns) < 2) {
                                     return 5;
                                 }
+                                else if (self.rcl == 7) {
+                                    return 7;
+                                }
+                                else if (self.mining_ops_paused ()) {
+                                    return 0;
+                                }
                                 else {
-                                    if (self.rcl == 7) {
-                                        return 7;
-                                    }
-                                    else {
-                                        if (self.mining_ops_paused ()) {
-                                            return 0;
-                                        }
-                                        else {
-                                            return 9;
-                                        }
-                                    }
+                                    return 9;
                                 }
                             }
+                            else if (len (self.spawns) < 2) {
+                                return 5;
+                            }
+                            else if (self.rcl == 7) {
+                                return 6;
+                            }
+                            else if (self.mining_ops_paused ()) {
+                                return 0;
+                            }
                             else {
-                                if (len (self.spawns) < 2) {
-                                    return 5;
-                                }
-                                else {
-                                    if (self.rcl == 7) {
-                                        return 6;
-                                    }
-                                    else {
-                                        if (self.mining_ops_paused ()) {
-                                            return 0;
-                                        }
-                                        else {
-                                            return 9;
-                                        }
-                                    }
-                                }
+                                return 9;
                             }
                         }, 'get_max_mining_op_count');},
                         get get_max_sane_wall_hits () {return __get__ (this, function (self) {
@@ -6542,17 +6885,15 @@ function main () {
                                     }
                                     else {
                                         var all_structs_near = _ (self.find_in_range (FIND_STRUCTURES, 4, self.room.controller.pos));
-                                        if (all_structs_near.find (dict ({'structureType': STRUCTURE_LINK, 'my': true}))) {
+                                        if (self.links.main_link && all_structs_near.find (dict ({'structureType': STRUCTURE_LINK, 'my': true}))) {
                                             var structure = all_structs_near.filter (dict ({'structureType': STRUCTURE_LINK})).min ((function __lambda__ (s) {
                                                 return movement.chebyshev_distance_room_pos (s, self.room.controller);
                                             }));
                                         }
-                                        else {
-                                            if (all_structs_near.find (dict ({'structureType': STRUCTURE_CONTAINER}))) {
-                                                var structure = all_structs_near.filter (dict ({'structureType': STRUCTURE_CONTAINER})).min ((function __lambda__ (s) {
-                                                    return movement.chebyshev_distance_room_pos (s, self.room.controller);
-                                                }));
-                                            }
+                                        else if (all_structs_near.find (dict ({'structureType': STRUCTURE_CONTAINER}))) {
+                                            var structure = all_structs_near.filter (dict ({'structureType': STRUCTURE_CONTAINER})).min ((function __lambda__ (s) {
+                                                return movement.chebyshev_distance_room_pos (s, self.room.controller);
+                                            }));
                                         }
                                     }
                                 }
@@ -6637,10 +6978,8 @@ function main () {
                                             return true;
                                         }
                                     }
-                                    else {
-                                        if (self.hive.get_closest_owned_room (flag.pos.roomName).name == self.name) {
-                                            return true;
-                                        }
+                                    else if (self.hive.get_closest_owned_room (flag.pos.roomName).name == self.name) {
+                                        return true;
                                     }
                                 }
                             }
@@ -6727,23 +7066,10 @@ function main () {
                         });},
                         get get_target_wall_defender_count () {return __get__ (this, function (self) {
                             if (self.under_siege ()) {
-                                var rampart_count = _.sum (self.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
-                                    return s.structureType == STRUCTURE_RAMPART && movement.is_block_empty (self, s.pos.x, s.pos.y);
-                                }));
-                                if (len (defense.stored_hostiles_near (self.name))) {
-                                    var flag_count = _.sum (self.find (FIND_FLAGS), (function __lambda__ (s) {
-                                        return s.color == COLOR_GREEN && (s.secondaryColor == COLOR_GREEN || s.secondaryColor == COLOR_RED);
-                                    }));
-                                }
-                                else {
-                                    var flag_count = _.sum (self.find (FIND_FLAGS), (function __lambda__ (s) {
-                                        return s.color == COLOR_GREEN && s.secondaryColor == COLOR_GREEN;
-                                    }));
-                                }
-                                return min (rampart_count, flag_count);
-                            }
-                            else {
-                                return 0;
+                                var __left0__ = self.defense.get_current_defender_spots ();
+                                var hot = __left0__ [0];
+                                var cold = __left0__ [1];
+                                return len (hot) + len (cold) / 2;
                             }
                         });},
                         get get_target_simple_defender_count () {return __get__ (this, function (self, first) {
@@ -6769,13 +7095,11 @@ function main () {
                                             if (h.heal) {
                                                 var need = 8;
                                             }
+                                            else if (h.ranged && !(h.attack)) {
+                                                var need = -(100);
+                                            }
                                             else {
-                                                if (h.ranged && !(h.attack)) {
-                                                    var need = -(100);
-                                                }
-                                                else {
-                                                    var need = 1;
-                                                }
+                                                var need = 1;
                                             }
                                             if (invaded_rooms.has (h.room)) {
                                                 invaded_rooms.set (h.room, invaded_rooms.get (h.room) + need);
@@ -6835,13 +7159,11 @@ function main () {
                                     if (room.room.storage) {
                                         var target = min (10, 5 + (room.room.storage.store.energy / 20) * 1000) * worker_mass;
                                     }
+                                    else if (len (room.sources) >= 2) {
+                                        var target = 5 * worker_mass;
+                                    }
                                     else {
-                                        if (len (room.sources) >= 2) {
-                                            var target = 5 * worker_mass;
-                                        }
-                                        else {
-                                            var target = 10;
-                                        }
+                                        var target = 10;
                                     }
                                     needed += max (0, target - room_work_mass);
                                     if (room.room.storage && _.sum (room.room.storage.store) > room.room.storage.store.energy && room.room.storage.storeCapacity <= 0) {
@@ -6871,13 +7193,11 @@ function main () {
                                     return 3;
                                 }
                             }
+                            else if (self.rcl < 3) {
+                                return len (self.sources) * spawning.max_sections_of (self, creep_base_worker);
+                            }
                             else {
-                                if (self.rcl < 3) {
-                                    return len (self.sources) * spawning.max_sections_of (self, creep_base_worker);
-                                }
-                                else {
-                                    return math.floor (self.get_target_total_spawn_fill_mass () / 2);
-                                }
+                                return math.floor (self.get_target_total_spawn_fill_mass () / 2);
                             }
                         });},
                         get get_target_spawn_fill_mass () {return __get__ (this, function (self) {
@@ -6919,10 +7239,8 @@ function main () {
                                     if (self.under_siege () || self.mem.prepping_defenses) {
                                         self._total_needed_spawn_fill_mass *= 1.5;
                                     }
-                                    else {
-                                        if (len (self.mining.active_mines) < 2) {
-                                            self._total_needed_spawn_fill_mass /= 2;
-                                        }
+                                    else if (len (self.mining.active_mines) < 2) {
+                                        self._total_needed_spawn_fill_mass /= 2;
                                     }
                                 }
                             }
@@ -6953,10 +7271,8 @@ function main () {
                                                     var extra = min (5, math.floor (overflow / (20 * 1000)));
                                                 }
                                             }
-                                            else {
-                                                if (overflow < -(100) * 1000 && base_num > 2) {
-                                                    var base_num = 2;
-                                                }
+                                            else if (overflow < -(100) * 1000 && base_num > 2) {
+                                                var base_num = 2;
                                             }
                                         }
                                         if (self.rcl < 8) {
@@ -6968,15 +7284,13 @@ function main () {
                                             }
                                             var parts = (base_num + extra) * worker_size;
                                         }
+                                        else if (extra > 0) {
+                                            var worker_size = spawning.max_sections_of (self, creep_base_worker);
+                                            var parts = (base_num + extra) * worker_size;
+                                        }
                                         else {
-                                            if (extra > 0) {
-                                                var worker_size = spawning.max_sections_of (self, creep_base_worker);
-                                                var parts = (base_num + extra) * worker_size;
-                                            }
-                                            else {
-                                                var worker_size = min (4, spawning.max_sections_of (self, creep_base_worker));
-                                                var parts = 1 * worker_size;
-                                            }
+                                            var worker_size = min (4, spawning.max_sections_of (self, creep_base_worker));
+                                            var parts = 1 * worker_size;
                                         }
                                         var max_parts = self.building.get_max_builder_work_parts ();
                                         if (parts > max_parts) {
@@ -6994,32 +7308,28 @@ function main () {
                                 if (!(target) || target.structureType != STRUCTURE_CONTAINER) {
                                     self._target_upgrade_fill_work_mass = 0;
                                 }
-                                else {
-                                    if (self.upgrading_deprioritized () || self.overprioritize_building ()) {
-                                        if (self.room.controller.ticksToDowngrade > 5000) {
-                                            self._target_upgrade_fill_work_mass = 0;
-                                        }
-                                        else {
-                                            self._target_upgrade_fill_work_mass = 1;
-                                        }
+                                else if (self.upgrading_deprioritized () || self.overprioritize_building ()) {
+                                    if (self.room.controller.ticksToDowngrade > 5000) {
+                                        self._target_upgrade_fill_work_mass = 0;
                                     }
                                     else {
-                                        if (_.sum (target.store) >= target.storeCapacity * 0.5 && self.role_count (role_upgrader) <= 1) {
-                                            self._target_upgrade_fill_work_mass = 0;
+                                        self._target_upgrade_fill_work_mass = 1;
+                                    }
+                                }
+                                else if (_.sum (target.store) >= target.storeCapacity * 0.5 && self.role_count (role_upgrader) <= 1) {
+                                    self._target_upgrade_fill_work_mass = 0;
+                                }
+                                else {
+                                    self._target_upgrade_fill_work_mass = min (8, spawning.max_sections_of (self, creep_base_hauler));
+                                    if (self.full_storage_use) {
+                                        if (Memory.hyper_upgrade) {
+                                            var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
                                         }
                                         else {
-                                            self._target_upgrade_fill_work_mass = min (8, spawning.max_sections_of (self, creep_base_hauler));
-                                            if (self.full_storage_use) {
-                                                if (Memory.hyper_upgrade) {
-                                                    var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
-                                                }
-                                                else {
-                                                    var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
-                                                }
-                                                if (extra > 0) {
-                                                    self._target_upgrade_fill_work_mass *= 2;
-                                                }
-                                            }
+                                            var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
+                                        }
+                                        if (extra > 0) {
+                                            self._target_upgrade_fill_work_mass *= 2;
                                         }
                                     }
                                 }
@@ -7046,57 +7356,45 @@ function main () {
                                     self._target_upgrader_work_mass = wm;
                                     return wm;
                                 }
-                                else {
-                                    if (self.rcl == 8) {
-                                        if (len (self.possible_remote_mining_operations) >= 3 && _.sum (self.room.storage.store) > 250 * 1000 && self.room.storage.store.energy > 100 * 1000) {
-                                            var wm = 15;
-                                        }
-                                        else {
-                                            if (_.sum (self.room.storage.store) > 700 * 1000 && self.room.storage.store.energy > 200 * 1000) {
-                                                var wm = 7;
-                                            }
-                                            else {
-                                                var wm = max (2, min (7, math.floor (self.room.storage.store.energy / (50 * 1000))));
-                                            }
-                                        }
+                                else if (self.rcl == 8) {
+                                    if (len (self.possible_remote_mining_operations) >= 3 && _.sum (self.room.storage.store) > 250 * 1000 && self.room.storage.store.energy > 100 * 1000 && !(self.mem.prepping_defenses)) {
+                                        var wm = 15;
+                                    }
+                                    else if (_.sum (self.room.storage.store) > 700 * 1000 && self.room.storage.store.energy > 200 * 1000) {
+                                        var wm = 7;
                                     }
                                     else {
-                                        if (self.mining_ops_paused ()) {
-                                            var wm = worker_size * 4;
-                                        }
-                                        else {
-                                            if (self.trying_to_get_full_storage_use) {
-                                                var wm = 4;
-                                            }
-                                            else {
-                                                if (self.room.energyCapacityAvailable < 550) {
-                                                    var wm = self.get_open_source_spaces () * worker_size;
-                                                    var __iterable0__ = self.sources;
-                                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                        var source = __iterable0__ [__index0__];
-                                                        var energy = _.sum (self.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount');
-                                                        wm += energy / 200.0;
-                                                    }
-                                                }
-                                                else {
-                                                    var wm = (len (self.sources) * 2) * worker_size;
-                                                }
-                                            }
-                                        }
+                                        var wm = max (2, min (7, math.floor (self.room.storage.store.energy / (50 * 1000))));
                                     }
+                                }
+                                else if (self.mining_ops_paused ()) {
+                                    var wm = worker_size * 4;
+                                }
+                                else if (self.trying_to_get_full_storage_use) {
+                                    var wm = 4;
+                                }
+                                else if (self.room.energyCapacityAvailable < 550) {
+                                    var wm = self.get_open_source_spaces () * worker_size;
+                                    var __iterable0__ = self.sources;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var source = __iterable0__ [__index0__];
+                                        var energy = _.sum (self.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount');
+                                        wm += energy / 200.0;
+                                    }
+                                }
+                                else {
+                                    var wm = (len (self.sources) * 2) * worker_size;
                                 }
                                 if (self.full_storage_use) {
                                     if (self.room.storage.storeCapacity) {
                                         if (self.mem.prepping_defenses) {
                                             var extra = min (_.sum (self.room.storage.store) - 600 * 1000, self.room.storage.store.energy - 200 * 1000);
                                         }
+                                        else if (Memory.hyper_upgrade) {
+                                            var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
+                                        }
                                         else {
-                                            if (Memory.hyper_upgrade) {
-                                                var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
-                                            }
-                                            else {
-                                                var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
-                                            }
+                                            var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
                                         }
                                     }
                                     else {
@@ -7127,13 +7425,11 @@ function main () {
                                 if (base === creep_base_full_upgrader) {
                                     self._target_upgrader_work_mass = min (wm, worker_size * 4);
                                 }
+                                else if (self.room.storage && !(self.room.storage.storeCapacity)) {
+                                    self._target_upgrader_work_mass = min (wm, worker_size * 15);
+                                }
                                 else {
-                                    if (self.room.storage && !(self.room.storage.storeCapacity)) {
-                                        self._target_upgrader_work_mass = min (wm, worker_size * 15);
-                                    }
-                                    else {
-                                        self._target_upgrader_work_mass = min (wm, worker_size * 8);
-                                    }
+                                    self._target_upgrader_work_mass = min (wm, worker_size * 8);
                                 }
                             }
                             return self._target_upgrader_work_mass;
@@ -7300,19 +7596,15 @@ function main () {
                                         break;
                                     }
                                 }
-                                else {
-                                    if (count_work) {
-                                        if (self.work_mass_of (role) - self.work_mass_of_replacements_currently_needed_for (role) < get_ideal ()) {
-                                            var role_needed = role;
-                                            break;
-                                        }
+                                else if (count_work) {
+                                    if (self.work_mass_of (role) - self.work_mass_of_replacements_currently_needed_for (role) < get_ideal ()) {
+                                        var role_needed = role;
+                                        break;
                                     }
-                                    else {
-                                        if (self.role_count (role) - self.replacements_currently_needed_for (role) < get_ideal ()) {
-                                            var role_needed = role;
-                                            break;
-                                        }
-                                    }
+                                }
+                                else if (self.role_count (role) - self.replacements_currently_needed_for (role) < get_ideal ()) {
+                                    var role_needed = role;
+                                    break;
                                 }
                             }
                             if (role_needed) {
@@ -7327,27 +7619,23 @@ function main () {
                                 if (self.all_paved ()) {
                                     return creep_base_work_half_move_hauler;
                                 }
+                                else if (self.paving ()) {
+                                    return creep_base_work_full_move_hauler;
+                                }
                                 else {
-                                    if (self.paving ()) {
-                                        return creep_base_work_full_move_hauler;
-                                    }
-                                    else {
-                                        return creep_base_hauler;
-                                    }
+                                    return creep_base_hauler;
+                                }
+                            }
+                            else if (role == role_upgrader) {
+                                if (self.get_upgrader_energy_struct ()) {
+                                    return creep_base_full_upgrader;
+                                }
+                                else {
+                                    return creep_base_worker;
                                 }
                             }
                             else {
-                                if (role == role_upgrader) {
-                                    if (self.get_upgrader_energy_struct ()) {
-                                        return creep_base_full_upgrader;
-                                    }
-                                    else {
-                                        return creep_base_worker;
-                                    }
-                                }
-                                else {
-                                    return role_bases [role];
-                                }
+                                return role_bases [role];
                             }
                         });},
                         get get_max_sections_for_role () {return __get__ (this, function (self, role) {
@@ -7415,12 +7703,10 @@ function main () {
                                     return upgrader;
                                 }
                             }
-                            else {
-                                if (_.get (self, 'room.storage.store.energy', 0) > 800 * 1000) {
-                                    var overflow_role = self._check_role_reqs (list ([list ([role_builder, self.get_target_builder_work_mass, false, true]), list ([role_upgrade_fill, self.get_target_upgrade_fill_mass, true]), list ([role_upgrader, self.get_target_upgrader_work_mass, false, true])]));
-                                    if (overflow_role !== null) {
-                                        return overflow_role;
-                                    }
+                            else if (_.get (self, 'room.storage.store.energy', 0) > 800 * 1000) {
+                                var overflow_role = self._check_role_reqs (list ([list ([role_builder, self.get_target_builder_work_mass, false, true]), list ([role_upgrade_fill, self.get_target_upgrade_fill_mass, true]), list ([role_upgrader, self.get_target_upgrader_work_mass, false, true])]));
+                                if (overflow_role !== null) {
+                                    return overflow_role;
                                 }
                             }
                             if (mining_role !== null) {
@@ -7461,23 +7747,19 @@ function main () {
                                     if (Memory.enemy_rooms.includes (flag.pos.roomName) && self.room.energyCapacityAvailable < 650 * 5) {
                                         return false;
                                     }
+                                    else if (!(flag.pos.roomName in Game.rooms)) {
+                                        return true;
+                                    }
                                     else {
-                                        if (!(flag.pos.roomName in Game.rooms)) {
-                                            return true;
+                                        var room = Game.rooms [flag.pos.roomName];
+                                        if (!(room.controller) || room.controller.my) {
+                                            return false;
+                                        }
+                                        else if (room.controller.owner && self.room.energyCapacityAvailable < 650 * 5) {
+                                            return false;
                                         }
                                         else {
-                                            var room = Game.rooms [flag.pos.roomName];
-                                            if (!(room.controller) || room.controller.my) {
-                                                return false;
-                                            }
-                                            else {
-                                                if (room.controller.owner && self.room.energyCapacityAvailable < 650 * 5) {
-                                                    return false;
-                                                }
-                                                else {
-                                                    return true;
-                                                }
-                                            }
+                                            return true;
                                         }
                                     }
                                 };
@@ -7737,8 +8019,12 @@ function main () {
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
-                        __all__.defense = defense;
                         __all__.fit_num_sections = fit_num_sections;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -7776,6 +8062,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -7810,6 +8097,7 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var volatile_cache = __init__ (__world__.utilities.volatile_cache);
+                    var movement = __init__ (__world__.utilities.movement);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
                     var LinkingMind = __class__ ('LinkingMind', [object], {
@@ -7829,7 +8117,12 @@ function main () {
                         get get_main_link () {return __get__ (this, function (self) {
                             if (self._main_link === null) {
                                 if (self.room.my && self.room.room.storage && len (self.links) >= 2) {
-                                    self._main_link = self.room.find_closest_by_range (FIND_MY_STRUCTURES, self.room.room.storage.pos, dict ({'structureType': STRUCTURE_LINK}));
+                                    self._main_link = _.min (self._links, (function __lambda__ (l) {
+                                        return movement.chebyshev_distance_room_pos (self.room.room.storage, l);
+                                    }));
+                                    if (movement.chebyshev_distance_room_pos (self._main_link, self.room.room.storage) > 2) {
+                                        self._main_link = null;
+                                    }
                                 }
                                 else {
                                     self._main_link = null;
@@ -7935,54 +8228,46 @@ function main () {
                                         future_input_links.append (dict ({'link': link, 'amount': energy_change_now, 'priority': link.cooldown}));
                                     }
                                 }
-                                else {
-                                    if (energy_change_now < 0) {
-                                        if (-(energy_change_now) * 3 > link.energy) {
-                                            current_output_links.append (dict ({'link': link, 'priority': energy_change_now}));
-                                        }
-                                        else {
-                                            future_output_links.append (dict ({'link': link, 'amount': -(energy_change_now) - link.energy, 'priority': math.floor (link.energy / energy_change_now)}));
-                                        }
+                                else if (energy_change_now < 0) {
+                                    if (-(energy_change_now) * 3 > link.energy) {
+                                        current_output_links.append (dict ({'link': link, 'priority': energy_change_now}));
                                     }
                                     else {
-                                        var access_list = _.sortBy (_.filter (vmem.values (), (function __lambda__ (x) {
-                                            return x.distance > 1;
-                                        })), (function __lambda__ (x) {
-                                            return x.distance;
-                                        }));
-                                        if (len (access_list)) {
-                                            var count = access_list [0].cap;
-                                            var __iterable1__ = access_list;
-                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                                var x = __iterable1__ [__index1__];
-                                                if (x.cap > 0 == count > 0) {
-                                                    count += x.cap;
-                                                }
-                                                else {
-                                                    break;
-                                                }
-                                            }
-                                            if (count > 0) {
-                                                if (count > link.energyCapacity - link.energy) {
-                                                    future_input_links.append (dict ({'link': link, 'amount': -(count), 'priority': access_list [0].distance}));
-                                                }
+                                        future_output_links.append (dict ({'link': link, 'amount': -(energy_change_now) - link.energy, 'priority': math.floor (link.energy / energy_change_now)}));
+                                    }
+                                }
+                                else {
+                                    var access_list = _.sortBy (_.filter (vmem.values (), (function __lambda__ (x) {
+                                        return x.distance > 1;
+                                    })), (function __lambda__ (x) {
+                                        return x.distance;
+                                    }));
+                                    if (len (access_list)) {
+                                        var count = access_list [0].cap;
+                                        var __iterable1__ = access_list;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var x = __iterable1__ [__index1__];
+                                            if (x.cap > 0 == count > 0) {
+                                                count += x.cap;
                                             }
                                             else {
-                                                if (count < link.energy) {
-                                                    future_output_links.append (dict ({'link': link, 'amount': count, 'priority': access_list [0].distance}));
-                                                }
+                                                break;
                                             }
                                         }
-                                        else {
-                                            if (mem.last_deposit && (!(mem.last_withdraw) || mem.last_deposit > mem.last_withdraw)) {
-                                                future_input_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
-                                            }
-                                            else {
-                                                if (mem.last_withdraw && (!(mem.last_deposit) || mem.last_withdraw > mem.last_deposit)) {
-                                                    future_output_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
-                                                }
+                                        if (count > 0) {
+                                            if (count > link.energyCapacity - link.energy) {
+                                                future_input_links.append (dict ({'link': link, 'amount': -(count), 'priority': access_list [0].distance}));
                                             }
                                         }
+                                        else if (count < link.energy) {
+                                            future_output_links.append (dict ({'link': link, 'amount': count, 'priority': access_list [0].distance}));
+                                        }
+                                    }
+                                    else if (mem.last_deposit && (!(mem.last_withdraw) || mem.last_deposit > mem.last_withdraw)) {
+                                        future_input_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
+                                    }
+                                    else if (mem.last_withdraw && (!(mem.last_deposit) || mem.last_withdraw > mem.last_deposit)) {
+                                        future_output_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
                                     }
                                 }
                             }
@@ -8047,62 +8332,50 @@ function main () {
                                         self.main_link.transferEnergy (current_output_links [0].link);
                                     }
                                 }
+                                else if (len (current_input_links)) {
+                                    current_input_links [0].link.transferEnergy (current_output_links [0].link);
+                                }
+                                else if (len (future_input_links)) {
+                                    future_input_links [0].link.transferEnergy (current_output_links [0].link);
+                                }
+                            }
+                            else if (len (current_input_links)) {
+                                if (main_link.energy > 0) {
+                                    self.link_creep.send_from_link (main_link.energy);
+                                }
                                 else {
-                                    if (len (current_input_links)) {
-                                        current_input_links [0].link.transferEnergy (current_output_links [0].link);
-                                    }
-                                    else {
-                                        if (len (future_input_links)) {
-                                            future_input_links [0].link.transferEnergy (current_output_links [0].link);
+                                    var __iterable0__ = current_input_links;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var obj = __iterable0__ [__index0__];
+                                        if (obj.link.energy >= obj.link.energyCapacity * 0.85) {
+                                            obj.link.transferEnergy (main_link);
+                                            break;
                                         }
                                     }
                                 }
                             }
-                            else {
-                                if (len (current_input_links)) {
-                                    if (main_link.energy > 0) {
-                                        self.link_creep.send_from_link (main_link.energy);
-                                    }
-                                    else {
-                                        var __iterable0__ = current_input_links;
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var obj = __iterable0__ [__index0__];
-                                            if (obj.link.energy >= obj.link.energyCapacity * 0.85) {
-                                                obj.link.transferEnergy (main_link);
-                                                break;
-                                            }
-                                        }
-                                    }
+                            else if (len (future_input_links)) {
+                                if (main_link.energyCapacity - main_link.energy < future_input_links [0].link.energy) {
+                                    self.link_creep.send_from_link (main_link.energy);
                                 }
                                 else {
-                                    if (len (future_input_links)) {
-                                        if (main_link.energyCapacity - main_link.energy < future_input_links [0].link.energy) {
-                                            self.link_creep.send_from_link (main_link.energy);
-                                        }
-                                        else {
-                                            future_input_links [0].link.transferEnergy (main_link);
-                                        }
-                                    }
-                                    else {
-                                        if (len (future_output_links)) {
-                                            if (main_link.energy < future_output_links [0].amount - future_output_links [0].link.energy) {
-                                                self.link_creep.send_to_link ((future_output_links [0].amount - future_output_links [0].link.energy) - main_link.energy);
-                                            }
-                                            else {
-                                                self.main_link.transferEnergy (future_output_links [0].link);
-                                            }
-                                        }
-                                        else {
-                                            if (main_link.energy != main_link.energyCapacity * 2) {
-                                                if (main_link.energy > main_link.energyCapacity * 2) {
-                                                    self.link_creep.send_from_link (main_link.energy - main_link.energyCapacity * 2);
-                                                }
-                                                else {
-                                                    self.link_creep.send_to_link (main_link.energyCapacity * 2 - main_link.energy);
-                                                }
-                                            }
-                                        }
-                                    }
+                                    future_input_links [0].link.transferEnergy (main_link);
+                                }
+                            }
+                            else if (len (future_output_links)) {
+                                if (main_link.energy < future_output_links [0].amount - future_output_links [0].link.energy) {
+                                    self.link_creep.send_to_link ((future_output_links [0].amount - future_output_links [0].link.energy) - main_link.energy);
+                                }
+                                else {
+                                    self.main_link.transferEnergy (future_output_links [0].link);
+                                }
+                            }
+                            else if (main_link.energy != main_link.energyCapacity * 2) {
+                                if (main_link.energy > main_link.energyCapacity * 2) {
+                                    self.link_creep.send_from_link (main_link.energy - main_link.energyCapacity * 2);
+                                }
+                                else {
+                                    self.link_creep.send_to_link (main_link.energyCapacity * 2 - main_link.energy);
                                 }
                             }
                         }, 'tick_links');}
@@ -8112,11 +8385,13 @@ function main () {
                     Object.defineProperty (LinkingMind, 'enabled', property.call (LinkingMind, LinkingMind._enabled));;
                     __pragma__ ('<use>' +
                         'math' +
+                        'utilities.movement' +
                         'utilities.screeps_constants' +
                         'utilities.volatile_cache' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.LinkingMind = LinkingMind;
+                        __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.volatile_cache = volatile_cache;
@@ -8336,11 +8611,11 @@ function main () {
                         get adding_to_terminal () {return __get__ (this, function (self) {
                             if (self._adding_to_terminal === null) {
                                 var adding = list ([]);
-                                var __iterable0__ = self.get_all_terminal_targets ().py_items ();
+                                var all_targets = self.get_all_terminal_targets ();
+                                var __iterable0__ = Object.keys (self.get_all_terminal_targets ());
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var __left0__ = __iterable0__ [__index0__];
-                                    var resource = __left0__ [0];
-                                    var target = __left0__ [1];
+                                    var resource = __iterable0__ [__index0__];
+                                    var target = all_targets [resource];
                                     var current = self.terminal.store [resource] || 0;
                                     if (current < target) {
                                         adding.append (list ([resource, target - current]));
@@ -8538,10 +8813,8 @@ function main () {
                                 if (currently_have < 20 * 1000) {
                                     return 0;
                                 }
-                                else {
-                                    if (currently_have <= 30 * 1000) {
-                                        return currently_have - 20 * 1000;
-                                    }
+                                else if (currently_have <= 30 * 1000) {
+                                    return currently_have - 20 * 1000;
                                 }
                                 if (self.room.mem.empty_to) {
                                     var min_via_empty_to = self.find_emptying_mineral_and_cost () [1];
@@ -8556,36 +8829,34 @@ function main () {
                                 var min_via_balancing = min (_.sum (self.get_total_room_resource_counts ()) - 350 * 1000, currently_have - 120 * 1000, self.mem ['total_energy_needed']);
                                 return min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_balancing));
                             }
+                            else if (mineral == self.get_lab_target_mineral () || mineral == self.get_lab2_target_mineral ()) {
+                                return 0;
+                            }
                             else {
-                                if (mineral == self.get_lab_target_mineral () || mineral == self.get_lab2_target_mineral ()) {
-                                    return 0;
+                                if (self.my_mineral_deposit_minerals ().includes (mineral)) {
+                                    return min (currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2);
+                                }
+                                var fulfilling = self.fulfilling [mineral];
+                                if (fulfilling && len (fulfilling)) {
+                                    return min (_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum (fulfilling, 'amount'));
+                                }
+                                var sell_orders = self.sell_orders_by_mineral () [mineral];
+                                if (sell_orders && len (sell_orders)) {
+                                    var biggest_order = 0;
+                                    var __iterable0__ = sell_orders;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var order = __iterable0__ [__index0__];
+                                        if (order.amountRemaining > biggest_order) {
+                                            var biggest_order = order.amountRemaining;
+                                        }
+                                    }
+                                    return biggest_order;
+                                }
+                                if (currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem.empty_to)) {
+                                    return 1000 * min (math.floor (currently_have / 1000), 20);
                                 }
                                 else {
-                                    if (self.my_mineral_deposit_minerals ().includes (mineral)) {
-                                        return min (currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2);
-                                    }
-                                    var fulfilling = self.fulfilling [mineral];
-                                    if (fulfilling && len (fulfilling)) {
-                                        return min (_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum (fulfilling, 'amount'));
-                                    }
-                                    var sell_orders = self.sell_orders_by_mineral () [mineral];
-                                    if (sell_orders && len (sell_orders)) {
-                                        var biggest_order = 0;
-                                        var __iterable0__ = sell_orders;
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var order = __iterable0__ [__index0__];
-                                            if (order.amountRemaining > biggest_order) {
-                                                var biggest_order = order.amountRemaining;
-                                            }
-                                        }
-                                        return biggest_order;
-                                    }
-                                    if (currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem.empty_to)) {
-                                        return 1000 * min (math.floor (currently_have / 1000), 20);
-                                    }
-                                    else {
-                                        return 0;
-                                    }
+                                    return 0;
                                 }
                             }
                         }, '_terminal_target_for_resource');},
@@ -8597,15 +8868,11 @@ function main () {
                             if (py_split == 8 && !(_.isEmpty (self.fulfilling))) {
                                 self.run_fulfillment ();
                             }
-                            else {
-                                if (py_split == 3 && len (self.my_mineral_deposit_minerals ())) {
-                                    self.check_orders ();
-                                }
-                                else {
-                                    if (py_split == 15 && ('empty_to' in self.room.mem)) {
-                                        self.run_emptying_terminal ();
-                                    }
-                                }
+                            else if (py_split == 3 && len (self.my_mineral_deposit_minerals ())) {
+                                self.check_orders ();
+                            }
+                            else if (py_split == 15 && ('empty_to' in self.room.mem)) {
+                                self.run_emptying_terminal ();
                             }
                         }, 'tick_terminal');},
                         get find_emptying_mineral_and_cost () {return __get__ (this, function (self) {
@@ -8671,13 +8938,11 @@ function main () {
                                         }
                                     }
                                 }
-                                else {
-                                    if (!(self.my_mineral_deposit_minerals ().includes (mineral))) {
-                                        if (len (self.fulfilling [mineral])) {
-                                            self.log ('Used up all of our {}: removing {} remaining orders!'.format (mineral, len (self.fulfilling [mineral])));
-                                        }
-                                        delete self.fulfilling [mineral];
+                                else if (!(self.my_mineral_deposit_minerals ().includes (mineral))) {
+                                    if (len (self.fulfilling [mineral])) {
+                                        self.log ('Used up all of our {}: removing {} remaining orders!'.format (mineral, len (self.fulfilling [mineral])));
                                     }
+                                    delete self.fulfilling [mineral];
                                 }
                             }
                         }, 'run_fulfillment');},
@@ -8717,19 +8982,15 @@ function main () {
                                     target_obj.amount = 100;
                                     return ERR_NOT_ENOUGH_RESOURCES;
                                 }
-                                else {
-                                    if (amount < 100) {
+                                else if (amount < 100) {
+                                    return ERR_NOT_ENOUGH_RESOURCES;
+                                }
+                                else if (target_obj.amount - amount < 100 && amount < target_obj.amount) {
+                                    if (target_obj.amount < 200) {
                                         return ERR_NOT_ENOUGH_RESOURCES;
                                     }
                                     else {
-                                        if (target_obj.amount - amount < 100 && amount < target_obj.amount) {
-                                            if (target_obj.amount < 200) {
-                                                return ERR_NOT_ENOUGH_RESOURCES;
-                                            }
-                                            else {
-                                                var amount = target_obj.amount - 100;
-                                            }
-                                        }
+                                        var amount = target_obj.amount - 100;
                                     }
                                 }
                                 var result = self.terminal.send (mineral, amount, target_obj.room, 'Fulfilling order for {} {}'.format (target_obj.amount, mineral));
@@ -8752,26 +9013,24 @@ function main () {
                                 }
                                 self.recalculate_energy_needed ();
                             }
-                            else {
-                                if (('order_id' in target_obj)) {
-                                    if (result == ERR_INVALID_ARGS) {
-                                        self.log ('Removing market deal {} (send {} {} to {}): executed by another player.'.format (target_obj.order_id, target_obj.amount, mineral, target_obj.room));
-                                        var target_index = self.fulfilling [mineral].indexOf (target_obj);
-                                        if (target_index < 0) {
-                                            self.log ("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}".format (JSON.stringify (target_obj), mineral, self.room.name));
-                                        }
-                                        self.fulfilling [mineral].splice (target_index, 1);
-                                        if (!(len (self.fulfilling [mineral]))) {
-                                            delete self.fulfilling [mineral];
-                                        }
+                            else if (('order_id' in target_obj)) {
+                                if (result == ERR_INVALID_ARGS) {
+                                    self.log ('Removing market deal {} (send {} {} to {}): executed by another player.'.format (target_obj.order_id, target_obj.amount, mineral, target_obj.room));
+                                    var target_index = self.fulfilling [mineral].indexOf (target_obj);
+                                    if (target_index < 0) {
+                                        self.log ("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}".format (JSON.stringify (target_obj), mineral, self.room.name));
                                     }
-                                    else {
-                                        self.log ('ERROR: Unknown result from Game.market.deal({}, {}, {}): {}'.format (target_obj.order_id, amount, self.room.name, result));
+                                    self.fulfilling [mineral].splice (target_index, 1);
+                                    if (!(len (self.fulfilling [mineral]))) {
+                                        delete self.fulfilling [mineral];
                                     }
                                 }
                                 else {
-                                    self.log ('ERROR: Unknown result from {}.send({}, {}, {}, {}): {}'.format (self.terminal, mineral, amount, self.room.name, "'Fulfilling order for {} {}'".format (target_obj.amount, mineral), result));
+                                    self.log ('ERROR: Unknown result from Game.market.deal({}, {}, {}): {}'.format (target_obj.order_id, amount, self.room.name, result));
                                 }
+                            }
+                            else {
+                                self.log ('ERROR: Unknown result from {}.send({}, {}, {}, {}): {}'.format (self.terminal, mineral, amount, self.room.name, "'Fulfilling order for {} {}'".format (target_obj.amount, mineral), result));
                             }
                             return result;
                         }, 'fulfill_now');},
@@ -8807,33 +9066,27 @@ function main () {
                                         }
                                         self.mem.last_sold [mineral] = Game.time;
                                     }
-                                    else {
-                                        if (self.mem.last_sold [mineral] < Game.time - 10000 && to_check.price > bottom_prices [mineral] + 0.01) {
-                                            var new_price = max (bottom_prices [mineral], to_check.price - 0.1);
-                                            self.log ('Reducing price on sell order for {} from {} to {}'.format (mineral, to_check.price, new_price));
-                                            Game.market.changeOrderPrice (to_check.id, new_price);
-                                            self.mem.last_sold [mineral] = Game.time;
-                                        }
-                                        else {
-                                            if (to_check.price < bottom_prices [mineral]) {
-                                                self.log ('Increasing price on sell order for {} from {} to {}'.format (mineral, to_check.price, bottom_prices [mineral]));
-                                                Game.market.changeOrderPrice (to_check.id, bottom_prices [mineral]);
-                                            }
-                                        }
-                                    }
-                                }
-                                else {
-                                    if ((mineral in sell_at_prices) && Game.market.credits >= (0.05 * _SINGLE_MINERAL_FULFILLMENT_MAX) * sell_at_prices [mineral] && len (Game.market.orders) < 50) {
-                                        if ((mineral in self.mem.last_sold_at)) {
-                                            var price = min (max (1.0, sell_at_prices [mineral] - 1.5, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
-                                        }
-                                        else {
-                                            var price = sell_at_prices [mineral];
-                                        }
-                                        self.log ('Creating new sell order for {} {} at {} credits/{}'.format (_SINGLE_MINERAL_FULFILLMENT_MAX, mineral, price, mineral));
-                                        Game.market.createOrder (ORDER_SELL, mineral, price, _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.name);
+                                    else if (self.mem.last_sold [mineral] < Game.time - 10000 && to_check.price > bottom_prices [mineral] + 0.01) {
+                                        var new_price = max (bottom_prices [mineral], to_check.price - 0.1);
+                                        self.log ('Reducing price on sell order for {} from {} to {}'.format (mineral, to_check.price, new_price));
+                                        Game.market.changeOrderPrice (to_check.id, new_price);
                                         self.mem.last_sold [mineral] = Game.time;
                                     }
+                                    else if (to_check.price < bottom_prices [mineral]) {
+                                        self.log ('Increasing price on sell order for {} from {} to {}'.format (mineral, to_check.price, bottom_prices [mineral]));
+                                        Game.market.changeOrderPrice (to_check.id, bottom_prices [mineral]);
+                                    }
+                                }
+                                else if ((mineral in sell_at_prices) && Game.market.credits >= (0.05 * _SINGLE_MINERAL_FULFILLMENT_MAX) * sell_at_prices [mineral] && len (Game.market.orders) < 50) {
+                                    if ((mineral in self.mem.last_sold_at)) {
+                                        var price = min (max (1.0, sell_at_prices [mineral] - 1.5, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
+                                    }
+                                    else {
+                                        var price = sell_at_prices [mineral];
+                                    }
+                                    self.log ('Creating new sell order for {} {} at {} credits/{}'.format (_SINGLE_MINERAL_FULFILLMENT_MAX, mineral, price, mineral));
+                                    Game.market.createOrder (ORDER_SELL, mineral, price, _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.name);
+                                    self.mem.last_sold [mineral] = Game.time;
                                 }
                             }
                         }, 'check_orders');},
@@ -8894,15 +9147,13 @@ function main () {
                             if (self.has_no_terminal_or_storage ()) {
                                 return 0;
                             }
+                            else if (self.get_target_mineral_miner_count () || len (self.adding_to_terminal ()) || self.energy_needed_in_labs () || self.amount_needed_in_lab1 () || self.amount_needed_in_lab2 () || _.sum (self.removing_from_terminal (), (function __lambda__ (t) {
+                                return t [1];
+                            })) > 50 * 1000) {
+                                return 1;
+                            }
                             else {
-                                if (self.get_target_mineral_miner_count () || len (self.adding_to_terminal ()) || self.energy_needed_in_labs () || self.amount_needed_in_lab1 () || self.amount_needed_in_lab2 () || _.sum (self.removing_from_terminal (), (function __lambda__ (t) {
-                                    return t [1];
-                                })) > 50 * 1000) {
-                                    return 1;
-                                }
-                                else {
-                                    return 0;
-                                }
+                                return 0;
                             }
                         }, 'get_target_mineral_hauler_count');},
                         get mineral_report () {return __get__ (this, function (self) {
@@ -8942,13 +9193,11 @@ function main () {
                                     return '{} has {}'.format (self.room.name, ', '.join (minstrings));
                                 }
                             }
+                            else if (len (orderstrings)) {
+                                return '{} is empty, and is fulfilling {}'.format (self.room.name, ', '.join (orderstrings));
+                            }
                             else {
-                                if (len (orderstrings)) {
-                                    return '{} is empty, and is fulfilling {}'.format (self.room.name, ', '.join (orderstrings));
-                                }
-                                else {
-                                    return '{} is empty.'.format (self.room.name);
-                                }
+                                return '{} is empty.'.format (self.room.name);
                             }
                         }, 'mineral_report');}
                     });
@@ -9074,13 +9323,11 @@ function main () {
                                         if (distance <= 2) {
                                             var priority = -(20);
                                         }
+                                        else if (link.id == upgrader_link_id) {
+                                            continue;
+                                        }
                                         else {
-                                            if (link.id == upgrader_link_id) {
-                                                continue;
-                                            }
-                                            else {
-                                                var priority = distance;
-                                            }
+                                            var priority = distance;
                                         }
                                         if (priority < best_priority) {
                                             var best_priority = priority;
@@ -9090,18 +9337,14 @@ function main () {
                                 }
                                 var target = best;
                             }
+                            else if (self.room.room.storage && self.room.room.storage.storeCapacity > 0) {
+                                var target = self.room.room.storage;
+                            }
+                            else if (self.room.spawn) {
+                                var target = self.room.spawn;
+                            }
                             else {
-                                if (self.room.room.storage && self.room.room.storage.storeCapacity > 0) {
-                                    var target = self.room.room.storage;
-                                }
-                                else {
-                                    if (self.room.spawn) {
-                                        var target = self.room.spawn;
-                                    }
-                                    else {
-                                        return null;
-                                    }
-                                }
+                                return null;
                             }
                             var target_id = target.id;
                             self.room.store_cached_property (key, target_id, 50);
@@ -9115,10 +9358,8 @@ function main () {
                             if (flag.memory.sk_room) {
                                 priority -= 40;
                             }
-                            else {
-                                if (self.should_reserve (flag.pos.roomName)) {
-                                    priority -= 30;
-                                }
+                            else if (self.should_reserve (flag.pos.roomName)) {
+                                priority -= 30;
                             }
                             return priority;
                         }, 'mine_priority');},
@@ -9147,18 +9388,14 @@ function main () {
                             if (room && room.controller && room.controller.my) {
                                 var mining_per_tick = 10.0;
                             }
+                            else if (flag.memory.sk_room || room && !(room.controller)) {
+                                var mining_per_tick = 15.0;
+                            }
+                            else if (self.should_reserve (flag.pos.roomName)) {
+                                var mining_per_tick = 10.0;
+                            }
                             else {
-                                if (flag.memory.sk_room || room && !(room.controller)) {
-                                    var mining_per_tick = 15.0;
-                                }
-                                else {
-                                    if (self.should_reserve (flag.pos.roomName)) {
-                                        var mining_per_tick = 10.0;
-                                    }
-                                    else {
-                                        var mining_per_tick = 5.0;
-                                    }
-                                }
+                                var mining_per_tick = 5.0;
                             }
                             var produce_per_tick = mining_per_tick;
                             var target_mass = math.ceil (produce_per_tick / carry_per_tick) + 1;
@@ -9172,30 +9409,30 @@ function main () {
                             }
                             return ideal_mass;
                         }, 'calculate_current_target_mass_for_mine');},
-                        get poll_flag_energy_sitting () {return __get__ (this, function (self) {
+                        get cleanup_old_flag_sitting_values () {return __get__ (this, function (self) {
                             var __iterable0__ = self.available_mines;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
                                 if (('sitting' in flag.memory) && flag.memory.sitting < Game.time - flag.memory.sitting_set && Game.time - flag.memory.sitting_set > 10) {
                                     delete flag.memory.sitting;
                                     delete flag.memory.sitting_set;
-                                    delete flag.memory.remote_miner_targeting;
+                                    if (!(len (flag.memory))) {
+                                        delete Memory.flags [flag.name];
+                                    }
                                 }
                             }
-                        }, 'poll_flag_energy_sitting');},
+                        }, 'cleanup_old_flag_sitting_values');},
                         get energy_sitting_at () {return __get__ (this, function (self, flag) {
                             if (!('sitting' in flag.memory) || Game.time > flag.memory.sitting_set + 10) {
                                 var room = self.hive.get_room (flag.pos.roomName);
                                 if (room) {
                                     flag.memory.sitting = _.sum (room.look_for_in_area_around (LOOK_RESOURCES, flag, 1), 'resource.amount');
                                 }
+                                else if (('sitting_set' in flag.memory)) {
+                                    flag.memory.sitting = max (0, (flag.memory.sitting + flag.memory.sitting_set) - Game.time);
+                                }
                                 else {
-                                    if (('sitting_set' in flag.memory)) {
-                                        flag.memory.sitting = max (0, (flag.memory.sitting + flag.memory.sitting_set) - Game.time);
-                                    }
-                                    else {
-                                        flag.memory.sitting = 0;
-                                    }
+                                    flag.memory.sitting = 0;
                                 }
                                 flag.memory.sitting_set = Game.time;
                             }
@@ -9265,19 +9502,15 @@ function main () {
                                     var maximum = spawning.max_sections_of (self.room, creep_base_hauler);
                                 }
                             }
+                            else if (self.room.all_paved ()) {
+                                var maximum = spawning.max_sections_of (self.room, creep_base_work_half_move_hauler);
+                                var double = true;
+                            }
+                            else if (self.room.paving ()) {
+                                var maximum = spawning.max_sections_of (self.room, creep_base_work_full_move_hauler);
+                            }
                             else {
-                                if (self.room.all_paved ()) {
-                                    var maximum = spawning.max_sections_of (self.room, creep_base_work_half_move_hauler);
-                                    var double = true;
-                                }
-                                else {
-                                    if (self.room.paving ()) {
-                                        var maximum = spawning.max_sections_of (self.room, creep_base_work_full_move_hauler);
-                                    }
-                                    else {
-                                        var maximum = spawning.max_sections_of (self.room, creep_base_hauler);
-                                    }
-                                }
+                                var maximum = spawning.max_sections_of (self.room, creep_base_hauler);
                             }
                             var needed = self.calculate_ideal_mass_for_mine (flag);
                             if (double) {
@@ -9320,10 +9553,8 @@ function main () {
                                                 osa++;
                                             }
                                         }
-                                        else {
-                                            if (Game.map.getTerrainAt (x, y, flag.pos.roomName) != 'wall') {
-                                                osa++;
-                                            }
+                                        else if (Game.map.getTerrainAt (x, y, flag.pos.roomName) != 'wall') {
+                                            osa++;
                                         }
                                     }
                                 }
@@ -9347,10 +9578,8 @@ function main () {
                                     }
                                     return null;
                                 }
-                                else {
-                                    if (controller.my) {
-                                        return null;
-                                    }
+                                else if (controller.my) {
+                                    return null;
                                 }
                             }
                             if (!(Memory.reserving)) {
@@ -9383,13 +9612,11 @@ function main () {
                             if (flag.memory.sk_room) {
                                 return 7;
                             }
+                            else if (flag.pos.roomName == self.room.name || self.should_reserve (flag.pos.roomName)) {
+                                return 5;
+                            }
                             else {
-                                if (flag.pos.roomName == self.room.name || self.should_reserve (flag.pos.roomName)) {
-                                    return 5;
-                                }
-                                else {
-                                    return 3;
-                                }
+                                return 3;
                             }
                         }, 'get_ideal_miner_workmass_for');},
                         get haulers_can_target_mine () {return __get__ (this, function (self, flag) {
@@ -9457,21 +9684,17 @@ function main () {
                                     var base = creep_base_carry3000miner;
                                     var num_sections = min (5, spawning.max_sections_of (self.room, base));
                                 }
+                                else if (flag.memory.sk_room) {
+                                    var base = creep_base_4000miner;
+                                    var num_sections = min (7, spawning.max_sections_of (self.room, base));
+                                }
+                                else if (flag.pos.roomName == self.room.name || self.should_reserve (flag.pos.roomName)) {
+                                    var base = creep_base_3000miner;
+                                    var num_sections = min (5, spawning.max_sections_of (self.room, base));
+                                }
                                 else {
-                                    if (flag.memory.sk_room) {
-                                        var base = creep_base_4000miner;
-                                        var num_sections = min (7, spawning.max_sections_of (self.room, base));
-                                    }
-                                    else {
-                                        if (flag.pos.roomName == self.room.name || self.should_reserve (flag.pos.roomName)) {
-                                            var base = creep_base_3000miner;
-                                            var num_sections = min (5, spawning.max_sections_of (self.room, base));
-                                        }
-                                        else {
-                                            var base = creep_base_1500miner;
-                                            var num_sections = min (3, spawning.max_sections_of (self.room, base));
-                                        }
-                                    }
+                                    var base = creep_base_1500miner;
+                                    var num_sections = min (3, spawning.max_sections_of (self.room, base));
                                 }
                                 if (self.room.all_paved ()) {
                                     var num_sections = spawning.ceil_sections (num_sections / 2, base);
@@ -9506,18 +9729,14 @@ function main () {
                                         var base = creep_base_hauler;
                                     }
                                 }
+                                else if (self.room.all_paved ()) {
+                                    var base = creep_base_work_half_move_hauler;
+                                }
+                                else if (self.room.paving ()) {
+                                    var base = creep_base_work_full_move_hauler;
+                                }
                                 else {
-                                    if (self.room.all_paved ()) {
-                                        var base = creep_base_work_half_move_hauler;
-                                    }
-                                    else {
-                                        if (self.room.paving ()) {
-                                            var base = creep_base_work_full_move_hauler;
-                                        }
-                                        else {
-                                            var base = creep_base_hauler;
-                                        }
-                                    }
+                                    var base = creep_base_hauler;
                                 }
                                 return dict ({'role': role_hauler, 'base': base, 'num_sections': self.calculate_creep_num_sections_for_mine (flag), 'targets': list ([list ([target_energy_hauler_mine, flag_id])])});
                             }
@@ -9603,6 +9822,299 @@ function main () {
     );
     __nest__ (
         __all__,
+        'control.mining_paths', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
+                    var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
+                    var gmem_key_room_mining_paths = 'mp';
+                    var no_spawn_name_name = 'none';
+                    var _get_mem = function () {
+                        if ((gmem_key_room_mining_paths in Memory)) {
+                            return Memory [gmem_key_room_mining_paths];
+                        }
+                        else {
+                            var __left0__ = dict ({});
+                            var mem = __left0__;
+                            Memory [gmem_key_room_mining_paths] = __left0__;
+                            return mem;
+                        }
+                    };
+                    var register_new_mining_path = function (mine_flag, spawn, raw_path) {
+                        if (!(mine_flag.name) || spawn && !(spawn.id)) {
+                            var __except0__ = ValueError ('Invalid mine flag or spawn ({}, {}): no name/id'.format (mine_flag, spawn));
+                            __except0__.__cause__ = null;
+                            throw __except0__;
+                        }
+                        var serialized_string = list ([]);
+                        if (len (raw_path)) {
+                            var last_room = raw_path [0].roomName;
+                            var room_pos_points = dict ([[last_room, serialized_string]]);
+                            var debug = last_room == 'E11N51';
+                            var __iterable0__ = raw_path;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var pos = __iterable0__ [__index0__];
+                                if (pos.roomName != last_room) {
+                                    if ((pos.roomName in room_pos_points)) {
+                                        var serialized_string = room_pos_points [pos.roomName];
+                                    }
+                                    else {
+                                        var __left0__ = list ([]);
+                                        var serialized_string = __left0__;
+                                        room_pos_points [pos.roomName] = __left0__;
+                                    }
+                                    var last_room = pos.roomName;
+                                    var debug = last_room == 'E11N51';
+                                }
+                                serialized_string.push (String.fromCodePoint (pos.x | pos.y << 6));
+                                if (debug) {
+                                    print ('[mining_paths][debug] Added position {}'.format (pos));
+                                }
+                            }
+                        }
+                        else {
+                            var room_pos_points = dict ({});
+                        }
+                        var mine_name = mine_flag.name;
+                        var spawn_id = (spawn ? spawn.id : no_spawn_name_name);
+                        print ('[mining_paths][debug] Registering mining path for mine {} spawn {}.'.format (mine_name, spawn_id));
+                        var our_key_start = ((String.fromCodePoint ((len (mine_name) + len (spawn_id)) + 2) + String.fromCodePoint (len (mine_name))) + mine_name) + spawn_id;
+                        var gmem = _get_mem ();
+                        var rooms_this_is_in = Object.keys (room_pos_points);
+                        var __iterable0__ = rooms_this_is_in;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room_name = __iterable0__ [__index0__];
+                            var our_data = our_key_start + ''.join (room_pos_points [room_name]);
+                            if ((room_name in gmem)) {
+                                var data_array = gmem [room_name];
+                                _.remove (data_array, (function __lambda__ (x) {
+                                    return x.startsWith (our_key_start);
+                                }));
+                                data_array.push (our_data);
+                            }
+                            else {
+                                gmem [room_name] = list ([our_data]);
+                            }
+                        }
+                        var __iterable0__ = Object.keys (gmem);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room_name = __iterable0__ [__index0__];
+                            if (!(rooms_this_is_in.includes (room_name))) {
+                                var data_list = gmem [room_name];
+                                _.remove (data_list, (function __lambda__ (x) {
+                                    return x.startsWith (our_key_start);
+                                }));
+                                if (!(len (data_list))) {
+                                    delete gmem [room_name];
+                                }
+                            }
+                        }
+                    };
+                    var get_set_of_all_serialized_positions_in = function (room_name) {
+                        var the_set = new_set ();
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return the_set;
+                        }
+                        var __iterable0__ = gmem [room_name];
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var data_string = __iterable0__ [__index0__];
+                            var points = data_string.__getslice__ (data_string.codePointAt (0), null, 1);
+                            for (var i = 0; i < len (points); i++) {
+                                var xy = points.codePointAt (i);
+                                the_set.add (xy);
+                            }
+                        }
+                        return the_set;
+                    };
+                    var debug_str_of_pos = function (room_name) {
+                        var map_of_values = new_map ();
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return map_of_values;
+                        }
+                        var __iterable0__ = gmem [room_name];
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var data_string = __iterable0__ [__index0__];
+                            var points = data_string.__getslice__ (data_string.codePointAt (0), null, 1);
+                            for (var i = 0; i < len (points); i++) {
+                                var xy = points.codePointAt (i);
+                                if (map_of_values.has (xy)) {
+                                    map_of_values.set (xy, map_of_values.get (xy) + 1);
+                                }
+                                else {
+                                    map_of_values.set (xy, 1);
+                                }
+                            }
+                        }
+                        var output = list ([]);
+                        for (var y = 0; y < 50; y++) {
+                            output.push ('\n');
+                            for (var x = 0; x < 50; x++) {
+                                var xy = x | y << 6;
+                                var value = map_of_values.get (xy);
+                                if (value) {
+                                    output.push (value);
+                                }
+                                else {
+                                    output.push (0);
+                                }
+                                output.push (' ');
+                            }
+                            output.py_pop ();
+                        }
+                        return ''.join (output);
+                    };
+                    var set_decreasing_cost_matrix_costs = function (room_name, mine_path_data, cost_matrix, base_plains, base_swamp, lowest_possible) {
+                        var lowest_possible = max (lowest_possible, 1);
+                        if (_.isArray (mine_path_data)) {
+                            if (len (mine_path_data) > 2 || len (mine_path_data) < 1 || !(mine_path_data [0].name) || mine_path_data [1] && !(mine_path_data [1].id)) {
+                                var msg = '[mining_paths] WARNING: Unknown kind of mine data passed into set_decreasing_cost_matrix_costs: {} ({}, {})'.format (JSON.stringify (mine_path_data), mine_path_data [0], mine_path_data [1]);
+                                print (msg);
+                                Game.notify (msg);
+                                return ;
+                            }
+                            var mine_name = mine_path_data [0].name;
+                            var spawn_id = (mine_path_data [1] ? mine_path_data [1].id : no_spawn_name_name);
+                        }
+                        else {
+                            if (!(mine_path_data.name)) {
+                                var msg = '[mining_paths] WARNING: Unknown kind of mine data passed into set_decreasing_cost_matrix_costs: {} ({})'.format (JSON.stringify (mine_path_data), mine_path_data);
+                                print (msg);
+                                Game.notify (msg);
+                                return ;
+                            }
+                            var mine_name = mine_path_data.name;
+                            var spawn_id = no_spawn_name_name;
+                        }
+                        var key_to_avoid = ((String.fromCodePoint ((len (mine_name) + len (spawn_id)) + 2) + String.fromCodePoint (len (mine_name))) + mine_name) + spawn_id;
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return ;
+                        }
+                        var __iterable0__ = gmem [room_name];
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var data_string = __iterable0__ [__index0__];
+                            if (data_string.startsWith (key_to_avoid)) {
+                                continue;
+                            }
+                            var points = data_string.__getslice__ (data_string.codePointAt (0), null, 1);
+                            for (var i = 0; i < len (points); i++) {
+                                var xy = points.codePointAt (i);
+                                var x = xy & 63;
+                                var y = xy >> 6 & 63;
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] == 'p') {
+                                        var existing = base_plains;
+                                    }
+                                    else if (terrain [0] == 's') {
+                                        var existing = base_swamp;
+                                    }
+                                    else {
+                                        continue;
+                                    }
+                                }
+                                if (existing > lowest_possible) {
+                                    cost_matrix.set (x, y, existing - 1);
+                                }
+                            }
+                        }
+                    };
+                    var set_slightly_increased_cost = function (room_name, cost_matrix, base_plains, base_swamp, increase_by) {
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return ;
+                        }
+                        var roads_added = new_set ();
+                        var __iterable0__ = gmem [room_name];
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var data_string = __iterable0__ [__index0__];
+                            var points = data_string.__getslice__ (data_string.codePointAt (0), null, 1);
+                            for (var i = 0; i < len (points); i++) {
+                                var xy = points.codePointAt (i);
+                                if (roads_added.has (xy)) {
+                                    continue;
+                                }
+                                roads_added.add (xy);
+                                var x = xy & 63;
+                                var y = xy >> 6 & 63;
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] == 'p') {
+                                        var existing = base_plains;
+                                    }
+                                    else if (terrain [0] == 's') {
+                                        var existing = base_swamp;
+                                    }
+                                    else {
+                                        continue;
+                                    }
+                                }
+                                cost_matrix.set (x, y, existing + increase_by);
+                            }
+                        }
+                    };
+                    var cleanup_old_values = function (hive) {
+                        var active_mines = new_set ();
+                        var __iterable0__ = hive.my_rooms;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room = __iterable0__ [__index0__];
+                            var __iterable1__ = room.mining.active_mines;
+                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                var mine = __iterable1__ [__index1__];
+                                active_mines.add (mine.name);
+                            }
+                        }
+                        var path_mem = _get_mem ();
+                        var __iterable0__ = Object.keys (path_mem);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room_name = __iterable0__ [__index0__];
+                            var data_list = path_mem [room_name];
+                            var to_remove = list ([]);
+                            var __iterable1__ = data_list;
+                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                var data_string = __iterable1__ [__index1__];
+                                var end_of_name_data = data_string.codePointAt (0);
+                                var mine_name_length = data_string.codePointAt (1);
+                                var mine_name = data_string.__getslice__ (2, 2 + mine_name_length, 1);
+                                var spawn_id = data_string.__getslice__ (2 + mine_name_length, end_of_name_data, 1);
+                                if (!(active_mines.has (mine_name)) || spawn_id != no_spawn_name_name && Game.getObjectById (spawn_id) === null) {
+                                    to_remove.push (data_string);
+                                    print ('[mining_paths] Removing path for mine: {}, spawn: {}.'.format (mine_name, spawn_id));
+                                }
+                            }
+                            _.pull (data_list, to_remove);
+                            if (!(len (data_list))) {
+                                delete path_mem [room_name];
+                            }
+                        }
+                    };
+                    __pragma__ ('<use>' +
+                        'utilities.screeps_constants' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__._get_mem = _get_mem;
+                        __all__.cleanup_old_values = cleanup_old_values;
+                        __all__.debug_str_of_pos = debug_str_of_pos;
+                        __all__.get_set_of_all_serialized_positions_in = get_set_of_all_serialized_positions_in;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
+                        __all__.new_map = new_map;
+                        __all__.new_set = new_set;
+                        __all__.no_spawn_name_name = no_spawn_name_name;
+                        __all__.register_new_mining_path = register_new_mining_path;
+                        __all__.set_decreasing_cost_matrix_costs = set_decreasing_cost_matrix_costs;
+                        __all__.set_slightly_increased_cost = set_slightly_increased_cost;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
         'control.pathdef', {
             __all__: {
                 __inited__: false,
@@ -9612,6 +10124,9 @@ function main () {
                     var SK_LAIR_SOURCE_NOTED = __init__ (__world__.constants).SK_LAIR_SOURCE_NOTED;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var mining_paths = __init__ (__world__.control.mining_paths);
                     var global_cache = __init__ (__world__.utilities.global_cache);
                     var hostile_utils = __init__ (__world__.utilities.hostile_utils);
                     var movement = __init__ (__world__.utilities.movement);
@@ -9650,18 +10165,14 @@ function main () {
                                 if (dx == -(49)) {
                                     var dx = 1;
                                 }
-                                else {
-                                    if (dx == 49) {
-                                        var dx = -(1);
-                                    }
+                                else if (dx == 49) {
+                                    var dx = -(1);
                                 }
                                 if (dy == -(49)) {
                                     var dy = 1;
                                 }
-                                else {
-                                    if (dy == 49) {
-                                        var dy = -(1);
-                                    }
+                                else if (dy == 49) {
+                                    var dy = -(1);
                                 }
                                 if (pos.endOfReroute) {
                                     var reroute_end_dx = dx;
@@ -9693,44 +10204,30 @@ function main () {
                             if (dy < 0) {
                                 var direction = TOP_LEFT;
                             }
-                            else {
-                                if (dy == 0) {
-                                    var direction = LEFT;
-                                }
-                                else {
-                                    if (dy > 0) {
-                                        var direction = BOTTOM_LEFT;
-                                    }
-                                }
+                            else if (dy == 0) {
+                                var direction = LEFT;
+                            }
+                            else if (dy > 0) {
+                                var direction = BOTTOM_LEFT;
                             }
                         }
-                        else {
-                            if (dx == 0) {
-                                if (dy < 0) {
-                                    var direction = TOP;
-                                }
-                                else {
-                                    if (dy > 0) {
-                                        var direction = BOTTOM;
-                                    }
-                                }
+                        else if (dx == 0) {
+                            if (dy < 0) {
+                                var direction = TOP;
                             }
-                            else {
-                                if (dx > 0) {
-                                    if (dy < 0) {
-                                        var direction = TOP_RIGHT;
-                                    }
-                                    else {
-                                        if (dy == 0) {
-                                            var direction = RIGHT;
-                                        }
-                                        else {
-                                            if (dy > 0) {
-                                                var direction = BOTTOM_RIGHT;
-                                            }
-                                        }
-                                    }
-                                }
+                            else if (dy > 0) {
+                                var direction = BOTTOM;
+                            }
+                        }
+                        else if (dx > 0) {
+                            if (dy < 0) {
+                                var direction = TOP_RIGHT;
+                            }
+                            else if (dy == 0) {
+                                var direction = RIGHT;
+                            }
+                            else if (dy > 0) {
+                                var direction = BOTTOM_RIGHT;
                             }
                         }
                         if (direction === null) {
@@ -9762,19 +10259,23 @@ function main () {
                             }
                         }
                     };
+                    var get_global_cache_key = function (origin, destination, opts) {
+                        if (opts) {
+                            if (opts ['ignore_swamp']) {
+                                return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, 'swl']));
+                            }
+                            else if (opts ['paved_for']) {
+                                return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, global_cache_mining_roads_suffix]));
+                            }
+                        }
+                        return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y]));
+                    };
                     var HoneyTrails = __class__ ('HoneyTrails', [object], {
                         get __init__ () {return __get__ (this, function (self, hive) {
                             self.hive = hive;
                         }, '__init__');},
                         get mark_exit_tiles () {return __get__ (this, function (self, room_name, matrix, opts) {
-                            var use_roads = opts ['roads'];
-                            var future_chosen = opts ['future_chosen'];
-                            if (future_chosen) {
-                                var if_roads_multiplier = 5;
-                            }
-                            else {
-                                var if_roads_multiplier = (use_roads ? 2 : 1);
-                            }
+                            var plain_cost = opts ['plain_cost'];
                             var __left0__ = movement.parse_room_to_xy (room_name);
                             var room_x = __left0__ [0];
                             var room_y = __left0__ [1];
@@ -9786,7 +10287,7 @@ function main () {
                                     var x = __iterable0__ [__index0__];
                                     for (var y = 0; y < 50; y++) {
                                         if (Game.map.getTerrainAt (x, y, room_name) != 'wall') {
-                                            matrix.set (x, y, 1 * if_roads_multiplier);
+                                            matrix.set (x, y, 1 * plain_cost);
                                         }
                                     }
                                 }
@@ -9795,7 +10296,7 @@ function main () {
                                     var y = __iterable0__ [__index0__];
                                     for (var x = 0; x < 50; x++) {
                                         if (Game.map.getTerrainAt (x, y, room_name) != 'wall') {
-                                            matrix.set (x, y, 1 * if_roads_multiplier);
+                                            matrix.set (x, y, 1 * plain_cost);
                                         }
                                     }
                                 }
@@ -9806,7 +10307,7 @@ function main () {
                                     var x = __iterable0__ [__index0__];
                                     for (var y = 0; y < 50; y++) {
                                         if (Game.map.getTerrainAt (x, y, room_name) != 'wall') {
-                                            matrix.set (x, y, 2 * if_roads_multiplier);
+                                            matrix.set (x, y, 2 * plain_cost);
                                         }
                                     }
                                 }
@@ -9815,7 +10316,7 @@ function main () {
                                     var y = __iterable0__ [__index0__];
                                     for (var x = 0; x < 50; x++) {
                                         if (Game.map.getTerrainAt (x, y, room_name) != 'wall') {
-                                            matrix.set (x, y, 2 * if_roads_multiplier);
+                                            matrix.set (x, y, 2 * plain_cost);
                                         }
                                     }
                                 }
@@ -9833,7 +10334,7 @@ function main () {
                             }
                             var slightly_avoid = flags.find_flags (room_name, SLIGHTLY_AVOID).concat (flags.find_flags (room_name, UPGRADER_SPOT));
                             if (len (slightly_avoid)) {
-                                var cost = (opts ['future_chosen'] ? 10 : (opts ['roads'] ? 4 : 2));
+                                var cost = 2 * opts ['plain_cost'];
                                 var __iterable0__ = slightly_avoid;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var flag = __iterable0__ [__index0__];
@@ -9845,23 +10346,13 @@ function main () {
                         }, 'mark_flags');},
                         get set_max_avoid () {return __get__ (this, function (self, room_name, matrix, opts) {
                             if (opts ['max_avoid']) {
-                                if (opts ['future_chosen']) {
-                                    var if_roads_multiplier = 5;
-                                }
-                                else {
-                                    if (opts ['roads']) {
-                                        var if_roads_multiplier = 2;
-                                    }
-                                    else {
-                                        var if_roads_multiplier = 1;
-                                    }
-                                }
+                                var plain_cost = opts ['plain_cost'];
                                 if ((room_name in opts ['max_avoid'])) {
                                     print ('Setting max_avoid in room {}'.format (room_name));
                                     for (var x = 0; x < 49; x++) {
                                         for (var y = 0; y < 49; y++) {
                                             if (Game.map.getTerrainAt (x, y, room_name) != 'wall') {
-                                                matrix.set (x, y, if_roads_multiplier * 20);
+                                                matrix.set (x, y, plain_cost * 20);
                                             }
                                         }
                                     }
@@ -9877,34 +10368,28 @@ function main () {
                                         if (direction == TOP) {
                                             for (var x = 0; x < 49; x++) {
                                                 if (Game.map.getTerrainAt (x, 0, room_name) != 'wall') {
-                                                    matrix.set (x, 0, 20 * if_roads_multiplier);
+                                                    matrix.set (x, 0, 20 * plain_cost);
                                                 }
                                             }
                                         }
-                                        else {
-                                            if (direction == BOTTOM) {
-                                                for (var x = 0; x < 49; x++) {
-                                                    if (Game.map.getTerrainAt (x, 49, room_name) != 'wall') {
-                                                        matrix.set (x, 49, 20 * if_roads_multiplier);
-                                                    }
+                                        else if (direction == BOTTOM) {
+                                            for (var x = 0; x < 49; x++) {
+                                                if (Game.map.getTerrainAt (x, 49, room_name) != 'wall') {
+                                                    matrix.set (x, 49, 20 * plain_cost);
                                                 }
                                             }
-                                            else {
-                                                if (direction == LEFT) {
-                                                    for (var y = 0; y < 49; y++) {
-                                                        if (Game.map.getTerrainAt (0, y, room_name) != 'wall') {
-                                                            matrix.set (0, y, 20 * if_roads_multiplier);
-                                                        }
-                                                    }
+                                        }
+                                        else if (direction == LEFT) {
+                                            for (var y = 0; y < 49; y++) {
+                                                if (Game.map.getTerrainAt (0, y, room_name) != 'wall') {
+                                                    matrix.set (0, y, 20 * plain_cost);
                                                 }
-                                                else {
-                                                    if (direction == RIGHT) {
-                                                        for (var y = 0; y < 49; y++) {
-                                                            if (Game.map.getTerrainAt (49, y, room_name) != 'wall') {
-                                                                matrix.set (49, y, 20 * if_roads_multiplier);
-                                                            }
-                                                        }
-                                                    }
+                                            }
+                                        }
+                                        else if (direction == RIGHT) {
+                                            for (var y = 0; y < 49; y++) {
+                                                if (Game.map.getTerrainAt (49, y, room_name) != 'wall') {
+                                                    matrix.set (49, y, 20 * plain_cost);
                                                 }
                                             }
                                         }
@@ -9921,9 +10406,9 @@ function main () {
                             }
                         }, 'generate_serialized_cost_matrix');},
                         get get_generic_cost_matrix () {return __get__ (this, function (self, room_name, opts) {
-                            var use_roads = opts ['roads'];
-                            var if_roads_multiplier = (use_roads ? 2 : 1);
-                            var serialization_key = '{}_cost_matrix_{}'.format (room_name, if_roads_multiplier);
+                            var plain_cost = opts ['plain_cost'];
+                            var swamp_cost = opts ['swamp_cost'];
+                            var serialization_key = '{}_cost_matrix_{}'.format (room_name, plain_cost);
                             var serialized = global_cache.get (serialization_key);
                             if (serialized) {
                                 var cost_matrix = PathFinder.CostMatrix.deserialize (JSON.parse (serialized));
@@ -9937,86 +10422,128 @@ function main () {
                             var wall_at = function (x, y) {
                                 return Game.map.getTerrainAt (x, y, room_name) == 'wall';
                             };
-                            var road_at = function (x, y) {
-                                var __iterable0__ = room.look_at (LOOK_STRUCTURES, x, y);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    if (s.structureType == STRUCTURE_ROAD) {
-                                        return true;
+                            var increase_by = function (x, y, added) {
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] === 'p') {
+                                        var existing = plain_cost;
+                                    }
+                                    else if (terrain [0] === 's') {
+                                        var existing = swamp_cost;
+                                    }
+                                    else {
+                                        return ;
                                     }
                                 }
-                                var __iterable0__ = room.look_at (LOOK_CONSTRUCTION_SITES, x, y);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    if (s.structureType == STRUCTURE_ROAD) {
-                                        return true;
-                                    }
-                                }
-                                return false;
+                                cost_matrix.set (x, y, existing + added);
                             };
+                            if (room.my) {
+                                var spawn_fill_wait_flags = flags.find_flags (room, SPAWN_FILL_WAIT);
+                                if (len (spawn_fill_wait_flags)) {
+                                    var avoid_extensions = false;
+                                }
+                                else {
+                                    var avoid_extensions = true;
+                                }
+                            }
+                            else {
+                                var avoid_extensions = false;
+                                var spawn_fill_wait_flags = list ([]);
+                            }
+                            if (room.my) {
+                                var upgrader_wait_flags = flags.find_flags (room, UPGRADER_SPOT);
+                                if (len (upgrader_wait_flags)) {
+                                    var avoid_controller = false;
+                                }
+                                else {
+                                    var avoid_controller = true;
+                                }
+                            }
+                            else {
+                                var avoid_controller = false;
+                                var upgrader_wait_flags = list ([]);
+                            }
                             var cost_matrix = new PathFinder.CostMatrix ();
                             self.mark_exit_tiles (room_name, cost_matrix, opts);
                             self.mark_flags (room_name, cost_matrix, opts);
-                            var set_matrix = function (stype, pos, planned) {
-                                if (stype == STRUCTURE_ROAD || stype == STRUCTURE_RAMPART || stype == STRUCTURE_CONTAINER) {
-                                    if (stype == STRUCTURE_ROAD && !(flags.look_for (room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD))) {
-                                        if (cost_matrix.get (pos.x, pos.y) > 2) {
-                                            cost_matrix.set (pos.x, pos.y, cost_matrix.get (pos.x, pos.y) / 2);
-                                            return ;
+                            var set_matrix = function (stype, pos, my) {
+                                if (stype == STRUCTURE_ROAD || stype == STRUCTURE_RAMPART && my || stype == STRUCTURE_CONTAINER) {
+                                    if (stype == STRUCTURE_ROAD) {
+                                        var existing = cost_matrix.get (pos.x, pos.y);
+                                        if (existing < 255 && !(wall_at (pos.x, pos.y))) {
+                                            if (existing != 0 && existing > plain_cost) {
+                                                cost_matrix.set (pos.x, pos.y, existing - 2);
+                                            }
+                                            else {
+                                                cost_matrix.set (pos.x, pos.y, 1);
+                                            }
                                         }
-                                        cost_matrix.set (pos.x, pos.y, 1);
                                     }
                                     return ;
                                 }
                                 cost_matrix.set (pos.x, pos.y, 255);
-                                if (stype == STRUCTURE_SPAWN || stype == STRUCTURE_EXTENSION || stype == STRUCTURE_STORAGE || stype == STRUCTURE_LINK) {
-                                    for (var x = pos.x - 1; x < pos.x + 2; x++) {
-                                        for (var y = pos.y - 1; y < pos.y + 2; y++) {
-                                            if (!(road_at (x, y)) && !(wall_at (x, y)) && cost_matrix.get (x, y) < 10 * if_roads_multiplier) {
-                                                cost_matrix.set (x, y, 10 * if_roads_multiplier);
+                                if (my) {
+                                    if (avoid_extensions && (stype == STRUCTURE_SPAWN || stype == STRUCTURE_EXTENSION)) {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 9 * plain_cost);
                                             }
                                         }
                                     }
-                                }
-                                else {
-                                    if (stype == STRUCTURE_CONTROLLER || stype == 'this_is_a_source') {
+                                    else if (stype == STRUCTURE_STORAGE || stype == STRUCTURE_LINK) {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 6 * plain_cost);
+                                            }
+                                        }
+                                    }
+                                    else if (avoid_controller && stype == STRUCTURE_CONTROLLER) {
                                         for (var x = pos.x - 3; x < pos.x + 4; x++) {
                                             for (var y = pos.y - 3; y < pos.y + 4; y++) {
-                                                if (!(road_at (x, y)) && !(wall_at (x, y)) && cost_matrix.get (x, y) < 5 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 5 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 4 * plain_cost);
                                             }
                                         }
                                         for (var x = pos.x - 2; x < pos.x + 3; x++) {
                                             for (var y = pos.y - 2; y < pos.y + 3; y++) {
-                                                if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 7 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 7 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 2 * plain_cost);
                                             }
                                         }
                                         for (var x = pos.x - 1; x < pos.x + 2; x++) {
                                             for (var y = pos.y - 1; y < pos.y + 2; y++) {
-                                                if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 20 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 20 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 13 * plain_cost);
+                                            }
+                                        }
+                                    }
+                                    else if (stype == '--source') {
+                                        for (var x = pos.x - 3; x < pos.x + 4; x++) {
+                                            for (var y = pos.y - 3; y < pos.y + 4; y++) {
+                                                increase_by (x, y, 4 * plain_cost);
+                                            }
+                                        }
+                                        for (var x = pos.x - 2; x < pos.x + 3; x++) {
+                                            for (var y = pos.y - 2; y < pos.y + 3; y++) {
+                                                increase_by (x, y, 2 * plain_cost);
+                                            }
+                                        }
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 11 * plain_cost);
                                             }
                                         }
                                     }
                                 }
                                 cost_matrix.set (pos.x, pos.y, 255);
                             };
-                            var controller = room.room.controller && room.room.controller.my && !(len (flags.find_flags (room, UPGRADER_SPOT)));
                             var __iterable0__ = room.find (FIND_STRUCTURES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var struct = __iterable0__ [__index0__];
-                                if ((struct.structureType != STRUCTURE_CONTROLLER || controller) && (struct.structureType != STRUCTURE_RAMPART || !(struct.my))) {
-                                    set_matrix (struct.structureType, struct.pos, false);
-                                }
+                                set_matrix (struct.structureType, struct.pos, struct.my || !(struct.owner));
                             }
                             var __iterable0__ = room.find (FIND_CONSTRUCTION_SITES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var site = __iterable0__ [__index0__];
-                                set_matrix (site.structureType, site.pos, true);
+                                set_matrix (site.structureType, site.pos, site.my);
                             }
                             var __iterable0__ = flags.find_by_main_with_sub (room, flags.MAIN_BUILD);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -10028,7 +10555,17 @@ function main () {
                             var __iterable0__ = room.find (FIND_SOURCES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                set_matrix ('this_is_a_source', source.pos, false);
+                                set_matrix ('--source', source.pos, true);
+                            }
+                            var __iterable0__ = spawn_fill_wait_flags;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var flag = __iterable0__ [__index0__];
+                                cost_matrix.set (flag.pos.x, flag.pos.y, 255);
+                            }
+                            var __iterable0__ = upgrader_wait_flags;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var flag = __iterable0__ [__index0__];
+                                cost_matrix.set (flag.pos.x, flag.pos.y, 255);
                             }
                             if (room.my && room.room.storage && room.links.main_link) {
                                 var ml = room.links.main_link;
@@ -10036,16 +10573,14 @@ function main () {
                                 if (ml.pos.x == storage.pos.x && abs (ml.pos.y - storage.pos.y) == 2 && movement.is_block_empty (room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2)) {
                                     cost_matrix.set (ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255);
                                 }
+                                else if (ml.pos.y == storage.pos.y && abs (ml.pos.x - storage.pos.x) == 2 && movement.is_block_empty (room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y)) {
+                                    cost_matrix.set ((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255);
+                                }
                                 else {
-                                    if (ml.pos.y == storage.pos.y && abs (ml.pos.x - storage.pos.x) == 2 && movement.is_block_empty (room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y)) {
-                                        cost_matrix.set ((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255);
-                                    }
-                                    else {
-                                        for (var x = ml.pos.x - 1; x < ml.pos.x + 2; x++) {
-                                            for (var y = ml.pos.y - 1; y < ml.pos.y + 2; y++) {
-                                                if (abs (storage.pos.x - x) <= 1 && abs (storage.pos.y - y) <= 1) {
-                                                    cost_matrix.set (x, y, 255);
-                                                }
+                                    for (var x = ml.pos.x - 1; x < ml.pos.x + 2; x++) {
+                                        for (var y = ml.pos.y - 1; y < ml.pos.y + 2; y++) {
+                                            if (abs (storage.pos.x - x) <= 1 && abs (storage.pos.y - y) <= 1) {
+                                                cost_matrix.set (x, y, 255);
                                             }
                                         }
                                     }
@@ -10058,8 +10593,7 @@ function main () {
                             return cost_matrix;
                         }, 'get_generic_cost_matrix');},
                         get _new_cost_matrix () {return __get__ (this, function (self, room_name, origin, destination, opts) {
-                            var use_roads = opts ['roads'];
-                            var future_chosen = opts ['future_chosen'];
+                            var paved_for = opts ['paved_for'];
                             if (hostile_utils.enemy_room (room_name)) {
                                 if (room_name != origin.roomName && room_name != destination.roomName) {
                                     return false;
@@ -10068,28 +10602,17 @@ function main () {
                                     print ('[honey] Warning: path {}-{} ends up in an enemy room ({})!'.format (origin, destination, room_name));
                                 }
                             }
-                            if (future_chosen) {
-                                var if_roads_multiplier = 5;
-                                var this_room_future_roads = future_chosen [room_name] || list ([]);
-                            }
-                            else {
-                                var if_roads_multiplier = (use_roads ? 2 : 1);
-                                var this_room_future_roads = null;
-                            }
+                            var if_roads_multiplier = opts ['plain_cost'];
+                            var plain_cost = opts ['plain_cost'];
+                            var swamp_cost = opts ['swamp_cost'];
                             var room = self.hive.get_room (room_name);
-                            if (room_name != origin.roomName && room_name != destination.roomName && !(future_chosen) || !(room)) {
-                                if (this_room_future_roads) {
+                            if (room_name != origin.roomName && room_name != destination.roomName && !(paved_for) || !(room)) {
+                                if (paved_for) {
                                     var serialized = global_cache.get ('{}_cost_matrix_{}'.format (room_name, if_roads_multiplier));
                                     if (serialized) {
                                         var matrix = PathFinder.CostMatrix.deserialize (JSON.parse (serialized));
                                         self.set_max_avoid (room_name, matrix, opts);
-                                        if (this_room_future_roads) {
-                                            var __iterable0__ = this_room_future_roads;
-                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                var pos = __iterable0__ [__index0__];
-                                                matrix.set (pos.x, pos.y, 2);
-                                            }
-                                        }
+                                        mining_paths.set_decreasing_cost_matrix_costs (room_name, paved_for, matrix, opts ['plain_cost'], opts ['swamp_cost'], 3);
                                     }
                                 }
                                 else {
@@ -10104,75 +10627,92 @@ function main () {
                                 self.set_max_avoid (room_name, matrix, opts);
                                 return matrix;
                             }
-                            var structures_ignore = list ([]);
-                            if (origin.roomName == room_name) {
-                                var __iterable0__ = room.look_at (LOOK_STRUCTURES, origin);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    structures_ignore.append (s.structureType);
+                            if (room.my) {
+                                var spawn_fill_wait_flags = flags.find_flags (room, SPAWN_FILL_WAIT);
+                                if (len (spawn_fill_wait_flags)) {
+                                    var avoid_extensions = false;
+                                }
+                                else {
+                                    var avoid_extensions = true;
+                                    if (destination.roomName == room_name) {
+                                        var __iterable0__ = room.look_at (LOOK_STRUCTURES, destination);
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var s = __iterable0__ [__index0__];
+                                            if (s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION) {
+                                                var avoid_extensions = false;
+                                            }
+                                        }
+                                    }
                                 }
                             }
-                            if (destination.roomName == room_name) {
-                                var __iterable0__ = room.look_at (LOOK_STRUCTURES, destination);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    structures_ignore.append (s.structureType);
+                            else {
+                                var avoid_extensions = false;
+                                var spawn_fill_wait_flags = list ([]);
+                            }
+                            if (room.my) {
+                                var upgrader_wait_flags = flags.find_flags (room, UPGRADER_SPOT);
+                                if (len (upgrader_wait_flags)) {
+                                    var avoid_controller = false;
+                                }
+                                else {
+                                    var avoid_controller = true;
                                 }
                             }
-                            var going_to_extension = structures_ignore.includes (STRUCTURE_EXTENSION) || structures_ignore.includes (STRUCTURE_SPAWN);
-                            var going_to_storage = structures_ignore.includes (STRUCTURE_STORAGE) || structures_ignore.includes (STRUCTURE_LINK);
-                            var going_to_controller = structures_ignore.includes (STRUCTURE_CONTROLLER);
-                            var going_to_source = origin.roomName == room_name && len (room.look_at (LOOK_SOURCES, origin)) || destination.roomName == room_name && len (room.look_at (LOOK_SOURCES, destination));
-                            var avoid_controller = room.room.controller && room.room.controller.my && !(len (flags.find_flags (room, UPGRADER_SPOT)));
+                            else {
+                                var avoid_controller = false;
+                                var upgrader_wait_flags = list ([]);
+                            }
                             var cost_matrix = new PathFinder.CostMatrix ();
                             self.mark_exit_tiles (room_name, cost_matrix, opts);
                             self.mark_flags (room_name, cost_matrix, opts);
                             if (self.set_max_avoid (room_name, cost_matrix, opts)) {
                                 return cost_matrix;
                             }
-                            var wall_at = function (x, y) {
-                                return Game.map.getTerrainAt (x, y, room_name) == 'wall';
-                            };
-                            var road_at = function (x, y) {
-                                if (x < 1 || x > 48 || y < 1 || y > 48) {
-                                    return false;
-                                }
-                                var __iterable0__ = room.look_at (LOOK_STRUCTURES, x, y);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    if (s.structureType == STRUCTURE_ROAD) {
-                                        return true;
+                            var increase_by = function (x, y, added) {
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] === 'p') {
+                                        var existing = plain_cost;
+                                    }
+                                    else if (terrain [0] === 's') {
+                                        var existing = swamp_cost;
+                                    }
+                                    else {
+                                        return ;
                                     }
                                 }
-                                var __iterable0__ = room.look_at (LOOK_CONSTRUCTION_SITES, x, y);
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var s = __iterable0__ [__index0__];
-                                    if (s.structureType == STRUCTURE_ROAD) {
-                                        return true;
-                                    }
-                                }
-                                return false;
+                                cost_matrix.set (x, y, existing + added);
                             };
                             var set_matrix = function (stype, pos, planned, my) {
                                 if (stype == STRUCTURE_ROAD || stype == STRUCTURE_RAMPART && my || stype == STRUCTURE_CONTAINER) {
-                                    if (stype == STRUCTURE_ROAD && !(flags.look_for (room, pos, flags.MAIN_DESTRUCT, flags.SUB_ROAD))) {
-                                        var existing = cost_matrix.get (pos.x, pos.y) || if_roads_multiplier;
-                                        if (existing > 2) {
-                                            if (this_room_future_roads) {
-                                                if (planned) {
-                                                    cost_matrix.set (pos.x, pos.y, existing - 1);
+                                    if (stype == STRUCTURE_ROAD) {
+                                        if (paved_for && !(planned)) {
+                                            var existing = cost_matrix.get (pos.x, pos.y);
+                                            if (existing == 0) {
+                                                var terrain = Game.map.getTerrainAt (pos.x, pos.y, room_name);
+                                                if (terrain [0] === 'p') {
+                                                    var existing = plain_cost;
+                                                }
+                                                else if (terrain [0] === 's') {
+                                                    var existing = swamp_cost;
                                                 }
                                                 else {
-                                                    cost_matrix.set (pos.x, pos.y, existing - 2);
+                                                    return ;
                                                 }
                                             }
-                                            else {
-                                                cost_matrix.set (pos.x, pos.y, existing - 2);
+                                            if ((1 < existing && existing < 255)) {
+                                                cost_matrix.set (pos.x, pos.y, existing - 1);
                                             }
-                                            return ;
                                         }
                                         else {
-                                            cost_matrix.set (pos.x, pos.y, 1);
+                                            var existing = cost_matrix.get (pos.x, pos.y);
+                                            if (existing != 0 && existing > plain_cost) {
+                                                cost_matrix.set (pos.x, pos.y, existing - 2);
+                                            }
+                                            else {
+                                                cost_matrix.set (pos.x, pos.y, 1);
+                                            }
                                         }
                                     }
                                     return ;
@@ -10184,79 +10724,85 @@ function main () {
                                     return ;
                                 }
                                 cost_matrix.set (pos.x, pos.y, 255);
-                                if (abs (pos.x - origin.x) <= 3 && abs (pos.y - origin.y) <= 3) {
+                                if (abs (pos.x - origin.x) <= 1 && abs (pos.y - origin.y) <= 1) {
                                     return ;
                                 }
-                                if (abs (pos.x - destination.x) <= 3 && abs (pos.y - destination.y) <= 3) {
+                                if (abs (pos.x - destination.x) <= 1 && abs (pos.y - destination.y) <= 1) {
                                     return ;
                                 }
-                                if ((stype == STRUCTURE_SPAWN || stype == STRUCTURE_EXTENSION) && !(going_to_extension) || (stype == STRUCTURE_STORAGE || stype == STRUCTURE_LINK) && !(going_to_storage)) {
-                                    for (var x = pos.x - 1; x < pos.x + 2; x++) {
-                                        for (var y = pos.y - 1; y < pos.y + 2; y++) {
-                                            if (!(road_at (x, y)) && !(wall_at (x, y)) && cost_matrix.get (x, y) < 10 * if_roads_multiplier) {
-                                                cost_matrix.set (x, y, 10 * if_roads_multiplier);
+                                if (my) {
+                                    if (avoid_extensions && (stype == STRUCTURE_SPAWN || stype == STRUCTURE_EXTENSION)) {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 9 * plain_cost);
                                             }
                                         }
                                     }
-                                }
-                                else {
-                                    if (stype == STRUCTURE_CONTROLLER && avoid_controller && my && !(going_to_controller) || stype == 'this_is_a_source' && !(going_to_source)) {
+                                    else if (stype == STRUCTURE_STORAGE || stype == STRUCTURE_LINK) {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 6 * plain_cost);
+                                            }
+                                        }
+                                    }
+                                    else if (avoid_controller && stype == STRUCTURE_CONTROLLER) {
                                         for (var x = pos.x - 3; x < pos.x + 4; x++) {
                                             for (var y = pos.y - 3; y < pos.y + 4; y++) {
-                                                if (!(road_at (x, y)) && !(wall_at (x, y)) && cost_matrix.get (x, y) < 5 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 5 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 4 * plain_cost);
                                             }
                                         }
                                         for (var x = pos.x - 2; x < pos.x + 3; x++) {
                                             for (var y = pos.y - 2; y < pos.y + 3; y++) {
-                                                if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 7 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 7 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 2 * plain_cost);
                                             }
                                         }
                                         for (var x = pos.x - 1; x < pos.x + 2; x++) {
                                             for (var y = pos.y - 1; y < pos.y + 2; y++) {
-                                                if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 20 * if_roads_multiplier) {
-                                                    cost_matrix.set (x, y, 20 * if_roads_multiplier);
-                                                }
+                                                increase_by (x, y, 13 * plain_cost);
                                             }
                                         }
                                     }
-                                    else {
-                                        if (stype == 'this_is_a_source') {
-                                            if (this_room_future_roads) {
-                                                if (room.my) {
-                                                    for (var x = pos.x - 2; x < pos.x + 3; x++) {
-                                                        for (var y = pos.y - 2; y < pos.y + 3; y++) {
-                                                            if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 9 * if_roads_multiplier) {
-                                                                cost_matrix.set (x, y, 9 * if_roads_multiplier);
-                                                            }
-                                                        }
+                                    else if (stype == '--source') {
+                                        if (paved_for) {
+                                            if (room.my) {
+                                                for (var x = pos.x - 2; x < pos.x + 3; x++) {
+                                                    for (var y = pos.y - 2; y < pos.y + 3; y++) {
+                                                        increase_by (x, y, 3 * plain_cost);
                                                     }
                                                 }
-                                                else {
-                                                    for (var x = pos.x - 4; x < pos.x + 5; x++) {
-                                                        for (var y = pos.y - 4; y < pos.y + 5; y++) {
-                                                            if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 6 * if_roads_multiplier) {
-                                                                cost_matrix.set (x, y, 6 * if_roads_multiplier);
-                                                            }
-                                                        }
+                                                for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                                    for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                        increase_by (x, y, 11 * plain_cost);
                                                     }
-                                                    for (var x = pos.x - 3; x < pos.x + 4; x++) {
-                                                        for (var y = pos.y - 3; y < pos.y + 4; y++) {
-                                                            if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 8 * if_roads_multiplier) {
-                                                                cost_matrix.set (x, y, 8 * if_roads_multiplier);
-                                                            }
-                                                        }
+                                                }
+                                            }
+                                            else {
+                                                for (var x = pos.x - 3; x < pos.x + 4; x++) {
+                                                    for (var y = pos.y - 3; y < pos.y + 4; y++) {
+                                                        increase_by (x, y, 6 * plain_cost);
                                                     }
+                                                }
+                                                for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                                    for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                        increase_by (x, y, 6 * plain_cost);
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        else {
+                                            for (var x = pos.x - 3; x < pos.x + 4; x++) {
+                                                for (var y = pos.y - 3; y < pos.y + 4; y++) {
+                                                    increase_by (x, y, 4 * plain_cost);
+                                                }
+                                            }
+                                            for (var x = pos.x - 2; x < pos.x + 3; x++) {
+                                                for (var y = pos.y - 2; y < pos.y + 3; y++) {
+                                                    increase_by (x, y, 2 * plain_cost);
                                                 }
                                             }
                                             for (var x = pos.x - 1; x < pos.x + 2; x++) {
                                                 for (var y = pos.y - 1; y < pos.y + 2; y++) {
-                                                    if (!(wall_at (x, y)) && cost_matrix.get (x, y) < 13 * if_roads_multiplier) {
-                                                        cost_matrix.set (x, y, 13 * if_roads_multiplier);
-                                                    }
+                                                    increase_by (x, y, 11 * plain_cost);
                                                 }
                                             }
                                         }
@@ -10286,7 +10832,17 @@ function main () {
                             var __iterable0__ = room.find (FIND_SOURCES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                set_matrix ('this_is_a_source', source.pos, false, true);
+                                set_matrix ('--source', source.pos, false, true);
+                            }
+                            var __iterable0__ = spawn_fill_wait_flags;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var flag = __iterable0__ [__index0__];
+                                cost_matrix.set (flag.pos.x, flag.pos.y, 255);
+                            }
+                            var __iterable0__ = upgrader_wait_flags;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var flag = __iterable0__ [__index0__];
+                                cost_matrix.set (flag.pos.x, flag.pos.y, 255);
                             }
                             if (room.my && room.room.storage && room.links.main_link) {
                                 var ml = room.links.main_link;
@@ -10294,33 +10850,21 @@ function main () {
                                 if (ml.pos.x == storage.pos.x && abs (ml.pos.y - storage.pos.y) == 2 && movement.is_block_empty (room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2)) {
                                     cost_matrix.set (ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255);
                                 }
+                                else if (ml.pos.y == storage.pos.y && abs (ml.pos.x - storage.pos.x) == 2 && movement.is_block_empty (room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y)) {
+                                    cost_matrix.set ((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255);
+                                }
                                 else {
-                                    if (ml.pos.y == storage.pos.y && abs (ml.pos.x - storage.pos.x) == 2 && movement.is_block_empty (room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y)) {
-                                        cost_matrix.set ((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255);
-                                    }
-                                    else {
-                                        for (var x = ml.pos.x - 1; x < ml.pos.x + 2; x++) {
-                                            for (var y = ml.pos.y - 1; y < ml.pos.y + 2; y++) {
-                                                if (abs (storage.pos.x - x) <= 1 && abs (storage.pos.y - y) <= 1) {
-                                                    cost_matrix.set (x, y, 255);
-                                                }
+                                    for (var x = ml.pos.x - 1; x < ml.pos.x + 2; x++) {
+                                        for (var y = ml.pos.y - 1; y < ml.pos.y + 2; y++) {
+                                            if (abs (storage.pos.x - x) <= 1 && abs (storage.pos.y - y) <= 1) {
+                                                cost_matrix.set (x, y, 255);
                                             }
                                         }
                                     }
                                 }
                             }
-                            if (this_room_future_roads) {
-                                var __iterable0__ = this_room_future_roads;
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var pos = __iterable0__ [__index0__];
-                                    var now = cost_matrix.get (pos.x, pos.y);
-                                    if (now <= 4) {
-                                        cost_matrix.set (pos.x, pos.y, 2);
-                                    }
-                                    else {
-                                        cost_matrix.set (pos.x, pos.y, now - 2);
-                                    }
-                                }
+                            if (paved_for) {
+                                mining_paths.set_decreasing_cost_matrix_costs (room_name, paved_for, cost_matrix, plain_cost, swamp_cost, 2);
                             }
                             return cost_matrix;
                         }, '_new_cost_matrix');},
@@ -10332,13 +10876,11 @@ function main () {
                         get get_default_max_ops () {return __get__ (this, function (self, origin, destination, opts) {
                             var linear_distance = movement.chebyshev_distance_room_pos (origin, destination);
                             var ops = linear_distance * 200;
-                            if (opts ['dfr']) {
+                            if (opts ['paved_for']) {
                                 ops *= 5;
                             }
-                            else {
-                                if (opts ['use_roads']) {
-                                    ops *= 2;
-                                }
+                            else if (!('use_roads' in opts) || opts ['use_roads']) {
+                                ops *= 2;
                             }
                             return ops;
                         }, 'get_default_max_ops');},
@@ -10355,19 +10897,19 @@ function main () {
                             if (opts) {
                                 var roads_better = (('use_roads' in opts) ? opts ['use_roads'] : true);
                                 var ignore_swamp = (('ignore_swamp' in opts) ? opts ['ignore_swamp'] : false);
-                                var range = (('range' in opts) ? opts ['range'] : 1);
-                                var decided_future_roads = (('decided_future_roads' in opts) ? opts ['decided_future_roads'] : null);
-                                var max_ops = (('max_ops' in opts) ? opts ['max_ops'] : self.get_default_max_ops (origin, destination, dict ({'use_roads': roads_better, 'dfr': decided_future_roads})));
+                                var pf_range = (('range' in opts) ? opts ['range'] : 1);
+                                var paved_for = (('paved_for' in opts) ? opts ['paved_for'] : null);
+                                var max_ops = (('max_ops' in opts) ? opts ['max_ops'] : self.get_default_max_ops (origin, destination, opts));
                                 var max_rooms = (('max_rooms' in opts) ? opts ['max_rooms'] : 16);
                                 var max_avoid = (('avoid_rooms' in opts) ? opts ['avoid_rooms'] : null);
                             }
                             else {
                                 var roads_better = true;
                                 var ignore_swamp = false;
-                                var range = 1;
+                                var pf_range = 1;
                                 var max_rooms = 16;
-                                var decided_future_roads = null;
-                                var max_ops = self.get_default_max_ops (origin, destination, dict ({'use_roads': roads_better, 'dfr': decided_future_roads}));
+                                var paved_for = null;
+                                var max_ops = self.get_default_max_ops (origin, destination, dict ({'use_roads': roads_better}));
                                 var max_avoid = null;
                             }
                             if (('reroute' in Game.flags) && ('reroute_destination' in Game.flags)) {
@@ -10384,28 +10926,55 @@ function main () {
                                     return path1.concat (path2);
                                 }
                             }
-                            var result = PathFinder.search (origin, dict ({'pos': destination, 'range': range}), dict ({'plainCost': (decided_future_roads ? 5 : (roads_better ? 2 : 1)), 'swampCost': (ignore_swamp ? (roads_better ? 2 : 1) : (roads_better ? 10 : 5)), 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'future_chosen': decided_future_roads, 'max_avoid': max_avoid})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
+                            if (paved_for) {
+                                var plain_cost = 5;
+                                var swamp_cost = 10;
+                            }
+                            else if (ignore_swamp) {
+                                var plain_cost = 1;
+                                var swamp_cost = 1;
+                            }
+                            else if (roads_better) {
+                                var plain_cost = 2;
+                                var swamp_cost = 10;
+                            }
+                            else {
+                                var plain_cost = 1;
+                                var swamp_cost = 5;
+                            }
+                            var result = PathFinder.search (origin, dict ({'pos': destination, 'range': pf_range}), dict ({'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
                             print ('[honey] Calculated new path from {} to {} in {} ops.'.format (origin, destination, result.ops));
                             var path = result.path;
                             if (result.incomplete) {
                                 print ('[honey] WARNING: Calculated incomplete path. Chebyshev distance: {}. Path distance found: {}. Ops used: {}. Max ops: {}. Max rooms: {}.'.format (movement.chebyshev_distance_room_pos (origin, destination), len (result.path), result.ops, max_ops, max_rooms));
                                 if (roads_better) {
-                                    print ('[honey] Trying recalculation without prefering roads.');
+                                    print ('[honey] Trying recalculation without preferring roads.');
                                     return self._get_raw_path (origin, destination, _.create (opts, dict ({'use_roads': false})));
                                 }
                                 if (len (result.path) > 15) {
                                     var path_start = path.slice (0, -(10));
                                     var midpoint = path_start [len (path_start) - 1];
                                     print ('[honey] OK, trying to build the rest of the path from {} to {}, starting at {}'.format (origin, destination, midpoint));
-                                    var second_path_result = PathFinder.search (midpoint, dict ({'pos': destination, 'range': range}), dict ({'plainCost': (decided_future_roads ? 5 : (roads_better ? 2 : 1)), 'swampCost': (ignore_swamp ? (roads_better ? 2 : 1) : (roads_better ? 10 : 5)), 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'future_chosen': decided_future_roads, 'max_avoid': max_avoid})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
+                                    var second_path_result = PathFinder.search (midpoint, dict ({'pos': destination, 'range': pf_range}), dict ({'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
                                     if (second_path_result.incomplete) {
                                         print ('[honey] Second path result incomplete, not appending.');
                                     }
                                     else {
-                                        print ('[honey] Second path result complete! Concating paths!');
+                                        print ('[honey] Second path result complete! Concatenating paths!');
                                         var path = path_start.concat (second_path_result.path);
                                     }
                                 }
+                            }
+                            if (paved_for) {
+                                if (paved_for.name) {
+                                    var mine_name = paved_for.name;
+                                    var spawn_id = 'none';
+                                }
+                                else {
+                                    var mine_name = paved_for [0].name;
+                                    var spawn_id = paved_for [1].id;
+                                }
+                                print ('[honey] Calculated new path for paved_for mine {} (spawn {}).'.format (mine_name, spawn_id));
                             }
                             return path;
                         }, '_get_raw_path');},
@@ -10419,21 +10988,14 @@ function main () {
                             if (destination.pos) {
                                 var destination = destination.pos;
                             }
-                            if (opts) {
-                                var ignore_swamp = (('ignore_swamp' in opts) ? opts ['ignore_swamp'] : false);
-                                var keep_for = (('keep_for' in opts) ? opts ['keep_for'] : 0);
+                            if (opts && ('keep_for' in opts)) {
+                                var keep_for = opts ['keep_for'];
                             }
                             else {
-                                var ignore_swamp = false;
                                 var keep_for = 0;
                             }
-                            if (ignore_swamp) {
-                                var key = 'path_{}_{}_{}_{}_{}_{}_swl'.format (origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y);
-                            }
-                            else {
-                                var key = 'path_{}_{}_{}_{}_{}_{}'.format (origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y);
-                            }
-                            var serialized_path_obj = global_cache.get (key);
+                            var cache_key = get_global_cache_key (origin, destination, opts);
+                            var serialized_path_obj = global_cache.get (cache_key);
                             if (serialized_path_obj !== null) {
                                 return serialized_path_obj;
                             }
@@ -10464,34 +11026,54 @@ function main () {
                                         keep_for *= 2;
                                     }
                                 }
+                                else if (len (Object.keys (room_to_path_obj)) < 3) {
+                                    var keep_for = 4 * 1000;
+                                }
+                                else if (len (Object.keys (room_to_path_obj)) < 4) {
+                                    var keep_for = 10 * 1000;
+                                }
                                 else {
-                                    if (len (Object.keys (room_to_path_obj)) < 3) {
-                                        var keep_for = 4 * 1000;
-                                    }
-                                    else {
-                                        if (len (Object.keys (room_to_path_obj)) < 4) {
-                                            var keep_for = 10 * 1000;
-                                        }
-                                        else {
-                                            var keep_for = 40 * 1000;
-                                        }
-                                    }
+                                    var keep_for = 40 * 1000;
                                 }
                             }
-                            var serialized_path_obj = function () {
-                                var __accu0__ = [];
-                                var __iterable0__ = room_to_path_obj.py_items ();
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var __left0__ = __iterable0__ [__index0__];
-                                    var key = __left0__ [0];
-                                    var value = __left0__ [1];
-                                    __accu0__.append (list ([key, Room.serializePath (value)]));
-                                }
-                                return dict (__accu0__);
-                            } ();
-                            global_cache.set (key, serialized_path_obj, keep_for);
+                            var serialized_path_obj = dict ({});
+                            var __iterable0__ = Object.keys (room_to_path_obj);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room_name = __iterable0__ [__index0__];
+                                serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                            }
+                            global_cache.set (cache_key, serialized_path_obj, keep_for);
                             return serialized_path_obj;
                         }, 'get_serialized_path_obj');},
+                        get completely_repath_and_get_raw_path () {return __get__ (this, function (self, origin, destination, opts) {
+                            if (origin.pos) {
+                                var origin = origin.pos;
+                            }
+                            if (destination.pos) {
+                                var destination = destination.pos;
+                            }
+                            if (('keep_for' in opts)) {
+                                var keep_for = opts ['keep_for'];
+                            }
+                            else {
+                                var __except0__ = ValueError ('force_complete_repath_and_get_raw_path requires an options object with a keep_for property');
+                                __except0__.__cause__ = null;
+                                throw __except0__;
+                            }
+                            var cache_key = get_global_cache_key (origin, destination, opts);
+                            var path = self._get_raw_path (origin, destination, opts);
+                            var room_to_path_obj = pathfinder_path_to_room_to_path_obj (origin, path);
+                            if (room_to_path_obj !== null) {
+                                var serialized_path_obj = dict ({});
+                                var __iterable0__ = Object.keys (room_to_path_obj);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var room_name = __iterable0__ [__index0__];
+                                    serialized_path_obj [room_name] = Room.serializePath (room_to_path_obj [room_name]);
+                                }
+                                global_cache.set (cache_key, serialized_path_obj, keep_for);
+                            }
+                            return path;
+                        }, 'completely_repath_and_get_raw_path');},
                         get find_serialized_path () {return __get__ (this, function (self, origin, destination, opts) {
                             if (typeof opts == 'undefined' || (opts != null && opts .hasOwnProperty ("__kwargtrans__"))) {;
                                 var opts = null;
@@ -10499,7 +11081,6 @@ function main () {
                             if (opts && ('current_room' in opts)) {
                                 var current_room = opts ['current_room'];
                                 if (current_room) {
-                                    var current_room = current_room.room || current_room;
                                     var current_room = current_room.name || current_room;
                                 }
                             }
@@ -10617,6 +11198,7 @@ function main () {
                     });
                     __pragma__ ('<use>' +
                         'constants' +
+                        'control.mining_paths' +
                         'flags' +
                         'utilities.global_cache' +
                         'utilities.hostile_utils' +
@@ -10627,12 +11209,16 @@ function main () {
                         __all__.HoneyTrails = HoneyTrails;
                         __all__.SK_LAIR_SOURCE_NOTED = SK_LAIR_SOURCE_NOTED;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
+                        __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
                         __all__.clear_serialized_cost_matrix = clear_serialized_cost_matrix;
                         __all__.direction_to = direction_to;
                         __all__.get_direction = get_direction;
+                        __all__.get_global_cache_key = get_global_cache_key;
                         __all__.global_cache = global_cache;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
                         __all__.hostile_utils = hostile_utils;
+                        __all__.mining_paths = mining_paths;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -10711,6 +11297,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -10746,6 +11337,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -10766,7 +11358,6 @@ function main () {
                     var target_source = __init__ (__world__.constants).target_source;
                     var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
-                    var defense = __init__ (__world__.control.defense);
                     var movement = __init__ (__world__.utilities.movement);
                     var volatile_cache = __init__ (__world__.utilities.volatile_cache);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
@@ -10778,15 +11369,13 @@ function main () {
                             var carry = Memory.creeps [name].carry || 0;
                             var work = Memory.creeps [name].work || 0;
                         }
+                        else if ((name in Game.creeps)) {
+                            var creep = Game.creeps [name];
+                            var carry = spawning.carry_count (creep);
+                            var work = spawning.work_count (creep);
+                        }
                         else {
-                            if ((name in Game.creeps)) {
-                                var creep = Game.creeps [name];
-                                var carry = spawning.carry_count (creep);
-                                var work = spawning.work_count (creep);
-                            }
-                            else {
-                                return 1;
-                            }
+                            return 1;
                         }
                         return max (work, carry);
                     };
@@ -10815,15 +11404,13 @@ function main () {
                                         throw __except0__;
                                     }
                                 }
-                                else {
-                                    if (!(_.isNumber (ttype))) {
-                                        var msg = 'WARNING: Error updating old TargetMind memory. Unknown type of ttype (not string nor int): {}!'.format (ttype);
-                                        console.log (msg);
-                                        Game.notify (msg);
-                                        var __except0__ = ValueError;
-                                        __except0__.__cause__ = null;
-                                        throw __except0__;
-                                    }
+                                else if (!(_.isNumber (ttype))) {
+                                    var msg = 'WARNING: Error updating old TargetMind memory. Unknown type of ttype (not string nor int): {}!'.format (ttype);
+                                    console.log (msg);
+                                    Game.notify (msg);
+                                    var __except0__ = ValueError;
+                                    __except0__.__cause__ = null;
+                                    throw __except0__;
                                 }
                                 new_targeter_map [ttype] = target_id;
                             }
@@ -10895,54 +11482,46 @@ function main () {
                             if (!(targeter_id in self.targeters)) {
                                 self.targeters [targeter_id] = dict ([[ttype, target_id]]);
                             }
+                            else if (!(ttype in self.targeters [targeter_id])) {
+                                self.targeters [targeter_id] [ttype] = target_id;
+                            }
                             else {
-                                if (!(ttype in self.targeters [targeter_id])) {
-                                    self.targeters [targeter_id] [ttype] = target_id;
+                                var old_target_id = self.targeters [targeter_id] [ttype];
+                                self.targeters [targeter_id] [ttype] = target_id;
+                                if (old_target_id == target_id) {
+                                    return ;
                                 }
-                                else {
-                                    var old_target_id = self.targeters [targeter_id] [ttype];
-                                    self.targeters [targeter_id] [ttype] = target_id;
-                                    if (old_target_id == target_id) {
-                                        return ;
-                                    }
-                                    self.targets [ttype] [old_target_id]--;
-                                    if (len (self.targets [ttype] [old_target_id]) <= 0) {
-                                        delete self.targets [ttype] [old_target_id];
-                                    }
+                                self.targets [ttype] [old_target_id]--;
+                                if (len (self.targets [ttype] [old_target_id]) <= 0) {
+                                    delete self.targets [ttype] [old_target_id];
                                 }
                             }
                             if (!(ttype in self.targets)) {
                                 self.targets [ttype] = dict ([[target_id, 1]]);
                             }
+                            else if (!(self.targets [ttype] [target_id])) {
+                                self.targets [ttype] [target_id] = 1;
+                            }
                             else {
-                                if (!(self.targets [ttype] [target_id])) {
-                                    self.targets [ttype] [target_id] = 1;
-                                }
-                                else {
-                                    self.targets [ttype] [target_id]++;
-                                }
+                                self.targets [ttype] [target_id]++;
                             }
                             if (!(ttype in self.targets_workforce)) {
                                 self.targets_workforce [ttype] = dict ([[target_id, _mass_count (targeter_id)]]);
                             }
+                            else if (!(target_id in self.targets_workforce [ttype])) {
+                                self.targets_workforce [ttype] [target_id] = _mass_count (targeter_id);
+                            }
                             else {
-                                if (!(target_id in self.targets_workforce [ttype])) {
-                                    self.targets_workforce [ttype] [target_id] = _mass_count (targeter_id);
-                                }
-                                else {
-                                    self.targets_workforce [ttype] [target_id] += _mass_count (targeter_id);
-                                }
+                                self.targets_workforce [ttype] [target_id] += _mass_count (targeter_id);
                             }
                             if (!(ttype in self.reverse_targets)) {
                                 self.reverse_targets [ttype] = dict ([[target_id, list ([targeter_id])]]);
                             }
+                            else if (!(target_id in self.reverse_targets [ttype])) {
+                                self.reverse_targets [ttype] [target_id] = list ([targeter_id]);
+                            }
                             else {
-                                if (!(target_id in self.reverse_targets [ttype])) {
-                                    self.reverse_targets [ttype] [target_id] = list ([targeter_id]);
-                                }
-                                else {
-                                    self.reverse_targets [ttype] [target_id].push (targeter_id);
-                                }
+                                self.reverse_targets [ttype] [target_id].push (targeter_id);
                             }
                         }, '_register_new_targeter');},
                         get _recreate_all_from_targeters () {return __get__ (this, function (self) {
@@ -11115,15 +11694,11 @@ function main () {
                             if (!(target_id)) {
                                 return null;
                             }
-                            if (len (target_id) == 4) {
+                            var target = Game.getObjectById (target_id);
+                            if (target === null) {
                                 var target = locations.get (target_id);
-                            }
-                            else {
-                                if (target_id.startswith && target_id.startswith ('flag-')) {
+                                if (target === null && target_id.startswith && target_id.startswith ('flag-')) {
                                     var target = Game.flags [target_id.__getslice__ (5, null, 1)];
-                                }
-                                else {
-                                    var target = Game.getObjectById (target_id);
                                 }
                             }
                             if (!(target)) {
@@ -11139,15 +11714,11 @@ function main () {
                             if (!(target_id)) {
                                 return null;
                             }
-                            if (len (target_id) == 4) {
+                            var target = Game.getObjectById (target_id);
+                            if (target === null) {
                                 var target = locations.get (target_id);
-                            }
-                            else {
-                                if (target_id.startswith ('flag-')) {
+                                if (target === null && target_id.startswith && target_id.startswith ('flag-')) {
                                     var target = Game.flags [target_id.__getslice__ (5, null, 1)];
-                                }
-                                else {
-                                    var target = Game.getObjectById (target_id);
                                 }
                             }
                             if (!(target)) {
@@ -11168,19 +11739,19 @@ function main () {
                             self._move_targets (old_name, new_name);
                         }, 'assume_identity');},
                         get _find_new_source () {return __get__ (this, function (self, creep) {
-                            var has_work = !(!(creep.creep.getActiveBodyparts (WORK)));
+                            var has_work = !(!(creep.creep.hasActiveBodyparts (WORK)));
                             var any_miners = !(!(creep.home.role_count (role_miner)));
                             var highest_priority = -(Infinity);
                             var best_source = null;
-                            var __iterable0__ = creep.home.find (FIND_SOURCES);
+                            var __iterable0__ = creep.home.sources;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                if (!(has_work) && !(_.find (creep.home.find_in_range (FIND_MY_CREEPS, 1, source.pos), (function __lambda__ (c) {
+                                if (!(has_work) && !(_.some (creep.home.find_in_range (FIND_MY_CREEPS, 1, source.pos), (function __lambda__ (c) {
                                     return c.memory.role == role_miner;
                                 })))) {
                                     continue;
                                 }
-                                var distance = movement.distance_room_pos (source.pos, creep.pos);
+                                var distance = movement.chebyshev_distance_room_pos (source.pos, creep.pos);
                                 var current_work_force = self.workforce_of (target_source, source.id);
                                 if (any_miners) {
                                     var energy = _.sum (creep.home.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount');
@@ -11192,6 +11763,9 @@ function main () {
                                 }
                                 if (source.energy <= 0) {
                                     priority -= 200;
+                                }
+                                if (!(priority)) {
+                                    print ('[targets] Strange priority result for source {}: {}'.format (source, priority));
                                 }
                                 if (priority > highest_priority) {
                                     var best_source = source.id;
@@ -11250,18 +11824,16 @@ function main () {
                                     self._unregister_targeter (target_spawn_deposit, stealing_from);
                                 }
                             }
-                            else {
-                                if (creep.home.full_storage_use) {
-                                    var flag_list = flags.find_flags (creep.home, SPAWN_FILL_WAIT);
-                                    if (len (flag_list)) {
-                                        var best_id = _ (flag_list).map ((function __lambda__ (f) {
-                                            return 'flag-{}'.format (f.name);
-                                        })).min ((function __lambda__ (fid) {
-                                            return self.reverse_targets [target_spawn_deposit] [fid] || 0;
-                                        }));
-                                        if (best_id === Infinity) {
-                                            var best_id = null;
-                                        }
+                            else if (creep.home.full_storage_use) {
+                                var flag_list = flags.find_flags (creep.home, SPAWN_FILL_WAIT);
+                                if (len (flag_list)) {
+                                    var best_id = _ (flag_list).map ((function __lambda__ (f) {
+                                        return 'flag-{}'.format (f.name);
+                                    })).min ((function __lambda__ (fid) {
+                                        return self.reverse_targets [target_spawn_deposit] [fid] || 0;
+                                    }));
+                                    if (best_id === Infinity) {
+                                        var best_id = null;
                                     }
                                 }
                             }
@@ -11297,11 +11869,9 @@ function main () {
                                     var best_id = site_id;
                                     break;
                                 }
-                                else {
-                                    if (current_work < smallest_work_force) {
-                                        var best_id = site_id;
-                                        var smallest_work_force = current_work;
-                                    }
+                                else if (current_work < smallest_work_force) {
+                                    var best_id = site_id;
+                                    var smallest_work_force = current_work;
                                 }
                             }
                             if (!(best_id) && len (sites)) {
@@ -11334,16 +11904,13 @@ function main () {
                                         var current_max = Infinity;
                                     }
                                     else {
-                                        var current_max = min (max_work, math.ceil ((this_hits_max * 0.9 - structure.hits) / 50));
+                                        var current_max = min (max_work, math.ceil ((this_hits_max - structure.hits) / 50));
                                     }
                                     var current_workforce = self.workforce_of (target_repair, struct_id);
                                     if (!(current_workforce) || current_workforce < current_max) {
                                         return struct_id;
                                     }
                                 }
-                            }
-                            if (max_work === _MAX_REPAIR_WORKFORCE && len (repair_targets)) {
-                                return self._find_new_repair_site (creep, max_hits, Infinity);
                             }
                             return null;
                         }, '_find_new_repair_site');},
@@ -11545,17 +12112,33 @@ function main () {
                                         }
                                     }
                                 }
+                                if (nearest === null) {
+                                    var __iterable0__ = creep.home.defense.get_old_defender_spots ();
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var location = __iterable0__ [__index0__];
+                                        if (!(self.targets [target_rampart_defense] [location.name])) {
+                                            var distance = movement.chebyshev_distance_room_pos (location, creep);
+                                            if (distance < nearest_distance) {
+                                                var nearest = location;
+                                                var nearest_distance = distance;
+                                            }
+                                        }
+                                    }
+                                }
                             }
-                            return nearest;
+                            if (nearest) {
+                                return nearest.name;
+                            }
+                            else {
+                                return null;
+                            }
                         }, '_find_new_defendable_wall');},
                         get _find_closest_flag () {return __get__ (this, function (self, creep, flag_type, pos) {
                             if (!(pos)) {
                                 var pos = creep.pos;
                             }
-                            else {
-                                if (pos.pos) {
-                                    var pos = pos.pos;
-                                }
+                            else if (pos.pos) {
+                                var pos = pos.pos;
                             }
                             var closest_flag = null;
                             var closest_distance = Infinity;
@@ -11578,10 +12161,8 @@ function main () {
                             if (!(pos)) {
                                 var pos = creep.pos;
                             }
-                            else {
-                                if (pos.pos) {
-                                    var pos = pos.pos;
-                                }
+                            else if (pos.pos) {
+                                var pos = pos.pos;
                             }
                             var closest_flag = null;
                             var closest_distance = Infinity;
@@ -11604,10 +12185,8 @@ function main () {
                             if (!(pos)) {
                                 var pos = creep.pos;
                             }
-                            else {
-                                if (pos.pos) {
-                                    var pos = pos.pos;
-                                }
+                            else if (pos.pos) {
+                                var pos = pos.pos;
                             }
                             var closest_flag = null;
                             var closest_distance = Infinity;
@@ -11655,15 +12234,11 @@ function main () {
                                 if (structure.memory && !(structure.memory.filling)) {
                                     priority -= 15;
                                 }
-                                else {
-                                    if (structure.structureType == STRUCTURE_CONTAINER) {
-                                        priority -= 40;
-                                    }
-                                    else {
-                                        if (structure.structureType) {
-                                            priority -= 25;
-                                        }
-                                    }
+                                else if (structure.structureType == STRUCTURE_CONTAINER) {
+                                    priority -= 40;
+                                }
+                                else if (structure.structureType) {
+                                    priority -= 25;
                                 }
                                 if (priority < best_priority) {
                                     var max_work_mass = empty / 50;
@@ -11701,7 +12276,6 @@ function main () {
                     Object.defineProperty (TargetMind, 'reverse_targets', property.call (TargetMind, TargetMind.__get_reverse_targets, TargetMind.__set_reverse_targets));;
                     __pragma__ ('<use>' +
                         'constants' +
-                        'control.defense' +
                         'flags' +
                         'locations' +
                         'math' +
@@ -11770,7 +12344,11 @@ function main () {
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
-                        __all__.defense = defense;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -11807,6 +12385,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -11895,6 +12474,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -11930,6 +12514,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -11971,16 +12556,14 @@ function main () {
                         if ((role in role_classes)) {
                             return role_classes [role] (hive, targets, home, creep);
                         }
+                        else if ((role in old_role_names)) {
+                            var __left0__ = old_role_names [role];
+                            creep.memory.role = __left0__;
+                            var role = __left0__;
+                            return role_classes [role] (hive, targets, home, creep);
+                        }
                         else {
-                            if ((role in old_role_names)) {
-                                var __left0__ = old_role_names [role];
-                                creep.memory.role = __left0__;
-                                var role = __left0__;
-                                return role_classes [role] (hive, targets, home, creep);
-                            }
-                            else {
-                                return null;
-                            }
+                            return null;
                         }
                     };
                     __pragma__ ('<use>' +
@@ -12061,6 +12644,11 @@ function main () {
                         __all__.defensive = defensive;
                         __all__.exploring = exploring;
                         __all__.generic = generic;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.minerals = minerals;
                         __all__.mining = mining;
                         __all__.new_map = new_map;
@@ -12100,6 +12688,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -12703,7 +13292,7 @@ function main () {
                                 }
                             }
                             if (target) {
-                                if (!(self.creep.pos.isNearTo (target.pos))) {
+                                if (!(self.pos.isNearTo (target))) {
                                     self.move_to (target);
                                     if (Game.cpu.bucket >= 4000) {
                                         var other = _.find (self.home.find_in_range (FIND_MY_STRUCTURES, 1, self.pos), (function __lambda__ (c) {
@@ -12720,10 +13309,8 @@ function main () {
                                                 self.memory.filling = true;
                                                 return true;
                                             }
-                                            else {
-                                                if (result != OK) {
-                                                    self.log ('Unknown result from passingby refill.transfer({}): {}', other, result);
-                                                }
+                                            else if (result != OK) {
+                                                self.log ('Unknown result from passingby refill.transfer({}): {}', other, result);
                                             }
                                         }
                                         return false;
@@ -12742,37 +13329,29 @@ function main () {
                                                 var result = self.creep.repair (latched_target);
                                             }
                                         }
-                                        else {
-                                            if (sc_last_action == 'c') {
-                                                var latched_target = self.targets.get_existing_target (target, target_construction);
-                                                if (latched_target) {
-                                                    var result = self.creep.build (latched_target);
-                                                }
+                                        else if (sc_last_action == 'c') {
+                                            var latched_target = self.targets.get_existing_target (target, target_construction);
+                                            if (latched_target) {
+                                                var result = self.creep.build (latched_target);
                                             }
-                                            else {
-                                                if (sc_last_action == 'b') {
-                                                    var latched_target = self.targets.get_existing_target (target, target_big_repair);
-                                                    if (latched_target) {
-                                                        var result = self.creep.repair (latched_target);
-                                                    }
-                                                }
+                                        }
+                                        else if (sc_last_action == 'b') {
+                                            var latched_target = self.targets.get_existing_target (target, target_big_repair);
+                                            if (latched_target) {
+                                                var result = self.creep.repair (latched_target);
                                             }
                                         }
                                     }
-                                    else {
-                                        if (role == role_upgrader) {
-                                            var latched_target = self.home.room.controller;
-                                            var result = self.creep.upgradeController (latched_target);
-                                        }
+                                    else if (role == role_upgrader) {
+                                        var latched_target = self.home.room.controller;
+                                        var result = self.creep.upgradeController (latched_target);
                                     }
                                     if (result !== null) {
                                         if (result == OK) {
                                             var latched = true;
                                         }
-                                        else {
-                                            if (result == ERR_NOT_IN_RANGE) {
-                                                self.basic_move_to (latched_target);
-                                            }
+                                        else if (result == ERR_NOT_IN_RANGE) {
+                                            self.basic_move_to (latched_target);
                                         }
                                     }
                                 }
@@ -12819,23 +13398,21 @@ function main () {
                                         if (self.creep.carry.energy - target_empty > 0) {
                                             self.targets.untarget (self, target_refill);
                                             var new_target = self.targets.get_new_target (self, target_refill);
-                                            if (new_target && !(self.creep.pos.isNearTo (new_target.pos))) {
+                                            if (new_target && !(self.pos.isNearTo (new_target))) {
                                                 self.move_to (new_target);
                                             }
                                         }
                                     }
                                 }
-                                else {
-                                    if (result == ERR_FULL) {
-                                        if (!(latched)) {
-                                            self.targets.untarget (self, target_refill);
-                                            return true;
-                                        }
-                                    }
-                                    else {
-                                        self.log ('Unknown result from refill.transfer({}): {}', target, result);
+                                else if (result == ERR_FULL) {
+                                    if (!(latched)) {
                                         self.targets.untarget (self, target_refill);
+                                        return true;
                                     }
+                                }
+                                else {
+                                    self.log ('Unknown result from refill.transfer({}): {}', target, result);
+                                    self.targets.untarget (self, target_refill);
                                 }
                                 return false;
                             }
@@ -12911,13 +13488,18 @@ function main () {
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
                     var TransportPickup = __class__ ('TransportPickup', [RoleBase], {
-                        get transport () {return __get__ (this, function (self, pickup, fill) {
+                        get transport () {return __get__ (this, function (self, pickup, fill, paved) {
                             var total_carried_now = self.carry_sum ();
                             if (self.memory.filling) {
                                 var target = pickup.pos;
                                 if (!(self.creep.carryCapacity)) {
                                     if (self.creep.hits < self.creep.hitsMax && self.home.defense.healing_capable ()) {
-                                        self.follow_energy_path (pickup, fill);
+                                        if (paved) {
+                                            self.follow_energy_path (pickup, fill, pickup);
+                                        }
+                                        else {
+                                            self.follow_energy_path (pickup, fill);
+                                        }
                                     }
                                     else {
                                         self.log ('All carry parts dead, committing suicide.');
@@ -12927,15 +13509,20 @@ function main () {
                                 }
                                 if (total_carried_now >= self.creep.carryCapacity) {
                                     self.memory.filling = false;
-                                    self.repair_nearby_roads ();
-                                    self.follow_energy_path (pickup, fill);
+                                    if (paved) {
+                                        self.repair_nearby_roads ();
+                                        self.follow_energy_path (pickup, fill, pickup);
+                                    }
+                                    else {
+                                        self.follow_energy_path (pickup, fill);
+                                    }
                                     return ;
                                 }
                                 if (self.pos.roomName != target.roomName || !(self.pos.inRangeTo (target, 4))) {
                                     if (total_carried_now) {
                                         self.repair_nearby_roads ();
                                     }
-                                    self.follow_energy_path (fill, pickup);
+                                    self.follow_energy_path (fill, pickup, pickup);
                                     return ;
                                 }
                                 var piles = self.room.look_for_in_area_around (LOOK_RESOURCES, target, 1);
@@ -12953,27 +13540,28 @@ function main () {
                                             energy.picked_up = true;
                                             if (energy.amount > self.creep.carryCapacity - total_carried_now) {
                                                 self.memory.filling = false;
-                                                self.follow_energy_path (pickup, fill);
-                                            }
-                                            else {
-                                                if (__mod__ (Game.time, 6) == 1 && self.creep.ticksToLive < 10 + self.path_length (fill, pickup)) {
-                                                    self.memory.filling = false;
-                                                    self.follow_energy_path (fill, pickup);
-                                                    return ;
+                                                if (paved) {
+                                                    self.follow_energy_path (pickup, fill, pickup);
                                                 }
+                                                else {
+                                                    self.follow_energy_path (pickup, fill);
+                                                }
+                                            }
+                                            else if (__mod__ (Game.time, 6) == 1 && self.creep.ticksToLive < 10 + self.path_length (fill, pickup)) {
+                                                self.memory.filling = false;
+                                                self.follow_energy_path (fill, pickup);
+                                                return ;
                                             }
                                         }
                                         else {
                                             self.log ('Unknown result from creep.pickup({}): {}'.format (energy, result));
                                         }
                                     }
+                                    else if (self.pos.isNearTo (target)) {
+                                        self.basic_move_to (energy);
+                                    }
                                     else {
-                                        if (self.pos.isNearTo (target)) {
-                                            self.basic_move_to (energy);
-                                        }
-                                        else {
-                                            self.follow_energy_path (fill, pickup);
-                                        }
+                                        self.follow_energy_path (fill, pickup);
                                     }
                                     return ;
                                 }
@@ -12993,16 +13581,19 @@ function main () {
                                         }
                                         if (amount > self.creep.carryCapacity - total_carried_now) {
                                             self.memory.filling = false;
-                                            self.follow_energy_path (pickup, fill);
+                                            if (paved) {
+                                                self.follow_energy_path (pickup, fill, pickup);
+                                            }
+                                            else {
+                                                self.follow_energy_path (pickup, fill);
+                                            }
                                         }
                                     }
+                                    else if (self.pos.isNearTo (target)) {
+                                        self.creep.move (pathdef.direction_to (self.pos, container));
+                                    }
                                     else {
-                                        if (self.pos.isNearTo (target)) {
-                                            self.creep.move (pathdef.direction_to (self.pos, container));
-                                        }
-                                        else {
-                                            self.follow_energy_path (fill, pickup);
-                                        }
+                                        self.follow_energy_path (fill, pickup);
                                     }
                                     return ;
                                 }
@@ -13011,7 +13602,12 @@ function main () {
                                 })))) {
                                     if (total_carried_now > self.creep.carryCapacity * 0.5) {
                                         self.memory.filling = false;
-                                        self.follow_energy_path (pickup, fill);
+                                        if (paved) {
+                                            self.follow_energy_path (pickup, fill, pickup);
+                                        }
+                                        else {
+                                            self.follow_energy_path (pickup, fill);
+                                        }
                                         return ;
                                     }
                                 }
@@ -13023,26 +13619,29 @@ function main () {
                                 if (total_carried_now > self.creep.carry.energy && self.home.room.storage) {
                                     var fill = self.home.room.storage;
                                 }
-                                else {
-                                    if (total_carried_now <= 0) {
-                                        if (self.creep.ticksToLive < 2.2 * self.path_length (fill, pickup)) {
-                                            self.creep.suicide ();
-                                            return ;
-                                        }
-                                        self.creep.memory.filling = true;
-                                        self.follow_energy_path (fill, pickup);
+                                else if (total_carried_now <= 0) {
+                                    if (self.creep.ticksToLive < 2.2 * self.path_length (fill, pickup)) {
+                                        self.creep.suicide ();
                                         return ;
                                     }
+                                    self.creep.memory.filling = true;
+                                    self.follow_energy_path (fill, pickup);
+                                    return ;
                                 }
                                 var target = fill;
                                 if (target.pos) {
                                     var target = target.pos;
                                 }
                                 if (fill.structureType == STRUCTURE_LINK && self.pos.roomName == target.roomName) {
-                                    self.room.links.register_target_deposit (fill, self, self.creep.carry.energy, self.creep.pos.getRangeTo (target));
+                                    self.room.links.register_target_deposit (fill, self, self.creep.carry.energy, self.pos.getRangeTo (target));
                                 }
                                 if (self.pos.roomName != target.roomName || !(self.pos.isNearTo (target))) {
-                                    self.follow_energy_path (pickup, fill);
+                                    if (paved) {
+                                        self.follow_energy_path (pickup, fill, pickup);
+                                    }
+                                    else {
+                                        self.follow_energy_path (pickup, fill);
+                                    }
                                     return ;
                                 }
                                 var energy_only = fill.structureType == STRUCTURE_LINK || fill.structureType == STRUCTURE_SPAWN;
@@ -13090,7 +13689,10 @@ function main () {
                             }
                             return self.hive.honey.find_path_length (origin, target);
                         });},
-                        get follow_energy_path () {return __get__ (this, function (self, origin, target) {
+                        get follow_energy_path () {return __get__ (this, function (self, origin, target, mine) {
+                            if (typeof mine == 'undefined' || (mine != null && mine .hasOwnProperty ("__kwargtrans__"))) {;
+                                var mine = null;
+                            };
                             if (origin.pos) {
                                 var origin = origin.pos;
                             }
@@ -13103,7 +13705,8 @@ function main () {
                             if (origin.isNearTo (target)) {
                                 var origin = self.home.spawn.pos;
                             }
-                            var path = self.hive.honey.find_serialized_path (origin, target, dict ({'current_room': self.pos.roomName}));
+                            var opts = dict ({'current_room': self.pos.roomName, 'paved_for': mine});
+                            var path = self.hive.honey.find_serialized_path (origin, target, opts);
                             var result = self.creep.moveByPath (path);
                             if (result == ERR_NOT_FOUND || result == ERR_NO_PATH) {
                                 if (self.pos.isNearTo (target)) {
@@ -13112,7 +13715,7 @@ function main () {
                                 }
                                 if (!(self.memory.next_ppos) || self.memory.off_path_for > 10) {
                                     self.memory.off_path_for = 0;
-                                    var all_positions = self.hive.honey.list_of_room_positions_in_path (origin, target);
+                                    var all_positions = self.hive.honey.list_of_room_positions_in_path (origin, target, opts);
                                     var closest = null;
                                     var closest_distance = Infinity;
                                     var __iterable0__ = enumerate (all_positions);
@@ -13156,18 +13759,16 @@ function main () {
                                     else {
                                         delete self.memory.tried_new_next_ppos;
                                         self.log ("WARNING: Path from {} to {} found to be cached incorrectly - it should contain {}, but it doesn't.".format (origin, target, new_target));
-                                        self.log ('Path (tbd) retrieved from HoneyTrails with options (current_room: {}):\n{}'.format (self.pos.roomName, JSON.stringify (path, 0, 4)));
-                                        self.hive.honey.clear_cached_path (origin, target);
+                                        self.log ('Path (tbd) retrieved from HoneyTrails with options ({}):\n{}'.format (opts, JSON.stringify (path, 0, 4)));
+                                        self.hive.honey.clear_cached_path (origin, target, opts);
                                     }
                                 }
+                                else if (self.pos.isNearTo (new_target)) {
+                                    self.basic_move_to (new_target);
+                                    return ;
+                                }
                                 else {
-                                    if (self.pos.isNearTo (new_target)) {
-                                        self.basic_move_to (new_target);
-                                        return ;
-                                    }
-                                    else {
-                                        delete self.memory.tried_new_next_ppos;
-                                    }
+                                    delete self.memory.tried_new_next_ppos;
                                 }
                                 self.move_to (new_target);
                                 if (!(self.memory.off_path_for)) {
@@ -13177,62 +13778,54 @@ function main () {
                                     self.memory.off_path_for++;
                                 }
                             }
+                            else if (result != OK) {
+                                self.log ('Unknown result from follow_energy_path: {}. Going from {} to {} (path {}, in {})'.format (result, origin, target, path, self.pos.roomName));
+                            }
                             else {
-                                if (result != OK) {
-                                    self.log ('Unknown result from follow_energy_path: {}. Going from {} to {} (path {}, in {})'.format (result, origin, target, path, self.pos.roomName));
+                                delete self.memory.tried_new_next_ppos;
+                                if (self.memory.off_path_for) {
+                                    self.memory.on_path_for = 1;
+                                    delete self.memory.off_path_for;
                                 }
-                                else {
-                                    delete self.memory.tried_new_next_ppos;
-                                    if (self.memory.off_path_for) {
-                                        self.memory.on_path_for = 1;
-                                        delete self.memory.off_path_for;
+                                else if (self.memory.on_path_for) {
+                                    self.memory.on_path_for++;
+                                    if (self.memory.on_path_for >= 2) {
+                                        delete self.memory.next_ppos;
+                                        delete self.memory.on_path_for;
+                                    }
+                                }
+                                var serialized_pos = self.pos.x | self.pos.y << 6;
+                                if (self.memory.last_pos == serialized_pos) {
+                                    if (('standstill_for' in self.memory)) {
+                                        self.memory.standstill_for++;
                                     }
                                     else {
-                                        if (self.memory.on_path_for) {
-                                            self.memory.on_path_for++;
-                                            if (self.memory.on_path_for >= 2) {
-                                                delete self.memory.next_ppos;
-                                                delete self.memory.on_path_for;
-                                            }
-                                        }
+                                        self.memory.standstill_for = 1;
                                     }
-                                    var serialized_pos = self.pos.x | self.pos.y << 6;
-                                    if (self.memory.last_pos == serialized_pos) {
-                                        if (('standstill_for' in self.memory)) {
-                                            self.memory.standstill_for++;
-                                        }
-                                        else {
-                                            self.memory.standstill_for = 1;
-                                        }
-                                        if (__mod__ (self.memory.standstill_for, 10) == 5 && (!(self.memory.filling) || !(_.find (self.room.find_in_range (FIND_MY_CREEPS, 1, self.pos), (function __lambda__ (c) {
-                                            return c.memory.role != role_hauler && c.memory.role != role_miner;
-                                        }))))) {
-                                            delete self.memory.next_ppos;
-                                            var found_mine = false;
-                                            var __iterable0__ = self.hive.honey.find_path (origin, target, dict ({'current_room': self.pos.roomName}));
-                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                var pos = __iterable0__ [__index0__];
-                                                if (pos.x == self.pos.x && pos.y == self.pos.y) {
-                                                    var found_mine = true;
-                                                }
-                                                else {
-                                                    if (found_mine) {
-                                                        if (movement.is_block_clear (self.room, pos.x, pos.y)) {
-                                                            self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
-                                                            self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
-                                                            break;
-                                                        }
-                                                    }
+                                    if (__mod__ (self.memory.standstill_for, 10) == 5 && (!(self.memory.filling) || !(_.find (self.room.find_in_range (FIND_MY_CREEPS, 1, self.pos), (function __lambda__ (c) {
+                                        return c.memory.role != role_hauler && c.memory.role != role_miner;
+                                    }))))) {
+                                        delete self.memory.next_ppos;
+                                        var found_mine = false;
+                                        var __iterable0__ = self.hive.honey.find_path (origin, target, opts);
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var pos = __iterable0__ [__index0__];
+                                            if (pos.x == self.pos.x && pos.y == self.pos.y) {
+                                                var found_mine = true;
+                                            }
+                                            else if (found_mine) {
+                                                if (movement.is_block_clear (self.room, pos.x, pos.y)) {
+                                                    self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
+                                                    self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
+                                                    break;
                                                 }
                                             }
                                         }
                                     }
-                                    else {
-                                        if (!(self.creep.fatigue)) {
-                                            self.memory.last_pos = serialized_pos;
-                                            delete self.memory.standstill_for;
-                                        }
-                                    }
+                                }
+                                else if (!(self.creep.fatigue)) {
+                                    self.memory.last_pos = serialized_pos;
+                                    delete self.memory.standstill_for;
                                 }
                             }
                         });}
@@ -13300,15 +13893,26 @@ function main () {
                         if (hint === undefined) {
                             var hint = null;
                         }
-                        Object.defineProperty (this, 'hint', dict ({'value': hint, 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                        Object.defineProperty (this, 'hint', dict ({'get': () => hint
+                        , 'set': _set_hint, 'enumerable': true, 'configurable': true}));
                         return hint;
                     };
                     var _set_hint = function (hint) {
-                        Object.defineProperty (this, 'hint', dict ({'value': hint, 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                        Object.defineProperty (this, 'hint', dict ({'get': () => hint
+                        , 'set': _set_hint, 'enumerable': true, 'configurable': true}));
                         _mem_hints [this.name] = hint;
+                    };
+                    var _deserialized_pos_to_string = function () {
+                        var things = list (['[Location ', this.name]);
+                        if (this.hint) {
+                            things.push (' (type: ', this.hint, ')');
+                        }
+                        things.push (': ', this.x, ',', this.y, ' ', this.roomName, ']');
+                        return ''.join (things);
                     };
                     DeserializedPos.prototype.py_update = _update_deserialized_pos_xy;
                     Object.defineProperty (DeserializedPos.prototype, 'hint', dict ({'get': _get_hint, 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                    DeserializedPos.prototype.toString = _deserialized_pos_to_string;
                     var _deserialize = function (string, name) {
                         return new DeserializedPos (string, name);
                     };
@@ -13318,6 +13922,11 @@ function main () {
                         };
                         if (position.pos !== undefined) {
                             var position = position.pos;
+                        }
+                        if (position.x == undefined || position.y == undefined || position.roomName == undefined) {
+                            var __except0__ = ValueError ('Invalid position: {}'.format (position));
+                            __except0__.__cause__ = null;
+                            throw __except0__;
                         }
                         var parts = list ([position.x | position.y << 6, position.roomName]);
                         if (expiration != undefined) {
@@ -13350,7 +13959,7 @@ function main () {
                     };
                     var get = function (name) {
                         var serialized_result = _mem [name];
-                        if (serialized_result === undefined) {
+                        if (serialized_result == undefined) {
                             return null;
                         }
                         else {
@@ -13371,10 +13980,8 @@ function main () {
                         if (expiration == undefined) {
                             var expiration = 10 * 1000;
                         }
-                        else {
-                            if (expiration <= 0) {
-                                var expiration = null;
-                            }
+                        else if (expiration <= 0) {
+                            var expiration = null;
                         }
                         _mem [name] = _serialize (position, expiration);
                         if (hint != undefined) {
@@ -13382,11 +13989,18 @@ function main () {
                         }
                         return get (name);
                     };
+                    var delete_location = function (name) {
+                        delete _mem_expirations [name];
+                        delete _mem_hints [name];
+                        delete _mem [name];
+                    };
                     var clean_old_positions = function () {
                         var __iterable0__ = Object.keys (_mem_expirations);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var name = __iterable0__ [__index0__];
-                            if (_mem_expirations [name] < Game.time) {
+                            if (name != '-' && _mem_expirations [name] < Game.time) {
+                                var exp = _mem_expirations [name];
+                                print ('[locations] Expiring location {}: {} < {}'.format (get (name), exp, Game.time));
                                 delete _mem_expirations [name];
                                 delete _mem_hints [name];
                                 delete _mem [name];
@@ -13401,6 +14015,7 @@ function main () {
                         __all__.DeserializedPos = DeserializedPos;
                         __all__._created_objects = _created_objects;
                         __all__._deserialize = _deserialize;
+                        __all__._deserialized_pos_to_string = _deserialized_pos_to_string;
                         __all__._get_hint = _get_hint;
                         __all__._last_update = _last_update;
                         __all__._mem = _mem;
@@ -13411,6 +14026,7 @@ function main () {
                         __all__._update_deserialized_pos_xy = _update_deserialized_pos_xy;
                         __all__.clean_old_positions = clean_old_positions;
                         __all__.create = create;
+                        __all__.delete_location = delete_location;
                         __all__.get = get;
                         __all__.init = init;
                         __all__.naming = naming;
@@ -13621,15 +14237,13 @@ function main () {
                             if (creep.memory) {
                                 self.memory = creep.memory;
                             }
+                            else if (Memory.creeps [creep.name]) {
+                                self.memory = Memory.creeps [creep.name];
+                            }
                             else {
-                                if (Memory.creeps [creep.name]) {
-                                    self.memory = Memory.creeps [creep.name];
-                                }
-                                else {
-                                    var memory = dict ({'targets': dict ({}), 'path': dict ({})});
-                                    Memory.creeps [creep.name] = memory;
-                                    self.memory = memory;
-                                }
+                                var memory = dict ({'targets': dict ({}), 'path': dict ({})});
+                                Memory.creeps [creep.name] = memory;
+                                self.memory = memory;
                             }
                             self._room = null;
                         });},
@@ -13698,11 +14312,9 @@ function main () {
                             if (here == pos) {
                                 return OK;
                             }
-                            else {
-                                if (here.isNearTo (pos)) {
-                                    self.basic_move_to (pos);
-                                    return OK;
-                                }
+                            else if (here.isNearTo (pos)) {
+                                self.basic_move_to (pos);
+                                return OK;
                             }
                             var move_opts = self._move_options (pos.roomName);
                             var result = self.creep.moveTo (pos, move_opts);
@@ -13733,11 +14345,9 @@ function main () {
                                         self.home.mem.meta.clear_next = 0;
                                     }
                                 }
-                                else {
-                                    if (result != OK) {
-                                        if (result != ERR_NOT_FOUND && (result != ERR_NO_PATH || self.pos.x != 49 && self.pos.y != 49 && self.pos.x != 0 && self.pos.y != 0)) {
-                                            self.log ('WARNING: Unknown result from ({} at {}:{},{}).moveTo({}:{},{}): {}', self.memory.role, self.pos.roomName, self.pos.x, self.pos.y, target.roomName, target.x, target.y, result);
-                                        }
+                                else if (result != OK) {
+                                    if (result != ERR_NOT_FOUND && (result != ERR_NO_PATH || self.pos.x != 49 && self.pos.y != 49 && self.pos.x != 0 && self.pos.y != 0)) {
+                                        self.log ('WARNING: Unknown result from ({} at {}:{},{}).moveTo({}:{},{}): {}', self.memory.role, self.pos.roomName, self.pos.x, self.pos.y, target.roomName, target.x, target.y, result);
                                     }
                                 }
                             }
@@ -13750,30 +14360,24 @@ function main () {
                                     if (!(target)) {
                                         var target = storage;
                                     }
-                                    else {
-                                        if (target.energy <= 0 && !(self.home.links.enabled)) {
-                                            var target = storage;
-                                        }
-                                        else {
-                                            if (target.pos.inRangeTo (self.home.room.controller, 4)) {
-                                                var target = storage;
-                                            }
-                                            else {
-                                                if (self.pos.getRangeTo (target) > self.pos.getRangeTo (storage)) {
-                                                    var target = storage;
-                                                }
-                                            }
-                                        }
+                                    else if (target.energy <= 0 && !(self.home.links.enabled)) {
+                                        var target = storage;
+                                    }
+                                    else if (target.pos.inRangeTo (self.home.room.controller, 4)) {
+                                        var target = storage;
+                                    }
+                                    else if (self.pos.getRangeTo (target) > self.pos.getRangeTo (storage)) {
+                                        var target = storage;
                                     }
                                     if (target.structureType == STRUCTURE_LINK) {
-                                        self.home.links.register_target_withdraw (target, self, self.creep.carryCapacity - self.creep.carry.energy, self.creep.pos.getRangeTo (target));
+                                        self.home.links.register_target_withdraw (target, self, self.creep.carryCapacity - self.creep.carry.energy, self.pos.getRangeTo (target));
                                     }
                                 }
                                 else {
                                     var target = storage;
                                 }
-                                if (!(self.creep.pos.isNearTo (target.pos))) {
-                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.creep.pos.getRangeTo (target.pos) > 5) {
+                                if (!(self.pos.isNearTo (target))) {
+                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.pos.getRangeTo (target) > 5) {
                                         self.memory.filling = false;
                                     }
                                     self.move_to (target);
@@ -13789,18 +14393,16 @@ function main () {
                                 if (result == OK) {
                                     // pass;
                                 }
-                                else {
-                                    if (result == ERR_NOT_ENOUGH_RESOURCES) {
-                                        if (target == storage) {
-                                            self.log ('Storage empty in {}!'.format (target.pos.roomName));
-                                        }
-                                        else {
-                                            self.move_around (target);
-                                        }
+                                else if (result == ERR_NOT_ENOUGH_RESOURCES) {
+                                    if (target == storage) {
+                                        self.log ('Storage empty in {}!'.format (target.pos.roomName));
                                     }
                                     else {
-                                        self.log ('Unknown result from creep.withdraw({}): {}', target, result);
+                                        self.move_around (target);
                                     }
+                                }
+                                else {
+                                    self.log ('Unknown result from creep.withdraw({}): {}', target, result);
                                 }
                                 return false;
                             }
@@ -13817,7 +14419,7 @@ function main () {
                                 self.go_to_depot ();
                                 return false;
                             }
-                            if (source.pos.roomName != self.creep.pos.roomName) {
+                            if (self.pos.roomName != source.pos.roomName) {
                                 self.move_to (source);
                                 return false;
                             }
@@ -13825,7 +14427,7 @@ function main () {
                             if (len (piles) > 0) {
                                 var pile = _.max (piles, 'amount');
                                 if (!(self.creep.pos.isNearTo (pile))) {
-                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.creep.pos.getRangeTo (pile.pos) > 5) {
+                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.pos.getRangeTo (pile) > 5) {
                                         self.memory.filling = false;
                                     }
                                     self.move_to (pile);
@@ -13844,8 +14446,8 @@ function main () {
                             var containers = _.filter (self.room.find_in_range (FIND_STRUCTURES, 3, source.pos), dict ({'structureType': STRUCTURE_CONTAINER}));
                             if (len (containers) > 0) {
                                 var container = containers [0];
-                                if (!(self.creep.pos.isNearTo (container))) {
-                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.creep.pos.getRangeTo (container.pos) > 5) {
+                                if (!(self.pos.isNearTo (container))) {
+                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.pos.getRangeTo (container) > 5) {
                                         self.memory.filling = false;
                                     }
                                     self.move_to (container);
@@ -13860,8 +14462,8 @@ function main () {
                                 return c.memory.role == role_miner;
                             }));
                             if (miner) {
-                                if (!(self.creep.pos.isNearTo (miner))) {
-                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.creep.pos.getRangeTo (miner.pos) > 5) {
+                                if (!(self.pos.isNearTo (miner))) {
+                                    if (self.creep.carry.energy > 0.4 * self.creep.carryCapacity && self.pos.getRangeTo (miner) > 5) {
                                         self.memory.filling = false;
                                     }
                                     if (_.sum (self.room.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500) {
@@ -13871,7 +14473,7 @@ function main () {
                                 }
                                 return false;
                             }
-                            if (_.find (self.room.find_in_range (FIND_MY_CREEPS, 2, self.creep.pos), (function __lambda__ (c) {
+                            if (_.find (self.room.find_in_range (FIND_MY_CREEPS, 2, self.pos), (function __lambda__ (c) {
                                 return c.memory.role == role_miner;
                             }))) {
                                 self.go_to_depot ();
@@ -13888,13 +14490,11 @@ function main () {
                                 }))) {
                                     self.targets.untarget (self, target_source);
                                 }
-                                else {
-                                    if (self.creep.carry.energy >= 100) {
-                                        self.memory.filling = false;
-                                    }
+                                else if (self.creep.carry.energy >= 100) {
+                                    self.memory.filling = false;
                                 }
                             }
-                            if (!(self.creep.pos.isNearTo (source.pos))) {
+                            if (!(self.pos.isNearTo (source))) {
                                 self.move_to (source);
                                 return false;
                             }
@@ -13915,7 +14515,7 @@ function main () {
                             if (self.creep.carry.energy <= 0) {
                                 return false;
                             }
-                            var road = _.find (self.room.look_at (LOOK_STRUCTURES, self.creep.pos), (function __lambda__ (s) {
+                            var road = _.find (self.room.look_at (LOOK_STRUCTURES, self.pos), (function __lambda__ (s) {
                                 return s.structureType == STRUCTURE_ROAD;
                             }));
                             if (road) {
@@ -13930,7 +14530,7 @@ function main () {
                                 }
                             }
                             else {
-                                var build = self.room.look_at (LOOK_CONSTRUCTION_SITES, self.creep.pos);
+                                var build = self.room.look_at (LOOK_CONSTRUCTION_SITES, self.pos);
                                 if (len (build)) {
                                     var build = _.find (build, (function __lambda__ (s) {
                                         return s.structureType == STRUCTURE_ROAD;
@@ -13960,13 +14560,11 @@ function main () {
                                 if (len (depots)) {
                                     var depot = depots [0].pos;
                                 }
+                                else if (self.home.spawn) {
+                                    var depot = self.home.spawn.pos;
+                                }
                                 else {
-                                    if (self.home.spawn) {
-                                        var depot = self.home.spawn.pos;
-                                    }
-                                    else {
-                                        var depot = movement.find_an_open_space (self.home.name);
-                                    }
+                                    var depot = movement.find_an_open_space (self.home.name);
                                 }
                             }
                             return depot;
@@ -13999,7 +14597,7 @@ function main () {
                                 }
                                 return ;
                             }
-                            if (!(self.creep.pos.isNearTo (spawn.pos))) {
+                            if (!(self.pos.isNearTo (spawn))) {
                                 if (self.pos.getRangeTo (spawn) + 20 > self.creep.ticksToLive) {
                                     self._log_recycling ();
                                     self.creep.suicide ();
@@ -14025,7 +14623,7 @@ function main () {
                             if (total > 0) {
                                 var storage = self.home.room.storage;
                                 if (storage) {
-                                    if (self.creep.pos.isNearTo (storage.pos)) {
+                                    if (self.pos.isNearTo (storage)) {
                                         var __break0__ = false;
                                         var __iterable0__ = Object.keys (self.creep.carry);
                                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -14067,48 +14665,36 @@ function main () {
                             if (self.creep.fatigue > 0) {
                                 return ;
                             }
-                            var direction = target.pos.getDirectionTo (self.creep.pos);
+                            var direction = target.pos.getDirectionTo (self.pos);
                             if (direction == TOP_LEFT || direction == TOP) {
                                 self.creep.move (RIGHT);
                             }
-                            else {
-                                if (direction == TOP_RIGHT || direction == RIGHT) {
-                                    self.creep.move (BOTTOM);
-                                }
-                                else {
-                                    if (direction == BOTTOM_RIGHT || direction == BOTTOM) {
-                                        self.creep.move (LEFT);
-                                    }
-                                    else {
-                                        if (direction == BOTTOM_LEFT || direction == LEFT) {
-                                            self.creep.move (TOP);
-                                        }
-                                    }
-                                }
+                            else if (direction == TOP_RIGHT || direction == RIGHT) {
+                                self.creep.move (BOTTOM);
+                            }
+                            else if (direction == BOTTOM_RIGHT || direction == BOTTOM) {
+                                self.creep.move (LEFT);
+                            }
+                            else if (direction == BOTTOM_LEFT || direction == LEFT) {
+                                self.creep.move (TOP);
                             }
                         });},
                         get move_around_counter_clockwise () {return __get__ (this, function (self, target) {
                             if (self.creep.fatigue > 0) {
                                 return ;
                             }
-                            var direction = target.pos.getDirectionTo (self.creep.pos);
+                            var direction = target.pos.getDirectionTo (self.pos);
                             if (direction == TOP_RIGHT || direction == TOP) {
                                 self.creep.move (LEFT);
                             }
-                            else {
-                                if (direction == BOTTOM_RIGHT || direction == RIGHT) {
-                                    self.creep.move (TOP);
-                                }
-                                else {
-                                    if (direction == BOTTOM_LEFT || direction == BOTTOM) {
-                                        self.creep.move (RIGHT);
-                                    }
-                                    else {
-                                        if (direction == TOP_LEFT || direction == LEFT) {
-                                            self.creep.move (BOTTOM);
-                                        }
-                                    }
-                                }
+                            else if (direction == BOTTOM_RIGHT || direction == RIGHT) {
+                                self.creep.move (TOP);
+                            }
+                            else if (direction == BOTTOM_LEFT || direction == BOTTOM) {
+                                self.creep.move (RIGHT);
+                            }
+                            else if (direction == TOP_LEFT || direction == LEFT) {
+                                self.creep.move (BOTTOM);
                             }
                         });},
                         get basic_move_to () {return __get__ (this, function (self, target) {
@@ -14140,72 +14726,50 @@ function main () {
                                     self.creep.move (pathdef.get_direction (dx, dy));
                                     return true;
                                 }
-                                else {
-                                    if (adx == 1 && ady == 1) {
-                                        return false;
-                                    }
-                                    else {
-                                        if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y)) {
-                                            self.creep.move (pathdef.get_direction (dx, 0));
-                                            return true;
-                                        }
-                                        else {
-                                            if (movement.is_block_clear (self.room, self.pos.y + dy, self.pos.x)) {
-                                                self.creep.move (pathdef.get_direction (0, dy));
-                                                return true;
-                                            }
-                                        }
-                                    }
+                                else if (adx == 1 && ady == 1) {
+                                    return false;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y)) {
+                                    self.creep.move (pathdef.get_direction (dx, 0));
+                                    return true;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.y + dy, self.pos.x)) {
+                                    self.creep.move (pathdef.get_direction (0, dy));
+                                    return true;
                                 }
                             }
-                            else {
-                                if (dx) {
-                                    if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y)) {
-                                        self.creep.move (pathdef.get_direction (dx, 0));
-                                        return true;
-                                    }
-                                    else {
-                                        if (adx == 1) {
-                                            return false;
-                                        }
-                                        else {
-                                            if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y + 1)) {
-                                                self.creep.move (pathdef.get_direction (dx, 1));
-                                                return true;
-                                            }
-                                            else {
-                                                if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y - 1)) {
-                                                    self.creep.move (pathdef.get_direction (dx, -(1)));
-                                                    return true;
-                                                }
-                                            }
-                                        }
-                                    }
+                            else if (dx) {
+                                if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y)) {
+                                    self.creep.move (pathdef.get_direction (dx, 0));
+                                    return true;
                                 }
-                                else {
-                                    if (dy) {
-                                        if (movement.is_block_clear (self.room, self.pos.x, self.pos.y + dy)) {
-                                            self.creep.move (pathdef.get_direction (0, dy));
-                                            return true;
-                                        }
-                                        else {
-                                            if (ady == 1) {
-                                                return false;
-                                            }
-                                            else {
-                                                if (movement.is_block_clear (self.room, self.pos.x + 1, self.pos.y + dy)) {
-                                                    self.creep.move (pathdef.get_direction (1, dy));
-                                                    return true;
-                                                }
-                                                else {
-                                                    if (movement.is_block_clear (self.room, self.pos.x - 1, self.pos.y + dy)) {
-                                                        self.creep.move (pathdef.get_direction (-(1), dy));
-                                                        return true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                else if (adx == 1) {
+                                    return false;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y + 1)) {
+                                    self.creep.move (pathdef.get_direction (dx, 1));
+                                    return true;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.x + dx, self.pos.y - 1)) {
+                                    self.creep.move (pathdef.get_direction (dx, -(1)));
+                                    return true;
+                                }
+                            }
+                            else if (dy) {
+                                if (movement.is_block_clear (self.room, self.pos.x, self.pos.y + dy)) {
+                                    self.creep.move (pathdef.get_direction (0, dy));
+                                    return true;
+                                }
+                                else if (ady == 1) {
+                                    return false;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.x + 1, self.pos.y + dy)) {
+                                    self.creep.move (pathdef.get_direction (1, dy));
+                                    return true;
+                                }
+                                else if (movement.is_block_clear (self.room, self.pos.x - 1, self.pos.y + dy)) {
+                                    self.creep.move (pathdef.get_direction (-(1), dy));
+                                    return true;
                                 }
                             }
                             return false;
@@ -14275,64 +14839,42 @@ function main () {
                                 if (self._try_force_move_to (self.pos.x + dx, self.pos.y + dy, creep_cond)) {
                                     return true;
                                 }
-                                else {
-                                    if (adx == 1 && ady == 1) {
-                                        return false;
-                                    }
-                                    else {
-                                        if (self._try_force_move_to (self.pos.x + dx, self.pos.y, creep_cond)) {
-                                            return true;
-                                        }
-                                        else {
-                                            if (self._try_force_move_to (self.pos.x, self.pos.y + dy, creep_cond)) {
-                                                return true;
-                                            }
-                                        }
-                                    }
+                                else if (adx == 1 && ady == 1) {
+                                    return false;
+                                }
+                                else if (self._try_force_move_to (self.pos.x + dx, self.pos.y, creep_cond)) {
+                                    return true;
+                                }
+                                else if (self._try_force_move_to (self.pos.x, self.pos.y + dy, creep_cond)) {
+                                    return true;
                                 }
                             }
-                            else {
-                                if (dx) {
-                                    if (self._try_force_move_to (self.pos.x + dx, self.pos.y, creep_cond)) {
-                                        return true;
-                                    }
-                                    else {
-                                        if (adx == 1) {
-                                            return false;
-                                        }
-                                        else {
-                                            if (self._try_force_move_to (self.pos.x + dx, self.pos.y + 1, creep_cond)) {
-                                                return true;
-                                            }
-                                            else {
-                                                if (self._try_force_move_to (self.pos.x + dx, self.pos.y - 1, creep_cond)) {
-                                                    return true;
-                                                }
-                                            }
-                                        }
-                                    }
+                            else if (dx) {
+                                if (self._try_force_move_to (self.pos.x + dx, self.pos.y, creep_cond)) {
+                                    return true;
                                 }
-                                else {
-                                    if (dy) {
-                                        if (self._try_force_move_to (self.pos.x, self.pos.y + dy, creep_cond)) {
-                                            return true;
-                                        }
-                                        else {
-                                            if (ady == 1) {
-                                                return false;
-                                            }
-                                            else {
-                                                if (self._try_force_move_to (self.pos.x + 1, self.pos.y + dy, creep_cond)) {
-                                                    return true;
-                                                }
-                                                else {
-                                                    if (self._try_force_move_to (self.pos.x - 1, self.pos.y + dy, creep_cond)) {
-                                                        return true;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                                else if (adx == 1) {
+                                    return false;
+                                }
+                                else if (self._try_force_move_to (self.pos.x + dx, self.pos.y + 1, creep_cond)) {
+                                    return true;
+                                }
+                                else if (self._try_force_move_to (self.pos.x + dx, self.pos.y - 1, creep_cond)) {
+                                    return true;
+                                }
+                            }
+                            else if (dy) {
+                                if (self._try_force_move_to (self.pos.x, self.pos.y + dy, creep_cond)) {
+                                    return true;
+                                }
+                                else if (ady == 1) {
+                                    return false;
+                                }
+                                else if (self._try_force_move_to (self.pos.x + 1, self.pos.y + dy, creep_cond)) {
+                                    return true;
+                                }
+                                else if (self._try_force_move_to (self.pos.x - 1, self.pos.y + dy, creep_cond)) {
+                                    return true;
                                 }
                             }
                             return false;
@@ -14455,13 +14997,11 @@ function main () {
                                     return false;
                                 }
                             }
-                            else {
-                                if (!(self.memory.filling) && self.creep.carry.energy <= 0) {
-                                    self.targets.untarget_all (self);
-                                    self.memory.filling = true;
-                                }
+                            else if (!(self.memory.filling) && self.creep.carry.energy <= 0) {
+                                self.targets.untarget_all (self);
+                                self.memory.filling = true;
                             }
-                            if (__mod__ (Game.time, 5) == 0 && !(self.creep.hasActiveBodyparts (WORK)) && !(self.home.defense.healing_capable ())) {
+                            if (__mod__ (Game.time, 5) == 0 && !(self.creep.hasActiveBodyparts (WORK) & self.creep.hasActiveBodyparts (CARRY)) && !(self.home.defense.healing_capable ())) {
                                 if (self.home.spawn) {
                                     return self.recycle_me ();
                                 }
@@ -14480,18 +15020,16 @@ function main () {
                                         return self.empty_to_storage ();
                                     }
                                 }
+                                else if (self.home.get_target_upgrader_work_mass ()) {
+                                    self.log ('No targets found, repurposing as upgrader.');
+                                    self.memory.role = role_upgrader;
+                                    return false;
+                                }
                                 else {
-                                    if (self.home.get_target_upgrader_work_mass ()) {
-                                        self.log ('No targets found, repurposing as upgrader.');
-                                        self.memory.role = role_upgrader;
-                                        return false;
-                                    }
-                                    else {
-                                        self.log ('No targets found, recycling.');
-                                        self.memory.role = role_recycling;
-                                        self.memory.last_role = role_upgrader;
-                                        return false;
-                                    }
+                                    self.log ('No targets found, recycling.');
+                                    self.memory.role = role_recycling;
+                                    self.memory.last_role = role_upgrader;
+                                    return false;
                                 }
                             }
                             if (self.memory.filling) {
@@ -14504,32 +15042,30 @@ function main () {
                                 if (destruct) {
                                     self.execute_destruction_target (destruct);
                                 }
+                                else if (self.home.building_paused ()) {
+                                    if (self.creep.carry.energy > 0) {
+                                        self.memory.filling = false;
+                                        return true;
+                                    }
+                                    self.go_to_depot ();
+                                }
                                 else {
-                                    if (self.home.building_paused ()) {
-                                        if (self.creep.carry.energy > 0) {
-                                            self.memory.filling = false;
-                                            return true;
-                                        }
-                                        self.go_to_depot ();
-                                    }
-                                    else {
-                                        if (self.home.mem.tons) {
-                                            var closest = self.pos.findClosestByRange (FIND_DROPPED_ENERGY, dict ({'filter': (function __lambda__ (x) {
-                                                return x.amount >= self.creep.carryCapacity;
-                                            })}));
-                                            if (closest) {
-                                                if (!(self.pos.isNearTo (closest))) {
-                                                    self.move_to (closest);
-                                                    return ;
-                                                }
-                                            }
-                                            else {
-                                                delete self.home.mem.tons;
+                                    if (self.home.mem.tons) {
+                                        var closest = self.pos.findClosestByRange (FIND_DROPPED_ENERGY, dict ({'filter': (function __lambda__ (x) {
+                                            return x.amount >= self.creep.carryCapacity;
+                                        })}));
+                                        if (closest) {
+                                            if (!(self.pos.isNearTo (closest))) {
+                                                self.move_to (closest);
+                                                return ;
                                             }
                                         }
-                                        self.build_swamp_roads ();
-                                        return self.harvest_energy ();
+                                        else {
+                                            delete self.home.mem.tons;
+                                        }
                                     }
+                                    self.build_swamp_roads ();
+                                    return self.harvest_energy ();
                                 }
                             }
                             else {
@@ -14546,87 +15082,77 @@ function main () {
                                         }
                                     }
                                 }
-                                else {
-                                    if (sc_last_action == 'm') {
-                                        var target = self.targets.get_existing_target (self, target_repair);
-                                        if (target) {
-                                            return self.execute_repair_target (target, 5000, target_repair);
+                                else if (sc_last_action == 'm') {
+                                    var target = self.targets.get_existing_target (self, target_repair);
+                                    if (target) {
+                                        return self.execute_repair_target (target, 5000, target_repair);
+                                    }
+                                    else {
+                                        delete self.memory.la;
+                                    }
+                                }
+                                else if (sc_last_action == 'b') {
+                                    var target = self.targets.get_existing_target (self, target_big_repair);
+                                    if (target) {
+                                        return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_repair);
+                                    }
+                                    else {
+                                        delete self.memory.la;
+                                    }
+                                }
+                                else if (sc_last_action == 'e') {
+                                    var target = self.targets.get_existing_target (self, target_big_big_repair);
+                                    if (target) {
+                                        return self.execute_repair_target (target, Infinity, target_big_big_repair);
+                                    }
+                                    else {
+                                        delete self.memory.la;
+                                    }
+                                }
+                                else if (sc_last_action == 'c') {
+                                    var target = self.targets.get_existing_target (self, target_construction);
+                                    if (target) {
+                                        return self.execute_construction_target (target);
+                                    }
+                                    else {
+                                        delete self.memory.la;
+                                    }
+                                }
+                                else if (sc_last_action == 'f') {
+                                    var target = self.home.room.storage;
+                                    if (target) {
+                                        if (self.pos.isNearTo (target)) {
+                                            var resource = _.findKey (self.creep.carry);
+                                            self.creep.transfer (target, resource);
                                         }
                                         else {
-                                            delete self.memory.la;
+                                            self.move_to (target);
                                         }
                                     }
                                     else {
-                                        if (sc_last_action == 'b') {
-                                            var target = self.targets.get_existing_target (self, target_big_repair);
-                                            if (target) {
-                                                return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_repair);
-                                            }
-                                            else {
-                                                delete self.memory.la;
-                                            }
-                                        }
-                                        else {
-                                            if (sc_last_action == 'e') {
-                                                var target = self.targets.get_existing_target (self, target_big_big_repair);
-                                                if (target) {
-                                                    return self.execute_repair_target (target, Infinity, target_big_big_repair);
-                                                }
-                                                else {
-                                                    delete self.memory.la;
-                                                }
-                                            }
-                                            else {
-                                                if (sc_last_action == 'c') {
-                                                    var target = self.targets.get_existing_target (self, target_construction);
-                                                    if (target) {
-                                                        return self.execute_construction_target (target);
-                                                    }
-                                                    else {
-                                                        delete self.memory.la;
-                                                    }
-                                                }
-                                                else {
-                                                    if (sc_last_action == 'f') {
-                                                        var target = self.home.room.storage;
-                                                        if (target) {
-                                                            if (self.pos.isNearTo (target)) {
-                                                                var resource = _.findKey (self.creep.carry);
-                                                                self.creep.transfer (target, resource);
-                                                            }
-                                                            else {
-                                                                self.move_to (target);
-                                                            }
-                                                        }
-                                                        else {
-                                                            delete self.memory.la;
-                                                        }
-                                                    }
-                                                    else {
-                                                        var target = self.targets.get_existing_target (self, target_repair);
-                                                        if (target) {
-                                                            self.memory.la = 'r';
-                                                            return self.execute_repair_target (target, self.home.min_sane_wall_hits, target_repair);
-                                                        }
-                                                        var target = self.targets.get_existing_target (self, target_construction);
-                                                        if (target) {
-                                                            self.memory.la = 'c';
-                                                            return self.execute_construction_target (target);
-                                                        }
-                                                        var target = self.targets.get_existing_target (self, target_big_repair);
-                                                        if (target) {
-                                                            self.memory.la = 'b';
-                                                            return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_repair);
-                                                        }
-                                                        var target = self.targets.get_existing_target (self, target_big_big_repair);
-                                                        if (target) {
-                                                            self.memory.la = 'e';
-                                                            return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_big_repair);
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
+                                        delete self.memory.la;
+                                    }
+                                }
+                                else {
+                                    var target = self.targets.get_existing_target (self, target_repair);
+                                    if (target) {
+                                        self.memory.la = 'r';
+                                        return self.execute_repair_target (target, self.home.min_sane_wall_hits, target_repair);
+                                    }
+                                    var target = self.targets.get_existing_target (self, target_construction);
+                                    if (target) {
+                                        self.memory.la = 'c';
+                                        return self.execute_construction_target (target);
+                                    }
+                                    var target = self.targets.get_existing_target (self, target_big_repair);
+                                    if (target) {
+                                        self.memory.la = 'b';
+                                        return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_repair);
+                                    }
+                                    var target = self.targets.get_existing_target (self, target_big_big_repair);
+                                    if (target) {
+                                        self.memory.la = 'e';
+                                        return self.execute_repair_target (target, self.home.max_sane_wall_hits, target_big_big_repair);
                                     }
                                 }
                                 if (self.memory.building_walls_at) {
@@ -14650,20 +15176,18 @@ function main () {
                                         if (self.home.room.storage && self.home.mem.tons) {
                                             self.memory.la = 'f';
                                         }
-                                        else {
-                                            if (self.home.mem.tons) {
-                                                var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), dict ({'structureType': STRUCTURE_STORAGE}));
-                                                if (!(target)) {
-                                                    var storage = flags.find_ms_flags (self.home, flags.MAIN_BUILD, flags.SUB_STORAGE) [0];
-                                                    if (storage && len (self.home.look_at (LOOK_RESOURCES, storage))) {
-                                                        var site = self.home.look_at (LOOK_CONSTRUCTION_SITES, storage) [0];
-                                                        if (!(site)) {
-                                                            storage.pos.createConstructionSite (STRUCTURE_STORAGE);
-                                                            return ;
-                                                        }
-                                                        else {
-                                                            var target = site;
-                                                        }
+                                        else if (self.home.mem.tons) {
+                                            var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), dict ({'structureType': STRUCTURE_STORAGE}));
+                                            if (!(target)) {
+                                                var storage = flags.find_ms_flags (self.home, flags.MAIN_BUILD, flags.SUB_STORAGE) [0];
+                                                if (storage && len (self.home.look_at (LOOK_RESOURCES, storage))) {
+                                                    var site = self.home.look_at (LOOK_CONSTRUCTION_SITES, storage) [0];
+                                                    if (!(site)) {
+                                                        storage.pos.createConstructionSite (STRUCTURE_STORAGE);
+                                                        return ;
+                                                    }
+                                                    else {
+                                                        var target = site;
                                                     }
                                                 }
                                             }
@@ -14748,10 +15272,10 @@ function main () {
                                 }
                                 return false;
                             }
-                            if (!(self.creep.pos.inRangeTo (target.pos, 2))) {
+                            if (!(self.pos.inRangeTo (target, 2))) {
                                 self.build_swamp_roads ();
                                 self.move_to (target);
-                                if (!(self.creep.pos.inRangeTo (target.pos, 3))) {
+                                if (!(self.pos.inRangeTo (target, 3))) {
                                     return false;
                                 }
                             }
@@ -14759,37 +15283,55 @@ function main () {
                             if (result == OK) {
                                 // pass;
                             }
+                            else if (result == ERR_INVALID_TARGET) {
+                                self.targets.untarget (self, ttype);
+                                self.home.building.refresh_repair_targets ();
+                                return false;
+                            }
                             else {
-                                if (result == ERR_INVALID_TARGET) {
-                                    self.targets.untarget (self, ttype);
-                                    self.home.building.refresh_repair_targets ();
-                                    return false;
-                                }
-                                else {
-                                    self.log ('Unknown result from creep.repair({}): {}', target, result);
-                                }
+                                self.log ('Unknown result from creep.repair({}): {}', target, result);
                             }
                             return false;
                         });},
                         get execute_construction_target () {return __get__ (this, function (self, target) {
                             if (!(target.structureType) && target.color) {
-                                var site = _.find (target.pos.lookFor (LOOK_CONSTRUCTION_SITES), 'my');
+                                var site = _.find (target.pos.lookFor (LOOK_CONSTRUCTION_SITES));
                                 if (site) {
-                                    self.targets.manually_register (self, target_construction, site.id);
-                                    var target = site;
+                                    if (site.my) {
+                                        self.targets.manually_register (self, target_construction, site.id);
+                                        var target = site;
+                                    }
+                                    else {
+                                        self.move_to (site);
+                                    }
                                 }
                                 else {
-                                    self.log ("WARNING: Couldn't find site for flag at {}! Refreshing building targets...".format (target.pos));
-                                    self.home.building.refresh_building_targets ();
-                                    self.targets.untarget (self, target_construction);
-                                    self.move_to (target);
+                                    var creeps = target.pos.lookFor (LOOK_CREEPS);
+                                    if (len (creeps)) {
+                                        if (!(_.find (creeps, (function __lambda__ (c) {
+                                            return !(c.my);
+                                        })))) {
+                                            var mine = _.find (creeps, 'my');
+                                            if (!(mine.__moved)) {
+                                                self.hive.wrap_creep (mine).go_to_depot ();
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        self.log ("WARNING: Couldn't find site for flag at {}! Refreshing building targets...".format (target.pos));
+                                        self.home.building.refresh_building_targets ();
+                                        self.targets.untarget (self, target_construction);
+                                        if (!(self.pos.inRangeTo (target, 2))) {
+                                            self.move_to (target);
+                                        }
+                                    }
                                     return false;
                                 }
                             }
-                            if (!(self.creep.pos.inRangeTo (target.pos, 2))) {
+                            if (!(self.pos.inRangeTo (target, 2))) {
                                 self.build_swamp_roads ();
                                 self.move_to (target);
-                                if (!(self.creep.pos.inRangeTo (target.pos, 3))) {
+                                if (!(self.pos.inRangeTo (target, 3))) {
                                     if (self.home.role_count (role_builder) > 10) {
                                         var nearby = self.room.look_for_in_area_around (LOOK_CREEPS, self.pos, 1);
                                         self.refill_nearby (nearby);
@@ -14800,22 +15342,21 @@ function main () {
                             var result = self.creep.build (target);
                             if (result == OK) {
                                 if (target.structureType == STRUCTURE_WALL || target.structureType == STRUCTURE_RAMPART) {
-                                    self.memory.building_walls_at = target.pos.x | target.pos.y << 6;
+                                    var pos = target.pos || target;
+                                    self.memory.building_walls_at = pos.x | pos.y << 6;
                                 }
                             }
+                            else if (result == ERR_INVALID_TARGET) {
+                                self.targets.untarget (self, target_construction);
+                            }
                             else {
-                                if (result == ERR_INVALID_TARGET) {
-                                    self.targets.untarget (self, target_construction);
-                                }
-                                else {
-                                    self.log ('Unknown result from creep.build({}): {}', target, result);
-                                    return false;
-                                }
+                                self.log ('Unknown result from creep.build({}): {}', target, result);
+                                return false;
                             }
                             return false;
                         });},
                         get execute_destruction_target () {return __get__ (this, function (self, target) {
-                            if (!(self.pos.isNearTo (target.pos))) {
+                            if (!(self.pos.isNearTo (target))) {
                                 self.build_swamp_roads ();
                                 self.move_to (target);
                                 return false;
@@ -14823,7 +15364,7 @@ function main () {
                             var result = self.creep.dismantle (target);
                             if (result == OK) {
                                 self.move_around (target);
-                                if (target.hits < self.creep.getActiveBodyparts (WORK) * 50) {
+                                if (target.hits < self.creep.getActiveBodyparts (WORK) * DISMANTLE_POWER) {
                                     self.home.building.refresh_building_targets ();
                                 }
                             }
@@ -14899,6 +15440,7 @@ function main () {
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var target_reserve_now = __init__ (__world__.constants).target_reserve_now;
                     var target_single_flag = __init__ (__world__.constants).target_single_flag;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var TransportPickup = __init__ (__world__.goals.transport).TransportPickup;
                     var MilitaryBase = __init__ (__world__.roles.offensive).MilitaryBase;
                     var movement = __init__ (__world__.utilities.movement);
@@ -14913,7 +15455,7 @@ function main () {
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var room = __iterable0__ [__index0__];
                                     if (!(len (room.spawns)) && _.sum (room.role_counts) < 3) {
-                                        var distance = movement.distance_squared_room_pos (self.creep.pos, movement.center_pos (room.name));
+                                        var distance = movement.distance_squared_room_pos (self.pos, movement.center_pos (room.name));
                                         if (distance < closest_distance) {
                                             var closest_room_name = room.name;
                                         }
@@ -14924,7 +15466,7 @@ function main () {
                                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                         var room = __iterable0__ [__index0__];
                                         if (!(len (room.spawns))) {
-                                            var distance = movement.distance_squared_room_pos (self.creep.pos, movement.center_pos (room.name));
+                                            var distance = movement.distance_squared_room_pos (self.pos, movement.center_pos (room.name));
                                             if (distance < closest_distance) {
                                                 var closest_room_name = room.name;
                                             }
@@ -14959,13 +15501,17 @@ function main () {
                                 if (room.role_count (role_upgrader) < 1 && !(room.upgrading_paused ())) {
                                     self.memory.role = role_upgrader;
                                 }
+                                else if (enemy_storage_exhausted && (room.rcl >= 5 || room.rcl >= sponsor.rcl) || room.mem.prio_spawn || room.mem.prio_walls) {
+                                    self.memory.role = role_builder;
+                                }
                                 else {
-                                    if (enemy_storage_exhausted && (room.rcl >= 5 || room.rcl >= sponsor.rcl) || room.mem.prio_spawn || room.mem.prio_walls) {
-                                        self.memory.role = role_builder;
-                                    }
-                                    else {
-                                        self.memory.role = role_upgrader;
-                                    }
+                                    self.memory.role = role_upgrader;
+                                }
+                                if (_.some (room.defense.towers (), (function __lambda__ (t) {
+                                    return t.energy < t.energyCapacity * 0.9;
+                                }))) {
+                                    self.memory.old_role = self.memory.role;
+                                    self.memory.role = role_tower_fill_once;
                                 }
                                 var meta = room.mem.meta;
                                 if (meta) {
@@ -14992,7 +15538,7 @@ function main () {
                                 self.recycle_me ();
                                 return ;
                             }
-                            if (self.creep.pos.roomName != claim_flag.pos.roomName) {
+                            if (self.pos.roomName != claim_flag.pos.roomName) {
                                 var target = claim_flag.pos;
                                 if (!('checkpoint' in self.memory) || movement.chebyshev_distance_room_pos (self.memory.checkpoint, self.pos) > 50) {
                                     self.memory.checkpoint = self.pos;
@@ -15002,10 +15548,8 @@ function main () {
                                     opts.ignore_swamp = true;
                                     opts.use_roads = false;
                                 }
-                                else {
-                                    if (self.creep.getActiveBodyparts (MOVE) >= len (self.creep.body) / 2) {
-                                        opts.use_roads = false;
-                                    }
+                                else if (self.creep.getActiveBodyparts (MOVE) >= len (self.creep.body) / 2) {
+                                    opts.use_roads = false;
                                 }
                                 self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), target, opts);
                                 return false;
@@ -15017,11 +15561,11 @@ function main () {
                                 return true;
                             }
                             if (target.my) {
-                                self.memory.home = self.creep.room.name;
+                                self.memory.home = self.pos.roomName;
                                 self.targets.untarget_all (self);
                                 return true;
                             }
-                            if (!(target.pos.isNearTo (self.creep.pos))) {
+                            if (!(self.pos.isNearTo (target))) {
                                 self.move_to (target);
                                 return false;
                             }
@@ -15062,12 +15606,12 @@ function main () {
                                 self.recycle_me ();
                                 return false;
                             }
-                            if (self.creep.pos.roomName != reserve_flag.pos.roomName) {
+                            if (self.pos.roomName != reserve_flag.pos.roomName) {
                                 self.follow_military_path (self.home.spawn, reserve_flag);
                                 return false;
                             }
                             var controller = self.creep.room.controller;
-                            if (!(self.creep.pos.isNearTo (controller.pos))) {
+                            if (!(self.pos.isNearTo (controller))) {
                                 self.move_to (controller);
                                 return false;
                             }
@@ -15103,7 +15647,7 @@ function main () {
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var room = __iterable0__ [__index0__];
                                     if (room.room.storage && room.room.storage.storeCapacity <= 0 && _.sum (room.room.storage.store) > room.room.storage.store.energy) {
-                                        var distance = movement.distance_squared_room_pos (self.creep.pos, movement.center_pos (room.name));
+                                        var distance = movement.distance_squared_room_pos (self.pos, movement.center_pos (room.name));
                                         if (distance < closest_distance) {
                                             var closest_room_name = room.name;
                                         }
@@ -15126,7 +15670,7 @@ function main () {
                             }
                             var pickup = colony.room.storage;
                             var fill = self.home.room.storage;
-                            return self.transport (pickup, fill);
+                            return self.transport (pickup, fill, false);
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             return _.size (self.creep.body) * 3 + 15;
@@ -15154,6 +15698,7 @@ function main () {
                         __all__.role_builder = role_builder;
                         __all__.role_mineral_steal = role_mineral_steal;
                         __all__.role_recycling = role_recycling;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrader = role_upgrader;
                         __all__.target_reserve_now = target_reserve_now;
                         __all__.target_single_flag = target_single_flag;
@@ -15171,7 +15716,6 @@ function main () {
                     var INVADER_USERNAME = __init__ (__world__.constants).INVADER_USERNAME;
                     var role_defender = __init__ (__world__.constants).role_defender;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
-                    var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
                     var target_rampart_defense = __init__ (__world__.constants).target_rampart_defense;
                     var RoleBase = __init__ (__world__.role_base).RoleBase;
                     var MilitaryBase = __init__ (__world__.roles.offensive).MilitaryBase;
@@ -15277,43 +15821,36 @@ function main () {
                         get run () {return __get__ (this, function (self) {
                             var target = self.targets.get_new_target (self, target_rampart_defense);
                             if (!(target)) {
-                                self.log ('WARNING: No wall to defend!');
+                                self.go_to_depot ();
+                                self.log ('no new target! target: {}'.format (target));
+                                return ;
                             }
-                            if (target) {
-                                if (!(self.creep.pos.isEqualTo (target.pos))) {
+                            var nearby_enemies = self.room.look_for_in_area_around (LOOK_CREEPS, self, 1);
+                            if (len (nearby_enemies)) {
+                                var biggest_threat = _.max (nearby_enemies, (function __lambda__ (x) {
+                                    return self.home.defense.danger_level (x.creep);
+                                }));
+                                if (self.home.defense.danger_level (biggest_threat.creep) > 0) {
+                                    var result = self.creep.attack (biggest_threat.creep);
+                                    if (result != OK) {
+                                        self.log ('Unknown result from creep.attack({}): {}'.format (biggest_threat.creep, result));
+                                    }
+                                }
+                            }
+                            else if (self.pos.isEqualTo (target) && len (self.home.defense.dangerous_hostiles ())) {
+                                if (_.some (self.home.defense.get_current_defender_spots () [0], (function __lambda__ (loc) {
+                                    return !(self.targets.targets [target_rampart_defense] [loc.name]);
+                                }))) {
+                                    self.log ('Found a new hot spot: untargeting.');
+                                    self.targets.untarget (self, target_rampart_defense);
+                                }
+                            }
+                            if (!(self.pos.isEqualTo (target))) {
+                                try {
                                     self.move_to (target);
                                 }
-                                else {
-                                    if (!(_.find (self.room.look_at (LOOK_STRUCTURES, self.pos), (function __lambda__ (s) {
-                                        return s.structureType == STRUCTURE_RAMPART;
-                                    })))) {
-                                        self.move_to (self.pos.findClosestByRange (FIND_MY_STRUCTURES, dict ({'filter': (function __lambda__ (s) {
-                                            return s.structureType == STRUCTURE_RAMPART && !(len (s.pos.lookFor (LOOK_CREEPS)));
-                                        })})));
-                                        return ;
-                                    }
-                                }
-                            }
-                            var all_hostiles = self.room.defense.all_hostiles ();
-                            var highest_priority = _.find (all_hostiles, (function __lambda__ (f) {
-                                return f.pos.isNearTo (self.pos);
-                            }));
-                            if (highest_priority) {
-                                self.creep.attack (highest_priority);
-                            }
-                            else {
-                                var tcheck = __mod__ (Game.time * 2 + self.creep.ticksToLive, 50);
-                                if (tcheck <= 5) {
-                                    if (!(self.room.mem.attack) && !(len (all_hostiles))) {
-                                        self.memory.role = role_recycling;
-                                        self.memory.last_role = role_wall_defender;
-                                        return false;
-                                    }
-                                    else {
-                                        if (self.pos.isEqualTo (target.pos) && len (all_hostiles)) {
-                                            self.targets.untarget (self, target_rampart_defense);
-                                        }
-                                    }
+                                catch (__except0__) {
+                                    self.log ('Error moving to {}'.format (target));
                                 }
                             }
                         });}
@@ -15338,7 +15875,6 @@ function main () {
                         __all__.new_set = new_set;
                         __all__.role_defender = role_defender;
                         __all__.role_recycling = role_recycling;
-                        __all__.role_wall_defender = role_wall_defender;
                         __all__.target_rampart_defense = target_rampart_defense;
                     __pragma__ ('</all>')
                 }
@@ -15440,13 +15976,11 @@ function main () {
                                     destination.memory.explored_at = movement.xy_to_serialized_int (destination.pos.x, destination.pos.y) + destination.pos.roomName;
                                 }
                             }
+                            else if (self.pos.isNearTo (destination)) {
+                                self.basic_move_to (destination);
+                            }
                             else {
-                                if (self.pos.isNearTo (destination)) {
-                                    self.basic_move_to (destination);
-                                }
-                                else {
-                                    self.follow_military_path (self.home.spawn, destination, dict ({'ignore_swamp': true, 'use_roads': false}));
-                                }
+                                self.follow_military_path (self.home.spawn, destination, dict ({'ignore_swamp': true, 'use_roads': false}));
                             }
                             if (self.pos.roomName == destination.pos.roomName && destination.memory.activate_attack_in) {
                                 if (len (self.room.defense.dangerous_hostiles ()) && _.sum (self.room.defense.dangerous_hostiles (), (function __lambda__ (h) {
@@ -15589,6 +16123,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -15624,6 +16163,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -15684,7 +16224,7 @@ function main () {
                                 if (self.creep.spawning) {
                                     return ;
                                 }
-                                if (!(self.creep.pos.isNearTo (old_creep))) {
+                                if (!(self.pos.isNearTo (old_creep))) {
                                     self.move_to (old_creep);
                                     return ;
                                 }
@@ -15752,7 +16292,7 @@ function main () {
                             if (self.carry_sum () > 0) {
                                 var storage = self.home.room.storage;
                                 if (storage && _.sum (storage.store) < storage.storeCapacity) {
-                                    if (self.creep.pos.isNearTo (storage.pos)) {
+                                    if (self.pos.isNearTo (storage)) {
                                         var __iterable0__ = Object.keys (self.creep.carry);
                                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                             var rtype = __iterable0__ [__index0__];
@@ -15767,20 +16307,16 @@ function main () {
                                             }
                                         }
                                     }
+                                    else if (self.creep.ticksToLive <= self.pos.getRangeTo (storage.pos)) {
+                                        self.creep.suicide ();
+                                    }
                                     else {
-                                        if (self.creep.ticksToLive <= self.pos.getRangeTo (storage.pos)) {
-                                            self.creep.suicide ();
-                                        }
-                                        else {
-                                            self.move_to (storage);
-                                        }
+                                        self.move_to (storage);
                                     }
                                     return false;
                                 }
-                                else {
-                                    if (self.creep.carry.energy > 0) {
-                                        return self.refill_creeps ();
-                                    }
+                                else if (self.creep.carry.energy > 0) {
+                                    return self.refill_creeps ();
                                 }
                             }
                             self.recycle_me ();
@@ -15859,8 +16395,13 @@ function main () {
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
                         __all__.immediately_replace_roles = immediately_replace_roles;
                         __all__.let_live_roles = let_live_roles;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -15898,6 +16439,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -15951,7 +16493,7 @@ function main () {
                                 self.go_to_depot ();
                                 return false;
                             }
-                            if (!(self.creep.pos.isNearTo (mineral.pos))) {
+                            if (!(self.pos.isNearTo (mineral))) {
                                 self.move_to (mineral);
                                 return false;
                             }
@@ -15962,10 +16504,8 @@ function main () {
                                     self.memory.role = role_recycling;
                                     self.memory.last_role = role_mineral_miner;
                                 }
-                                else {
-                                    if (result != OK) {
-                                        self.log ('Unknown result from creep.harvest({}): {}'.format (mineral, result));
-                                    }
+                                else if (result != OK) {
+                                    self.log ('Unknown result from creep.harvest({}): {}'.format (mineral, result));
                                 }
                             }
                             else {
@@ -15979,7 +16519,7 @@ function main () {
                                 }
                                 if (self.memory.container) {
                                     var transfer_target = Game.getObjectById (self.memory.container);
-                                    if (!(self.creep.pos.isNearTo (transfer_target))) {
+                                    if (!(self.pos.isNearTo (transfer_target))) {
                                         var pos = null;
                                         for (var x = mineral.pos.x - 1; x < mineral.pos.x + 2; x++) {
                                             for (var y = mineral.pos.y - 1; y < mineral.pos.y + 2; y++) {
@@ -15999,7 +16539,7 @@ function main () {
                                     }
                                 }
                                 else {
-                                    var hauler = _.find (self.room.look_for_in_area_around (LOOK_CREEPS, self.creep.pos, 1), (function __lambda__ (c) {
+                                    var hauler = _.find (self.room.look_for_in_area_around (LOOK_CREEPS, self.pos, 1), (function __lambda__ (c) {
                                         return c.creep.memory.role == role_mineral_hauler;
                                     }));
                                     if (hauler) {
@@ -16065,11 +16605,9 @@ function main () {
                                                         break;
                                                     }
                                                 }
-                                                else {
-                                                    if (mind.terminal.store [resource] > (mind.get_all_terminal_targets () [resource] || 0)) {
-                                                        __break0__ = true;
-                                                        break;
-                                                    }
+                                                else if (mind.terminal.store [resource] > (mind.get_all_terminal_targets () [resource] || 0)) {
+                                                    __break0__ = true;
+                                                    break;
                                                 }
                                             }
                                         }
@@ -16084,13 +16622,11 @@ function main () {
                                 if (now_held) {
                                     return _STORAGE_DROPOFF;
                                 }
+                                else if (len (mind.removing_from_terminal ())) {
+                                    return _TERMINAL_PICKUP;
+                                }
                                 else {
-                                    if (len (mind.removing_from_terminal ())) {
-                                        return _TERMINAL_PICKUP;
-                                    }
-                                    else {
-                                        return _DEPOT;
-                                    }
+                                    return _DEPOT;
                                 }
                             }
                             var __iterable0__ = Object.keys (self.creep.carry);
@@ -16100,58 +16636,40 @@ function main () {
                                     if ((mind.terminal.store [resource] || 0) < mind.get_all_terminal_targets () [resource]) {
                                         return _TERMINAL_DROPOFF;
                                     }
-                                    else {
-                                        if (mind.get_lab_target_mineral () == resource && mind.amount_needed_in_lab1 ()) {
-                                            return _FILL_LABS;
-                                        }
-                                        else {
-                                            if (mind.get_lab2_target_mineral () == resource && mind.amount_needed_in_lab2 ()) {
-                                                return _FILL_LABS;
-                                            }
-                                            else {
-                                                if (resource == RESOURCE_ENERGY && mind.energy_needed_in_labs ()) {
-                                                    return _FILL_LABS;
-                                                }
-                                            }
-                                        }
+                                    else if (mind.get_lab_target_mineral () == resource && mind.amount_needed_in_lab1 ()) {
+                                        return _FILL_LABS;
+                                    }
+                                    else if (mind.get_lab2_target_mineral () == resource && mind.amount_needed_in_lab2 ()) {
+                                        return _FILL_LABS;
+                                    }
+                                    else if (resource == RESOURCE_ENERGY && mind.energy_needed_in_labs ()) {
+                                        return _FILL_LABS;
                                     }
                                 }
                             }
                             if (now_held) {
                                 return _STORAGE_DROPOFF;
                             }
+                            else if (self.creep.ticksToLive < 100) {
+                                return _DEAD;
+                            }
+                            else if (len (mind.removing_from_terminal ()) && self.pos.isNearTo (mind.terminal)) {
+                                return _TERMINAL_PICKUP;
+                            }
+                            else if (len (mind.adding_to_terminal ())) {
+                                return _STORAGE_PICKUP;
+                            }
+                            else if (len (mind.removing_from_terminal ())) {
+                                return _TERMINAL_PICKUP;
+                            }
+                            else if (self.home.role_count (role_mineral_miner)) {
+                                return _MINER_HARVEST;
+                            }
+                            else if (mind.amount_needed_in_lab1 () || mind.amount_needed_in_lab2 () || mind.energy_needed_in_labs ()) {
+                                return _STORAGE_PICKUP;
+                            }
                             else {
-                                if (self.creep.ticksToLive < 100) {
-                                    return _DEAD;
-                                }
-                                else {
-                                    if (len (mind.removing_from_terminal ()) && self.pos.isNearTo (mind.terminal)) {
-                                        return _TERMINAL_PICKUP;
-                                    }
-                                    else {
-                                        if (len (mind.adding_to_terminal ())) {
-                                            return _STORAGE_PICKUP;
-                                        }
-                                        else {
-                                            if (len (mind.removing_from_terminal ())) {
-                                                return _TERMINAL_PICKUP;
-                                            }
-                                            else {
-                                                if (self.home.role_count (role_mineral_miner)) {
-                                                    return _MINER_HARVEST;
-                                                }
-                                                else {
-                                                    if (mind.amount_needed_in_lab1 () || mind.amount_needed_in_lab2 () || mind.energy_needed_in_labs ()) {
-                                                        return _STORAGE_PICKUP;
-                                                    }
-                                                    else {
-                                                        return _DEPOT;
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                return _DEPOT;
                             }
                         });},
                         get run () {return __get__ (this, function (self) {
@@ -16177,49 +16695,35 @@ function main () {
                             if (state == _MINER_HARVEST) {
                                 return self.run_miner_harvesting ();
                             }
+                            else if (state == _STORAGE_PICKUP) {
+                                return self.run_storage_pickup ();
+                            }
+                            else if (state == _STORAGE_DROPOFF) {
+                                return self.run_storage_dropoff ();
+                            }
+                            else if (state == _TERMINAL_PICKUP) {
+                                return self.run_terminal_pickup ();
+                            }
+                            else if (state == _TERMINAL_DROPOFF) {
+                                return self.run_terminal_deposit ();
+                            }
+                            else if (state == _FILL_LABS) {
+                                return self.run_lab_drop_off ();
+                            }
+                            else if (state == _DEAD) {
+                                self.memory.role = role_recycling;
+                                self.memory.last_role = role_mineral_hauler;
+                            }
+                            else if (state == _DEPOT) {
+                                self.go_to_depot ();
+                                if (__mod__ (Game.time, 10) == 0) {
+                                    delete self.memory.state;
+                                    delete self.memory.last_state;
+                                }
+                            }
                             else {
-                                if (state == _STORAGE_PICKUP) {
-                                    return self.run_storage_pickup ();
-                                }
-                                else {
-                                    if (state == _STORAGE_DROPOFF) {
-                                        return self.run_storage_dropoff ();
-                                    }
-                                    else {
-                                        if (state == _TERMINAL_PICKUP) {
-                                            return self.run_terminal_pickup ();
-                                        }
-                                        else {
-                                            if (state == _TERMINAL_DROPOFF) {
-                                                return self.run_terminal_deposit ();
-                                            }
-                                            else {
-                                                if (state == _FILL_LABS) {
-                                                    return self.run_lab_drop_off ();
-                                                }
-                                                else {
-                                                    if (state == _DEAD) {
-                                                        self.memory.role = role_recycling;
-                                                        self.memory.last_role = role_mineral_hauler;
-                                                    }
-                                                    else {
-                                                        if (state == _DEPOT) {
-                                                            self.go_to_depot ();
-                                                            if (__mod__ (Game.time, 10) == 0) {
-                                                                delete self.memory.state;
-                                                                delete self.memory.last_state;
-                                                            }
-                                                        }
-                                                        else {
-                                                            self.log ("ERROR: mineral-hauler in unknown state '{}'".format (self.memory.state));
-                                                            delete self.memory.state;
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                self.log ("ERROR: mineral-hauler in unknown state '{}'".format (self.memory.state));
+                                delete self.memory.state;
                             }
                             return false;
                         });},
@@ -16247,9 +16751,7 @@ function main () {
                                 return false;
                             }
                             if (!('containers' in self.memory)) {
-                                self.memory.containers = _ (self.home.find_in_range (FIND_STRUCTURES, 2, mineral.pos)).filter ((function __lambda__ (s) {
-                                    return s.structureType == STRUCTURE_CONTAINER;
-                                })).map ('id');
+                                self.memory.containers = _ (self.home.find_in_range (FIND_STRUCTURES, 2, mineral.pos)).filter ('structureType', STRUCTURE_CONTAINER).pluck ('id').value ();
                             }
                             if (len (self.memory.containers)) {
                                 if (len (self.memory.containers) > 1) {
@@ -16261,21 +16763,19 @@ function main () {
                                     var container = Game.getObjectById (self.memory.containers [0]);
                                 }
                                 var container_filled = _.sum (container.store);
-                                if (self.creep.pos.isNearTo (container.pos)) {
+                                if (self.pos.isNearTo (container)) {
                                     if (container_filled + self.carry_sum () >= self.creep.carryCapacity || !(mineral.mineralAmount)) {
                                         var resource = _.findKey (container.store);
                                         if (resource) {
                                             self.creep.withdraw (container, resource);
                                         }
-                                        else {
-                                            if (self.carry_sum () || !(mineral.mineralAmount)) {
-                                                delete self.memory.state;
-                                            }
+                                        else if (self.carry_sum () || !(mineral.mineralAmount)) {
+                                            delete self.memory.state;
                                         }
                                     }
                                 }
                                 else {
-                                    self.move_to (container.pos);
+                                    self.move_to (container);
                                 }
                                 return false;
                             }
@@ -16293,7 +16793,7 @@ function main () {
                                         return true;
                                     }
                                 }
-                                if (!(self.creep.pos.isNearTo (miner.pos))) {
+                                if (!(self.pos.isNearTo (miner))) {
                                     self.move_to (miner);
                                 }
                             }
@@ -16305,7 +16805,7 @@ function main () {
                                 delete self.memory.state;
                                 return true;
                             }
-                            if (!(self.creep.pos.isNearTo (mind.storage))) {
+                            if (!(self.pos.isNearTo (mind.storage))) {
                                 self.move_to (mind.storage);
                                 return false;
                             }
@@ -16337,7 +16837,7 @@ function main () {
                                 delete self.memory.state;
                                 return true;
                             }
-                            if (!(self.creep.pos.isNearTo (mind.storage))) {
+                            if (!(self.pos.isNearTo (mind.storage))) {
                                 self.move_to (mind.storage);
                                 return false;
                             }
@@ -16354,7 +16854,7 @@ function main () {
                                 delete self.memory.state;
                                 return true;
                             }
-                            if (!(self.creep.pos.isNearTo (mind.terminal))) {
+                            if (!(self.pos.isNearTo (mind.terminal))) {
                                 self.move_to (mind.terminal);
                                 return false;
                             }
@@ -16389,7 +16889,7 @@ function main () {
                                 delete self.memory.state;
                                 return true;
                             }
-                            if (!(self.creep.pos.isNearTo (mind.terminal))) {
+                            if (!(self.pos.isNearTo (mind.terminal))) {
                                 self.move_to (mind.terminal);
                                 return false;
                             }
@@ -16406,10 +16906,8 @@ function main () {
                                 delete self.memory.state;
                                 return false;
                             }
-                            else {
-                                if (result != OK) {
-                                    self.log ('Unknown result from mineral-hauler.transfer({}, {}, {}): {}'.format (mind.terminal, resource, amount, result));
-                                }
+                            else if (result != OK) {
+                                self.log ('Unknown result from mineral-hauler.transfer({}, {}, {}): {}'.format (mind.terminal, resource, amount, result));
                             }
                         });},
                         get run_lab_drop_off () {return __get__ (this, function (self) {
@@ -16427,57 +16925,53 @@ function main () {
                                 }));
                                 var resource = RESOURCE_ENERGY;
                             }
-                            else {
-                                if (mind.amount_needed_in_lab1 () && mineral1_holding) {
-                                    var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
-                                        return l.mineralAmount < l.mineralCapacity;
-                                    }));
-                                    if (labs.find ((function __lambda__ (l) {
+                            else if (mind.amount_needed_in_lab1 () && mineral1_holding) {
+                                var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
+                                    return l.mineralAmount < l.mineralCapacity;
+                                }));
+                                if (labs.find ((function __lambda__ (l) {
+                                    return l.mineralType == mineral1;
+                                }))) {
+                                    var labs = labs.filter ((function __lambda__ (l) {
                                         return l.mineralType == mineral1;
-                                    }))) {
-                                        var labs = labs.filter ((function __lambda__ (l) {
-                                            return l.mineralType == mineral1;
-                                        }));
-                                    }
-                                    else {
-                                        var labs = labs.filter ((function __lambda__ (l) {
-                                            return !(l.mineralAmount);
-                                        }));
-                                    }
-                                    var target = labs.min ((function __lambda__ (l) {
-                                        return movement.chebyshev_distance_room_pos (self.pos, l.pos);
                                     }));
-                                    var resource = mineral1;
                                 }
                                 else {
-                                    if (mind.amount_needed_in_lab2 () && mineral2_holding) {
-                                        var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
-                                            return l.mineralAmount < l.mineralCapacity;
-                                        }));
-                                        if (labs.find ((function __lambda__ (l) {
-                                            return l.mineralType == mineral2;
-                                        }))) {
-                                            var labs = labs.filter ((function __lambda__ (l) {
-                                                return l.mineralType == mineral2;
-                                            }));
-                                        }
-                                        else {
-                                            var labs = labs.filter ((function __lambda__ (l) {
-                                                return !(l.mineralAmount);
-                                            }));
-                                        }
-                                        var target = labs.min ((function __lambda__ (l) {
-                                            return movement.chebyshev_distance_room_pos (self.pos, l.pos);
-                                        }));
-                                        var resource = mineral2;
-                                    }
-                                    else {
-                                        delete self.memory.state;
-                                        return true;
-                                    }
+                                    var labs = labs.filter ((function __lambda__ (l) {
+                                        return !(l.mineralAmount);
+                                    }));
                                 }
+                                var target = labs.min ((function __lambda__ (l) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, l.pos);
+                                }));
+                                var resource = mineral1;
                             }
-                            if (!(self.pos.isNearTo (target.pos))) {
+                            else if (mind.amount_needed_in_lab2 () && mineral2_holding) {
+                                var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
+                                    return l.mineralAmount < l.mineralCapacity;
+                                }));
+                                if (labs.find ((function __lambda__ (l) {
+                                    return l.mineralType == mineral2;
+                                }))) {
+                                    var labs = labs.filter ((function __lambda__ (l) {
+                                        return l.mineralType == mineral2;
+                                    }));
+                                }
+                                else {
+                                    var labs = labs.filter ((function __lambda__ (l) {
+                                        return !(l.mineralAmount);
+                                    }));
+                                }
+                                var target = labs.min ((function __lambda__ (l) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, l.pos);
+                                }));
+                                var resource = mineral2;
+                            }
+                            else {
+                                delete self.memory.state;
+                                return true;
+                            }
+                            if (!(self.pos.isNearTo (target))) {
                                 self.move_to (target);
                                 return false;
                             }
@@ -16565,11 +17059,9 @@ function main () {
                                     self.follow_energy_path (source_flag, self.home.spawn);
                                     return ;
                                 }
-                                else {
-                                    if (!(self.creep.getActiveBodyparts (WORK))) {
-                                        self.creep.suicide ();
-                                        return ;
-                                    }
+                                else if (!(self.creep.getActiveBodyparts (WORK))) {
+                                    self.creep.suicide ();
+                                    return ;
                                 }
                             }
                             if (self.memory.container_pos) {
@@ -16578,7 +17070,7 @@ function main () {
                             else {
                                 var sitting_target = source_flag.pos;
                             }
-                            var distance_away = self.creep.pos.getRangeTo (source_flag);
+                            var distance_away = self.pos.getRangeTo (source_flag);
                             if (distance_away > 2) {
                                 if (self.pos.roomName == source_flag.pos.roomName) {
                                     if (distance_away <= 3) {
@@ -16600,18 +17092,16 @@ function main () {
                                 }
                                 return false;
                             }
-                            else {
-                                if (distance_away > 1) {
-                                    var creep = _.find (self.room.look_at (LOOK_CREEPS, sitting_target), (function __lambda__ (c) {
-                                        return c.my;
-                                    }));
-                                    if (creep && creep.memory.role == role_miner && creep.ticksToLive > 100) {
-                                        self.memory.container_pos = null;
-                                        var sitting_target = source_flag.pos;
-                                    }
-                                    self.move_to (sitting_target);
-                                    return false;
+                            else if (distance_away > 1) {
+                                var creep = _.find (self.room.look_at (LOOK_CREEPS, sitting_target), (function __lambda__ (c) {
+                                    return c.my;
+                                }));
+                                if (creep && creep.memory.role == role_miner && creep.ticksToLive > 100) {
+                                    self.memory.container_pos = null;
+                                    var sitting_target = source_flag.pos;
                                 }
+                                self.move_to (sitting_target);
+                                return false;
                             }
                             if (!('container_pos' in self.memory)) {
                                 var container = _.find (self.room.find_in_range (FIND_STRUCTURES, 1, source_flag.pos), (function __lambda__ (s) {
@@ -16772,35 +17262,29 @@ function main () {
                                 if (self.memory.running == 'refill') {
                                     return self.refill_creeps ();
                                 }
+                                else if (self.memory.running == role_spawn_fill) {
+                                    return SpawnFill.run (self);
+                                }
+                                else if (_.find (self.home.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
+                                    return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.energy < s.energyCapacity;
+                                }))) {
+                                    self.memory.running = role_spawn_fill;
+                                    return SpawnFill.run (self);
+                                }
                                 else {
-                                    if (self.memory.running == role_spawn_fill) {
-                                        return SpawnFill.run (self);
-                                    }
-                                    else {
-                                        if (_.find (self.home.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
-                                            return (s.structureType == STRUCTURE_EXTENSION || s.structureType == STRUCTURE_SPAWN) && s.energy < s.energyCapacity;
-                                        }))) {
-                                            self.memory.running = role_spawn_fill;
-                                            return SpawnFill.run (self);
-                                        }
-                                        else {
-                                            self.memory.running = 'refill';
-                                            return self.refill_creeps ();
-                                        }
-                                    }
+                                    self.memory.running = 'refill';
+                                    return self.refill_creeps ();
                                 }
                             }
-                            else {
-                                if (self.creep.ticksToLive < 200 && self.creep.ticksToLive < self.path_length (fill, pickup) * 2) {
-                                    if (self.creep.carry.energy > 0) {
-                                        self.memory.filling = false;
-                                        return self.refill_creeps ();
-                                    }
-                                    else {
-                                        self.memory.last_role = self.memory.role;
-                                        self.memory.role = role_recycling;
-                                        return self.recycle_me ();
-                                    }
+                            else if (self.creep.ticksToLive < 200 && self.creep.ticksToLive < self.path_length (fill, pickup) * 2) {
+                                if (self.creep.carry.energy > 0) {
+                                    self.memory.filling = false;
+                                    return self.refill_creeps ();
+                                }
+                                else {
+                                    self.memory.last_role = self.memory.role;
+                                    self.memory.role = role_recycling;
+                                    return self.recycle_me ();
                                 }
                             }
                         });},
@@ -16831,13 +17315,11 @@ function main () {
                                 if (!(self.memory.filling) && self.pos.roomName == fill.pos.roomName) {
                                     return self.run_local_refilling (pickup, fill);
                                 }
-                                else {
-                                    if (('running' in self.memory)) {
-                                        delete self.memory.running;
-                                    }
+                                else if (('running' in self.memory)) {
+                                    delete self.memory.running;
                                 }
                             }
-                            return self.transport (pickup, fill);
+                            return self.transport (pickup, fill, self.home.paving ());
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             var source = self.targets.get_new_target (self, target_energy_hauler_mine);
@@ -16860,10 +17342,8 @@ function main () {
                                                 if (self.creep.ticksToLive > creep.ticksToLive) {
                                                     Memory.reserving [claim_room] = self.name;
                                                 }
-                                                else {
-                                                    if (self.pos.roomName != claim_room || creep.pos.getRangeTo (self.creep.room.controller.pos) < 4) {
-                                                        self.creep.suicide ();
-                                                    }
+                                                else if (self.pos.roomName != claim_room || creep.pos.getRangeTo (self.creep.room.controller.pos) < 4) {
+                                                    self.creep.suicide ();
                                                 }
                                             }
                                         }
@@ -16924,7 +17404,7 @@ function main () {
                                 self.creep.suicide ();
                                 return ;
                             }
-                            if (self.creep.pos.roomName != claim_room) {
+                            if (self.pos.roomName != claim_room) {
                                 if (Game.rooms [claim_room]) {
                                     var target = Game.rooms [claim_room].controller.pos;
                                 }
@@ -16940,7 +17420,7 @@ function main () {
                                 return true;
                             }
                             if (controller.reservation && controller.reservation.ticksToEnd > 4999) {
-                                if (self.creep.pos.isNearTo (controller.pos)) {
+                                if (self.pos.isNearTo (controller)) {
                                     self.creep.suicide ();
                                     return false;
                                 }
@@ -16949,7 +17429,7 @@ function main () {
                                     return true;
                                 }
                             }
-                            if (!(self.creep.pos.isNearTo (controller.pos))) {
+                            if (!(self.pos.isNearTo (controller))) {
                                 self.move_to (controller);
                                 return false;
                             }
@@ -17081,13 +17561,11 @@ function main () {
                                     return list ([center_pos (room_xy_to_name (x, floor_thing (y))), center_pos (room_xy_to_name (x, ceil_thing (y)))]);
                                 }
                             }
+                            else if (rry == 0) {
+                                return list ([center_pos (room_xy_to_name (floor_thing (x), y)), center_pos (room_xy_to_name (ceil_thing (x), y))]);
+                            }
                             else {
-                                if (rry == 0) {
-                                    return list ([center_pos (room_xy_to_name (floor_thing (x), y)), center_pos (room_xy_to_name (ceil_thing (x), y))]);
-                                }
-                                else {
-                                    return list ([center_pos (room_xy_to_name (floor_thing (x), floor_thing (y))), center_pos (room_xy_to_name (floor_thing (x), ceil_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), floor_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), ceil_thing (y)))]);
-                                }
+                                return list ([center_pos (room_xy_to_name (floor_thing (x), floor_thing (y))), center_pos (room_xy_to_name (floor_thing (x), ceil_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), floor_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), ceil_thing (y)))]);
                             }
                         });},
                         get find_midpoint () {return __get__ (this, function (self, origin, target) {
@@ -17249,35 +17727,33 @@ function main () {
                                 if (self.memory.manual) {
                                     self.move_to (target);
                                 }
-                                else {
-                                    if (!(self.memory.next_ppos)) {
-                                        var all_positions = self.hive.honey.list_of_room_positions_in_path (origin, target, path_opts);
-                                        var closest = null;
-                                        var closest_distance = Infinity;
-                                        var __iterable0__ = all_positions;
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var pos = __iterable0__ [__index0__];
-                                            var distance = movement.chebyshev_distance_room_pos (self.pos, pos);
-                                            if (distance < closest_distance) {
-                                                var closest_distance = distance;
-                                                var closest = pos;
+                                else if (!(self.memory.next_ppos)) {
+                                    var all_positions = self.hive.honey.list_of_room_positions_in_path (origin, target, path_opts);
+                                    var closest = null;
+                                    var closest_distance = Infinity;
+                                    var __iterable0__ = all_positions;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var pos = __iterable0__ [__index0__];
+                                        var distance = movement.chebyshev_distance_room_pos (self.pos, pos);
+                                        if (distance < closest_distance) {
+                                            var closest_distance = distance;
+                                            var closest = pos;
+                                        }
+                                    }
+                                    if (closest) {
+                                        self.memory.next_ppos = closest;
+                                        if (closest.isEqualTo (self.pos)) {
+                                            self.log ('WARNING: ERR_NOT_FOUND when actually still on military path! Path retrieved:\n{}\nPos: {}.'.format (path, self.pos));
+                                            if (movement.chebyshev_distance_room_pos (self.pos, target) <= 50) {
+                                                self.memory.manual = true;
+                                                self.move_to (target);
+                                                return ;
                                             }
                                         }
-                                        if (closest) {
-                                            self.memory.next_ppos = closest;
-                                            if (closest.isEqualTo (self.pos)) {
-                                                self.log ('WARNING: ERR_NOT_FOUND when actually still on military path! Path retrieved:\n{}\nPos: {}.'.format (path, self.pos));
-                                                if (movement.chebyshev_distance_room_pos (self.pos, target) <= 50) {
-                                                    self.memory.manual = true;
-                                                    self.move_to (target);
-                                                    return ;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            self.log ("WARNING: Couldn't find closest position on path from {} to {} near {}!\nMoving manually... (all pos: {})".format (origin, target, self.pos, all_positions));
-                                            self.memory.next_ppos = target;
-                                        }
+                                    }
+                                    else {
+                                        self.log ("WARNING: Couldn't find closest position on path from {} to {} near {}!\nMoving manually... (all pos: {})".format (origin, target, self.pos, all_positions));
+                                        self.memory.next_ppos = target;
                                     }
                                 }
                                 var mtarget = self.memory.next_ppos;
@@ -17313,17 +17789,13 @@ function main () {
                                     }
                                 }
                             }
-                            else {
-                                if (result != OK) {
-                                    self.log ('Unknown result from follow_military_path: {}'.format (result));
-                                }
-                                else {
-                                    if (self.memory.off_path_for) {
-                                        delete self.memory.next_ppos;
-                                        delete self.memory.off_path_for;
-                                        delete self.memory.lost_path_at;
-                                    }
-                                }
+                            else if (result != OK) {
+                                self.log ('Unknown result from follow_military_path: {}'.format (result));
+                            }
+                            else if (self.memory.off_path_for) {
+                                delete self.memory.next_ppos;
+                                delete self.memory.off_path_for;
+                                delete self.memory.lost_path_at;
                             }
                             var serialized_pos = self.pos.x | self.pos.y << 6;
                             if (self.memory.last_pos == serialized_pos) {
@@ -17343,13 +17815,11 @@ function main () {
                                         if (pos.x == self.pos.x && pos.y == self.pos.y) {
                                             var found_mine = true;
                                         }
-                                        else {
-                                            if (found_mine) {
-                                                if (movement.is_block_clear (self.room, pos.x, pos.y)) {
-                                                    self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
-                                                    self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
-                                                    break;
-                                                }
+                                        else if (found_mine) {
+                                            if (movement.is_block_clear (self.room, pos.x, pos.y)) {
+                                                self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
+                                                self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
+                                                break;
                                             }
                                         }
                                     }
@@ -17401,7 +17871,7 @@ function main () {
                                 }
                                 return ;
                             }
-                            if (!(self.creep.pos.isEqualTo (target.pos))) {
+                            if (!(self.pos.isEqualTo (target))) {
                                 self.follow_military_path (self.home.spawn, target);
                             }
                             autoactions.instinct_do_heal (self);
@@ -17449,18 +17919,16 @@ function main () {
                                 return ;
                             }
                             if (self.memory.goading) {
-                                if (self.creep.pos.isEqualTo (goad_target.pos)) {
+                                if (self.pos.isEqualTo (goad_target)) {
                                     // pass;
                                 }
+                                else if (movement.chebyshev_distance_room_pos (self.pos, goad_target) < 50) {
+                                    self.creep.moveTo (goad_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
+                                        return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
+                                    })}));
+                                }
                                 else {
-                                    if (movement.chebyshev_distance_room_pos (self.pos, goad_target) < 50) {
-                                        self.creep.moveTo (goad_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
-                                            return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
-                                        })}));
-                                    }
-                                    else {
-                                        self.follow_military_path (self.home.spawn, goad_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
-                                    }
+                                    self.follow_military_path (self.home.spawn, goad_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
                                 }
                             }
                             else {
@@ -17474,18 +17942,16 @@ function main () {
                                     }
                                     return ;
                                 }
-                                if (self.creep.pos.isEqualTo (heal_target.pos)) {
+                                if (self.pos.isEqualTo (heal_target)) {
                                     // pass;
                                 }
+                                else if (movement.chebyshev_distance_room_pos (self.pos, heal_target) < 50) {
+                                    self.creep.moveTo (heal_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
+                                        return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
+                                    })}));
+                                }
                                 else {
-                                    if (movement.chebyshev_distance_room_pos (self.pos, heal_target) < 50) {
-                                        self.creep.moveTo (heal_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
-                                            return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
-                                        })}));
-                                    }
-                                    else {
-                                        self.follow_military_path (self.home.spawn, heal_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
-                                    }
+                                    self.follow_military_path (self.home.spawn, heal_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
                                 }
                             }
                             autoactions.instinct_do_attack (self);
@@ -17529,7 +17995,7 @@ function main () {
                                     }
                                     return ;
                                 }
-                                if (self.creep.pos.isNearTo (target.pos)) {
+                                if (self.pos.isNearTo (target)) {
                                     var struct = self.room.look_at (LOOK_STRUCTURES, target.pos) [0];
                                     if (struct) {
                                         self.creep.dismantle (struct);
@@ -17549,14 +18015,12 @@ function main () {
                                                 if (new_structure && (!(new_target_site) || movement.distance_squared_room_pos (target, new_target_site) > movement.distance_squared_room_pos (target, new_structure))) {
                                                     var new_pos = new_structure.pos;
                                                 }
+                                                else if (new_target_site) {
+                                                    var new_pos = new_target_site.pos;
+                                                }
                                                 else {
-                                                    if (new_target_site) {
-                                                        var new_pos = new_target_site.pos;
-                                                    }
-                                                    else {
-                                                        target.remove ();
-                                                        return ;
-                                                    }
+                                                    target.remove ();
+                                                    return ;
                                                 }
                                                 target.setPosition (new_pos);
                                                 self.move_to (new_pos);
@@ -17567,19 +18031,17 @@ function main () {
                                         }
                                     }
                                 }
+                                else if (self.pos.roomName == target.pos.roomName) {
+                                    self.move_to (target);
+                                }
                                 else {
-                                    if (self.pos.roomName == target.pos.roomName) {
-                                        self.move_to (target);
+                                    if (!('checkpoint' in self.memory) || movement.chebyshev_distance_room_pos (self.memory.checkpoint, self.pos) > 50) {
+                                        self.memory.checkpoint = self.pos;
                                     }
-                                    else {
-                                        if (!('checkpoint' in self.memory) || movement.chebyshev_distance_room_pos (self.memory.checkpoint, self.pos) > 50) {
-                                            self.memory.checkpoint = self.pos;
-                                        }
-                                        if (hostile_utils.enemy_room (self.memory.checkpoint.roomName)) {
-                                            self.memory.checkpoint = self.home.spawn || movement.find_an_open_space (self.home.name);
-                                        }
-                                        self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), target);
+                                    if (hostile_utils.enemy_room (self.memory.checkpoint.roomName)) {
+                                        self.memory.checkpoint = self.home.spawn || movement.find_an_open_space (self.home.name);
                                     }
+                                    self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), target);
                                 }
                             }
                             else {
@@ -17607,7 +18069,7 @@ function main () {
                                     if (room && _.find (room.find (FIND_MY_CREEPS), (function __lambda__ (c) {
                                         return c.memory.role == role_td_healer;
                                     }))) {
-                                        if (!(self.creep.pos.isEqualTo (target.pos))) {
+                                        if (!(self.pos.isEqualTo (target))) {
                                             self.creep.moveTo (target);
                                             self.follow_military_path (self.home.spawn, target);
                                         }
@@ -17671,14 +18133,12 @@ function main () {
                                     }
                                 }
                             }
-                            else {
-                                if (fill == self.home.spawn && !(self.memory.filling)) {
-                                    if (self.pos.roomName == fill.pos.roomName) {
-                                        return self.run_local_refilling (target, fill);
-                                    }
-                                    else {
-                                        delete self.memory.running;
-                                    }
+                            else if (fill == self.home.spawn && !(self.memory.filling)) {
+                                if (self.pos.roomName == fill.pos.roomName) {
+                                    return self.run_local_refilling (target, fill);
+                                }
+                                else {
+                                    delete self.memory.running;
                                 }
                             }
                             return self.transport (target, fill);
@@ -17746,7 +18206,7 @@ function main () {
                                     if (room && _.find (room.find (FIND_MY_CREEPS), (function __lambda__ (c) {
                                         return c.memory.role == role_td_healer;
                                     }))) {
-                                        if (!(self.creep.pos.isEqualTo (heal_target.pos))) {
+                                        if (!(self.pos.isEqualTo (heal_target))) {
                                             self.creep.moveTo (heal_target);
                                             self.follow_military_path (self.home.spawn, heal_target);
                                         }
@@ -17757,7 +18217,7 @@ function main () {
                                 }
                             }
                             else {
-                                if (self.creep.pos.isNearTo (target.pos)) {
+                                if (self.pos.isNearTo (target)) {
                                     var struct = self.room.look_at (LOOK_STRUCTURES, target.pos) [0];
                                     if (struct) {
                                         self.creep.attack (struct);
@@ -17776,7 +18236,7 @@ function main () {
                                         target.remove ();
                                     }
                                 }
-                                if (!(self.creep.pos.isEqualTo (heal_target.pos))) {
+                                if (!(self.pos.isEqualTo (heal_target))) {
                                     if (self.pos.roomName == target.pos.roomName) {
                                         var result = self.creep.moveTo (heal_target);
                                         if (result != OK && result != ERR_TIRED) {
@@ -17848,7 +18308,7 @@ function main () {
                                                 }
                                             }
                                             if (resource.amount > 50 || len (self.room.find_in_range (FIND_SOURCES, 1, resource.pos)) == 0) {
-                                                var distance = movement.distance_squared_room_pos (self.creep.pos, resource.pos);
+                                                var distance = movement.distance_squared_room_pos (self, resource);
                                                 if (distance < closest_distance) {
                                                     var closest = resource;
                                                     var closest_distance = distance;
@@ -17871,18 +18331,16 @@ function main () {
                                             target.remove ();
                                         }
                                     }
+                                    else if (self.pos.inRangeTo (target, 7)) {
+                                        self.move_around (target);
+                                    }
                                     else {
-                                        if (self.pos.inRangeTo (target, 7)) {
-                                            self.move_around (target);
-                                        }
-                                        else {
-                                            self.move_to (target);
-                                        }
+                                        self.move_to (target);
                                     }
                                     return ;
                                 }
                                 self.memory.last_energy_target = pile.pos.x | pile.pos.y << 6;
-                                if (!(self.creep.pos.isNearTo (pile.pos))) {
+                                if (!(self.pos.isNearTo (pile))) {
                                     self.move_to (pile);
                                     return false;
                                 }
@@ -17890,14 +18348,12 @@ function main () {
                                 if (result == OK) {
                                     // pass;
                                 }
+                                else if (result == ERR_FULL) {
+                                    self.memory.filling = false;
+                                    return true;
+                                }
                                 else {
-                                    if (result == ERR_FULL) {
-                                        self.memory.filling = false;
-                                        return true;
-                                    }
-                                    else {
-                                        self.log ('Unknown result from cleanup-creep.pickup({}): {}', pile, result);
-                                    }
+                                    self.log ('Unknown result from cleanup-creep.pickup({}): {}', pile, result);
                                 }
                             }
                             else {
@@ -17905,12 +18361,12 @@ function main () {
                                     self.go_to_depot ();
                                     return ;
                                 }
-                                if (self.creep.pos.roomName != storage.pos.roomName) {
+                                if (self.pos.roomName != storage.pos.roomName) {
                                     self.follow_military_path (target, storage);
                                     return false;
                                 }
                                 var target = storage;
-                                if (!(self.creep.pos.isNearTo (target.pos))) {
+                                if (!(self.pos.isNearTo (target))) {
                                     self.move_to (target);
                                     return false;
                                 }
@@ -17921,21 +18377,17 @@ function main () {
                                 if (result == OK) {
                                     // pass;
                                 }
+                                else if (result == ERR_NOT_ENOUGH_RESOURCES) {
+                                    self.memory.filling = true;
+                                    return true;
+                                }
+                                else if (result == ERR_FULL) {
+                                    if (target == storage) {
+                                        self.log ('Storage in room {} full!', storage.room.name);
+                                    }
+                                }
                                 else {
-                                    if (result == ERR_NOT_ENOUGH_RESOURCES) {
-                                        self.memory.filling = true;
-                                        return true;
-                                    }
-                                    else {
-                                        if (result == ERR_FULL) {
-                                            if (target == storage) {
-                                                self.log ('Storage in room {} full!', storage.room.name);
-                                            }
-                                        }
-                                        else {
-                                            self.log ('Unknown result from cleanup-creep.transfer({}, {}): {}', target, resource_type, result);
-                                        }
-                                    }
+                                    self.log ('Unknown result from cleanup-creep.transfer({}, {}): {}', target, resource_type, result);
                                 }
                             }
                         });},
@@ -18057,10 +18509,8 @@ function main () {
                                 if (struct.structureType == STRUCTURE_ROAD) {
                                     cost_matrix.set (struct.pos.x, struct.pos.y, 1);
                                 }
-                                else {
-                                    if (struct.structureType != STRUCTURE_CONTAINER && (struct.structureType != STRUCTURE_RAMPART || !(struct.my))) {
-                                        cost_matrix.set (struct.pos.x, struct.pos.y, 255);
-                                    }
+                                else if (struct.structureType != STRUCTURE_CONTAINER && (struct.structureType != STRUCTURE_RAMPART || !(struct.my))) {
+                                    cost_matrix.set (struct.pos.x, struct.pos.y, 255);
                                 }
                             }
                             var __iterable0__ = room.find (FIND_MY_CREEPS);
@@ -18314,15 +18764,13 @@ function main () {
                                         self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), marker_flag, dict ({'range': 1}));
                                         self.creep.say ('G1');
                                     }
+                                    else if (distance >= 1) {
+                                        self.creep.moveTo (marker_flag, self.get_def_move_opts (marker_flag.pos.roomName));
+                                        self.creep.say ('G2');
+                                    }
                                     else {
-                                        if (distance >= 1) {
-                                            self.creep.moveTo (marker_flag, self.get_def_move_opts (marker_flag.pos.roomName));
-                                            self.creep.say ('G2');
-                                        }
-                                        else {
-                                            self.basic_move_to (marker_flag);
-                                            self.creep.say ('G3');
-                                        }
+                                        self.basic_move_to (marker_flag);
+                                        self.creep.say ('G3');
                                     }
                                 }
                                 return false;
@@ -18373,41 +18821,37 @@ function main () {
                             if (ranged && self_damaged) {
                                 var safe_distance = 5;
                             }
+                            else if (ranged && only_ranged) {
+                                var safe_distance = 0;
+                            }
                             else {
-                                if (ranged && only_ranged) {
-                                    var safe_distance = 0;
-                                }
-                                else {
-                                    var safe_distance = 3;
-                                }
+                                var safe_distance = 3;
                             }
                             var should_run = !(_.find (self.pos.lookFor (LOOK_STRUCTURES), dict ({'structureType': STRUCTURE_RAMPART, 'my': true}))) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
                             var should_approach = !(should_run) && (harmless || min_distance > safe_distance);
                             if (should_approach) {
                                 self.move_to (_.create (RoomPosition.prototype, closest_pos), self.get_def_move_opts (closest_pos.roomName));
                             }
-                            else {
-                                if (should_run) {
-                                    var away_path = null;
-                                    try {
-                                        var away_path = kiting_away_raw_path (self.pos, function () {
-                                            var __accu0__ = [];
-                                            var __iterable0__ = hostiles_nearby;
-                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                var h = __iterable0__ [__index0__];
-                                                __accu0__.append (dict ({'pos': _.create (RoomPosition.prototype, movement.serialized_pos_to_pos_obj (h.room, h.pos)), 'range': 10}));
-                                            }
-                                            return __accu0__;
-                                        } ());
-                                        if (len (away_path)) {
-                                            self.creep.move (pathdef.direction_to (self.pos, away_path [0]));
+                            else if (should_run) {
+                                var away_path = null;
+                                try {
+                                    var away_path = kiting_away_raw_path (self.pos, function () {
+                                        var __accu0__ = [];
+                                        var __iterable0__ = hostiles_nearby;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var h = __iterable0__ [__index0__];
+                                            __accu0__.append (dict ({'pos': _.create (RoomPosition.prototype, movement.serialized_pos_to_pos_obj (h.room, h.pos)), 'range': 10}));
                                         }
+                                        return __accu0__;
+                                    } ());
+                                    if (len (away_path)) {
+                                        self.creep.move (pathdef.direction_to (self.pos, away_path [0]));
                                     }
-                                    catch (__except0__) {
-                                        self.log ('ERROR calculating/moving by kiting path:\n{}\nPath: {}'.format (__except0__.stack, away_path));
-                                        self.creep.say ('ERROR');
-                                        self.go_to_depot ();
-                                    }
+                                }
+                                catch (__except0__) {
+                                    self.log ('ERROR calculating/moving by kiting path:\n{}\nPath: {}'.format (__except0__.stack, away_path));
+                                    self.creep.say ('ERROR');
+                                    self.go_to_depot ();
                                 }
                             }
                         });},
@@ -18492,16 +18936,14 @@ function main () {
                                     return true;
                                 }
                             }
-                            else {
-                                if (!(self.memory.filling) && (self.creep.carry.energy <= 0 || self.creep.carry.energy <= 20 && self.home.room.storage && movement.chebyshev_distance_room_pos (self.pos, self.home.room.storage) < 5)) {
-                                    self.memory.filling = true;
-                                    delete self.memory.running;
-                                    if (self.memory.role == role_spawn_fill || self.memory.role == role_tower_fill) {
-                                        self.targets.untarget_all (self);
-                                    }
-                                    else {
-                                        return true;
-                                    }
+                            else if (!(self.memory.filling) && (self.creep.carry.energy <= 0 || self.creep.carry.energy <= 20 && self.home.room.storage && movement.chebyshev_distance_room_pos (self.pos, self.home.room.storage) < 5)) {
+                                self.memory.filling = true;
+                                delete self.memory.running;
+                                if (self.memory.role == role_spawn_fill || self.memory.role == role_tower_fill) {
+                                    self.targets.untarget_all (self);
+                                }
+                                else {
+                                    return true;
                                 }
                             }
                             if (self.memory.filling) {
@@ -18512,33 +18954,25 @@ function main () {
                                     if (self.memory.running == role_upgrader) {
                                         return upgrading.Upgrader.run (self);
                                     }
-                                    else {
-                                        if (self.memory.running == role_builder) {
-                                            return building.Builder.run (self);
-                                        }
-                                        else {
-                                            if (self.memory.running == 'refill') {
-                                                return self.refill_creeps ();
-                                            }
-                                            else {
-                                                if (self.memory.running != role_spawn_fill) {
-                                                    self.log ('WARNING: Unknown running value: {}', self.memory.running);
-                                                    delete self.memory.running;
-                                                }
-                                            }
-                                        }
+                                    else if (self.memory.running == role_builder) {
+                                        return building.Builder.run (self);
+                                    }
+                                    else if (self.memory.running == 'refill') {
+                                        return self.refill_creeps ();
+                                    }
+                                    else if (self.memory.running != role_spawn_fill) {
+                                        self.log ('WARNING: Unknown running value: {}', self.memory.running);
+                                        delete self.memory.running;
                                     }
                                 }
-                                else {
-                                    if (self.home.room.energyCapacityAvailable < 550 && self.home.room.energyAvailable < 300 && self.home.next_role === null) {
-                                        if (self.creep.hasActiveBodyparts (WORK)) {
-                                            self.memory.running = role_builder;
-                                            return building.Builder.run (self);
-                                        }
-                                        else {
-                                            self.memory.running = 'refill';
-                                            return self.refill_creeps ();
-                                        }
+                                else if (self.home.room.energyCapacityAvailable < 550 && self.home.room.energyAvailable < 300 && self.home.next_role === null) {
+                                    if (self.creep.hasActiveBodyparts (WORK)) {
+                                        self.memory.running = role_builder;
+                                        return building.Builder.run (self);
+                                    }
+                                    else {
+                                        self.memory.running = 'refill';
+                                        return self.refill_creeps ();
                                     }
                                 }
                                 var target = self.targets.get_new_target (self, target_spawn_deposit);
@@ -18562,82 +18996,72 @@ function main () {
                                             self.memory.running = 'refill';
                                             return self.refill_creeps ();
                                         }
-                                        if (!(self.creep.pos.isEqualTo (target.pos))) {
+                                        if (!(self.pos.isEqualTo (target))) {
                                             self.move_to (target);
                                         }
                                         return false;
                                     }
+                                    else if (target.energy >= target.energyCapacity) {
+                                        self.targets.untarget (self, target_spawn_deposit);
+                                        return true;
+                                    }
                                     else {
-                                        if (target.energy >= target.energyCapacity) {
+                                        if (!(self.pos.isNearTo (target))) {
+                                            self.move_to (target);
+                                            return false;
+                                        }
+                                        delete self.memory.nbm;
+                                        var result = self.creep.transfer (target, RESOURCE_ENERGY);
+                                        if (result == OK) {
+                                            if (self.creep.carry.energy > target.energyCapacity - target.energy) {
+                                                volatile_cache.mem ('extensions_filled').set (target.id, true);
+                                                if ((self.creep.carry.energy + target.energy) - target.energyCapacity > 0) {
+                                                    self.targets.untarget (self, target_spawn_deposit);
+                                                    var new_target = self.targets.get_new_target (self, target_spawn_deposit);
+                                                    if (new_target && !(self.pos.isNearTo (new_target))) {
+                                                        self.move_to (new_target);
+                                                    }
+                                                }
+                                                else {
+                                                    self.harvest_energy ();
+                                                }
+                                            }
+                                        }
+                                        else if (result == ERR_FULL) {
                                             self.targets.untarget (self, target_spawn_deposit);
                                             return true;
                                         }
                                         else {
-                                            if (!(self.creep.pos.isNearTo (target.pos))) {
-                                                self.move_to (target);
-                                                return false;
-                                            }
-                                            delete self.memory.nbm;
-                                            var result = self.creep.transfer (target, RESOURCE_ENERGY);
-                                            if (result == OK) {
-                                                if (self.creep.carry.energy > target.energyCapacity - target.energy) {
-                                                    volatile_cache.mem ('extensions_filled').set (target.id, true);
-                                                    if ((self.creep.carry.energy + target.energy) - target.energyCapacity > 0) {
-                                                        self.targets.untarget (self, target_spawn_deposit);
-                                                        var new_target = self.targets.get_new_target (self, target_spawn_deposit);
-                                                        if (new_target && !(self.creep.pos.isNearTo (new_target.pos))) {
-                                                            self.move_to (new_target);
-                                                        }
-                                                    }
-                                                    else {
-                                                        self.harvest_energy ();
-                                                    }
-                                                }
-                                            }
-                                            else {
-                                                if (result == ERR_FULL) {
-                                                    self.targets.untarget (self, target_spawn_deposit);
-                                                    return true;
-                                                }
-                                                else {
-                                                    self.log ('Unknown result from spawn_fill-creep.transfer({}): {}', target, result);
-                                                    self.targets.untarget (self, target_spawn_deposit);
-                                                    return true;
-                                                }
-                                            }
-                                            return false;
+                                            self.log ('Unknown result from spawn_fill-creep.transfer({}): {}', target, result);
+                                            self.targets.untarget (self, target_spawn_deposit);
+                                            return true;
                                         }
+                                        return false;
                                     }
                                 }
                                 if (self.home.full_storage_use && self.memory.role == role_spawn_fill_backup && self.home.carry_mass_of (role_tower_fill) + self.home.carry_mass_of (role_spawn_fill) >= self.home.get_target_total_spawn_fill_mass ()) {
                                     self.memory.role = role_builder;
                                     return building.Builder.run (self);
                                 }
-                                else {
-                                    if (self.memory.role == role_spawn_fill_backup) {
-                                        if (_.find (self.room.building.get_construction_targets (), (function __lambda__ (s) {
-                                            return s.structureType == STRUCTURE_EXTENSION;
-                                        })) || self.home.upgrading_deprioritized ()) {
-                                            self.memory.running = role_builder;
-                                            return building.Builder.run (self);
-                                        }
-                                        else {
-                                            self.memory.running = role_upgrader;
-                                            return upgrading.Upgrader.run (self);
-                                        }
+                                else if (self.memory.role == role_spawn_fill_backup) {
+                                    if (_.find (self.room.building.get_construction_targets (), (function __lambda__ (s) {
+                                        return s.structureType == STRUCTURE_EXTENSION;
+                                    })) || self.home.upgrading_deprioritized ()) {
+                                        self.memory.running = role_builder;
+                                        return building.Builder.run (self);
                                     }
                                     else {
-                                        if (!(self.home.full_storage_use) || self.home.room.storage.storeCapacity <= 0) {
-                                            self.memory.running = 'refill';
-                                            return self.refill_creeps ();
-                                        }
-                                        else {
-                                            if (self.creep.carry.energy < self.creep.carryCapacity) {
-                                                self.memory.filling = true;
-                                                return self.harvest_energy ();
-                                            }
-                                        }
+                                        self.memory.running = role_upgrader;
+                                        return upgrading.Upgrader.run (self);
                                     }
+                                }
+                                else if (!(self.home.full_storage_use) || self.home.room.storage.storeCapacity <= 0) {
+                                    self.memory.running = 'refill';
+                                    return self.refill_creeps ();
+                                }
+                                else if (self.creep.carry.energy < self.creep.carryCapacity) {
+                                    self.memory.filling = true;
+                                    return self.harvest_energy ();
                                 }
                             }
                             return false;
@@ -18650,10 +19074,8 @@ function main () {
                                 if (self.memory.running == role_upgrader) {
                                     return upgrading.Upgrader.should_pickup (self, resource_type);
                                 }
-                                else {
-                                    if (self.memory.running == role_builder) {
-                                        return building.Builder.should_pickup (self, resource_type);
-                                    }
+                                else if (self.memory.running == role_builder) {
+                                    return building.Builder.should_pickup (self, resource_type);
                                 }
                             }
                             return RoleBase.should_pickup (self, resource_type);
@@ -18703,6 +19125,8 @@ function main () {
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
+                    var role_builder = __init__ (__world__.constants).role_builder;
+                    var RoleBase = __init__ (__world__.role_base).RoleBase;
                     var spawn_fill = __init__ (__world__.roles.spawn_fill);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
@@ -18719,12 +19143,10 @@ function main () {
                                     self.targets.untarget_all (self);
                                 }
                             }
-                            else {
-                                if (self.creep.carry.energy <= 0) {
-                                    self.memory.filling = true;
-                                    delete self.memory.running;
-                                    self.targets.untarget_all (self);
-                                }
+                            else if (self.creep.carry.energy <= 0) {
+                                self.memory.filling = true;
+                                delete self.memory.running;
+                                self.targets.untarget_all (self);
                             }
                             if (self.memory.filling) {
                                 return self.harvest_energy ();
@@ -18740,7 +19162,7 @@ function main () {
                                     if (!(self.home.role_count (role_spawn_fill)) && target.energy >= target.energyCapacity / 2) {
                                         return spawn_fill.SpawnFill.run (self);
                                     }
-                                    if (!(self.creep.pos.isNearTo (target.pos))) {
+                                    if (!(self.pos.isNearTo (target))) {
                                         self.move_to (target);
                                         return false;
                                     }
@@ -18749,27 +19171,69 @@ function main () {
                                         self.targets.untarget (self, target_tower_fill);
                                         return true;
                                     }
-                                    else {
-                                        if (result != OK) {
-                                            self.log ('Unknown result from tower_fill-creep.transfer({}): {}', target, result);
-                                            self.targets.untarget (self, target_tower_fill);
-                                        }
+                                    else if (result != OK) {
+                                        self.log ('Unknown result from tower_fill-creep.transfer({}): {}', target, result);
+                                        self.targets.untarget (self, target_tower_fill);
                                     }
                                 }
                                 return spawn_fill.SpawnFill.run (self);
                             }
                         });}
                     });
+                    var TowerFillOnce = __class__ ('TowerFillOnce', [RoleBase], {
+                        get run () {return __get__ (this, function (self) {
+                            if (self.memory.filling) {
+                                if (self.creep.carry.energy >= self.creep.carryCapacity) {
+                                    self.memory.filling = false;
+                                    self.targets.untarget_all (self);
+                                }
+                            }
+                            else if (self.creep.carry.energy <= 0) {
+                                self.memory.filling = true;
+                                delete self.memory.running;
+                                self.targets.untarget_all (self);
+                            }
+                            if (self.memory.filling) {
+                                return self.harvest_energy ();
+                            }
+                            else {
+                                var target = self.targets.get_new_target (self, target_tower_fill);
+                                if (target) {
+                                    if (!(self.pos.isNearTo (target))) {
+                                        self.move_to (target);
+                                        return false;
+                                    }
+                                    var result = self.creep.transfer (target, RESOURCE_ENERGY);
+                                    if (result == ERR_FULL) {
+                                        self.targets.untarget (self, target_tower_fill);
+                                        return true;
+                                    }
+                                    else if (result != OK) {
+                                        self.log ('Unknown result from tower_fill-creep.transfer({}): {}', target, result);
+                                        self.targets.untarget (self, target_tower_fill);
+                                    }
+                                }
+                                else {
+                                    self.memory.role = self.memory.old_role || role_builder;
+                                    delete self.memory.old_role;
+                                }
+                            }
+                        });}
+                    });
                     __pragma__ ('<use>' +
                         'constants' +
+                        'role_base' +
                         'roles.spawn_fill' +
                         'utilities.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
+                        __all__.RoleBase = RoleBase;
                         __all__.TowerFill = TowerFill;
+                        __all__.TowerFillOnce = TowerFillOnce;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.recycle_time = recycle_time;
+                        __all__.role_builder = role_builder;
                         __all__.role_recycling = role_recycling;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_tower_fill = role_tower_fill;
@@ -18830,20 +19294,16 @@ function main () {
                             if (!(self.home.upgrading_deprioritized ()) || self.creep.room.controller.ticksToDowngrade <= 5000) {
                                 self.upgrade (controller);
                             }
-                            else {
-                                if (__mod__ (Game.time, 15) == 2 || self.memory.set_till == Game.time) {
-                                    if (!(self.home.get_target_upgrader_work_mass ()) || !(self.home.spawn)) {
-                                        if (len (self.creep.body) > 3 && spawning.find_base_type (self) == creep_base_worker) {
-                                            self.memory.role = role_builder;
-                                            return false;
-                                        }
-                                        else {
-                                            if (self.home.spawn) {
-                                                self.memory.role = role_recycling;
-                                                self.memory.last_role = role_upgrader;
-                                                return false;
-                                            }
-                                        }
+                            else if (__mod__ (Game.time, 15) == 2 || self.memory.set_till == Game.time) {
+                                if (!(self.home.get_target_upgrader_work_mass ()) || !(self.home.spawn)) {
+                                    if (len (self.creep.body) > 3 && spawning.find_base_type (self) == creep_base_worker) {
+                                        self.memory.role = role_builder;
+                                        return false;
+                                    }
+                                    else if (self.home.spawn) {
+                                        self.memory.role = role_recycling;
+                                        self.memory.last_role = role_upgrader;
+                                        return false;
                                     }
                                 }
                             }
@@ -18939,10 +19399,8 @@ function main () {
                                             __break0__ = true;
                                             break;
                                         }
-                                        else {
-                                            if (that_creep.carry.energy >= that_creep.carryCapacity * 0.5 && that_creep.memory.role == role_upgrader && !(that_creep.memory.get_near_controller)) {
-                                                var a_creep_with_energy = that_creep;
-                                            }
+                                        else if (that_creep.carry.energy >= that_creep.carryCapacity * 0.5 && that_creep.memory.role == role_upgrader && !(that_creep.memory.get_near_controller)) {
+                                            var a_creep_with_energy = that_creep;
                                         }
                                     }
                                     if (!__break0__) {
@@ -18954,17 +19412,13 @@ function main () {
                                                 closest_full.creep.move (closest_full.creep.pos.getDirectionTo (self.pos));
                                                 self.creep.move (self.pos.getDirectionTo (closest_full.creep.pos));
                                             }
-                                            else {
-                                                if (a_creep_with_energy) {
-                                                    a_creep_with_energy.memory.get_near_controller = true;
-                                                    self.creep.move (self.pos.getDirectionTo (link.pos));
-                                                }
+                                            else if (a_creep_with_energy) {
+                                                a_creep_with_energy.memory.get_near_controller = true;
+                                                self.creep.move (self.pos.getDirectionTo (link.pos));
                                             }
                                         }
-                                        else {
-                                            if (!(self.pos.inRangeTo (controller, 3))) {
-                                                self.move_to (controller);
-                                            }
+                                        else if (!(self.pos.inRangeTo (controller, 3))) {
+                                            self.move_to (controller);
                                         }
                                     }
                                     return ;
@@ -18993,7 +19447,7 @@ function main () {
                                 return ;
                             }
                             if (link.structureType == STRUCTURE_LINK) {
-                                self.home.links.register_target_withdraw (link, self, self.creep.carryCapacity - self.creep.carry.energy, self.creep.pos.getRangeTo (link));
+                                self.home.links.register_target_withdraw (link, self, self.creep.carryCapacity - self.creep.carry.energy, self.pos.getRangeTo (link));
                             }
                             var result = self.creep.withdraw (link, RESOURCE_ENERGY);
                             if (result != OK && result != ERR_NOT_IN_RANGE && result != ERR_NOT_ENOUGH_RESOURCES) {
@@ -19020,11 +19474,9 @@ function main () {
                                 self.memory.filling = false;
                                 self.finished_energy_harvest ();
                             }
-                            else {
-                                if (!(self.memory.filling) && self.creep.carry.energy <= 0 && self.creep.getBodyparts (CARRY) > self.creep.getBodyparts (WORK)) {
-                                    self.memory.filling = true;
-                                    self.finished_energy_harvest ();
-                                }
+                            else if (!(self.memory.filling) && self.creep.carry.energy <= 0 && self.creep.getBodyparts (CARRY) > self.creep.getBodyparts (WORK)) {
+                                self.memory.filling = true;
+                                self.finished_energy_harvest ();
                             }
                             if (__mod__ (Game.time, 5) == 0 && !(self.creep.hasActiveBodyparts (WORK) & self.creep.hasActiveBodyparts (CARRY)) && !(self.home.defense.healing_capable ())) {
                                 if (self.home.spawn) {
@@ -19039,19 +19491,15 @@ function main () {
                                 if (self.home.room.storage && self.empty_to_storage ()) {
                                     return false;
                                 }
-                                else {
-                                    if (!(self.home.get_target_upgrader_work_mass ()) || !(self.home.spawn)) {
-                                        if (len (self.creep.body) > 3 && spawning.find_base_type (self) == creep_base_worker) {
-                                            self.memory.role = role_builder;
-                                            return false;
-                                        }
-                                        else {
-                                            if (self.home.spawn) {
-                                                self.memory.role = role_recycling;
-                                                self.memory.last_role = role_upgrader;
-                                                return false;
-                                            }
-                                        }
+                                else if (!(self.home.get_target_upgrader_work_mass ()) || !(self.home.spawn)) {
+                                    if (len (self.creep.body) > 3 && spawning.find_base_type (self) == creep_base_worker) {
+                                        self.memory.role = role_builder;
+                                        return false;
+                                    }
+                                    else if (self.home.spawn) {
+                                        self.memory.role = role_recycling;
+                                        self.memory.last_role = role_upgrader;
+                                        return false;
                                     }
                                 }
                             }
@@ -19078,10 +19526,8 @@ function main () {
                                                 return true;
                                             }
                                         }
-                                        else {
-                                            if (result != OK) {
-                                                self.log ('Unknown result from upgradeController({}): {}', self.creep.room.controller, result);
-                                            }
+                                        else if (result != OK) {
+                                            self.log ('Unknown result from upgradeController({}): {}', self.creep.room.controller, result);
                                         }
                                     }
                                     else {
@@ -19090,7 +19536,7 @@ function main () {
                                     }
                                 }
                                 else {
-                                    if (!(self.creep.pos.inRangeTo (target.pos, 3))) {
+                                    if (!(self.pos.inRangeTo (target, 3))) {
                                         self.build_swamp_roads ();
                                         self.move_to (target);
                                         return false;
@@ -19122,10 +19568,8 @@ function main () {
                                                     self.creep.transfer (other_creep, RESOURCE_ENERGY, math.ceil ((other_empty - self_empty) / 3));
                                                     return true;
                                                 }
-                                                else {
-                                                    if (self_empty < other_empty) {
-                                                        other_creep.transfer (self.creep, RESOURCE_ENERGY, math.ceil ((self_empty - other_empty) / 3));
-                                                    }
+                                                else if (self_empty < other_empty) {
+                                                    other_creep.transfer (self.creep, RESOURCE_ENERGY, math.ceil ((self_empty - other_empty) / 3));
                                                 }
                                                 return false;
                                             };
@@ -19157,7 +19601,7 @@ function main () {
                                         }
                                     }
                                     else {
-                                        var build = self.room.look_at (LOOK_CONSTRUCTION_SITES, self.creep.pos);
+                                        var build = self.room.look_at (LOOK_CONSTRUCTION_SITES, self.pos);
                                         if (len (build)) {
                                             var build = _.find (build, (function __lambda__ (s) {
                                                 return s.structureType == STRUCTURE_ROAD;
@@ -19172,7 +19616,6 @@ function main () {
                                     }
                                 }
                             }
-                            // pass;
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             if (self.home.spawn) {
@@ -19189,10 +19632,8 @@ function main () {
                             if (self.memory.filling && self.creep.carry.energy >= self.creep.carryCapacity) {
                                 self.memory.filling = false;
                             }
-                            else {
-                                if (!(self.memory.filling) && self.creep.carry.energy <= 0) {
-                                    self.memory.filling = true;
-                                }
+                            else if (!(self.memory.filling) && self.creep.carry.energy <= 0) {
+                                self.memory.filling = true;
                             }
                             if (!('set' in self.memory) || __mod__ (Game.time, 100) == 92) {
                                 if (self.memory.emptying_container) {
@@ -19217,17 +19658,15 @@ function main () {
                                             self.move_to (container);
                                         }
                                     }
+                                    else if (self.pos.isNearTo (self.home.room.storage)) {
+                                        var resource = _.findKey (self.creep.carry);
+                                        var result = self.creep.transfer (self.home.room.storage, resource);
+                                        if (result != OK) {
+                                            self.log ('Unknown result from creep.withdraw({}, {})'.format (self.home.room.storage, resource));
+                                        }
+                                    }
                                     else {
-                                        if (self.pos.isNearTo (self.home.room.storage)) {
-                                            var resource = _.findKey (self.creep.carry);
-                                            var result = self.creep.transfer (self.home.room.storage, resource);
-                                            if (result != OK) {
-                                                self.log ('Unknown result from creep.withdraw({}, {})'.format (self.home.room.storage, resource));
-                                            }
-                                        }
-                                        else {
-                                            self.move_to (self.home.room.storage);
-                                        }
+                                        self.move_to (self.home.room.storage);
                                     }
                                     return false;
                                 }
@@ -19242,12 +19681,10 @@ function main () {
                                             delete self.memory.set;
                                             return true;
                                         }
-                                        else {
-                                            if (!(current_target) || current_target.structureType != STRUCTURE_CONTAINER) {
-                                                self.memory.role = role_recycling;
-                                                self.memory.last_role = role_upgrade_fill;
-                                                return false;
-                                            }
+                                        else if (!(current_target) || current_target.structureType != STRUCTURE_CONTAINER) {
+                                            self.memory.role = role_recycling;
+                                            self.memory.last_role = role_upgrade_fill;
+                                            return false;
                                         }
                                     }
                                 }
@@ -19363,10 +19800,8 @@ function main () {
                                             if ((link.pos.x == storage.pos.x && storage.pos.x == pos.x)) {
                                                 priority += 5;
                                             }
-                                            else {
-                                                if ((link.pos.y == storage.pos.y && storage.pos.y == pos.y)) {
-                                                    priority += 5;
-                                                }
+                                            else if ((link.pos.y == storage.pos.y && storage.pos.y == pos.y)) {
+                                                priority += 5;
                                             }
                                             if (priority >= best_priority) {
                                                 var best = pos;
@@ -19398,7 +19833,13 @@ function main () {
                                     self.ensure_ok (result, 'transfer', storage, RESOURCE_ENERGY);
                                 }
                                 else {
-                                    self.ensure_ok (self.creep.withdraw (storage, RESOURCE_ENERGY, self.creep.carryCapacity / 2 - self.creep.carry.energy), 'withdraw', storage, RESOURCE_ENERGY);
+                                    var target = storage;
+                                    var result = self.creep.withdraw (target, RESOURCE_ENERGY, self.creep.carryCapacity / 2 - self.creep.carry.energy);
+                                    if (result == ERR_NOT_ENOUGH_RESOURCES) {
+                                        var target = self.home.links.main_link;
+                                        var result = self.creep.withdraw (target, RESOURCE_ENERGY, self.creep.carryCapacity / 2 - self.creep.carry.energy);
+                                    }
+                                    self.ensure_ok (result, 'withdraw', target, RESOURCE_ENERGY);
                                 }
                                 return false;
                             }
@@ -19500,7 +19941,7 @@ function main () {
                                                         break;
                                                     }
                                                 }
-                                                var distance = movement.distance_squared_room_pos (self.creep.pos, resource.pos);
+                                                var distance = movement.distance_squared_room_pos (self.pos, resource);
                                                 if (distance < closest_distance) {
                                                     var closest = resource;
                                                     var closest_distance = distance;
@@ -19519,7 +19960,7 @@ function main () {
                                     return ;
                                 }
                                 self.memory.last_energy_target = pile.pos.x | pile.pos.y << 6;
-                                if (!(self.creep.pos.isNearTo (pile.pos))) {
+                                if (!(self.pos.isNearTo (pile))) {
                                     self.move_to (pile);
                                     return false;
                                 }
@@ -19528,17 +19969,15 @@ function main () {
                                     self.memory.filling = false;
                                     return true;
                                 }
-                                else {
-                                    if (result != OK) {
-                                        self.log ('Unknown result from cleanup-creep.pickup({}): {}', pile, result);
-                                    }
+                                else if (result != OK) {
+                                    self.log ('Unknown result from cleanup-creep.pickup({}): {}', pile, result);
                                 }
                             }
                             else {
                                 if (!(storage)) {
                                     return SpawnFill.run (self);
                                 }
-                                if (self.creep.pos.roomName != storage.pos.roomName) {
+                                if (self.pos.roomName != storage.pos.roomName) {
                                     self.move_to (storage);
                                     return false;
                                 }
@@ -19552,10 +19991,10 @@ function main () {
                                     }
                                 }
                                 if (target.structureType == STRUCTURE_LINK) {
-                                    self.home.links.register_target_deposit (target, self, self.creep.carry.energy, self.creep.pos.getRangeTo (target.pos));
+                                    self.home.links.register_target_deposit (target, self, self.creep.carry.energy, self.pos.getRangeTo (target));
                                 }
-                                if (!(self.creep.pos.isNearTo (target.pos))) {
-                                    if (self.creep.pos.isNearTo (storage)) {
+                                if (!(self.pos.isNearTo (target))) {
+                                    if (self.pos.isNearTo (storage)) {
                                         var target = storage;
                                     }
                                     else {
@@ -19571,17 +20010,13 @@ function main () {
                                     self.memory.filling = true;
                                     return true;
                                 }
-                                else {
-                                    if (result == ERR_FULL) {
-                                        if (target == storage) {
-                                            self.log ('Storage in room {} full!', storage.room.name);
-                                        }
+                                else if (result == ERR_FULL) {
+                                    if (target == storage) {
+                                        self.log ('Storage in room {} full!', storage.room.name);
                                     }
-                                    else {
-                                        if (result != OK) {
-                                            self.log ('Unknown result from cleanup-creep.transfer({}, {}): {}', target, resource_type, result);
-                                        }
-                                    }
+                                }
+                                else if (result != OK) {
+                                    self.log ('Unknown result from cleanup-creep.transfer({}, {}): {}', target, resource_type, result);
                                 }
                             }
                         });},
@@ -19678,6 +20113,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -19713,6 +20153,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -19830,10 +20271,12 @@ function main () {
                         var descriptive_level = null;
                         if (base === creep_base_1500miner) {
                             var parts = list ([]);
-                            if (energy < 350) {
+                            var work_cost = BODYPART_COST [WORK];
+                            var move_cost = BODYPART_COST [MOVE];
+                            if (energy < work_cost * 3 + move_cost) {
                                 print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
-                                var num_work = math.floor ((energy - 50) / 100);
-                                var num_move = math.floor ((energy - num_work * 100) / 50);
+                                var num_work = math.floor ((energy - move_cost) / work_cost);
+                                var num_move = math.floor ((energy - num_work * work_cost) / move_cost);
                             }
                             else {
                                 var num_move = num_sections || 3;
@@ -19847,460 +20290,427 @@ function main () {
                             }
                             var descriptive_level = 'work:{}-move:{}'.format (num_work, num_move);
                         }
-                        else {
-                            if (base === creep_base_3000miner) {
+                        else if (base === creep_base_3000miner) {
+                            var work_cost = BODYPART_COST [WORK];
+                            var move_cost = BODYPART_COST [MOVE];
+                            var parts = list ([]);
+                            if (energy < work_cost * 5 + move_cost) {
+                                print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
+                                var num_work = math.floor ((energy - move_cost) / work_cost);
+                                var num_move = math.floor ((energy - num_work * work_cost) / move_cost);
+                            }
+                            else {
+                                var num_move = num_sections || 5;
+                                var num_work = 5;
+                            }
+                            for (var i = 0; i < num_work; i++) {
+                                parts.append (WORK);
+                            }
+                            for (var i = 0; i < num_move; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = 'work:{}-move:{}'.format (num_work, num_move);
+                        }
+                        else if (base === creep_base_4000miner) {
+                            var work_cost = BODYPART_COST [WORK];
+                            var move_cost = BODYPART_COST [MOVE];
+                            var parts = list ([]);
+                            if (energy < work_cost * 7 + move_cost) {
+                                print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
+                                var num_work = math.floor ((energy - move_cost) / work_cost);
+                                var num_move = math.floor ((energy - num_work * work_cost) / move_cost);
+                            }
+                            else {
+                                var num_move = num_sections || 7;
+                                var num_work = 7;
+                            }
+                            for (var i = 0; i < num_work; i++) {
+                                parts.append (WORK);
+                            }
+                            for (var i = 0; i < num_move; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = 'work:{}-move:{}'.format (num_work, num_move);
+                        }
+                        else if (base === creep_base_carry3000miner) {
+                            var work_cost = BODYPART_COST [WORK];
+                            var move_cost = BODYPART_COST [MOVE];
+                            var carry_cost = BODYPART_COST [CARRY];
+                            if (energy < (work_cost * 5 + move_cost) + carry_cost) {
+                                print ('[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!'.format (room.name));
+                                if (__mod__ (Game.time, 30) == 3) {
+                                    room.reset_planned_role ();
+                                }
+                                return ;
+                            }
+                            var parts = list ([]);
+                            var num_move = num_sections || 5;
+                            var num_work = 5;
+                            for (var i = 0; i < num_work; i++) {
+                                parts.append (WORK);
+                            }
+                            parts.append (CARRY);
+                            for (var i = 0; i < num_move; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_move;
+                        }
+                        else if (base === creep_base_reserving) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (CLAIM);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_claiming) {
+                            var claim_cost = BODYPART_COST [CLAIM];
+                            var move_cost = BODYPART_COST [MOVE];
+                            if (energy >= claim_cost + move_cost * 4) {
+                                var parts = list ([MOVE, MOVE, MOVE, CLAIM, MOVE]);
+                            }
+                            else if (energy >= claim_cost + move_cost * 2) {
+                                var parts = list ([MOVE, CLAIM, MOVE]);
+                            }
+                            else if (energy > claim_cost + move_cost) {
+                                var parts = list ([CLAIM, MOVE]);
+                            }
+                            else {
+                                print ('[{}][spawning] Too few extensions to build a claim creep!'.format (room.name));
+                                if (__mod__ (Game.time, 30) == 3) {
+                                    room.reset_planned_role ();
+                                }
+                                return ;
+                            }
+                        }
+                        else if (base === creep_base_claim_attack) {
+                            var parts = list ([]);
+                            for (var i = 0; i < half_section; i++) {
+                                parts.append (TOUGH);
+                            }
+                            for (var i = 0; i < num_sections * 5; i++) {
+                                parts.append (CLAIM);
+                            }
+                            for (var i = 0; i < num_sections * 5 + half_section * 2; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < half_section; i++) {
+                                parts.append (HEAL);
+                            }
+                            if (half_section) {
+                                var descriptive_level = 'claim:{}-heal:{}'.format (num_sections * 5, half_section);
+                            }
+                            else {
+                                var descriptive_level = 'claim:{}'.format (num_sections);
+                            }
+                        }
+                        else if (base === creep_base_hauler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (CARRY);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_half_move_hauler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (CARRY);
+                            }
+                            for (var i = 0; i < num_sections + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_work_full_move_hauler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (CARRY);
+                            }
+                            var __iterable0__ = initial_section [base];
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var part = __iterable0__ [__index0__];
+                                parts.append (part);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_work_half_move_hauler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (CARRY);
+                            }
+                            var __iterable0__ = initial_section [base];
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var part = __iterable0__ [__index0__];
+                                parts.append (part);
+                            }
+                            for (var i = 0; i < num_sections + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_sections * 2 + 1;
+                        }
+                        else if (base === creep_base_worker) {
+                            var move_cost = BODYPART_COST [MOVE];
+                            var carry_cost = BODYPART_COST [CARRY];
+                            var work_cost = BODYPART_COST [WORK];
+                            if (energy >= (move_cost * 4 + carry_cost * 3) + work_cost) {
                                 var parts = list ([]);
-                                if (energy < 550) {
-                                    print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
-                                    var num_work = math.floor ((energy - 50) / 100);
-                                    var num_move = math.floor ((energy - num_work * 100) / 50);
+                                for (var i = 0; i < num_sections; i++) {
+                                    parts.append (CARRY);
+                                    parts.append (CARRY);
+                                    parts.append (CARRY);
+                                    parts.append (MOVE);
                                 }
-                                else {
-                                    var num_move = num_sections || 5;
-                                    var num_work = 5;
+                                for (var i = 0; i < num_sections + half_section; i++) {
+                                    parts.append (WORK);
                                 }
+                                for (var i = 0; i < num_sections * 3 + half_section; i++) {
+                                    parts.append (MOVE);
+                                }
+                                var descriptive_level = 'carry:{}-work:{}'.format (num_sections * 3, num_sections);
+                            }
+                            else if (energy >= (move_cost * 3 + carry_cost * 2) + work_cost) {
+                                var parts = list ([MOVE, MOVE, MOVE, CARRY, CARRY, WORK]);
+                                var descriptive_level = 'carry:2-work:1';
+                            }
+                            else if (energy >= (move_cost * 2 + carry_cost) + work_cost) {
+                                var parts = list ([MOVE, MOVE, CARRY, WORK]);
+                                var descriptive_level = 'carry:1-work:1';
+                            }
+                            else {
+                                print ('[{}][spawning] Too few extensions to build a worker ({}/{} energy)!'.format (room.name, energy, 250));
+                                if (__mod__ (Game.time, 30) == 3) {
+                                    room.reset_planned_role ();
+                                }
+                                return ;
+                            }
+                        }
+                        else if (base === creep_base_defender) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (TOUGH);
+                            }
+                            for (var i = 0; i < math.floor (num_sections * 1.5); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (ATTACK);
+                            }
+                            for (var i = 0; i < math.ceil (num_sections * 1.5) + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_rampart_defense) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (ATTACK);
+                            }
+                            var descriptive_level = num_sections * 2 + half_section;
+                        }
+                        else if (base === creep_base_ranged_offense) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (RANGED_ATTACK);
+                            }
+                            for (var i = 0; i < 1 + num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            parts.append (HEAL);
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_3h) {
+                            var parts = list ([]);
+                            for (var i = 0; i < half_section * 2; i++) {
+                                parts.append (TOUGH);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (RANGED_ATTACK);
+                            }
+                            for (var i = 0; i < (3 + 2 * half_section) + num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < 3; i++) {
+                                parts.append (HEAL);
+                            }
+                            var descriptive_level = num_sections;
+                        }
+                        else if (base === creep_base_mammoth_miner) {
+                            var parts = list ([MOVE, CARRY]);
+                            var move_cost = BODYPART_COST [MOVE];
+                            var carry_cost = BODYPART_COST [CARRY];
+                            var work_cost = BODYPART_COST [WORK];
+                            var energy_counter = move_cost + carry_cost;
+                            var part_counter = 2;
+                            var move_counter = 0.25;
+                            for (var i = 0; i < 2; i++) {
+                                if (part_counter >= MAX_CREEP_SIZE) {
+                                    break;
+                                }
+                                if (energy_counter >= energy - move_cost) {
+                                    break;
+                                }
+                                for (var j = 0; j < 25; j++) {
+                                    if (move_counter >= 1) {
+                                        if (part_counter >= MAX_CREEP_SIZE) {
+                                            break;
+                                        }
+                                        if (energy_counter >= energy - move_cost) {
+                                            break;
+                                        }
+                                        parts.append (MOVE);
+                                        energy_counter += move_cost;
+                                        part_counter++;
+                                        move_counter--;
+                                    }
+                                    if (part_counter >= MAX_CREEP_SIZE) {
+                                        break;
+                                    }
+                                    if (energy_counter >= energy - work_cost) {
+                                        break;
+                                    }
+                                    parts.append (WORK);
+                                    energy_counter += work_cost;
+                                    part_counter++;
+                                    move_counter += 0.25;
+                                }
+                            }
+                        }
+                        else if (base === creep_base_goader) {
+                            var parts = list ([]);
+                            for (var i = 0; i < (num_sections * 2 + 1) + half_section; i++) {
+                                parts.append (TOUGH);
+                            }
+                            parts.append (ATTACK);
+                            for (var i = 0; i < (num_sections + 1) + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                        }
+                        else if (base === creep_base_full_move_goader) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections * 2; i++) {
+                                parts.append (CARRY);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (TOUGH);
+                            }
+                            parts.append (ATTACK);
+                            for (var i = 0; i < num_sections + 1; i++) {
+                                parts.append (MOVE);
+                            }
+                        }
+                        else if (base === creep_base_half_move_healer) {
+                            var parts = list ([]);
+                            var total_heal = num_sections * 2 + half_section;
+                            var total_move = num_sections + half_section;
+                            for (var i = 0; i < math.floor (total_move / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < math.floor (total_heal / 2); i++) {
+                                parts.append (HEAL);
+                            }
+                            for (var i = 0; i < math.ceil (total_move / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < math.ceil (total_heal / 2); i++) {
+                                parts.append (HEAL);
+                            }
+                        }
+                        else if (base === creep_base_full_move_healer) {
+                            var parts = list ([]);
+                            for (var i = 0; i < math.floor (num_sections / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < math.floor (num_sections / 2); i++) {
+                                parts.append (HEAL);
+                            }
+                            for (var i = 0; i < math.ceil (num_sections / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < math.ceil (num_sections / 2); i++) {
+                                parts.append (HEAL);
+                            }
+                        }
+                        else if (base === creep_base_dismantler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (WORK);
+                            }
+                            for (var i = 0; i < num_sections + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                        }
+                        else if (base === creep_base_full_move_dismantler) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (WORK);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                        }
+                        else if (base === creep_base_full_upgrader) {
+                            if (num_sections > 1 || half_section) {
+                                var parts = list ([CARRY]);
+                                var num_work = num_sections * 2 + half_section;
+                                var num_move = (num_sections + half_section) + 1;
                                 for (var i = 0; i < num_work; i++) {
                                     parts.append (WORK);
+                                }
+                                if (num_work > 15) {
+                                    parts.append (CARRY);
+                                }
+                                else if (half_section) {
+                                    num_move--;
                                 }
                                 for (var i = 0; i < num_move; i++) {
                                     parts.append (MOVE);
                                 }
-                                var descriptive_level = 'work:{}-move:{}'.format (num_work, num_move);
+                                var descriptive_level = num_work;
                             }
                             else {
-                                if (base === creep_base_4000miner) {
-                                    var parts = list ([]);
-                                    if (energy < 750) {
-                                        print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
-                                        var num_work = math.floor ((energy - 50) / 100);
-                                        var num_move = math.floor ((energy - num_work * 100) / 50);
-                                    }
-                                    else {
-                                        var num_move = num_sections || 7;
-                                        var num_work = 7;
-                                    }
-                                    for (var i = 0; i < num_work; i++) {
-                                        parts.append (WORK);
-                                    }
-                                    for (var i = 0; i < num_move; i++) {
-                                        parts.append (MOVE);
-                                    }
-                                    var descriptive_level = 'work:{}-move:{}'.format (num_work, num_move);
-                                }
-                                else {
-                                    if (base === creep_base_carry3000miner) {
-                                        if (energy < 600) {
-                                            print ('[{}][spawning] Too few extensions to build a dedicated 3000 miner with carry!'.format (room.name));
-                                            if (__mod__ (Game.time, 30) == 3) {
-                                                room.reset_planned_role ();
-                                            }
-                                            return ;
-                                        }
-                                        var parts = list ([]);
-                                        var num_move = num_sections || 5;
-                                        var num_work = 5;
-                                        for (var i = 0; i < num_work; i++) {
-                                            parts.append (WORK);
-                                        }
-                                        parts.append (CARRY);
-                                        for (var i = 0; i < num_move; i++) {
-                                            parts.append (MOVE);
-                                        }
-                                        var descriptive_level = num_move;
-                                    }
-                                    else {
-                                        if (base === creep_base_reserving) {
-                                            var parts = list ([]);
-                                            for (var i = 0; i < num_sections; i++) {
-                                                parts.append (MOVE);
-                                            }
-                                            for (var i = 0; i < num_sections; i++) {
-                                                parts.append (CLAIM);
-                                            }
-                                            var descriptive_level = num_sections;
-                                        }
-                                        else {
-                                            if (base === creep_base_claiming) {
-                                                if (energy < 800) {
-                                                    var parts = list ([MOVE, CLAIM, MOVE]);
-                                                }
-                                                else {
-                                                    var parts = list ([MOVE, MOVE, MOVE, CLAIM, MOVE]);
-                                                }
-                                            }
-                                            else {
-                                                if (base === creep_base_claim_attack) {
-                                                    var parts = list ([]);
-                                                    for (var i = 0; i < half_section; i++) {
-                                                        parts.append (TOUGH);
-                                                    }
-                                                    for (var i = 0; i < num_sections * 5; i++) {
-                                                        parts.append (CLAIM);
-                                                    }
-                                                    for (var i = 0; i < num_sections * 5 + half_section * 2; i++) {
-                                                        parts.append (MOVE);
-                                                    }
-                                                    for (var i = 0; i < half_section; i++) {
-                                                        parts.append (HEAL);
-                                                    }
-                                                    if (half_section) {
-                                                        var descriptive_level = 'claim:{}-heal:{}'.format (num_sections * 5, half_section);
-                                                    }
-                                                    else {
-                                                        var descriptive_level = 'claim:{}'.format (num_sections);
-                                                    }
-                                                }
-                                                else {
-                                                    if (base === creep_base_hauler) {
-                                                        var parts = list ([]);
-                                                        for (var i = 0; i < num_sections; i++) {
-                                                            parts.append (CARRY);
-                                                        }
-                                                        for (var i = 0; i < num_sections; i++) {
-                                                            parts.append (MOVE);
-                                                        }
-                                                        var descriptive_level = num_sections;
-                                                    }
-                                                    else {
-                                                        if (base === creep_base_half_move_hauler) {
-                                                            var parts = list ([]);
-                                                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                parts.append (CARRY);
-                                                            }
-                                                            for (var i = 0; i < num_sections + half_section; i++) {
-                                                                parts.append (MOVE);
-                                                            }
-                                                            var descriptive_level = num_sections;
-                                                        }
-                                                        else {
-                                                            if (base === creep_base_work_full_move_hauler) {
-                                                                var parts = list ([]);
-                                                                for (var i = 0; i < num_sections; i++) {
-                                                                    parts.append (CARRY);
-                                                                }
-                                                                var __iterable0__ = initial_section [base];
-                                                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                                    var part = __iterable0__ [__index0__];
-                                                                    parts.append (part);
-                                                                }
-                                                                for (var i = 0; i < num_sections; i++) {
-                                                                    parts.append (MOVE);
-                                                                }
-                                                                var descriptive_level = num_sections;
-                                                            }
-                                                            else {
-                                                                if (base === creep_base_work_half_move_hauler) {
-                                                                    var parts = list ([]);
-                                                                    for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                        parts.append (CARRY);
-                                                                    }
-                                                                    var __iterable0__ = initial_section [base];
-                                                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                                                        var part = __iterable0__ [__index0__];
-                                                                        parts.append (part);
-                                                                    }
-                                                                    for (var i = 0; i < num_sections + half_section; i++) {
-                                                                        parts.append (MOVE);
-                                                                    }
-                                                                    var descriptive_level = num_sections * 2 + 1;
-                                                                }
-                                                                else {
-                                                                    if (base === creep_base_worker) {
-                                                                        if (energy >= 450) {
-                                                                            var parts = list ([]);
-                                                                            for (var i = 0; i < num_sections; i++) {
-                                                                                parts.append (CARRY);
-                                                                                parts.append (CARRY);
-                                                                                parts.append (CARRY);
-                                                                                parts.append (MOVE);
-                                                                            }
-                                                                            for (var i = 0; i < num_sections + half_section; i++) {
-                                                                                parts.append (WORK);
-                                                                            }
-                                                                            for (var i = 0; i < num_sections * 3 + half_section; i++) {
-                                                                                parts.append (MOVE);
-                                                                            }
-                                                                            var descriptive_level = 'carry:{}-work:{}'.format (num_sections * 3, num_sections);
-                                                                        }
-                                                                        else {
-                                                                            if (energy >= 400) {
-                                                                                var parts = list ([MOVE, MOVE, MOVE, CARRY, CARRY, WORK]);
-                                                                                var descriptive_level = 'carry:2-work:1';
-                                                                            }
-                                                                            else {
-                                                                                if (energy >= 250) {
-                                                                                    var parts = list ([MOVE, MOVE, CARRY, WORK]);
-                                                                                    var descriptive_level = 'carry:1-work:1';
-                                                                                }
-                                                                                else {
-                                                                                    print ('[{}][spawning] Too few extensions to build a worker!'.format (room.name));
-                                                                                    if (__mod__ (Game.time, 30) == 3) {
-                                                                                        room.reset_planned_role ();
-                                                                                    }
-                                                                                    return ;
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                    else {
-                                                                        if (base === creep_base_defender) {
-                                                                            var parts = list ([]);
-                                                                            for (var i = 0; i < num_sections; i++) {
-                                                                                parts.append (TOUGH);
-                                                                            }
-                                                                            for (var i = 0; i < math.floor (num_sections * 1.5); i++) {
-                                                                                parts.append (MOVE);
-                                                                            }
-                                                                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                                parts.append (ATTACK);
-                                                                            }
-                                                                            for (var i = 0; i < math.ceil (num_sections * 1.5) + half_section; i++) {
-                                                                                parts.append (MOVE);
-                                                                            }
-                                                                            var descriptive_level = num_sections;
-                                                                        }
-                                                                        else {
-                                                                            if (base === creep_base_rampart_defense) {
-                                                                                var parts = list ([]);
-                                                                                for (var i = 0; i < num_sections + half_section; i++) {
-                                                                                    parts.append (MOVE);
-                                                                                }
-                                                                                for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                                    parts.append (ATTACK);
-                                                                                }
-                                                                                var descriptive_level = num_sections * 2 + half_section;
-                                                                            }
-                                                                            else {
-                                                                                if (base === creep_base_ranged_offense) {
-                                                                                    var parts = list ([]);
-                                                                                    for (var i = 0; i < num_sections; i++) {
-                                                                                        parts.append (RANGED_ATTACK);
-                                                                                    }
-                                                                                    for (var i = 0; i < 1 + num_sections; i++) {
-                                                                                        parts.append (MOVE);
-                                                                                    }
-                                                                                    parts.append (HEAL);
-                                                                                    var descriptive_level = num_sections;
-                                                                                }
-                                                                                else {
-                                                                                    if (base === creep_base_3h) {
-                                                                                        var parts = list ([]);
-                                                                                        for (var i = 0; i < half_section * 2; i++) {
-                                                                                            parts.append (TOUGH);
-                                                                                        }
-                                                                                        for (var i = 0; i < num_sections; i++) {
-                                                                                            parts.append (RANGED_ATTACK);
-                                                                                        }
-                                                                                        for (var i = 0; i < (3 + 2 * half_section) + num_sections; i++) {
-                                                                                            parts.append (MOVE);
-                                                                                        }
-                                                                                        for (var i = 0; i < 3; i++) {
-                                                                                            parts.append (HEAL);
-                                                                                        }
-                                                                                        var descriptive_level = num_sections;
-                                                                                    }
-                                                                                    else {
-                                                                                        if (base === creep_base_mammoth_miner) {
-                                                                                            var parts = list ([MOVE, CARRY]);
-                                                                                            var energy_counter = 100;
-                                                                                            var part_counter = 2;
-                                                                                            var move_counter = 0.25;
-                                                                                            for (var i = 0; i < 2; i++) {
-                                                                                                if (part_counter >= 50) {
-                                                                                                    break;
-                                                                                                }
-                                                                                                if (energy_counter >= energy - 50) {
-                                                                                                    break;
-                                                                                                }
-                                                                                                for (var j = 0; j < 25; j++) {
-                                                                                                    if (move_counter >= 1) {
-                                                                                                        if (part_counter >= 50) {
-                                                                                                            break;
-                                                                                                        }
-                                                                                                        if (energy_counter >= energy - 50) {
-                                                                                                            break;
-                                                                                                        }
-                                                                                                        parts.append (MOVE);
-                                                                                                        energy_counter += 50;
-                                                                                                        part_counter++;
-                                                                                                        move_counter--;
-                                                                                                    }
-                                                                                                    if (part_counter >= 50) {
-                                                                                                        break;
-                                                                                                    }
-                                                                                                    if (energy_counter >= energy - 100) {
-                                                                                                        break;
-                                                                                                    }
-                                                                                                    parts.append (WORK);
-                                                                                                    energy_counter += 100;
-                                                                                                    part_counter++;
-                                                                                                    move_counter += 0.25;
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                        else {
-                                                                                            if (base === creep_base_goader) {
-                                                                                                var parts = list ([]);
-                                                                                                for (var i = 0; i < (num_sections * 2 + 1) + half_section; i++) {
-                                                                                                    parts.append (TOUGH);
-                                                                                                }
-                                                                                                parts.append (ATTACK);
-                                                                                                for (var i = 0; i < (num_sections + 1) + half_section; i++) {
-                                                                                                    parts.append (MOVE);
-                                                                                                }
-                                                                                            }
-                                                                                            else {
-                                                                                                if (base === creep_base_full_move_goader) {
-                                                                                                    var parts = list ([]);
-                                                                                                    for (var i = 0; i < num_sections * 2; i++) {
-                                                                                                        parts.append (CARRY);
-                                                                                                    }
-                                                                                                    for (var i = 0; i < num_sections; i++) {
-                                                                                                        parts.append (TOUGH);
-                                                                                                    }
-                                                                                                    parts.append (ATTACK);
-                                                                                                    for (var i = 0; i < num_sections + 1; i++) {
-                                                                                                        parts.append (MOVE);
-                                                                                                    }
-                                                                                                }
-                                                                                                else {
-                                                                                                    if (base === creep_base_half_move_healer) {
-                                                                                                        var parts = list ([]);
-                                                                                                        var total_heal = num_sections * 2 + half_section;
-                                                                                                        var total_move = num_sections + half_section;
-                                                                                                        for (var i = 0; i < math.floor (total_move / 2); i++) {
-                                                                                                            parts.append (MOVE);
-                                                                                                        }
-                                                                                                        for (var i = 0; i < math.floor (total_heal / 2); i++) {
-                                                                                                            parts.append (HEAL);
-                                                                                                        }
-                                                                                                        for (var i = 0; i < math.ceil (total_move / 2); i++) {
-                                                                                                            parts.append (MOVE);
-                                                                                                        }
-                                                                                                        for (var i = 0; i < math.ceil (total_heal / 2); i++) {
-                                                                                                            parts.append (HEAL);
-                                                                                                        }
-                                                                                                    }
-                                                                                                    else {
-                                                                                                        if (base === creep_base_full_move_healer) {
-                                                                                                            var parts = list ([]);
-                                                                                                            for (var i = 0; i < math.floor (num_sections / 2); i++) {
-                                                                                                                parts.append (MOVE);
-                                                                                                            }
-                                                                                                            for (var i = 0; i < math.floor (num_sections / 2); i++) {
-                                                                                                                parts.append (HEAL);
-                                                                                                            }
-                                                                                                            for (var i = 0; i < math.ceil (num_sections / 2); i++) {
-                                                                                                                parts.append (MOVE);
-                                                                                                            }
-                                                                                                            for (var i = 0; i < math.ceil (num_sections / 2); i++) {
-                                                                                                                parts.append (HEAL);
-                                                                                                            }
-                                                                                                        }
-                                                                                                        else {
-                                                                                                            if (base === creep_base_dismantler) {
-                                                                                                                var parts = list ([]);
-                                                                                                                for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                                                                    parts.append (WORK);
-                                                                                                                }
-                                                                                                                for (var i = 0; i < num_sections + half_section; i++) {
-                                                                                                                    parts.append (MOVE);
-                                                                                                                }
-                                                                                                            }
-                                                                                                            else {
-                                                                                                                if (base === creep_base_full_move_dismantler) {
-                                                                                                                    var parts = list ([]);
-                                                                                                                    for (var i = 0; i < num_sections; i++) {
-                                                                                                                        parts.append (WORK);
-                                                                                                                    }
-                                                                                                                    for (var i = 0; i < num_sections; i++) {
-                                                                                                                        parts.append (MOVE);
-                                                                                                                    }
-                                                                                                                }
-                                                                                                                else {
-                                                                                                                    if (base === creep_base_full_upgrader) {
-                                                                                                                        if (num_sections > 1 || half_section) {
-                                                                                                                            var parts = list ([CARRY]);
-                                                                                                                            var num_work = num_sections * 2 + half_section;
-                                                                                                                            var num_move = (num_sections + half_section) + 1;
-                                                                                                                            for (var i = 0; i < num_work; i++) {
-                                                                                                                                parts.append (WORK);
-                                                                                                                            }
-                                                                                                                            if (num_work > 15) {
-                                                                                                                                parts.append (CARRY);
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                if (half_section) {
-                                                                                                                                    num_move--;
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            for (var i = 0; i < num_move; i++) {
-                                                                                                                                parts.append (MOVE);
-                                                                                                                            }
-                                                                                                                            var descriptive_level = num_work;
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            var parts = list ([MOVE, CARRY, WORK]);
-                                                                                                                            var descriptive_level = 'min';
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                    else {
-                                                                                                                        if (base === creep_base_power_attack) {
-                                                                                                                            var parts = list ([]);
-                                                                                                                            for (var i = 0; i < num_sections; i++) {
-                                                                                                                                parts.append (TOUGH);
-                                                                                                                            }
-                                                                                                                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
-                                                                                                                                parts.append (MOVE);
-                                                                                                                            }
-                                                                                                                            for (var i = 0; i < num_sections * 3 + half_section; i++) {
-                                                                                                                                parts.append (ATTACK);
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                        else {
-                                                                                                                            if (base === creep_base_full_move_power_attack) {
-                                                                                                                                var parts = list ([]);
-                                                                                                                                for (var i = 0; i < num_sections; i++) {
-                                                                                                                                    parts.append (MOVE);
-                                                                                                                                }
-                                                                                                                                for (var i = 0; i < num_sections; i++) {
-                                                                                                                                    parts.append (ATTACK);
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                            else {
-                                                                                                                                if (base === creep_base_scout) {
-                                                                                                                                    var parts = list ([MOVE]);
-                                                                                                                                }
-                                                                                                                                else {
-                                                                                                                                    print ('[{}][spawning] Unknown creep base {}! Role object: {}'.format (room.name, base, JSON.stringify (role_obj)));
-                                                                                                                                    room.reset_planned_role ();
-                                                                                                                                    return ;
-                                                                                                                                }
-                                                                                                                            }
-                                                                                                                        }
-                                                                                                                    }
-                                                                                                                }
-                                                                                                            }
-                                                                                                        }
-                                                                                                    }
-                                                                                                }
-                                                                                            }
-                                                                                        }
-                                                                                    }
-                                                                                }
-                                                                            }
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
+                                var parts = list ([MOVE, CARRY, WORK]);
+                                var descriptive_level = 'min';
                             }
+                        }
+                        else if (base === creep_base_power_attack) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (TOUGH);
+                            }
+                            for (var i = 0; i < num_sections * 2 + half_section; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections * 3 + half_section; i++) {
+                                parts.append (ATTACK);
+                            }
+                        }
+                        else if (base === creep_base_full_move_power_attack) {
+                            var parts = list ([]);
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (ATTACK);
+                            }
+                        }
+                        else if (base === creep_base_scout) {
+                            var parts = list ([MOVE]);
+                        }
+                        else {
+                            print ('[{}][spawning] Unknown creep base {}! Role object: {}'.format (room.name, base, JSON.stringify (role_obj)));
+                            room.reset_planned_role ();
+                            return ;
                         }
                         var carry = 0;
                         var work = 0;
@@ -20343,14 +20753,12 @@ function main () {
                             if (result == ERR_NOT_ENOUGH_RESOURCES) {
                                 print ("[{}][spawning] Couldn't create body {} with energy {} (target num_sections: {})!".format (room.name, parts, energy, num_sections));
                             }
-                            else {
-                                if (result == ERR_INVALID_ARGS) {
-                                    if (descriptive_level) {
-                                        print ('[{}][spawning] Produced invalid body array for creep type {} level {}: {}'.format (room.name, base, descriptive_level, JSON.stringify (parts)));
-                                    }
-                                    else {
-                                        print ('[{}][spawning] Produced invalid body array for creep type {}: {}'.format (room.name, base, JSON.stringify (parts)));
-                                    }
+                            else if (result == ERR_INVALID_ARGS) {
+                                if (descriptive_level) {
+                                    print ('[{}][spawning] Produced invalid body array for creep type {} level {}: {}'.format (room.name, base, descriptive_level, JSON.stringify (parts)));
+                                }
+                                else {
+                                    print ('[{}][spawning] Produced invalid body array for creep type {}: {}'.format (room.name, base, JSON.stringify (parts)));
                                 }
                             }
                         }
@@ -20416,69 +20824,45 @@ function main () {
                         if ((part_counts [WORK] == part_counts [CARRY] && part_counts [CARRY] == part_counts [MOVE] / 2 && part_counts [MOVE] / 2 == total / 4) || (part_counts [WORK] == part_counts [CARRY] / 3 && part_counts [CARRY] / 3 == part_counts [MOVE] / 4 && part_counts [MOVE] / 4 == total / 8) || (part_counts [WORK] - 1 == part_counts [CARRY] / 3 && part_counts [CARRY] / 3 == (part_counts [MOVE] - 1) / 4 && (part_counts [MOVE] - 1) / 4 == (total - 2) / 8)) {
                             var base = creep_base_worker;
                         }
+                        else if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 3)) {
+                            var base = creep_base_1500miner;
+                        }
+                        else if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 5)) {
+                            var base = creep_base_3000miner;
+                        }
+                        else if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 7)) {
+                            var base = creep_base_4000miner;
+                        }
+                        else if (part_counts [CARRY] == 1 && (part_counts [MOVE] + part_counts [WORK]) + 1 == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 5)) {
+                            var base = creep_base_carry3000miner;
+                        }
+                        else if ((part_counts [CARRY] == part_counts [MOVE] && part_counts [MOVE] == total / 2)) {
+                            var base = creep_base_hauler;
+                        }
+                        else if (part_counts [WORK] == 2 && (part_counts [MOVE] == part_counts [CARRY] + 2 && part_counts [CARRY] + 2 == total / 2)) {
+                            var base = creep_base_work_full_move_hauler;
+                        }
+                        else if (part_counts [WORK] == 2 && (part_counts [MOVE] == (part_counts [CARRY] + 2) / 2 && (part_counts [CARRY] + 2) / 2 == total / 3) || part_counts [WORK] == 2 && (part_counts [MOVE] - 2 == part_counts [CARRY] / 2 && part_counts [CARRY] / 2 == (total - 3) / 3)) {
+                            var base = creep_base_work_half_move_hauler;
+                        }
+                        else if ((part_counts [CLAIM] == part_counts [MOVE] && part_counts [MOVE] == total / 2)) {
+                            var base = creep_base_reserving;
+                        }
+                        else if ((part_counts [ATTACK] == part_counts [TOUGH] && part_counts [TOUGH] == part_counts [MOVE] && part_counts [MOVE] == total / 3)) {
+                            var base = creep_base_defender;
+                        }
+                        else if (part_counts [MOVE] == total / 3 && part_counts [CARRY] == 2 && (part_counts [WORK] + part_counts [MOVE]) + part_counts [CARRY] == total || part_counts [MOVE] == (total - 1) / 3 + 1 && part_counts [CARRY] == 2 && (part_counts [WORK] + part_counts [MOVE]) + part_counts [CARRY] == total) {
+                            var base = creep_base_full_upgrader;
+                        }
+                        else if ((part_counts [MOVE] == total && total == 1)) {
+                            var base = creep_base_scout;
+                        }
+                        else if ((part_counts [ATTACK] / 2 == part_counts [MOVE] && part_counts [MOVE] == total / 3) || ((part_counts [ATTACK] - 1) / 2 == part_counts [MOVE] - 1 && part_counts [MOVE] - 1 == (total - 2) / 3)) {
+                            var base = creep_base_rampart_defense;
+                        }
                         else {
-                            if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 3)) {
-                                var base = creep_base_1500miner;
-                            }
-                            else {
-                                if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 5)) {
-                                    var base = creep_base_3000miner;
-                                }
-                                else {
-                                    if (part_counts [MOVE] + part_counts [WORK] == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 7)) {
-                                        var base = creep_base_4000miner;
-                                    }
-                                    else {
-                                        if (part_counts [CARRY] == 1 && (part_counts [MOVE] + part_counts [WORK]) + 1 == total && (part_counts [MOVE] <= part_counts [WORK] && part_counts [WORK] <= 5)) {
-                                            var base = creep_base_carry3000miner;
-                                        }
-                                        else {
-                                            if ((part_counts [CARRY] == part_counts [MOVE] && part_counts [MOVE] == total / 2)) {
-                                                var base = creep_base_hauler;
-                                            }
-                                            else {
-                                                if (part_counts [WORK] == 2 && (part_counts [MOVE] == part_counts [CARRY] + 2 && part_counts [CARRY] + 2 == total / 2)) {
-                                                    var base = creep_base_work_full_move_hauler;
-                                                }
-                                                else {
-                                                    if (part_counts [WORK] == 2 && (part_counts [MOVE] == (part_counts [CARRY] + 2) / 2 && (part_counts [CARRY] + 2) / 2 == total / 3) || part_counts [WORK] == 2 && (part_counts [MOVE] - 2 == part_counts [CARRY] / 2 && part_counts [CARRY] / 2 == (total - 3) / 3)) {
-                                                        var base = creep_base_work_half_move_hauler;
-                                                    }
-                                                    else {
-                                                        if ((part_counts [CLAIM] == part_counts [MOVE] && part_counts [MOVE] == total / 2)) {
-                                                            var base = creep_base_reserving;
-                                                        }
-                                                        else {
-                                                            if ((part_counts [ATTACK] == part_counts [TOUGH] && part_counts [TOUGH] == part_counts [MOVE] && part_counts [MOVE] == total / 3)) {
-                                                                var base = creep_base_defender;
-                                                            }
-                                                            else {
-                                                                if (part_counts [MOVE] == total / 3 && part_counts [CARRY] == 2 && (part_counts [WORK] + part_counts [MOVE]) + part_counts [CARRY] == total || part_counts [MOVE] == (total - 1) / 3 + 1 && part_counts [CARRY] == 2 && (part_counts [WORK] + part_counts [MOVE]) + part_counts [CARRY] == total) {
-                                                                    var base = creep_base_full_upgrader;
-                                                                }
-                                                                else {
-                                                                    if ((part_counts [MOVE] == total && total == 1)) {
-                                                                        var base = creep_base_scout;
-                                                                    }
-                                                                    else {
-                                                                        if ((part_counts [ATTACK] / 2 == part_counts [MOVE] && part_counts [MOVE] == total / 3) || ((part_counts [ATTACK] - 1) / 2 == part_counts [MOVE] - 1 && part_counts [MOVE] - 1 == (total - 2) / 3)) {
-                                                                            var base = creep_base_rampart_defense;
-                                                                        }
-                                                                        else {
-                                                                            print ('[{}][{}] Creep has unknown body! {}'.format (creep.memory.home, creep.name, JSON.stringify (part_counts)));
-                                                                            return null;
-                                                                        }
-                                                                    }
-                                                                }
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
+                            print ('[{}][{}] Creep has unknown body! {}'.format (creep.memory.home, creep.name, JSON.stringify (part_counts)));
+                            return null;
                         }
                         return base;
                     };
@@ -20566,11 +20950,11 @@ function main () {
                             var max_by_cost = floor ((energy - initial_section_cost (base)) / lower_energy_per_section (base));
                         }
                         var initial_base_parts = ((base in initial_section) ? len (initial_section [base]) : 0);
-                        var max_by_parts = floor ((50 - initial_base_parts) / len (scalable_sections [base]));
+                        var max_by_parts = floor ((MAX_CREEP_SIZE - initial_base_parts) / len (scalable_sections [base]));
                         var num_sections = min (max_by_cost, max_by_parts);
                         if ((base in half_sections)) {
                             var current_parts = initial_base_parts + num_sections * len (scalable_sections [base]);
-                            if (current_parts + len (half_sections [base]) <= 50) {
+                            if (current_parts + len (half_sections [base]) <= MAX_CREEP_SIZE) {
                                 var current_energy = cost_of_sections (base, num_sections, energy);
                                 if (current_energy + half_section_cost (base) <= energy) {
                                     num_sections += 0.5;
@@ -20616,7 +21000,7 @@ function main () {
                         if (creep.creep) {
                             var creep = creep.creep;
                         }
-                        return creep.carryCapacity / 50;
+                        return creep.carryCapacity / CARRY_CAPACITY;
                     };
                     var ceil_sections = function (count, base) {
                         if (typeof base == 'undefined' || (base != null && base .hasOwnProperty ("__kwargtrans__"))) {;
@@ -20707,6 +21091,7 @@ function main () {
                         __all__.find_base_type = find_base_type;
                         __all__.floor = floor;
                         __all__.floor_sections = floor_sections;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
                         __all__.half_section_cost = half_section_cost;
                         __all__.half_sections = half_sections;
                         __all__.initial_section = initial_section;
@@ -20714,7 +21099,11 @@ function main () {
                         __all__.low_energy_dynamic = low_energy_dynamic;
                         __all__.low_energy_sections = low_energy_sections;
                         __all__.lower_energy_per_section = lower_energy_per_section;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.max_sections_of = max_sections_of;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.naming = naming;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -20752,6 +21141,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -20978,6 +21368,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -21013,6 +21408,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -21047,11 +21443,9 @@ function main () {
                                     memory.role = role_spawn_fill_backup;
                                     break;
                                 }
-                                else {
-                                    if (base == creep_base_hauler) {
-                                        memory.role = role_spawn_fill;
-                                        break;
-                                    }
+                                else if (base == creep_base_hauler) {
+                                    memory.role = role_spawn_fill;
+                                    break;
                                 }
                             }
                             room.recalculate_roles_alive ();
@@ -21146,11 +21540,9 @@ function main () {
                             if (_.isEmpty (mem)) {
                                 delete Memory.flags [name];
                             }
-                            else {
-                                if (!(name in Game.flags) && (!(name.includes ('_')) && name.includes ('Flag') || name.includes ('local_mine'))) {
-                                    delete Memory.flags [name];
-                                    print ("[consistency] Clearing flag {}'s memory: {}".format (name, JSON.stringify (mem)));
-                                }
+                            else if (!(name in Game.flags) && (!(name.includes ('_')) && name.includes ('Flag') || name.includes ('local_mine'))) {
+                                delete Memory.flags [name];
+                                print ("[consistency] Clearing flag {}'s memory: {}".format (name, JSON.stringify (mem)));
                             }
                         }
                         global_cache.cleanup ();
@@ -21163,27 +21555,26 @@ function main () {
                             room.recalculate_roles_alive ();
                             room.reset_planned_role ();
                         }
-                        var __iterable0__ = _.pairs (Memory.creeps);
+                        var __iterable0__ = Object.keys (Memory.creeps);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var __left0__ = __iterable0__ [__index0__];
-                            var name = __left0__ [0];
-                            var mem = __left0__ [1];
+                            var name = __iterable0__ [__index0__];
                             if (!(name in Game.creeps)) {
+                                var mem = Memory.creeps [name];
                                 print ('[consistency] Clearing rouge creep: {} ({})'.format (name, mem.home));
                                 delete Memory.creeps [name];
                             }
                         }
-                        var __iterable0__ = _.pairs (_.get (Memory, 'targets.targeters_using'));
+                        var target_mem = _.get (Memory, 'targets.targeters_using');
+                        var __iterable0__ = Object.keys (target_mem);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var __left0__ = __iterable0__ [__index0__];
-                            var name = __left0__ [0];
-                            var targets = __left0__ [1];
+                            var name = __iterable0__ [__index0__];
                             if (!(name in Game.creeps)) {
+                                var targets = target_mem [name];
                                 print ('[consistency] Clearing rouge targets for creep: {} ({})'.format (name, Object.keys (targets)));
                                 hive.targets._unregister_all (name);
                             }
                         }
-                        var __iterable0__ = list (['cpu_usage']);
+                        var __iterable0__ = list (['cpu_usage', 'profiler']);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var key = __iterable0__ [__index0__];
                             if ((key in Memory)) {
@@ -21191,7 +21582,7 @@ function main () {
                                 delete Memory [key];
                             }
                         }
-                        var __iterable0__ = Memory.rooms;
+                        var __iterable0__ = Object.keys (Memory.rooms);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var name = __iterable0__ [__index0__];
                             var mem = Memory.rooms [name];
@@ -21200,6 +21591,17 @@ function main () {
                             }
                             if (!(len (mem))) {
                                 delete Memory.rooms [name];
+                            }
+                        }
+                        var __iterable0__ = Object.keys (Memory.flags);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var name = __iterable0__ [__index0__];
+                            var mem = Memory.flags [name];
+                            if (('remote_miner_targeting' in mem)) {
+                                delete mem ['remote_miner_targeting'];
+                            }
+                            if (!(len (mem))) {
+                                delete Memory.flags [name];
                             }
                         }
                     };
@@ -21270,6 +21672,11 @@ function main () {
                         __all__.default_roles = default_roles;
                         __all__.get_next_replacement_time = get_next_replacement_time;
                         __all__.global_cache = global_cache;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.old_role_names = old_role_names;
@@ -21306,6 +21713,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -21337,6 +21745,7 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var INVADER_USERNAME = __init__ (__world__.constants).INVADER_USERNAME;
                     var movement = __init__ (__world__.utilities.movement);
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
@@ -21349,9 +21758,22 @@ function main () {
                                 var room_name = __left0__ [1];
                                 var threats = __left0__ [2];
                                 if (!(name in Game.creeps)) {
-                                    var msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format (name, _.get (Memory, list (['creeps', name, 'role']), 'creep'), room_name, (len (threats) > 1 ? '{} or {}'.format (', '.join (threats.__getslice__ (0, len (threats) - 1, 1)), threats [len (threats) - 1]) : threats [0]));
-                                    print (msg);
-                                    Game.notify (msg);
+                                    if (!(_.every (threats, (function __lambda__ (t) {
+                                        return t == INVADER_USERNAME || t == 'unknown';
+                                    })))) {
+                                        var threats = function () {
+                                            var __accu0__ = [];
+                                            var __iterable1__ = threats;
+                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                                var t = __iterable1__ [__index1__];
+                                                __accu0__.append ((t == INVADER_USERNAME ? 'an invader' : t));
+                                            }
+                                            return __accu0__;
+                                        } ();
+                                        var msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format (name, _.get (Memory, list (['creeps', name, 'role']), 'creep'), room_name, (len (threats) > 1 ? '{} or {}'.format (', '.join (threats.__getslice__ (0, len (threats) - 1, 1)), threats [len (threats) - 1]) : threats [0]));
+                                        print (msg);
+                                        Game.notify (msg);
+                                    }
                                     var meta = _.get (Memory, list (['rooms', room_name, 'meta']));
                                     if (meta) {
                                         meta.clear_next = 0;
@@ -21390,10 +21812,12 @@ function main () {
                         }
                     };
                     __pragma__ ('<use>' +
+                        'constants' +
                         'utilities.movement' +
                         'utilities.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
+                        __all__.INVADER_USERNAME = INVADER_USERNAME;
                         __all__.mark_creeps = mark_creeps;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
@@ -21410,6 +21834,8 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
                     var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
                     var root = function () {
@@ -21450,10 +21876,13 @@ function main () {
                             }
                             else {
                                 if (key.includes ('cost_matrix')) {
-                                    var min_last_use = Game.time - 10000;
+                                    var min_last_use = Game.time - max_repath_mine_roads_every * 1.2;
+                                }
+                                else if (key.endswith (global_cache_mining_roads_suffix)) {
+                                    var min_last_use = Game.time - max_repath_mine_roads_every;
                                 }
                                 else {
-                                    var min_last_use = Game.time - 1500;
+                                    var min_last_use = Game.time - CREEP_LIFE_TIME;
                                 }
                                 if (r [key].l < min_last_use) {
                                     delete r [key];
@@ -21475,13 +21904,16 @@ function main () {
                         }
                     };
                     __pragma__ ('<use>' +
+                        'constants' +
                         'utilities.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.cleanup = cleanup;
                         __all__.clear_values_matching = clear_values_matching;
                         __all__.get = get;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
                         __all__.has = has;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.rem = rem;
@@ -21619,9 +22051,21 @@ function main () {
                         return max (abs (world_pos_1 [0] - world_pos_2 [0]), abs (world_pos_1 [1] - world_pos_2 [1]));
                     };
                     var minimum_chebyshev_distance = function (comparison_pos, targets) {
-                        return _.min (targets, (function __lambda__ (p) {
-                            return chebyshev_distance_room_pos (comparison_pos, p);
-                        }));
+                        var min_distance = Infinity;
+                        var __iterable0__ = targets;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var target = __iterable0__ [__index0__];
+                            var distance = chebyshev_distance_room_pos (comparison_pos, target);
+                            if (distance < min_distance) {
+                                var min_distance = distance;
+                            }
+                        }
+                        if (min_distance === Infinity) {
+                            return 0;
+                        }
+                        else {
+                            return min_distance;
+                        }
                     };
                     var distance_room_pos = function (room_pos_1, room_pos_2) {
                         return math.sqrt (distance_squared_room_pos (room_pos_1, room_pos_2));
@@ -21675,7 +22119,7 @@ function main () {
                         var __iterable0__ = room.look_at (LOOK_CONSTRUCTION_SITES, x, y);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var site = __iterable0__ [__index0__];
-                            if (site.my && site.siteureType != STRUCTURE_RAMPART && site.siteureType != STRUCTURE_CONTAINER && site.siteureType != STRUCTURE_ROAD) {
+                            if (site.my && site.structureType != STRUCTURE_RAMPART && site.structureType != STRUCTURE_CONTAINER && site.structureType != STRUCTURE_ROAD) {
                                 return false;
                             }
                         }
@@ -21700,27 +22144,21 @@ function main () {
                             entrance_pos.y = 49;
                             room_y--;
                         }
+                        else if (exit_pos.y == 49) {
+                            entrance_pos.y = 0;
+                            room_y++;
+                        }
+                        else if (exit_pos.x == 0) {
+                            entrance_pos.x = 49;
+                            room_x--;
+                        }
+                        else if (exit_pos.x == 49) {
+                            entrance_pos.x = 0;
+                            room_x++;
+                        }
                         else {
-                            if (exit_pos.y == 49) {
-                                entrance_pos.y = 0;
-                                room_y++;
-                            }
-                            else {
-                                if (exit_pos.x == 0) {
-                                    entrance_pos.x = 49;
-                                    room_x--;
-                                }
-                                else {
-                                    if (exit_pos.x == 49) {
-                                        entrance_pos.x = 0;
-                                        room_x++;
-                                    }
-                                    else {
-                                        print ('[movement][get_entrance_for_exit_pos] Exit position given ({}) is not an exit position.'.format (JSON.stringify (exit_pos)));
-                                        return -(1);
-                                    }
-                                }
-                            }
+                            print ('[movement][get_entrance_for_exit_pos] Exit position given ({}) is not an exit position.'.format (JSON.stringify (exit_pos)));
+                            return -(1);
                         }
                         entrance_pos.roomName = room_xy_to_name (room_x, room_y);
                         return entrance_pos;
@@ -22074,10 +22512,8 @@ function main () {
                         if (!(v.has (key1))) {
                             v.set (key1, new_map (list ([list ([key2, new_map ()])])));
                         }
-                        else {
-                            if (!(v.get (key1).has (key2))) {
-                                v.get (key1).set (key2, new_map ());
-                            }
+                        else if (!(v.get (key1).has (key2))) {
+                            v.get (key1).set (key2, new_map ());
                         }
                         return v.get (key1).get (key2);
                     };
@@ -22161,6 +22597,11 @@ function main () {
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
+                    var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+                    var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+                    var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+                    var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var new_map = __init__ (__world__.constants).new_map;
                     var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -22196,6 +22637,7 @@ function main () {
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+                    var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
                     var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -22320,26 +22762,22 @@ function main () {
                             if (priority == MOVE_THEN_STOP || priority < my_priority && priority !== CONSTANT_MOVEMENT) {
                                 cost_matrix.set (creep.pos.x, creep.pos.y, 255);
                             }
-                            else {
-                                if (priority === my_priority || priority === CONSTANT_MOVEMENT && priority < my_priority) {
-                                    var x = creep.pos.x;
-                                    var y = creep.pos.y;
-                                    if (Game.map.getTerrainAt (x, y, room.name) == 'swamp') {
-                                        if (cost_matrix.get (x, y) < same_role_swamp_cost) {
-                                            cost_matrix.set (x, y, same_role_swamp_cost);
-                                        }
-                                        else {
-                                            cost_matrix.set (x, y, cost_matrix.get (x, y) + existing_cost_addition);
-                                        }
+                            else if (priority === my_priority || priority === CONSTANT_MOVEMENT && priority < my_priority) {
+                                var x = creep.pos.x;
+                                var y = creep.pos.y;
+                                if (Game.map.getTerrainAt (x, y, room.name) == 'swamp') {
+                                    if (cost_matrix.get (x, y) < same_role_swamp_cost) {
+                                        cost_matrix.set (x, y, same_role_swamp_cost);
                                     }
                                     else {
-                                        if (cost_matrix.get (x, y) < same_role_cost) {
-                                            cost_matrix.set (x, y, same_role_cost);
-                                        }
-                                        else {
-                                            cost_matrix.set (x, y, cost_matrix.get (x, y) + existing_cost_addition);
-                                        }
+                                        cost_matrix.set (x, y, cost_matrix.get (x, y) + existing_cost_addition);
                                     }
+                                }
+                                else if (cost_matrix.get (x, y) < same_role_cost) {
+                                    cost_matrix.set (x, y, same_role_cost);
+                                }
+                                else {
+                                    cost_matrix.set (x, y, cost_matrix.get (x, y) + existing_cost_addition);
                                 }
                             }
                         }
@@ -22582,7 +23020,12 @@ function main () {
                         __all__.default_roles = default_roles;
                         __all__.get_basic_cost_matrix = get_basic_cost_matrix;
                         __all__.get_cost_matrix_for_creep = get_cost_matrix_for_creep;
+                        __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
                         __all__.hostile_utils = hostile_utils;
+                        __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+                        __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
+                        __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+                        __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.move_prototype = move_prototype;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -22620,6 +23063,7 @@ function main () {
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
                         __all__.role_tower_fill = role_tower_fill;
+                        __all__.role_tower_fill_once = role_tower_fill_once;
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
@@ -22654,6 +23098,7 @@ function main () {
         var locations = {};
         var math = {};
         var spawning = {};
+        var building = __init__ (__world__.control.building);
         var _memory_init = null;
         var init_memory = function () {
             var start = Game.cpu.getUsed ();
@@ -22663,6 +23108,10 @@ function main () {
         };
         init_memory ();
         var _start_of_compile = Game.cpu.getUsed ();
+
+        if (!global.__customizations_active) {
+            require("customizations");
+        }
         __nest__ (math, '', __init__ (__world__.math));
         __nest__ (autoactions, '', __init__ (__world__.autoactions));
         __nest__ (constants, '', __init__ (__world__.constants));
@@ -22725,6 +23174,11 @@ function main () {
         var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
         var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
         var default_roles = __init__ (__world__.constants).default_roles;
+        var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+        var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
+        var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
+        var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
+        var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
         var new_map = __init__ (__world__.constants).new_map;
         var new_set = __init__ (__world__.constants).new_set;
         var old_role_names = __init__ (__world__.constants).old_role_names;
@@ -22760,6 +23214,7 @@ function main () {
         var role_td_healer = __init__ (__world__.constants).role_td_healer;
         var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
         var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
+        var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
         var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
         var role_upgrader = __init__ (__world__.constants).role_upgrader;
         var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -22781,6 +23236,7 @@ function main () {
         var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
         var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
         var defense = __init__ (__world__.control.defense);
+        var mining_paths = __init__ (__world__.control.mining_paths);
         var hivemind = __init__ (__world__.control.hivemind);
         var HiveMind = __init__ (__world__.control.hivemind).HiveMind;
         var TargetMind = __init__ (__world__.control.targets).TargetMind;
@@ -22795,9 +23251,32 @@ function main () {
         var records = __init__ (__world__.utilities.records);
         var volatile_cache = __init__ (__world__.utilities.volatile_cache);
         var walkby_move = __init__ (__world__.utilities.walkby_move);
-        var new_map = __init__ (__world__.utilities.screeps_constants).new_map;
-        var new_set = __init__ (__world__.utilities.screeps_constants).new_set;
         walkby_move.apply_move_prototype ();
+        var report_error = function (err, description) {
+            if (err == undefined) {
+                if (err === null) {
+                    var err_description = 'null error';
+                }
+                else if (err === undefined) {
+                    var err_description = 'undefined error';
+                }
+                else {
+                    var err_description = err + ' error';
+                }
+            }
+            else if (err.stack == undefined) {
+                var err_description = 'error has undefined stack: {}'.format (err);
+            }
+            else {
+                var err_description = 'error {} has stack: {}'.format (err, err.stack);
+            }
+            var msg = '[main] Error: {}\n{}'.format (description, err_description);
+            print (msg);
+            Game.notify (msg);
+            if (err == undefined) {
+                throw err;
+            }
+        };
         var run_creep = function (hive, targets, creeps_skipped, room, creep) {
             if (Game.cpu.getUsed () > Game.cpu.limit * 0.5 && (Game.cpu.bucket < 3000 && (Game.gcl.level > 1 || Game.cpu.bucket < 1000))) {
                 var role = creep.memory.role;
@@ -22857,16 +23336,7 @@ function main () {
                 records.finish_record (creep.memory.role);
             }
             catch (__except0__) {
-                var e = __except0__;
-                var role = creep.memory.role;
-                Game.notify ('Error running role {}! Creep {} from room {} not run this tick.\n{}'.format ((role ? role : '[no role]'), creep.name, creep.memory.home, (e ? e.stack : 'e == null??')), 10);
-                print ('[{}][{}] Error running role {}!'.format (creep.memory.home, creep.name, (role ? role : '[no role]')));
-                print ((e ? e.stack : 'e == null?? {}'.format (e)));
-                if (!(e)) {
-                    var __except1__ = e;
-                    __except1__.__cause__ = null;
-                    throw __except1__;
-                }
+                report_error (__except0__, 'Error running role {}, creep {} at {} from room {} not run this tick.'.format (creep.memory.role, creep.name, creep.pos, creep.memory.home));
             }
         };
         var run_room = function (targets, creeps_skipped, room) {
@@ -22904,9 +23374,22 @@ function main () {
                         var creep = __iterable0__ [__index0__];
                         run_creep (room.hive, targets, creeps_skipped, room, creep);
                     }
-                    records.start_record ();
-                    room.building.place_remote_mining_roads ();
-                    records.finish_record ('building.roads');
+                    if (Game.cpu.bucket >= 4500 && __mod__ (Game.time + room.get_unique_owned_index (), 50) == 0) {
+                        try {
+                            records.start_record ();
+                            var actually_did_anything = room.building.build_most_needed_road ();
+                            if (actually_did_anything) {
+                                records.finish_record ('building.roads.check-pavement');
+                            }
+                            else {
+                                records.finish_record ('building.roads.cache-checks-only');
+                            }
+                        }
+                        catch (__except0__) {
+                            records.finish_record ('building.roads.errored');
+                            report_error (__except0__, 'Error running road building in {}.'.format (room.name));
+                        }
+                    }
                     records.start_record ();
                     room.building.place_home_ramparts ();
                     records.finish_record ('building.ramparts');
@@ -22921,25 +23404,17 @@ function main () {
                 records.start_record ();
                 room.links.tick_links ();
                 records.finish_record ('links.tick');
-                if (__mod__ (Game.time, 25) == 17) {
+                if (__mod__ (Game.time, 525) == 17) {
                     records.start_record ();
-                    room.mining.poll_flag_energy_sitting ();
-                    records.finish_record ('mining.flags');
+                    room.mining.cleanup_old_flag_sitting_values ();
+                    records.finish_record ('mining.cleanup_flags');
                 }
                 records.start_record ();
                 room.minerals.tick_terminal ();
                 records.finish_record ('terminal.tick');
             }
             catch (__except0__) {
-                var e = __except0__;
-                Game.notify ('Error running room {}!\n{}'.format (room.name, (e ? e.stack : 'e == null??')), 10);
-                print ('[{}] Error running room {}!'.format (room.name, room.name));
-                print ((e ? e.stack : 'e == null?? {}'.format (e)));
-                if (!(e)) {
-                    var __except1__ = e;
-                    __except1__.__cause__ = null;
-                    throw __except1__;
-                }
+                report_error (__except0__, 'Error running room {}'.format (room.name));
             }
         };
         var main = function () {
@@ -22990,10 +23465,8 @@ function main () {
                         print ('[paused] Bucket accumulated: {} (used loading code: {})'.format (Game.cpu.bucket, math.floor (Game.cpu.getUsed ())));
                     }
                 }
-                else {
-                    if (Game.cpu.bucket <= 5000) {
-                        Memory.meta.waiting_for_bucket = true;
-                    }
+                else if (Game.cpu.bucket <= 5000) {
+                    Memory.meta.waiting_for_bucket = true;
                 }
                 return ;
             }
@@ -23017,6 +23490,21 @@ function main () {
                 records.start_record ();
                 consistency.clear_cache ();
                 records.finish_record ('cache.clean');
+            }
+            if (__mod__ (Game.time, 100000) == 6798) {
+                records.start_record ();
+                consistency.complete_refresh (hive);
+                records.finish_record ('cache.complete-refresh');
+            }
+            if (__mod__ (Game.time, 600) == 550) {
+                records.start_record ();
+                mining_paths.cleanup_old_values (hive);
+                records.finish_record ('mining-paths.cleanup');
+            }
+            if (__mod__ (Game.time, 600) == 551) {
+                records.start_record ();
+                building.clean_up_all_road_construction_sites ();
+                records.finish_record ('building.clean-up-road-construction-sites');
             }
             records.start_record ();
             hive.poll_all_creeps ();
@@ -23110,7 +23598,7 @@ function main () {
                     Memory.skipped_last_turn = creeps_skipped;
                 }
             }
-            if (Game.cpu.bucket === undefined || Game.cpu.bucket >= 6000) {
+            if (Game.cpu.bucket === undefined || Game.cpu.bucket >= 6000 && !(Memory.meta.quiet)) {
                 records.start_record ();
                 hive.sing ();
                 records.finish_record ('hive.sing');
@@ -23119,7 +23607,7 @@ function main () {
         };
         module.exports.loop = main;
         global
-        .py = dict ({'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'hivemind': hivemind, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'hive': (function __lambda__ () {
+        .py = dict ({'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'hivemind': hivemind, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'building': building, 'mining_paths': mining_paths, 'hive': (function __lambda__ () {
             return context.hive ();
         }), 'get_room': (function __lambda__ (name) {
             return context.hive ().get_room (name);
@@ -23142,8 +23630,10 @@ function main () {
             'autoactions' +
             'constants' +
             'context' +
+            'control.building' +
             'control.defense' +
             'control.hivemind' +
+            'control.mining_paths' +
             'control.targets' +
             'creep_wrappers' +
             'flags' +
@@ -23158,7 +23648,6 @@ function main () {
             'utilities.hostile_utils' +
             'utilities.movement' +
             'utilities.records' +
-            'utilities.screeps_constants' +
             'utilities.volatile_cache' +
             'utilities.walkby_move' +
         '</use>')
@@ -23195,6 +23684,7 @@ function main () {
             __all__.UPGRADER_SPOT = UPGRADER_SPOT;
             __all__._memory_init = _memory_init;
             __all__._start_of_compile = _start_of_compile;
+            __all__.building = building;
             __all__.consistency = consistency;
             __all__.creep_base_1500miner = creep_base_1500miner;
             __all__.creep_base_3000miner = creep_base_3000miner;
@@ -23227,17 +23717,24 @@ function main () {
             __all__.default_roles = default_roles;
             __all__.defense = defense;
             __all__.global_cache = global_cache;
+            __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
             __all__.hivemind = hivemind;
             __all__.hostile_utils = hostile_utils;
             __all__.init_memory = init_memory;
             __all__.main = main;
+            __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
+            __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
             __all__.memory_info = memory_info;
+            __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
+            __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
+            __all__.mining_paths = mining_paths;
             __all__.movement = movement;
             __all__.new_map = new_map;
             __all__.new_set = new_set;
             __all__.old_role_names = old_role_names;
             __all__.records = records;
             __all__.recycle_time = recycle_time;
+            __all__.report_error = report_error;
             __all__.request_priority_economy = request_priority_economy;
             __all__.request_priority_helping_party = request_priority_helping_party;
             __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
@@ -23269,6 +23766,7 @@ function main () {
             __all__.role_td_healer = role_td_healer;
             __all__.role_temporary_replacing = role_temporary_replacing;
             __all__.role_tower_fill = role_tower_fill;
+            __all__.role_tower_fill_once = role_tower_fill_once;
             __all__.role_upgrade_fill = role_upgrade_fill;
             __all__.role_upgrader = role_upgrader;
             __all__.role_wall_defender = role_wall_defender;
