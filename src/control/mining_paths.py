@@ -81,7 +81,6 @@ def register_new_mining_path(mine_data, raw_path):
     if len(raw_path):
         last_room = raw_path[0].roomName
         room_pos_points = {last_room: serialized_string}
-        debug = last_room == 'E11N51'
         for pos in raw_path:
             if pos.roomName != last_room:
                 if pos.roomName in room_pos_points:
@@ -89,14 +88,10 @@ def register_new_mining_path(mine_data, raw_path):
                 else:
                     serialized_string = room_pos_points[pos.roomName] = []
                 last_room = pos.roomName
-                debug = last_room == 'E11N51'
             serialized_string.push(String.fromCodePoint(pos.x | pos.y << 6))
-            if debug:
-                print('[mining_paths][debug] Added position {}'.format(pos))
     else:
         room_pos_points = {}
 
-    print("[mining_paths][debug] Registering mining path for mine {} spawn {}.".format(mine_name, spawn_id))
     our_key_start = (
         String.fromCodePoint(len(mine_name) + len(spawn_id) + 2)
         + String.fromCodePoint(len(mine_name))

@@ -638,7 +638,7 @@ class ConstructionMind:
             })
             check_route(route_to_spawn, None, no_pave_end)
 
-        # # Now, clean up sites which we don't need anymore!
+        # Now, clean up sites which we don't need anymore!
         for room_name in all_modified_rooms:
             room = hive.get_room(room_name)
             if room and not room.my:
@@ -646,8 +646,8 @@ class ConstructionMind:
                 for site in room.find(FIND_MY_CONSTRUCTION_SITES):
                     xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
                     if site.structureType == STRUCTURE_ROAD and not all_planned_sites_set.has(xy):
-                        print("[building] Would remove {} (at {})".format(site, site.pos))
-                        # site.remove()
+                        print("[building] Removing {} at {}".format(site, site.pos))
+                        site.remove()
 
         if need_more_sites > 0:
             self.room.store_cached_property(last_built_roads_key,
@@ -821,8 +821,8 @@ def clean_up_all_road_construction_sites():
             xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
             if site.structureType == STRUCTURE_ROAD:
                 if not planned_roads.has(xy):
-                    print("[building][debug] Would remove road site at {}.".format(site.pos))
-                    # site.remove()
+                    print("[building][debug] Removing {} at {}.".format(site, site.pos))
+                    site.remove()
             else:
                 msg = "[building] WARNING: Construction site for a {} found in unowned room {}. Non-road construction" \
                       " sites are generally not supported in unowned rooms!".format(site.structureType, room_name)
