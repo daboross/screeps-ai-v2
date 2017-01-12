@@ -1,5 +1,3 @@
-from control import building
-
 _memory_init = None
 
 
@@ -14,14 +12,11 @@ def init_memory():
 init_memory()
 
 # noinspection PyUnboundLocalVariable
-__pragma__('skip')
-from utilities.screeps_constants import *
-
-__pragma__('noskip')
 _start_of_compile = Game.cpu.getUsed()
 
 # Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
 # code works correctly.
+# noinspection PyUnboundLocalVariable
 __pragma__('js', '{}', """
 if (!global.__customizations_active) {
     require("customizations");
@@ -29,22 +24,19 @@ if (!global.__customizations_active) {
 
 import math
 
-import autoactions
 import constants
-import context
-import flags
-import locations
-import spawning
+from cache import consistency, context, global_cache, volatile_cache
 from constants import *
-from control import defense, mining_paths
-from control import hivemind
-from control.hivemind import HiveMind
-from control.targets import TargetMind
-from creep_wrappers import wrap_creep
-from role_base import RoleBase
-from tools import memory_info
-from utilities import consistency, deathwatch, global_cache, hostile_utils, movement, records, volatile_cache, \
-    walkby_move
+from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
+from creep_management.creep_wrappers import wrap_creep
+from creeps.base import RoleBase
+from empire.hive import HiveMind
+from empire.targets import TargetMind
+from jstools import memory_info, records
+from jstools.screeps_constants import *
+from position_management import flags, locations
+from rooms import building, defense
+from utilities import hostile_utils, movement
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -80,10 +72,10 @@ def report_error(err, description):
 
 def run_creep(hive, targets, creeps_skipped, room, creep):
     """
-    :type hive: control.hivemind.HiveMind
-    :type targets: control.targets.TargetMind
+    :type hive: empire.hive.HiveMind
+    :type targets: empire.targets.TargetMind
     :type creeps_skipped: dict[str, list[str]]
-    :type room: control.hivemind.RoomMind
+    :type room: rooms.room_mind.RoomMind
     :type creep: Creep
     """
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and (Game.cpu.bucket < 3000 and
@@ -143,9 +135,9 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
 
 def run_room(targets, creeps_skipped, room):
     """
-    :type targets: control.targets.TargetMind
+    :type targets: empire.targets.TargetMind
     :type creeps_skipped: dict
-    :type room: control.hivemind.RoomMind
+    :type room: rooms.room_mind.RoomMind
     """
     try:
         if room.mem.pause:
@@ -225,11 +217,9 @@ def main():
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
             if bucket_tier >= 6:
-                Memory.meta.auto_enable_profiling = False
+                del Memory.meta.auto_enable_profiling
         else:
             print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
-            if bucket_tier <= 4:
-                Memory.meta.auto_enable_profiling = True
             if bucket_tier <= 1:
                 Memory.meta.pause = True
                 hive = HiveMind(TargetMind())
@@ -382,7 +372,6 @@ __pragma__('js', 'global').py = {
     "locations": locations,
     "defense": defense,
     "movement": movement,
-    "hivemind": hivemind,
     "flags": flags,
     "constants": constants,
     "spawning": spawning,

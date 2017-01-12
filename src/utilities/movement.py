@@ -1,6 +1,6 @@
 import math
 
-from utilities.screeps_constants import *
+from jstools.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -82,8 +82,10 @@ def distance_squared_room_pos(room_position_1, room_position_2):
     :param room_position_2: The second RoomPosition
     :return: The squared distance as an int
     """
-    if room_position_1.pos: room_position_1 = room_position_1.pos
-    if room_position_2.pos: room_position_2 = room_position_2.pos
+    if room_position_1.pos:
+        room_position_1 = room_position_1.pos
+    if room_position_2.pos:
+        room_position_2 = room_position_2.pos
     if room_position_1.roomName == room_position_2.roomName:
         return squared_distance((room_position_1.x, room_position_1.y), (room_position_2.x, room_position_2.y))
     room_1_pos = parse_room_to_xy(room_position_1.roomName)
@@ -100,8 +102,10 @@ def distance_squared_room_pos(room_position_1, room_position_2):
 
 
 def chebyshev_distance_room_pos(pos1, pos2):
-    if pos1.pos: pos1 = pos1.pos
-    if pos2.pos: pos2 = pos2.pos
+    if pos1.pos:
+        pos1 = pos1.pos
+    if pos2.pos:
+        pos2 = pos2.pos
     if pos1.roomName == pos2.roomName:
         return max(abs(pos1.x - pos2.x), abs(pos1.y - pos2.y))
     room_1_pos = parse_room_to_xy(pos1.roomName)
@@ -143,7 +147,7 @@ def distance_room_pos(room_pos_1, room_pos_2):
 def is_block_clear(room, x, y):
     """
     Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
-    :type room: control.hivemind.RoomMind
+    :type room: rooms.room_mind.RoomMind
     """
     if x > 49 or y > 49 or x < 0 or y < 0:
         return False
@@ -162,18 +166,10 @@ def is_block_clear(room, x, y):
     return True
 
 
-def serialized_pos_to_pos_obj(room, xy):
-    return {'x': xy & 0x3F, 'y': xy >> 6 & 0x3F, 'roomName': room}
-
-
-def xy_to_serialized_int(x, y):
-    return x | y << 6
-
-
 def is_block_empty(room, x, y):
     """
     Checks if a block is not a wall, and has no non-walkable structures. (does not check creeps).
-    :type room: control.hivemind.RoomMind
+    :type room: rooms.room_mind.RoomMind
     """
     if x > 49 or y > 49 or x < 0 or y < 0:
         return False
@@ -221,3 +217,49 @@ def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
         return -1
     entrance_pos.roomName = room_xy_to_name(room_x, room_y)
     return entrance_pos
+
+
+def dxdy_to_direction(dx, dy):
+    """
+    Gets the screeps direction constant from a given dx and dy.
+    :type dx: int
+    :type dy: int
+    :rtype: int
+    """
+    direction = None
+    if dx < 0:
+        if dy < 0:
+            direction = TOP_LEFT
+        elif dy == 0:
+            direction = LEFT
+        elif dy > 0:
+            direction = BOTTOM_LEFT
+    elif dx == 0:
+        if dy < 0:
+            direction = TOP
+        elif dy > 0:
+            direction = BOTTOM
+    elif dx > 0:
+        if dy < 0:
+            direction = TOP_RIGHT
+        elif dy == 0:
+            direction = RIGHT
+        elif dy > 0:
+            direction = BOTTOM_RIGHT
+    if direction is None:
+        print("[honey][direction] ERROR: Unknown dx/dy: {},{}!".format(dx, dy))
+        return None
+    else:
+        return direction
+
+
+def diff_as_direction(origin, destination):
+    if origin.pos is not undefined:
+        origin = origin.pos
+    if destination.pos is not undefined:
+        destination = destination.pos
+    direction = dxdy_to_direction(destination.x - origin.x, destination.y - origin.y)
+    if direction is None:
+        print("[movement][direction_to] No direction found for get_direction({} - {}, {} - {})."
+              .format(destination.x, origin.x, destination.y, origin.y))
+    return direction

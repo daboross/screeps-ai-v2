@@ -1,4 +1,4 @@
-from utilities.screeps_constants import *
+from jstools.screeps_constants import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -192,7 +192,6 @@ request_priority_imminent_threat_defense = 1
 request_priority_economy = 5
 request_priority_helping_party = 9
 request_priority_low = 20
-
 
 min_repath_mine_roads_every = 200 * 1000
 max_repath_mine_roads_every = 250 * 1000
