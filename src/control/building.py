@@ -574,13 +574,9 @@ class ConstructionMind:
                 if room_name == not_near_end_of:
                     rest = path.slice(-2)
                     path = path.slice(0, -2)
-                    print("[building][debug] Not paving two positions at end of path: {}"
-                          .format(', '.join(['({}, {}, {})'.format(p.x, p.y, room_name) for p in rest])))
                 if room_name == not_near_start_of:
                     rest = path.slice(0, 2)
                     path = path.slice(2)
-                    print("[building][debug] Not paving two positions at start of path: {}"
-                          .format(', '.join(['({}, {}, {})'.format(p.x, p.y, room_name) for p in rest])))
                 for position in path:
                     xy_key = movement.xy_to_serialized_int(position.x, position.y)
                     if checked_here.has(xy_key):
@@ -646,7 +642,7 @@ class ConstructionMind:
                 for site in room.find(FIND_MY_CONSTRUCTION_SITES):
                     xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
                     if site.structureType == STRUCTURE_ROAD and not all_planned_sites_set.has(xy):
-                        print("[building] Removing {} at {}".format(site, site.pos))
+                        print("[building] Removing {} at {}.".format(site, site.pos))
                         site.remove()
 
         if need_more_sites > 0:
@@ -821,7 +817,7 @@ def clean_up_all_road_construction_sites():
             xy = movement.xy_to_serialized_int(site.pos.x, site.pos.y)
             if site.structureType == STRUCTURE_ROAD:
                 if not planned_roads.has(xy):
-                    print("[building][debug] Removing {} at {}.".format(site, site.pos))
+                    print("[building] Removing {} at {}.".format(site, site.pos))
                     site.remove()
             else:
                 msg = "[building] WARNING: Construction site for a {} found in unowned room {}. Non-road construction" \
