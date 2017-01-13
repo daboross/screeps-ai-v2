@@ -1,6 +1,7 @@
 from cache import context, volatile_cache
 from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, SK_LAIR_SOURCE_NOTED, target_single_flag
 from creeps.behaviors.military import MilitaryBase
+from jstools import errorlog
 from jstools.screeps_constants import *
 from position_management import flags
 from rooms import defense
@@ -312,12 +313,15 @@ class KitingOffense(MilitaryBase):
                         'range': 10,
                     } for h in hostiles_nearby])
                 if len(away_path):
-                    self.creep.move(movement.diff_as_direction(self.pos, away_path[0]))
+                    self.creep.move(self.pos.getDirectionTo(away_path[0]))
             except:
-                self.log("ERROR calculating/moving by kiting path:\n{}\nPath: {}".format(__except0__.stack,
-                                                                                         away_path))
                 self.creep.say("ERROR")
                 self.go_to_depot()
+                errorlog.report_error(
+                    'kiting-offense',
+                    __except0__,
+                    "Error calculating or moving by kiting path at pos {}:\npath: {}\n".format(self.pos, away_path),
+                )
 
     def _calculate_time_to_replace(self):
         marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)

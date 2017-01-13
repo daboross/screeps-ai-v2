@@ -32,7 +32,7 @@ from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
 from empire.hive import HiveMind
 from empire.targets import TargetMind
-from jstools import memory_info, records
+from jstools import errorlog, memory_info, records
 from jstools.screeps_constants import *
 from position_management import flags, locations
 from rooms import building, defense
@@ -50,24 +50,7 @@ walkby_move.apply_move_prototype()
 
 
 def report_error(err, description):
-    if err == undefined:
-        if err is None:
-            err_description = "null error"
-        elif err is undefined:
-            err_description = "undefined error"
-        else:
-            err_description = err + " error"
-    else:
-        if err.stack == undefined:
-            err_description = "error has undefined stack: {}".format(err)
-        else:
-            err_description = "error {} has stack: {}".format(err, err.stack)
-
-    msg = "[main] Error: {}\n{}".format(description, err_description)
-    print(msg)
-    Game.notify(msg)
-    if err == undefined:
-        __pragma__('js', 'throw err;')
+    return errorlog.report_error('main', err, description)
 
 
 def run_creep(hive, targets, creeps_skipped, room, creep):

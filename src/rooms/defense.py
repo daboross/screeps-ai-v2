@@ -3,6 +3,7 @@ import math
 from cache import volatile_cache
 from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, role_wall_defender
 from creep_management import deathwatch
+from jstools import errorlog
 from jstools.screeps_constants import *
 from jstools.screeps_constants import new_set
 from position_management import flags, locations
@@ -92,11 +93,11 @@ def poll_hostiles(hive, run_away_checks):
                 run_away_checks(room)
                 deathwatch.mark_creeps(room)
             except:
-                msg = "[hive] Error running run-away-checks in {}!\n{}".format(
-                    room.name, __except0__.stack if __except0__ else 'e: {}'.format(__except0__)
+                errorlog.report_error(
+                    'defense.poll-hostiles',
+                    __except0__,
+                    "Error running run-away-checks in {}.".format(room.name),
                 )
-                print(msg)
-                Game.notify(msg)
         elif room.name in Memory.rooms:
             del room.mem.danger
 
