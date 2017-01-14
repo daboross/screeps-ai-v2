@@ -206,8 +206,8 @@ class LinkingMind:
             if len(future_output_links):
                 print("Future Output: {}".format(
                     ["{} (p:{} a:{})".format(x.link, x.priority, x.amount) for x in future_output_links]))
-        if len(current_output_links) and (
-                    not len(current_input_links) or Game.time % 12 >= 6):  # switch ever 5 seconds?
+        # switch every 5 seconds?
+        if len(current_output_links) and (not len(current_input_links) or Game.time % 12 >= 6):
             # Priority is output
             if main_link.energy < main_link.energyCapacity:
                 self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
