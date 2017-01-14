@@ -163,7 +163,7 @@ def debug_str(room_name):
             if value:
                 output.push(value)
             else:
-                output.push(0)
+                output.push(' ')
             output.push(' ')
         output.pop()  # remove the last space from each row
     return ''.join(output)

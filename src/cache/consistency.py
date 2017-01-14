@@ -54,7 +54,7 @@ def clear_memory(room):
             continue
         creep = Game.creeps[name]
         if not creep:
-            targets._unregister_all(name)
+            targets.untarget_all({'name': name})
 
             del Memory.creeps[name]
         else:
@@ -125,9 +125,9 @@ def complete_refresh(hive):
         if name not in Game.creeps:
             targets = target_mem[name]
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
-            hive.targets._unregister_all(name)
+            hive.targets.untarget_all({'name': name})
     # Remove deprecated Memory paths that are no longer in use:
-    for key in ['cpu_usage', 'profiler']:
+    for key in ['cpu_usage', 'profiler', '_debug', 'x']:
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
