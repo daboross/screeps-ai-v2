@@ -14,6 +14,10 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
 _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
+_SELL_ORDER_SIZE = 10 * 1000
+_KEEP_IN_TERMINAL_MY_MINERAL = TERMINAL_CAPACITY * 0.4
+_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = TERMINAL_CAPACITY * 0.5
+_KEEP_IN_TERMINAL_ENERGY = 0
 
 sell_at_prices = {
     RESOURCE_OXYGEN: 2.0,
@@ -361,7 +365,7 @@ class MineralMind:
             return 0
         else:
             if self.my_mineral_deposit_minerals().includes(mineral):
-                return min(currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2)
+                return min(currently_have, _KEEP_IN_TERMINAL_MY_MINERAL)
 
             fulfilling = self.fulfilling[mineral]
             if fulfilling and len(fulfilling):
@@ -530,7 +534,7 @@ class MineralMind:
     def check_orders(self):
         for mineral in self.my_mineral_deposit_minerals():
             if (mineral in self.fulfilling and len(self.fulfilling[mineral])) \
-                    or (self.get_total_room_resource_counts()[mineral] or 0) < _SINGLE_MINERAL_FULFILLMENT_MAX:
+                    or (self.get_total_room_resource_counts()[mineral] or 0) < _SELL_ORDER_SIZE:
                 continue
             current_sell_orders = self.sell_orders_by_mineral()[mineral]
             if current_sell_orders:
@@ -538,26 +542,30 @@ class MineralMind:
             if current_sell_orders and len(current_sell_orders):
                 to_check = _.min(current_sell_orders, 'price')
                 self.mem.last_sold_at[mineral] = to_check.price
-                if to_check.remainingAmount < _SINGLE_MINERAL_FULFILLMENT_MAX:
-                    if to_check.remainingAmount <= 100:
+                if to_check.remainingAmount < _SELL_ORDER_SIZE:
+                    if to_check.remainingAmount <= _SELL_ORDER_SIZE * 0.2:
                         # TODO: duplicated when creating a new order.
                         if mineral in self.mem.last_sold_at:
-                            price = min(max(1.0, sell_at_prices[mineral] - 1.5, self.mem.last_sold_at[mineral] + 0.1),
-                                        sell_at_prices[mineral])
+                            price = min(
+                                max(
+                                    1.0,
+                                    sell_at_prices[mineral] - 1.5,
+                                    self.mem.last_sold_at[mineral] + 0.1
+                                ),
+                                sell_at_prices[mineral]
+                            )
                         else:
                             price = sell_at_prices[mineral]
                         self.log("Increasing price on sell order for {} from {} to {}.".format(
                             mineral, to_check.price, price))
                         Game.market.changeOrderPrice(to_check.id, price)
-                        Game.market.extendOrder(to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX
-                                                - to_check.remainingAmount)
+                        Game.market.extendOrder(to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount)
                     else:
                         self.log("Extending sell order for {} at price {} from {} to {} minerals."
-                                 .format(mineral, to_check.price, to_check.remainingAmount,
-                                         _SINGLE_MINERAL_FULFILLMENT_MAX))
-                        Game.market.extendOrder(to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX - to_check.remainingAmount)
+                                 .format(mineral, to_check.price, to_check.remainingAmount, _SELL_ORDER_SIZE))
+                        Game.market.extendOrder(to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount)
                     self.mem.last_sold[mineral] = Game.time
-                elif self.mem.last_sold[mineral] < Game.time - 10000 and to_check.price \
+                elif self.mem.last_sold[mineral] < Game.time - 8000 and to_check.price \
                         > bottom_prices[mineral] + 0.01:  # market prices can't always be changed to an exact precision
                     new_price = max(bottom_prices[mineral], to_check.price - 0.1)
                     self.log("Reducing price on sell order for {} from {} to {}"
@@ -568,7 +576,7 @@ class MineralMind:
                     self.log("Increasing price on sell order for {} from {} to {}"
                              .format(mineral, to_check.price, bottom_prices[mineral]))
                     Game.market.changeOrderPrice(to_check.id, bottom_prices[mineral])
-            elif mineral in sell_at_prices and Game.market.credits >= 0.05 * _SINGLE_MINERAL_FULFILLMENT_MAX \
+            elif mineral in sell_at_prices and Game.market.credits >= MARKET_FEE * _SELL_ORDER_SIZE \
                     * sell_at_prices[mineral] and len(Game.market.orders) < 50:
                 if mineral in self.mem.last_sold_at:
                     price = min(max(1.0, sell_at_prices[mineral] - 1.5, self.mem.last_sold_at[mineral] + 0.1),
@@ -576,9 +584,8 @@ class MineralMind:
                 else:
                     price = sell_at_prices[mineral]
                 self.log("Creating new sell order for {} {} at {} credits/{}".format(
-                    _SINGLE_MINERAL_FULFILLMENT_MAX, mineral, price, mineral))
-                Game.market.createOrder(ORDER_SELL, mineral, price,
-                                        _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.name)
+                    _SELL_ORDER_SIZE, mineral, price, mineral))
+                Game.market.createOrder(ORDER_SELL, mineral, price, _SELL_ORDER_SIZE, self.room.name)
                 self.mem.last_sold[mineral] = Game.time
 
     def place_container_construction_site(self, deposit):

@@ -166,6 +166,8 @@ __all__ = [
     "WALL_HITS_MAX",
     "MAX_CREEP_SIZE",
     "MAX_CONSTRUCTION_SITES",
+    "TERMINAL_CAPACITY",
+    "MARKET_FEE",
     # JavaScript things
     "typeof",
     "require",
