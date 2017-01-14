@@ -67,6 +67,8 @@ def get_priority(room, structure_type):
         elif (structure_type == STRUCTURE_WALL or structure_type == STRUCTURE_EXTENSION) and room.being_bootstrapped():
             if room.mem[rmem_key_building_priority_walls]:
                 return -1
+            else:
+                return -3
     if room.rcl < 4:
         if structure_type in rcl_lt4_priorities:
             return rcl_lt4_priorities[structure_type]
@@ -138,19 +140,7 @@ class ConstructionMind:
             self.room.delete_cached_property('big_repair_targets')
         else:
             self.room.expire_property_next_tick('repair_targets')
-
-            big_targets = self.room.get_cached_property("big_repair_targets")
-            if big_targets:
-                max_hits = self.room.max_sane_wall_hits
-                i = 0
-                while i < len(big_targets):
-                    target = Game.getObjectById(big_targets[i])
-                    if not target or (target.hits >= min(target.hitsMax, max_hits)
-                                      and (target.structureType == STRUCTURE_RAMPART
-                                           or target.structureType == STRUCTURE_WALL)):
-                        big_targets.splice(i, 1)
-                    else:
-                        i += 1
+            self.room.expire_property_next_tick('big_repair_targets')
 
     def refresh_destruction_targets(self):
         self.room.delete_cached_property('destruct_targets')
