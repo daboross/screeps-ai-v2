@@ -4,7 +4,7 @@ import random
 
 from cache import context, volatile_cache
 from constants import DEPOT, max_repath_mine_roads_every, max_repave_mine_roads_every, min_repath_mine_roads_every, \
-    min_repave_mine_roads_every
+    min_repave_mine_roads_every, rmem_key_building_priority_spawn, rmem_key_building_priority_walls
 from creep_management import mining_paths
 from jstools.screeps_constants import *
 from position_management import flags
@@ -55,7 +55,7 @@ def get_priority(room, structure_type):
     if not room.spawn:
         if structure_type == STRUCTURE_SPAWN:
             if room.being_bootstrapped():
-                if room.mem.prio_spawn:
+                if room.mem[rmem_key_building_priority_spawn]:
                     return -2
                 else:
                     return 5
@@ -65,7 +65,7 @@ def get_priority(room, structure_type):
             if room.being_bootstrapped():
                 return 4
         elif (structure_type == STRUCTURE_WALL or structure_type == STRUCTURE_EXTENSION) and room.being_bootstrapped():
-            if room.mem.prio_walls:
+            if room.mem[rmem_key_building_priority_walls]:
                 return -1
     if room.rcl < 4:
         if structure_type in rcl_lt4_priorities:
@@ -123,25 +123,21 @@ class ConstructionMind:
     def refresh_building_targets(self, now=False):
         self.refresh_num_builders(now)
         if now:
-            del self.room.mem.cache.building_targets
-            del self.room.mem.cache.non_wall_construction_targets
-            del self.room.mem.cache.sieged_walls_unbuilt
+            self.room.delete_cached_property('building_targets')
+            self.room.delete_cached_property('non_wall_construction_targets')
+            self.room.delete_cached_property('sieged_walls_unbuilt')
         else:
-            if 'building_targets' in self.room.mem.cache:
-                self.room.mem.cache.building_targets.dead_at = Game.time + 1
-            if 'non_wall_construction_targets' in self.room.mem.cache:
-                self.room.mem.cache.non_wall_construction_targets.dead_at = Game.time + 1
-            if 'sieged_walls_unbuilt' in self.room.mem.cache:
-                self.room.mem.cache.sieged_walls_unbuilt.dead_at = Game.time + 1
+            self.room.expire_property_next_tick('building_targets')
+            self.room.expire_property_next_tick('non_wall_construction_targets')
+            self.room.expire_property_next_tick('sieged_walls_unbuilt')
 
     def refresh_repair_targets(self, now=False):
         self.refresh_num_builders(now)
         if now:
-            del self.room.mem.cache.repair_targets
-            del self.room.mem.cache.big_repair_targets
+            self.room.delete_cached_property('repair_targets')
+            self.room.delete_cached_property('big_repair_targets')
         else:
-            if 'repair_targets' in self.room.mem.cache:
-                self.room.mem.cache.repair_targets.dead_at = Game.time + 1
+            self.room.expire_property_next_tick('repair_targets')
 
             big_targets = self.room.get_cached_property("big_repair_targets")
             if big_targets:
@@ -157,7 +153,7 @@ class ConstructionMind:
                         i += 1
 
     def refresh_destruction_targets(self):
-        del self.room.mem.cache.destruct_targets
+        self.room.delete_cached_property('destruct_targets')
 
     def _max_hits_at(self, struct, big_repair=False):
         if struct.structureType == STRUCTURE_WALL:
@@ -238,13 +234,11 @@ class ConstructionMind:
 
     def refresh_num_builders(self, now=False):
         if now:
-            del self.room.mem.cache.builders_needed
-            del self.room.mem.cache.max_builder_work_parts
+            self.room.delete_cached_property('builders_needed')
+            self.room.delete_cached_property('max_builder_work_parts')
         else:
-            if 'builders_needed' in self.room.mem.cache:
-                self.room.mem.cache.builders_needed.dead_at = Game.time + 1
-            if 'max_builder_work_parts' in self.room.mem.cache:
-                self.room.mem.cache.max_builder_work_parts.dead_at = Game.time + 1
+            self.room.expire_property_next_tick('builders_needed')
+            self.room.expire_property_next_tick('max_builder_work_parts')
 
     def get_high_value_construction_targets(self):
         if self.room.under_siege():
@@ -284,8 +278,8 @@ class ConstructionMind:
             if last_rcl >= self.room.rcl:
                 return targets
         print("[{}] Calculating new construction targets".format(self.room.name))
-        del self.room.mem.cache.non_wall_construction_targets
-        del self.room.mem.cache.seiged_walls_unbuilt
+        self.room.delete_cached_property('non_wall_construction_targets')
+        self.room.delete_cached_property('seiged_walls_unbuilt')
         self.refresh_num_builders(True)
 
         if self.room.spawn:
@@ -321,12 +315,12 @@ class ConstructionMind:
             all_walls = (
                 self.room.rcl < 5
                 and self.room.being_bootstrapped()
-                and self.room.mem.prio_walls
+                and self.room.mem[rmem_key_building_priority_walls]
             )
             prio_spawn = (
                 self.room.rcl < 5
                 and self.room.being_bootstrapped()
-                and not not self.room.mem.prio_spawn
+                and not not self.room.mem[rmem_key_building_priority_spawn]
             )
 
             no_walls = not all_walls and (self.room.rcl < 3 or (
@@ -762,7 +756,7 @@ class ConstructionMind:
         self.room.store_cached_property("placed_ramparts", 1, random.randint(500, 600))
 
     def re_place_home_ramparts(self):
-        self.room.mem.cache.placed_ramparts.dead_at = Game.time + 1
+        self.room.expire_property_next_tick('placed_ramparts')
 
     def find_loc_near_away_from(self, near, away_from):
         if near.pos:

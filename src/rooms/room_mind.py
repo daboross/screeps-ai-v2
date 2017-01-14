@@ -2,6 +2,7 @@ import math
 
 from cache import consistency
 from constants import *
+from constants.memkeys.room import *
 from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
 from creeps.base import RoleBase
@@ -27,7 +28,7 @@ __pragma__('noalias', 'type')
 
 class RoomMind:
     """
-    :type hive: HiveMind
+    :type hive: empire.hive.HiveMind
     :type room: Room
     :type name: str
     :type building: ConstructionMind
@@ -124,8 +125,8 @@ class RoomMind:
                 Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.name), 1)
         else:
             self.enemy = False
-        if self.mem.sponsor:
-            self.sponsor_name = self.mem.sponsor
+        if mem_key_sponsor in self.mem:
+            self.sponsor_name = self.mem[mem_key_sponsor]
         else:
             self.sponsor_name = None
 
@@ -137,28 +138,35 @@ class RoomMind:
     mem = property(_get_mem)
 
     def get_cached_property(self, name):
-        if 'cache' not in self.mem:
+        if not self.mem[mem_key_cache]:
             return None
-        prop_mem = self.mem.cache[name]
+        prop_mem = self.mem[mem_key_cache][name]
         if prop_mem and prop_mem.dead_at > Game.time:
             return prop_mem.value
         else:
             return None
 
     def store_cached_property(self, name, value, ttl):
-        if not self.mem.cache:
-            self.mem.cache = {}
-        self.mem.cache[name] = {"value": value, "dead_at": Game.time + ttl}
+        if not self.mem[mem_key_cache]:
+            self.mem[mem_key_cache] = {}
+        self.mem[mem_key_cache][name] = {"value": value, "dead_at": Game.time + ttl}
 
     def store_cached_property_at(self, name, value, dead_at):
-        if not self.mem.cache:
-            self.mem.cache = {}
-        self.mem.cache[name] = {"value": value, "dead_at": dead_at}
+        if not self.mem[mem_key_cache]:
+            self.mem[mem_key_cache] = {}
+        self.mem[mem_key_cache][name] = {"value": value, "dead_at": dead_at}
 
     def delete_cached_property(self, name):
-        if not self.mem.cache:
+        if not self.mem[mem_key_cache]:
             return
-        del self.mem.cache[name]
+        del self.mem[mem_key_cache][name]
+
+    def expire_property_next_tick(self, name):
+        if not self.mem[mem_key_cache]:
+            return
+        if name not in self.mem[mem_key_cache]:
+            return
+        self.mem[mem_key_cache][name].dead_at = Game.time + 1
 
     def find(self, parameter):
         if self._find_cache.has(parameter):
@@ -366,30 +374,30 @@ class RoomMind:
     possible_remote_mining_operations = property(_get_remote_mining_operations)
 
     def _get_role_counts(self):
-        if not self.mem.roles_alive:
+        if not self.mem[mem_key_creeps_by_role]:
             self.recalculate_roles_alive()
-        return self.mem.roles_alive
+        return self.mem[mem_key_creeps_by_role]
 
     role_counts = property(_get_role_counts)
 
     def _get_work_mass(self):
-        if not self.mem.roles_work:
+        if not self.mem[mem_key_work_parts_by_role]:
             self.recalculate_roles_alive()
-        return self.mem.roles_work
+        return self.mem[mem_key_work_parts_by_role]
 
     work_mass_map = property(_get_work_mass)
 
     def _get_carry_mass(self):
-        if not self.mem.roles_carry:
+        if not self.mem[mem_key_carry_parts_by_role]:
             self.recalculate_roles_alive()
-        return self.mem.roles_carry
+        return self.mem[mem_key_carry_parts_by_role]
 
     carry_mass_map = property(_get_carry_mass)
 
     def _get_rt_map(self):
-        if not self.mem.rt_map:
+        if not self.mem[mem_key_creeps_by_role_and_replacement_time]:
             self.recalculate_roles_alive()
-        return self.mem.rt_map
+        return self.mem[mem_key_creeps_by_role_and_replacement_time]
 
     def role_count(self, role):
         count = self.role_counts[role]
@@ -447,7 +455,7 @@ class RoomMind:
         introduced, this can ensure that everything is entirely correct.
         """
         # print("[{}] Recalculating roles alive.".format(self.name))
-        # old_rt_map = self.mem.rt_map
+        # old_rt_map = self.mem[mem_key_creeps_by_role_and_replacement_time]
         roles_alive = {}
         roles_work = {}  # TODO: better system for storing these
         roles_carry = {}
@@ -481,10 +489,10 @@ class RoomMind:
                 # _.sortedIndex(array, value, [iteratee=_.identity])
                 # Lodash version is 3.10.0 - this was replaced by sortedIndexBy in 4.0.0
                 rt_map[role].splice(_.sortedIndex(rt_map[role], rt_pair, lambda p: p[1]), 0, rt_pair)
-        self.mem.roles_alive = roles_alive
-        self.mem.roles_work = roles_work
-        self.mem.roles_carry = roles_carry
-        self.mem.rt_map = rt_map
+        self.mem[mem_key_creeps_by_role] = roles_alive
+        self.mem[mem_key_work_parts_by_role] = roles_work
+        self.mem[mem_key_carry_parts_by_role] = roles_carry
+        self.mem[mem_key_creeps_by_role_and_replacement_time] = rt_map
 
     def get_next_replacement_name(self, role):
         rt_map = self.rt_map
@@ -579,12 +587,14 @@ class RoomMind:
 
         return creep.get_replacement_time()
 
+    def check_all_creeps_next_tick(self):
+        self.mem[mem_key_cache]["clear_next"] = 0
+
     def precreep_tick_actions(self):
         time = Game.time
-        meta = self.mem.meta
+        meta = self.mem[mem_key_metadata]
         if not meta:
-            meta = {"clear_next": 0, "reset_spawn_on": 0}
-            self.mem.meta = meta
+            self.mem[mem_key_metadata] = meta = {"clear_next": 0, "reset_spawn_on": 0}
 
         if time >= meta.clear_next:
             # print("[{}] Clearing memory".format(self.name))
@@ -703,15 +713,15 @@ class RoomMind:
                         self.room.storage.destroy()
             else:
                 if self.trying_to_get_full_storage_use:
-                    if self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
+                    if self.mem[mem_key_storage_use_enabled] and self.room.storage.store[RESOURCE_ENERGY] \
                             <= max_energy_disable_full_storage_use:
                         print("[{}] Disabling full storage use.".format(self.name))
-                        self.mem.full_storage_use = False
-                    if not self.mem.full_storage_use and self.room.storage.store[RESOURCE_ENERGY] \
+                        self.mem[mem_key_storage_use_enabled] = False
+                    if not self.mem[mem_key_storage_use_enabled] and self.room.storage.store[RESOURCE_ENERGY] \
                             > min_energy_enable_full_storage_use:
                         print("[{}] Enabling full storage use.".format(self.name))
-                        self.mem.full_storage_use = True
-                    self._full_storage_use = self.mem.full_storage_use
+                        self.mem[mem_key_storage_use_enabled] = True
+                    self._full_storage_use = self.mem[mem_key_storage_use_enabled]
                 else:
                     self._full_storage_use = False
         return self._full_storage_use
@@ -727,13 +737,13 @@ class RoomMind:
     def mining_ops_paused(self):
         if not self.full_storage_use:
             return False
-        if self.mem.focusing_home and _.sum(self.room.storage.store) < max_total_resume_remote_mining \
+        if self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) < max_total_resume_remote_mining \
                 or self.room.storage.store.energy < max_energy_resume_remote_mining:
-            self.mem.focusing_home = False
-        if not self.mem.focusing_home and _.sum(self.room.storage.store) > min_total_pause_remote_mining \
+            self.mem[mem_key_focusing_home] = False
+        if not self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) > min_total_pause_remote_mining \
                 and self.room.storage.store.energy > min_energy_pause_remote_mining:
-            self.mem.focusing_home = True
-        return not not self.mem.focusing_home
+            self.mem[mem_key_focusing_home] = True
+        return not not self.mem[mem_key_focusing_home]
 
     def upgrading_paused(self):
         if '_upgrading_paused' not in self:
@@ -745,16 +755,20 @@ class RoomMind:
                 self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
             else:
                 if self.rcl >= 8:
-                    if self.mem.upgrading_paused and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
-                        self.mem.upgrading_paused = False
-                    if not self.mem.upgrading_paused and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
-                        self.mem.upgrading_paused = True
+                    if self.mem[
+                        mem_key_upgrading_paused] and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
+                        self.mem[mem_key_upgrading_paused] = False
+                    if not self.mem[
+                        mem_key_upgrading_paused] and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
+                        self.mem[mem_key_upgrading_paused] = True
                 else:
-                    if self.mem.upgrading_paused and self.room.storage.store.energy > energy_to_resume_upgrading:
-                        self.mem.upgrading_paused = False
-                    if not self.mem.upgrading_paused and self.room.storage.store.energy < energy_to_pause_upgrading:
-                        self.mem.upgrading_paused = True
-                self._upgrading_paused = not not self.mem.upgrading_paused
+                    if self.mem[
+                        mem_key_upgrading_paused] and self.room.storage.store.energy > energy_to_resume_upgrading:
+                        self.mem[mem_key_upgrading_paused] = False
+                    if not self.mem[
+                        mem_key_upgrading_paused] and self.room.storage.store.energy < energy_to_pause_upgrading:
+                        self.mem[mem_key_upgrading_paused] = True
+                self._upgrading_paused = not not self.mem[mem_key_upgrading_paused]
         return self._upgrading_paused
 
     def building_paused(self):
@@ -764,11 +778,11 @@ class RoomMind:
             elif self.conducting_siege() and self.rcl < 7:
                 self._building_paused = True  # Don't build while we're taking someone down.
             else:
-                if self.mem.building_paused and self.room.storage.store.energy > energy_to_resume_building:
-                    self.mem.building_paused = False
-                if not self.mem.building_paused and self.room.storage.store.energy < energy_to_pause_building:
-                    self.mem.building_paused = True
-                if self.mem.building_paused:
+                if self.mem[mem_key_building_paused] and self.room.storage.store.energy > energy_to_resume_building:
+                    self.mem[mem_key_building_paused] = False
+                if not self.mem[mem_key_building_paused] and self.room.storage.store.energy < energy_to_pause_building:
+                    self.mem[mem_key_building_paused] = True
+                if self.mem[mem_key_building_paused]:
                     # this is somewhat expensive, so do this calculation last
                     # If building is paused and we have fewer spawns/extensions than spawn/extension build sites, don't
                     # pause building!
@@ -822,15 +836,16 @@ class RoomMind:
         return deprioritized
 
     def under_siege(self):
-        return not not self.mem.attack
+        return not not self.mem[mem_key_currently_under_siege]
 
     def any_remotes_under_siege(self):
-        return self.mem.attack or self.mem.remotes_attack
+        return self.mem[mem_key_currently_under_siege] or self.mem[mem_key_remotes_explicitly_marked_under_attack]
 
     def remote_under_siege(self, flag):
         return self.any_remotes_under_siege() \
                and flag.pos.roomName != self.name \
-               and (not self.mem.remotes_safe or not self.mem.remotes_safe.includes(flag.pos.roomName))
+               and (not self.mem[mem_key_remotes_safe_when_under_siege]
+                    or not self.mem[mem_key_remotes_safe_when_under_siege].includes(flag.pos.roomName))
 
     def conducting_siege(self):
         if '_conducting_siege' not in self:
@@ -934,8 +949,8 @@ class RoomMind:
                     for y in range(source.pos.y - 1, source.pos.y + 2):
                         if movement.is_block_empty(self, x, y):
                             oss += 1
-            self.mem.oss = oss
-        return self.mem.oss
+            self.mem[mem_key_total_open_source_spaces] = oss
+        return self.mem[mem_key_total_open_source_spaces]
 
     def get_open_source_spaces_around(self, source):
         key = 'oss-{}'.format(source.id)
@@ -1138,7 +1153,7 @@ class RoomMind:
                         sitting = self.mining.energy_sitting_at(flag)
                         if sitting > 1000:
                             total_mass += math.ceil(sitting / 500) * fill_size
-                if self.under_siege() or self.mem.prepping_defenses:
+                if self.under_siege() or self.mem[mem_key_prepping_defenses]:
                     self._target_spawn_fill_mass = total_mass
                 else:
                     self._target_spawn_fill_mass = max(0, min(1, total_mass), total_mass - tower_fill)
@@ -1153,7 +1168,7 @@ class RoomMind:
                 self._total_needed_spawn_fill_mass = 3
             else:
                 self._total_needed_spawn_fill_mass = math.pow(self.room.energyCapacityAvailable / 50.0 * 200, 0.3)
-                if self.under_siege() or self.mem.prepping_defenses:
+                if self.under_siege() or self.mem[mem_key_prepping_defenses]:
                     self._total_needed_spawn_fill_mass *= 1.5
                 elif len(self.mining.active_mines) < 2:  # This includes local sources.
                     self._total_needed_spawn_fill_mass /= 2
@@ -1167,7 +1182,7 @@ class RoomMind:
                 if base_num > 0:
                     extra = 0
                     if self.room.storage:
-                        if self.mem.prepping_defenses:
+                        if self.mem[mem_key_prepping_defenses]:
                             # purposefully a smaller threshold than upgrading has
                             overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
                                            self.room.storage.store.energy - 100 * 1000)
@@ -1252,7 +1267,7 @@ class RoomMind:
                 if len(self.possible_remote_mining_operations) >= 3 \
                         and _.sum(self.room.storage.store) > 250 * 1000 \
                         and self.room.storage.store.energy > 100 * 1000 \
-                        and not self.mem.prepping_defenses:
+                        and not self.mem[mem_key_prepping_defenses]:
                     wm = 15
                 elif _.sum(self.room.storage.store) > 700 * 1000 \
                         and self.room.storage.store.energy > 200 * 1000:
@@ -1272,7 +1287,7 @@ class RoomMind:
                 wm = len(self.sources) * 2 * worker_size
             if self.full_storage_use:
                 if self.room.storage.storeCapacity:
-                    if self.mem.prepping_defenses:
+                    if self.mem[mem_key_prepping_defenses]:
                         extra = min(_.sum(self.room.storage.store) - 600 * 1000,
                                     self.room.storage.store.energy - 200 * 1000)
                     elif Memory.hyper_upgrade:
@@ -1339,7 +1354,7 @@ class RoomMind:
         return self._target_room_reserve_count
 
     def get_target_spawn_fill_size(self):
-        if self.under_siege() or self.mem.prepping_defenses:
+        if self.under_siege() or self.mem[mem_key_prepping_defenses]:
             return fit_num_sections(self.get_target_total_spawn_fill_mass(),
                                     spawning.max_sections_of(self, creep_base_hauler))
         else:
@@ -1370,8 +1385,8 @@ class RoomMind:
         """
 
         req_key = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
-        if '_requests' in self.mem:
-            while req_key in self.mem._requests['s']:
+        if mem_key_spawn_requests in self.mem:
+            while req_key in self.mem[mem_key_spawn_requests]['s']:
                 req_key += Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
         self.register_creep_request(
             req_key,
@@ -1397,9 +1412,9 @@ class RoomMind:
                             (list of [target_type, target_id] items), run_after (string of a function to run after
                             successful spawning)
         """
-        if '_requests' not in self.mem:
-            self.mem._requests = {'q': [], 's': {}}
-        req = self.mem._requests
+        if mem_key_spawn_requests not in self.mem:
+            self.mem[mem_key_spawn_requests] = {'q': [], 's': {}}
+        req = self.mem[mem_key_spawn_requests]
         old_priority = _.get(req, ['s', specific_key, 'p'], None)
         req['s'][specific_key] = {'e': expire_at, 'p': priority, 'o': JSON.stringify(role_obj)}
 
@@ -1414,9 +1429,9 @@ class RoomMind:
             self.reset_planned_role()
 
     def _get_next_requested_creep(self, max_priority=Infinity):
-        if '_requests' not in self.mem:
+        if mem_key_spawn_requests not in self.mem:
             return
-        requests = self.mem._requests
+        requests = self.mem[mem_key_spawn_requests]
         while len(requests['q']) > 0:
             request_key = requests['q'][0]
             request = requests['s'][request_key]
@@ -1431,23 +1446,23 @@ class RoomMind:
         return None
 
     def successfully_spawned_request(self, request_key):
-        if '_requests' not in self.mem:
+        if mem_key_spawn_requests not in self.mem:
             return
-        requests = self.mem._requests
+        requests = self.mem[mem_key_spawn_requests]
         index = requests['q'].indexOf(request_key)
         if index != -1:
             requests['q'].splice(index, 1)
         del requests['s'][request_key]
 
     def _check_request_expirations(self):
-        if '_requests' not in self.mem:
+        if mem_key_spawn_requests not in self.mem:
             return
-        requests = self.mem._requests
+        requests = self.mem[mem_key_spawn_requests]
         for key in _.remove(requests['q'],
                             lambda key: _.get(requests['s'], [key, 'e'], 0) < Game.time):
             del requests['s'][key]
         if not len(requests['q']):
-            del self.mem._requests
+            del self.mem[mem_key_spawn_requests]
 
     def _check_role_reqs(self, role_list):
         """
@@ -1726,7 +1741,7 @@ class RoomMind:
             return role_obj
 
     def reset_planned_role(self):
-        del self.mem.next_role
+        del self.mem[mem_key_planned_role_to_spawn]
         if not self.spawn:
             sponsor = self.hive.get_room(self.sponsor_name)
             if sponsor and sponsor.spawn:
@@ -1736,7 +1751,7 @@ class RoomMind:
     def plan_next_role(self):
         if not self.my:
             return None
-        if self.mem.completely_sim_testing:
+        if self.mem[mem_key_flag_for_testing_spawning_in_simulation]:
             funcs_to_try = [
                 lambda: self._check_role_reqs([
                     [role_spawn_fill, self.get_target_spawn_fill_mass, True],
@@ -1773,18 +1788,18 @@ class RoomMind:
                     next_role.num_sections = maximum
                 break
         if next_role:
-            self.mem.next_role = next_role
+            self.mem[mem_key_planned_role_to_spawn] = next_role
         else:
             if len(self.spawns) <= 1:
                 print("[{}] All creep targets reached!".format(self.name))
-            self.mem.next_role = None
+            self.mem[mem_key_planned_role_to_spawn] = None
 
     def get_next_role(self):
-        if self.mem.next_role is undefined:
+        if self.mem[mem_key_planned_role_to_spawn] is undefined:
             self.plan_next_role()
             # This function modifies the role.
-            spawning.validate_role(self.mem.next_role)
-        return self.mem.next_role
+            spawning.validate_role(self.mem[mem_key_planned_role_to_spawn])
+        return self.mem[mem_key_planned_role_to_spawn]
 
     def sing(self, creeps_here_now):
         if self.name not in Memory['_ly']:

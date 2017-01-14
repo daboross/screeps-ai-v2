@@ -1,6 +1,7 @@
 import math
 
 from cache import volatile_cache
+from constants import rmem_key_linking_mind_storage
 from jstools.screeps_constants import *
 from utilities import movement
 
@@ -54,11 +55,11 @@ class LinkingMind:
         if link.id:
             link = link.id
 
-        if 'links' not in self.room.mem:
-            self.room.mem.links = {}
-        if link not in self.room.mem.links:
-            self.room.mem.links[link] = {}
-        return self.room.mem.links[link]
+        if rmem_key_linking_mind_storage not in self.room.mem:
+            self.room.mem[rmem_key_linking_mind_storage] = {}
+        if link not in self.room.mem[rmem_key_linking_mind_storage]:
+            self.room.mem[rmem_key_linking_mind_storage][link] = {}
+        return self.room.mem[rmem_key_linking_mind_storage][link]
 
     def volatile_link_mem(self, link):
         if link.id:

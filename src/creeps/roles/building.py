@@ -1,7 +1,8 @@
 import math
 
-from constants import recycle_time, role_builder, role_recycling, role_upgrader, target_big_big_repair, \
-    target_big_repair, target_construction, target_destruction_site, target_repair
+from constants import recycle_time, rmem_key_building_priority_spawn, rmem_key_there_might_be_energy_lying_around, \
+    role_builder, role_recycling, role_upgrader, target_big_big_repair, target_big_repair, target_construction, \
+    target_destruction_site, target_repair
 from creeps.base import RoleBase
 from creeps.roles import upgrading
 from jstools.screeps_constants import *
@@ -91,7 +92,7 @@ class Builder(upgrading.Upgrader):
             else:
                 # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
                 # source faster!
-                if self.home.mem.tons:
+                if self.home.mem[rmem_key_there_might_be_energy_lying_around]:
                     closest = self.pos.findClosestByRange(FIND_DROPPED_ENERGY, {
                         'filter': lambda x: x.amount >= self.creep.carryCapacity
                     })
@@ -100,7 +101,7 @@ class Builder(upgrading.Upgrader):
                             self.move_to(closest)
                             return
                     else:
-                        del self.home.mem.tons
+                        del self.home.mem[rmem_key_there_might_be_energy_lying_around]
                 self.build_swamp_roads()
                 return self.harvest_energy()
         else:
@@ -180,12 +181,13 @@ class Builder(upgrading.Upgrader):
                     self.memory.la = 'm'
                     return self.execute_repair_target(wall, 5000, target_repair)
 
-            if not self.home.spawn and (not self.home.being_bootstrapped() or self.home.mem.prio_spawn):
+            if not self.home.spawn and (not self.home.being_bootstrapped()
+                                        or self.home.mem[rmem_key_building_priority_spawn]):
                 target = None
                 if self.home.rcl >= 4:
-                    if self.home.room.storage and self.home.mem.tons:
+                    if self.home.room.storage and self.home.mem[rmem_key_there_might_be_energy_lying_around]:
                         self.memory.la = 'f'
-                    elif self.home.mem.tons:
+                    elif self.home.mem[rmem_key_there_might_be_energy_lying_around]:
                         target = _.find(self.home.find(FIND_MY_CONSTRUCTION_SITES),
                                         {'structureType': STRUCTURE_STORAGE})
                         if not target:

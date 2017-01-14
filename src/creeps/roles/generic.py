@@ -65,7 +65,7 @@ class ReplacingExpendedCreep(RoleBase):
             self.memory = Memory.creeps[self.name]
             Memory.creeps[self.name] = {"role": role, "home": home}
             self.home.register_to_role(self)
-            self.home.mem.meta.clear_next = 0  # clear next tick
+            self.home.check_all_creeps_next_tick()
             return
 
         if old_creep.ticksToLive > 1:
@@ -109,9 +109,8 @@ class ReplacingExpendedCreep(RoleBase):
             room = self.memory.claiming
             if room:
                 Memory.reserving[room] = self.name
-        # TODO: instead of doing this, just somehow get hivemind to re-gen the replacement-time to include this creep
-
-        self.home.mem.meta.clear_next = 0  # clear next tick
+        # TODO: instead of doing this, just somehow get RoomMind to re-gen the replacement-time to include this creep
+        self.home.check_all_creeps_next_tick()
 
     def _calculate_time_to_replace(self):
         return 0

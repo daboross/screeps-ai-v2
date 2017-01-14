@@ -63,9 +63,9 @@ class Upgrader(RoleBase):
                                                                     and c.getBodyparts(WORK) >= needed)
                 if any_big_enough:
                     for creep in self.home.creeps:
-                        if creep.memory.role == role_upgrader and creep.name != needed.name:
+                        if creep.memory.role == role_upgrader and creep.name != any_big_enough.name:
                             creep.suicide()
-                    self.home.mem.meta.clear_next = 0
+                    self.home.check_all_creeps_next_tick()
 
         self.harvest_from(link)
 
@@ -78,7 +78,7 @@ class Upgrader(RoleBase):
         else:
             if self.creep.ticksToLive < 50:
                 self.creep.suicide()
-                self.home.mem.meta.clear_next = 0
+                self.home.check_all_creeps_next_tick()
                 return
             self.log("WARNING: Not enough set upgrader spots in {}".format(self.memory.home))
             available_positions = self.memory.controller_positions

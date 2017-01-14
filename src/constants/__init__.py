@@ -1,44 +1,31 @@
-from jstools.screeps_constants import *
-
-__pragma__('noalias', 'name')
-__pragma__('noalias', 'undefined')
-__pragma__('noalias', 'Infinity')
-__pragma__('noalias', 'keys')
-__pragma__('noalias', 'get')
-__pragma__('noalias', 'set')
-__pragma__('noalias', 'type')
-
 # Creep base parts
-creep_base_worker = "worker"
 creep_base_1500miner = "fast_small_miner"
 creep_base_3000miner = "fast_big_miner"
+creep_base_3h = "ranged_3h"
 creep_base_4000miner = "faster_bigger_miner"
 creep_base_carry3000miner = "fast_miner_with_carry"
-creep_base_hauler = "med_hauler"
-creep_base_half_move_hauler = "hm_hauler"
-creep_base_work_full_move_hauler = "fw_fm_hauler"
-creep_base_work_half_move_hauler = "fw_hm_hauler"
-creep_base_full_upgrader = "min_carry_worker"
-creep_base_reserving = "remote_reserve"
-creep_base_claiming = "strong_claim"
 creep_base_claim_attack = "claim_attack"
+creep_base_claiming = "strong_claim"
 creep_base_defender = "simple_defender"
-creep_base_mammoth_miner = "mammoth_miner"
-creep_base_half_move_healer = "hm_healer"
-creep_base_full_move_healer = "fm_healer"
-creep_base_goader = "med_goader"
-creep_base_full_move_goader = "fm_goader"
 creep_base_dismantler = "med_dismantle"
 creep_base_full_move_dismantler = "fm_dismantle"
-creep_base_power_attack = "power_attack"
+creep_base_full_move_goader = "fm_goader"
+creep_base_full_move_healer = "fm_healer"
 creep_base_full_move_power_attack = "fm_power_attack"
-creep_base_scout = "scout"
+creep_base_full_upgrader = "min_carry_worker"
+creep_base_goader = "med_goader"
+creep_base_half_move_hauler = "hm_hauler"
+creep_base_half_move_healer = "hm_healer"
+creep_base_hauler = "med_hauler"
+creep_base_mammoth_miner = "mammoth_miner"
+creep_base_power_attack = "power_attack"
 creep_base_rampart_defense = "rampart_defender"
 creep_base_ranged_offense = "ranged_offensive"
-creep_base_3h = "ranged_3h"
-
-# TODO: 1-move "observer" base/role which moves to another room and then just pathfinds away from the edges of the room,
-# and away from enemies. (or improve scout)
+creep_base_reserving = "remote_reserve"
+creep_base_scout = "scout"
+creep_base_work_full_move_hauler = "fw_fm_hauler"
+creep_base_work_half_move_hauler = "fw_hm_hauler"
+creep_base_worker = "worker"
 
 # Hive Mind TargetMind possible targets
 # Generic targets: 0*
@@ -200,3 +187,40 @@ min_repave_mine_roads_every = 20 * 1000
 max_repave_mine_roads_every = 25 * 1000
 
 global_cache_mining_roads_suffix = '_mrd'
+
+# Note: regex useful for generating the following:
+# in room.py, search for: ([^ \n]+) = '[^']+'\n+
+# replace with: $1 as r$1, \\\n
+from constants.memkeys import \
+    global_mem_key_room_mining_paths as gmem_key_room_mining_paths, \
+    global_mem_key_room_states as gmem_key_room_states
+from constants.memkeys.room import \
+    mem_key_building_paused as rmem_key_building_paused, \
+    mem_key_building_priority_spawn as rmem_key_building_priority_spawn, \
+    mem_key_building_priority_walls as rmem_key_building_priority_walls, \
+    mem_key_cache as rmem_key_cache, \
+    mem_key_carry_parts_by_role as rmem_key_carry_parts_by_role, \
+    mem_key_creeps_by_role as rmem_key_creeps_by_role, \
+    mem_key_creeps_by_role_and_replacement_time as rmem_key_creeps_by_role_and_replacement_time, \
+    mem_key_currently_under_siege as rmem_key_currently_under_siege, \
+    mem_key_defense_mind_storage as rmem_key_defense_mind_storage, \
+    mem_key_empty_all_resources_into_room as rmem_key_empty_all_resources_into_room, \
+    mem_key_flag_for_testing_spawning_in_simulation as rmem_key_flag_for_testing_spawning_in_simulation, \
+    mem_key_focusing_home as rmem_key_focusing_home, \
+    mem_key_linking_mind_storage as rmem_key_linking_mind_storage, \
+    mem_key_metadata as rmem_key_metadata, \
+    mem_key_mineral_mind_storage as rmem_key_mineral_mind_storage, \
+    mem_key_pause_all_room_operations as rmem_key_pause_all_room_operations, \
+    mem_key_planned_role_to_spawn as rmem_key_planned_role_to_spawn, \
+    mem_key_prepping_defenses as rmem_key_prepping_defenses, \
+    mem_key_remotes_explicitly_marked_under_attack as rmem_key_remotes_explicitly_marked_under_attack, \
+    mem_key_remotes_safe_when_under_siege as rmem_key_remotes_safe_when_under_siege, \
+    mem_key_room_reserved_up_until_tick as rmem_key_room_reserved_up_until_tick, \
+    mem_key_spawn_requests as rmem_key_spawn_requests, \
+    mem_key_sponsor as rmem_key_sponsor, \
+    mem_key_storage_use_enabled as rmem_key_storage_use_enabled, \
+    mem_key_stored_hostiles as rmem_key_stored_hostiles, \
+    mem_key_there_might_be_energy_lying_around as rmem_key_there_might_be_energy_lying_around, \
+    mem_key_total_open_source_spaces as rmem_key_total_open_source_spaces, \
+    mem_key_upgrading_paused as rmem_key_upgrading_paused, \
+    mem_key_work_parts_by_role as rmem_key_work_parts_by_role

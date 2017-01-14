@@ -1,5 +1,5 @@
-from constants import CLAIM_LATER, role_builder, role_mineral_steal, role_recycling, role_tower_fill_once, \
-    role_upgrader, target_reserve_now, target_single_flag
+from constants import CLAIM_LATER, rmem_key_sponsor, role_builder, role_mineral_steal, role_recycling, \
+    role_tower_fill_once, role_upgrader, target_reserve_now, target_single_flag
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.transport import TransportPickup
 from jstools.screeps_constants import *
@@ -165,7 +165,7 @@ class ReserveNow(MilitaryBase):
             if len(flags.find_flags(controller.room, CLAIM_LATER)):
                 # claim this!
                 self.creep.claimController(controller)
-                controller.room.memory.sponsor = self.home.name
+                controller.room.memory[rmem_key_sponsor] = self.home.name
             self.creep.reserveController(controller)
 
     def _calculate_time_to_replace(self):

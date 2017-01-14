@@ -1,3 +1,4 @@
+from constants import gmem_key_room_mining_paths
 from jstools.screeps_constants import *
 
 __pragma__('noalias', 'name')
@@ -8,7 +9,6 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
-gmem_key_room_mining_paths = 'mp'
 
 no_spawn_name_name = 'none'
 

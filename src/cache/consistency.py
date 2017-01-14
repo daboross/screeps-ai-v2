@@ -64,8 +64,8 @@ def clear_memory(room):
             if Game.time < replacement_time < closest_replacement_time:
                 closest_replacement_time = replacement_time
     dead_next = Game.time + smallest_ticks_to_live
-    room.mem.meta.clear_next = dead_next + 1
-    room.mem.meta.reset_spawn_on = closest_replacement_time + 1
+    room.mem[rmem_key_metadata].clear_next = dead_next + 1
+    room.mem[rmem_key_metadata].reset_spawn_on = closest_replacement_time + 1
 
 
 def get_next_replacement_time(room):
@@ -82,7 +82,7 @@ def get_next_replacement_time(room):
 
 def clear_cache():
     for name, mem in _.pairs(Memory.rooms):
-        if 'cache' in mem:
+        if rmem_key_cache in mem:
             for key in Object.keys(mem.cache):
                 cache = mem.cache[key]
                 if Game.time > cache.dead_at or (cache.ttl_after_use
@@ -90,7 +90,7 @@ def clear_cache():
                     del mem.cache[key]
             if len(Object.keys(mem.cache)) <= 0:
                 del mem.cache
-        if 'rea' in mem and mem.rea <= Game.time:
+        if rmem_key_room_reserved_up_until_tick in mem and mem.rea <= Game.time:
             del mem.rea
         if _.isEmpty(mem):
             del Memory.rooms[name]
@@ -135,6 +135,10 @@ def complete_refresh(hive):
         mem = Memory.rooms[name]
         if '_ly' in mem:
             del mem['_ly']
+        if 'attack_until' in mem:
+            del mem['attack_until']
+        if 'alert' in mem:
+            del mem['alert']
         if not len(mem):
             del Memory.rooms[name]
     for name in Object.keys(Memory.flags):

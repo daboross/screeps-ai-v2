@@ -1,7 +1,8 @@
 import math
 
 from cache import volatile_cache
-from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, role_wall_defender
+from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, rmem_key_building_priority_walls, \
+    rmem_key_currently_under_siege, rmem_key_defense_mind_storage, rmem_key_stored_hostiles, role_wall_defender
 from creep_management import deathwatch
 from jstools import errorlog
 from jstools.screeps_constants import *
@@ -80,7 +81,7 @@ def poll_hostiles(hive, run_away_checks):
                 }
                 danger.push(store)
                 Memory.hostiles[c.id] = store
-            if 'danger' not in room.mem:
+            if rmem_key_stored_hostiles not in room.mem:
                 if room.my:
                     room.reset_planned_role()
                 else:
@@ -88,7 +89,7 @@ def poll_hostiles(hive, run_away_checks):
                         sponsor = hive.get_room(flag.memory.sponsor)
                         if sponsor:
                             sponsor.reset_planned_role()
-            room.mem.danger = danger
+            room.mem[rmem_key_stored_hostiles] = danger
             try:
                 run_away_checks(room)
                 deathwatch.mark_creeps(room)
@@ -99,7 +100,9 @@ def poll_hostiles(hive, run_away_checks):
                     "Error running run-away-checks in {}.".format(room.name),
                 )
         elif room.name in Memory.rooms:
-            del room.mem.danger
+            del room.mem[rmem_key_stored_hostiles]
+            if not len(room.mem):
+                del Memory.rooms[room.name]
 
 
 def cleanup_stored_hostiles():
@@ -229,9 +232,9 @@ class RoomDefense:
         self.room = room
         self._cache = new_map()
         if self.room.my:
-            self.mem = self.room.mem.defense
+            self.mem = self.room.mem[rmem_key_defense_mind_storage]
             if self.mem == undefined:
-                self.mem = self.room.mem.defense = {}
+                self.mem = self.room.mem[rmem_key_defense_mind_storage] = {}
 
     __pragma__('fcall')
 
@@ -260,7 +263,7 @@ class RoomDefense:
             return self._cache.get('any_broken_walls')
         else:
             broken = False
-            if self.room.being_bootstrapped() and not self.room.mem.prio_walls:
+            if self.room.being_bootstrapped() and not self.room.mem[rmem_key_building_priority_walls]:
                 broken = True
             else:
                 for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL) \
@@ -536,9 +539,9 @@ class RoomDefense:
             return hostiles
 
     def activate_live_defenses(self):
-        if not self.room.mem.attack:
-            self.room.mem.attack = True
-        self.room.mem.attack_until = Game.time + 10 * 1000
+        if not self.room.mem[rmem_key_currently_under_siege]:
+            self.room.mem[rmem_key_currently_under_siege] = True
+        self.mem.attack_until = Game.time + 10 * 1000
         self.room.reset_planned_role()
         message = "{} activating live defenses.".format(self.room.name)
         Game.notify(message)
@@ -689,10 +692,10 @@ class RoomDefense:
         if self._cache.has('alert'):
             return self._cache.get('alert')
         else:
-            alert = self.room.mem.alert
+            alert = self.mem.alert
             if not alert and (self.room.my or Game.time % 3 == 1) and len(self.all_hostiles()):
                 self.set_ramparts(True)
-                self.room.mem.alert = alert = True
+                self.mem.alert = alert = True
             self._cache.set('alert', alert)
             return alert
 
@@ -708,24 +711,25 @@ class RoomDefense:
         if not alert:
             if Game.time % 100 == 69:
                 self.set_ramparts(False)
-                if self.room.mem.attack:
-                    if self.room.mem.attack_until:
-                        if Game.time > self.room.mem.attack_until:
-                            del self.room.mem.attack
-                            del self.room.mem.attack_until
+                if self.room.mem[rmem_key_currently_under_siege]:
+                    if self.mem.attack_until:
+                        if Game.time > self.mem.attack_until:
+                            del self.room.mem[rmem_key_currently_under_siege]
+                            del self.mem.attack_until
                             message = "{}: disabling active defenses.".format(self.room.name)
                             Game.notify(message)
                             console.log(message)
                     else:
-                        self.room.mem.attack_until = Game.time + 10 * 1000
+                        self.mem.attack_until = Game.time + 10 * 1000
             self.tower_heal()
             return
 
-        if self.room.mem.attack and _.some(self.all_hostiles(), lambda h: h.owner.username != INVADER_USERNAME):
-            self.room.mem.attack_until = Game.time + 10 * 1000
+        if self.room.mem[rmem_key_currently_under_siege] \
+                and _.some(self.all_hostiles(), lambda h: h.owner.username != INVADER_USERNAME):
+            self.mem.attack_until = Game.time + 10 * 1000
 
         if Game.time % 5 == 1:
-            if not self.room.being_bootstrapped() or self.room.mem.prio_walls:
+            if not self.room.being_bootstrapped() or self.room.mem[rmem_key_building_priority_walls]:
                 for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
                         .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
                     wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
@@ -741,19 +745,19 @@ class RoomDefense:
                 self.room.building.get_construction_targets()
 
         if not len(self.all_hostiles()):
-            if not (self.room.mem.alert_for < 0):
-                self.room.mem.alert_for = 0
-            self.room.mem.alert_for -= 1
-            if self.room.mem.alert_for < -5:
+            if not (self.mem.alert_for < 0):
+                self.mem.alert_for = 0
+            self.mem.alert_for -= 1
+            if self.mem.alert_for < -5:
                 self.set_ramparts(False)
-                del self.room.mem.alert_for
-                self.room.mem.alert = False
+                del self.mem.alert_for
+                del self.mem.alert
             return
 
-        if self.room.mem.alert_for > 0:
-            self.room.mem.alert_for += 1
+        if self.mem.alert_for > 0:
+            self.mem.alert_for += 1
         else:
-            self.room.mem.alert_for = 1
+            self.mem.alert_for = 1
 
         hostiles = self.dangerous_hostiles()
         towers = self.towers()
@@ -838,7 +842,7 @@ class RoomDefense:
             self.check_for_noninvader_raid()
 
     def check_for_noninvader_raid(self):
-        if self.room.mem.attack:
+        if self.room.mem[rmem_key_currently_under_siege]:
             return
         total_noninvader = 0
         hostiles = self.dangerous_hostiles()

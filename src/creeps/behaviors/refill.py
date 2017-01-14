@@ -1,6 +1,6 @@
 from cache import volatile_cache
-from constants import creep_base_full_upgrader, role_builder, role_hauler, role_spawn_fill, role_upgrader, \
-    target_big_repair, target_construction, target_refill, target_repair
+from constants import creep_base_full_upgrader, rmem_key_planned_role_to_spawn, role_builder, role_hauler, \
+    role_spawn_fill, role_upgrader, target_big_repair, target_construction, target_refill, target_repair
 from creep_management import spawning
 from creeps.base import RoleBase
 from jstools.screeps_constants import *
@@ -148,7 +148,7 @@ class Refill(RoleBase):
                 return
             # haha, total hack...
             if not self.home.spawn.spawning and self.home.get_next_role() is None:
-                self.home.mem.next_role = generate_role_obj(self.home)
+                self.home.mem[rmem_key_planned_role_to_spawn] = generate_role_obj(self.home)
             else:
                 v = volatile_cache.volatile()
                 if v.has("refills_idle"):
@@ -158,7 +158,7 @@ class Refill(RoleBase):
                 if idle >= 3:
                     role = self.home.get_next_role()
                     if not role or role.role == role_hauler or role.role == role_spawn_fill or idle >= 7:
-                        self.home.mem.next_role = generate_role_obj(self.home)
+                        self.home.mem[rmem_key_planned_role_to_spawn] = generate_role_obj(self.home)
                         v.set("refills_idle", -Infinity)
                 else:
                     v.set("refills_idle", idle)

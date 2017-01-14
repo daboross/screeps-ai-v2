@@ -123,7 +123,7 @@ def run_room(targets, creeps_skipped, room):
     :type room: rooms.room_mind.RoomMind
     """
     try:
-        if room.mem.pause:
+        if room.mem[rmem_key_pause_all_room_operations]:
             return
         records.start_record()
         room.defense.tick()

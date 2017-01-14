@@ -1,7 +1,7 @@
 import math
 
 from cache import volatile_cache
-from constants import role_mineral_hauler
+from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, role_mineral_hauler
 from jstools.screeps_constants import *
 from utilities import movement
 
@@ -62,17 +62,18 @@ class MineralMind:
         self._needed_in_lab1 = None
         self._needed_in_lab2 = None
         self._energy_needed_in_labs = None
-        if 'market' not in room.mem:
+        if rmem_key_mineral_mind_storage not in room.mem:
             # Memory format:
             # market: {
             #     total_energy_needed: TARGET_TERMINAL_ENERGY,
             #     fulfilling: { ... },
             # }
-            room.mem.market = {'total_energy_needed': 0, 'fulfilling': {}}
+            room.mem[rmem_key_mineral_mind_storage] = {'total_energy_needed': 0, 'fulfilling': {}}
         else:
-            if 'total_energy_needed' not in room.mem.market:
-                room.mem.market['total_energy_needed'] = 0
-            if 'fulfilling' not in room.mem.market:
+            if 'total_energy_needed' not in room.mem[rmem_key_mineral_mind_storage]:
+                room.mem[rmem_key_mineral_mind_storage]['total_energy_needed'] = 0
+            rmem_key_mineral_mind_storage
+            if 'fulfilling' not in room.mem[rmem_key_mineral_mind_storage]:
                 # Memory format:
                 # fulfilling: {
                 #     RESOURCE_TYPE: [
@@ -84,8 +85,8 @@ class MineralMind:
                 #     ],
                 #     ...
                 # }
-                room.mem.market.fulfilling = {}
-        self.mem = room.mem.market
+                room.mem[rmem_key_mineral_mind_storage].fulfilling = {}
+        self.mem = room.mem[rmem_key_mineral_mind_storage]
         self.fulfilling = self.mem.fulfilling
         if 'last_sold' not in self.mem:
             self.mem.last_sold = {}
@@ -97,7 +98,7 @@ class MineralMind:
         # return not (self.terminal and self.storage and self.terminal.isActive() and self.storage.isActive())
 
     def note_mineral_hauler(self, name):
-        self.room.mem.mineral_hauler = name
+        self.mem.mineral_hauler = name
 
     def send_minerals(self, target_room, mineral, amount):
         self.fulfill_market_order(target_room, mineral, amount, None)
@@ -164,7 +165,7 @@ class MineralMind:
         print("[{}][market] {}".format(self.room.name, message))
 
     def get_mineral_hauler(self):
-        return Game.creeps[self.room.mem.mineral_hauler]
+        return Game.creeps[self.mem.mineral_hauler]
 
     def mineral_hauler_carry(self):
         hauler = self.get_mineral_hauler()
@@ -345,7 +346,7 @@ class MineralMind:
                 return 0
             elif currently_have <= 30 * 1000:
                 return currently_have - 20 * 1000
-            if self.room.mem.empty_to:
+            if self.room.mem[rmem_key_empty_all_resources_into_room]:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
                 min_via_empty_to = 0
@@ -374,7 +375,8 @@ class MineralMind:
                         biggest_order = order.amountRemaining
                 return biggest_order
 
-            if currently_have >= 1000 and (mineral != RESOURCE_POWER or self.room.mem.empty_to):
+            if currently_have >= 1000 and (mineral != RESOURCE_POWER
+                                           or self.room.mem[rmem_key_empty_all_resources_into_room]):
                 return 1000 * min(math.floor(currently_have / 1000), 20)
             else:
                 return 0
@@ -390,7 +392,7 @@ class MineralMind:
             self.run_fulfillment()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
             self.check_orders()
-        elif split == 15 and 'empty_to' in self.room.mem:
+        elif split == 15 and rmem_key_empty_all_resources_into_room in self.room.mem:
             self.run_emptying_terminal()
 
     def find_emptying_mineral_and_cost(self):
@@ -404,7 +406,8 @@ class MineralMind:
                 if not mineral_chosen:
                     return
                 amount = self.terminal.store[mineral_chosen]
-                cost = Game.market.calcTransactionCost(amount, self.room.name, self.room.mem.empty_to)
+                cost = Game.market.calcTransactionCost(
+                    amount, self.room.name, self.room.mem[rmem_key_empty_all_resources_into_room])
                 self._next_mineral_to_empty = mineral_chosen, cost
             else:
                 self._next_mineral_to_empty = None, 0
@@ -416,8 +419,9 @@ class MineralMind:
         if energy < cost:
             return
 
-        self.terminal.send(mineral, self.terminal.store[mineral], self.room.mem.empty_to,
-                           "Emptying to {}".format(self.room.mem.empty_to))
+        self.terminal.send(mineral, self.terminal.store[mineral],
+                           self.room.mem[rmem_key_empty_all_resources_into_room],
+                           "Emptying to {}".format(self.room.mem[rmem_key_empty_all_resources_into_room]))
 
     def run_fulfillment(self):
         vmem = volatile_cache.mem("market")
@@ -604,7 +608,7 @@ class MineralMind:
         self.log("WARNING: Couldn't find any open spots to place a container near {}".format(pos))
 
     def get_target_mineral_miner_count(self):
-        if self.has_no_terminal_or_storage() or self.room.mem.empty_to:
+        if self.has_no_terminal_or_storage() or self.room.mem[rmem_key_empty_all_resources_into_room]:
             return 0
         # TODO: cache this
         mineral = self.room.find(FIND_MINERALS)[0]

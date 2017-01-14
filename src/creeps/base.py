@@ -157,7 +157,7 @@ class RoleBase:
                         break
                 if not tower_here:
                     self.creep.suicide()
-                    self.home.mem.meta.clear_next = 0  # clear next tick
+                    self.home.check_all_creeps_next_tick()
             elif result != OK:
                 if result != ERR_NOT_FOUND and (result != ERR_NO_PATH or (self.pos.x != 49 and self.pos.y != 49
                                                                           and self.pos.x != 0 and self.pos.y != 0)):
@@ -382,7 +382,7 @@ class RoleBase:
             result = spawn.recycleCreep(self.creep)
             if result == OK:
                 self._log_recycling()
-                self.home.mem.meta.clear_next = 0  # clear next tick
+                self.home.check_all_creeps_next_tick()
             else:
                 self.log("Unknown result from {}.recycleCreep({})! {}", spawn, self.creep, result)
                 self.go_to_depot()

@@ -1,4 +1,4 @@
-from constants import INVADER_USERNAME, role_defender, role_recycling, target_rampart_defense
+from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_recycling, target_rampart_defense
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from jstools.screeps_constants import *
@@ -75,7 +75,7 @@ class RoleDefender(MilitaryBase):
         if target is None or (self.room.hostile and target.owner.username != INVADER_USERNAME):
             del self.memory.attack_target
             del Memory.hostiles[target_id]
-            room_hostiles = Memory.rooms[hostile_room].danger
+            room_hostiles = Memory.rooms[hostile_room][rmem_key_stored_hostiles]
             index = _.findIndex(room_hostiles, lambda x: x.id == target_id)
             if index != -1:
                 room_hostiles.splice(index, 1)
