@@ -1,32 +1,9 @@
-_memory_init = None
-
-
-def init_memory():
-    start = Game.cpu.getUsed()
-    x = Memory
-    end = Game.cpu.getUsed()
-    global _memory_init
-    _memory_init = end - start
-
-
-init_memory()
-
-# noinspection PyUnboundLocalVariable
-_start_of_compile = Game.cpu.getUsed()
-
-# Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
-# code works correctly.
-# noinspection PyUnboundLocalVariable
-__pragma__('js', '{}', """
-if (!global.__customizations_active) {
-    require("customizations");
-}""")
-
 import math
 
 import constants
 from cache import consistency, context, global_cache, volatile_cache
-from constants import *
+from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
+    role_ranged_offense, role_spawn_fill, role_temporary_replacing, role_tower_fill, role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
@@ -46,7 +23,24 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
+# Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
+# code works correctly.
+__pragma__('js', '{}', """
+if (!global.__customizations_active) {
+    require("customizations");
+}""")
+
 walkby_move.apply_move_prototype()
+
+_memory_init = None
+
+
+def init_memory():
+    start = Game.cpu.getUsed()
+    x = Memory
+    end = Game.cpu.getUsed()
+    global _memory_init
+    _memory_init = end - start
 
 
 def report_error(err, description):
@@ -385,6 +379,3 @@ __pragma__('js', 'global').py = {
 
 RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
 RoomPosition.prototype.cfms = lambda main_type, sub_type: flags.create_ms_flag(this, main_type, sub_type)
-
-records.prep_recording()
-records.record_compile_amount(Game.cpu.getUsed() - _start_of_compile)

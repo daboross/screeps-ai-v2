@@ -132,18 +132,6 @@ def record_memory_amount(time):
             }
 
 
-def record_compile_amount(time):
-    if _recording_now:
-        if 'code.compile' in _averages:
-            _averages['code.compile'].calls += 1
-            _averages['code.compile'].time += time
-        else:
-            _averages['code.compile'] = {
-                'calls': 1,
-                'time': time,
-            }
-
-
 # `(a / b).toFixed(2)` is incorrectly translated to `a / b.toFixed(2)` instead of `(a / b).toFixed(2)`
 def display_num(num, val=2):
     """
