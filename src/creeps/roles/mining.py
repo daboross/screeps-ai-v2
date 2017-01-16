@@ -1,7 +1,7 @@
 import math
 
-from constants import UPGRADER_SPOT, rmem_key_room_reserved_up_until_tick, role_hauler, role_miner, role_recycling, \
-    role_spawn_fill, target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
+from constants import RANGED_DEFENSE, UPGRADER_SPOT, rmem_key_room_reserved_up_until_tick, role_hauler, role_miner, \
+    role_recycling, role_spawn_fill, target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
 from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.behaviors.transport import TransportPickup
@@ -34,14 +34,16 @@ class EnergyMiner(TransportPickup):
             self.memory.home = source_flag.memory.sponsor
 
         if self.creep.hits < self.creep.hitsMax:
-            if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
-                                                        or self.pos.x > 40 or self.pos.y > 40
-                                                        or self.pos.x < 10 or self.pos.y < 10):
-                self.follow_energy_path(source_flag, self.home.spawn)
-                return
-            elif not self.creep.getActiveBodyparts(WORK):
-                self.creep.suicide()
-                return
+            if not len(flags.find_flags(self, RANGED_DEFENSE)) \
+                    or not _.some(self.room.find(FIND_CREEPS), lambda creep: creep.hasActiveBodyparts(HEAL)):
+                if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
+                                                            or self.pos.x > 40 or self.pos.y > 40
+                                                            or self.pos.x < 10 or self.pos.y < 10):
+                    self.follow_energy_path(source_flag, self.home.spawn)
+                    return
+                elif not self.creep.getActiveBodyparts(WORK):
+                    self.creep.suicide()
+                    return
         if self.memory.container_pos:
             sitting_target = positions.deserialize_xy_to_pos(self.memory.container_pos,
                                                              source_flag.pos.roomName)
