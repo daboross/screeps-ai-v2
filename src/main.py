@@ -187,7 +187,7 @@ def main():
     records.start_record()
 
     if 'meta' not in Memory:
-        Memory.meta = {"pause": False, "quiet": False, "friends": []}
+        Memory.meta = {"pause": False, "quiet": True, "friends": []}
 
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate tier
     if bucket_tier != Memory.meta.last_bucket and bucket_tier:  # and bucket_tier to avoid problems in simulation
