@@ -75,10 +75,11 @@ class RoleDefender(MilitaryBase):
         if target is None or (self.room.hostile and target.owner.username != INVADER_USERNAME):
             del self.memory.attack_target
             del Memory.hostiles[target_id]
-            room_hostiles = Memory.rooms[hostile_room][rmem_key_stored_hostiles]
-            index = _.findIndex(room_hostiles, lambda x: x.id == target_id)
-            if index != -1:
-                room_hostiles.splice(index, 1)
+            if hostile_room in Memory.rooms:
+                room_hostiles = Memory.rooms[hostile_room][rmem_key_stored_hostiles]
+                index = _.findIndex(room_hostiles, lambda x: x.id == target_id)
+                if index != -1:
+                    room_hostiles.splice(index, 1)
             return True
 
         self.creep.moveTo(target, _.create(self._move_options(target.pos.roomName), {'reusePath': 2}))
