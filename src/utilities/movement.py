@@ -162,6 +162,10 @@ def chebyshev_distance_room_pos(pos1, pos2):
     return max(abs(world_pos_1[0] - world_pos_2[0]), abs(world_pos_1[1] - world_pos_2[1]))
 
 
+def chebyshev_distance_xy(x1, y1, x2, y2):
+    return max(abs(x1 - x2), abs(y1 - y2))
+
+
 def minimum_chebyshev_distance(comparison_pos, targets):
     min_distance = Infinity
     for target in targets:

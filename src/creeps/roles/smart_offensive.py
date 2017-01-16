@@ -26,21 +26,28 @@ def kiting_cost_matrix(room_name):
 
     cost_matrix = __new__(PathFinder.CostMatrix())
 
-    def set_in_range_xy(x, y, drange, value, increase_by_center):
-        for x in range(x - drange, x + drange + 1):
-            for y in range(y - drange, y + drange + 1):
-                terrain = Game.map.getTerrainAt(x, y, room_name)
-                if terrain != 'wall' and cost_matrix.get(x, y) < value:
-                    if terrain == 'swamp':
-                        cost_matrix.set(x, y, value + 25)
-                    else:
-                        cost_matrix.set(x, y, value)
-        if increase_by_center > 0 and drange > 0:
-            set_in_range_xy(x, y, drange - 1, value + increase_by_center, increase_by_center)
+    def set_in_range_xy(initial_x, initial_y, distance, value, increase_by_center):
+        for x in range(initial_x - distance, initial_x + distance + 1):
+            for y in range(initial_y - distance, initial_y + distance + 1):
+                if increase_by_center:
+                    value_here = value + increase_by_center \
+                                         * (distance - movement.chebyshev_distance_xy(initial_x, initial_y, x, y))
+                else:
+                    value_here = value
+                existing_cost = cost_matrix.get(x, y)
+                if existing_cost == 0:
+                    terrain_here = Game.map.getTerrainAt(x, y, room_name)
+                    if terrain_here[0] == 'p':
+                        existing_cost = 1
+                    elif terrain_here[0] == 's':
+                        existing_cost = 25
+                    elif terrain_here[0] == 'w':
+                        continue
+                cost_matrix.set(x, y, existing_cost + value_here)
 
-    def set_in_range(pos, drange, value, increase_by_center):
+    def set_in_range(pos, distance, value, increase_by_center):
         pos = pos.pos or pos
-        set_in_range_xy(pos.x, pos.y, drange, value, increase_by_center)
+        set_in_range_xy(pos.x, pos.y, distance, value, increase_by_center)
 
     room = context.hive().get_room(room_name)
 
@@ -64,20 +71,28 @@ def kiting_cost_matrix(room_name):
 
     for x in [0, 49]:
         for y in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 25)
-                cost_matrix.set(x, y, max(existing + 5, 5))
+            existing = cost_matrix.get(x, y)
+            if existing == 0:
+                terrain = Game.map.getTerrainAt(x, y, room_name)
+                if terrain[0] == 'p':
+                    existing = 1
+                elif terrain[0] == 's':
+                    existing = 25
+                else:
+                    continue  # wall
+            cost_matrix.set(x, y, existing + 5)
     for y in [0, 49]:
         for x in range(0, 49):
-            terrain = Game.map.getTerrainAt(x, y, room_name)
-            if terrain != 'wall':
-                existing = cost_matrix.get(x, y)
-                if terrain == 'swamp':
-                    existing = max(existing, 25)
-                cost_matrix.set(x, y, max(existing + 5, 5))
+            existing = cost_matrix.get(x, y)
+            if existing == 0:
+                terrain = Game.map.getTerrainAt(x, y, room_name)
+                if terrain[0] == 'p':
+                    existing = 1
+                elif terrain[0] == 's':
+                    existing = 25
+                else:
+                    continue  # wall
+            cost_matrix.set(x, y, existing + 5)
 
     cache.set(room_name, cost_matrix)
 
@@ -201,13 +216,14 @@ class KitingOffense(MilitaryBase):
                 closest = _.min(enemies, lambda h: movement.chebyshev_distance_room_pos(self.pos, h.pos))
                 closest_pos = closest.pos
                 nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 5)
-                harmless = not _.some(nearby, lambda h: h.hasActiveBodyparts(ATTACK)
-                                                        or h.hasActiveBodyparts(RANGED_ATTACK)) \
+                harmless = not _.some(nearby,
+                                      lambda h: h.hasActiveBodyparts(ATTACK) or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
                 ranged = _.some(nearby, lambda h: h.hasActiveBodyparts(RANGED_ATTACK))
-                only_ranged = not _.some(nearby, lambda h: movement.chebyshev_distance_room_pos(self.pos,
-                                                                                                h.pos) <= 4 and h.hasBodyparts(
-                    ATTACK))
+                only_ranged = not _.some(nearby,
+                                         lambda h:
+                                         movement.chebyshev_distance_room_pos(self.pos, h.pos) <= 4
+                                         and h.hasBodyparts(ATTACK))
                 mass_attack = _.some(nearby, lambda h: self.pos.isNearTo(h.pos) and self.pos.roomName == h.pos.roomName)
             else:
                 closest = None
@@ -306,6 +322,7 @@ class KitingOffense(MilitaryBase):
                               self.get_def_move_opts(closest_pos.roomName))
         elif should_run:
             away_path = None
+            start = Game.cpu.getUsed()
             try:
                 away_path = kiting_away_raw_path(self.pos, [
                     {
@@ -320,7 +337,8 @@ class KitingOffense(MilitaryBase):
                 errorlog.report_error(
                     'kiting-offense',
                     __except0__,
-                    "Error calculating or moving by kiting path at pos {}:\npath: {}\n".format(self.pos, away_path),
+                    "Error calculating or moving by kiting path at pos {} (cpu used here: {}):\npath: {}\n"
+                        .format(self.pos, Game.cpu.getUsed() - start, away_path),
                 )
 
     def _calculate_time_to_replace(self):
