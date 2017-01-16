@@ -1020,7 +1020,7 @@ class RoomMind:
             # elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
             #     state = room_spending_state_selling
             elif self.rcl >= 8:
-                state = room_spending_state_building
+                state = room_spending_state_rcl8_building
             else:
                 if self.building.get_target_num_builders() > 1 and self.building.get_max_builder_work_parts() > 5:
                     state = room_spending_state_building
@@ -1264,12 +1264,14 @@ class RoomMind:
                 extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point
                 wm = spawning.max_sections_of(self, creep_base_worker)
                 if extra > 0:
-                    wm += math.floor(extra / (20 * 1000))
+                    wm += math.floor(extra / 2500)
+                wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_rcl8_building:
                 extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
-                    wm += math.floor(extra / (20 * 1000))
+                    wm += math.floor(extra / 2500)
+                wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_supporting_sieged:
                 wm = self.building.get_max_builder_work_parts_urgent()
             elif spending == room_spending_state_under_siege:
@@ -1279,20 +1281,29 @@ class RoomMind:
                     extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
                     wm = spawning.max_sections_of(self, creep_base_worker) * 3
                     if extra > 0:
-                        wm += math.floor(extra / (20 * 1000))
+                        wm += math.floor(extra / 2500)
+                    wm = min(wm, self.building.get_max_builder_work_parts())
             else:
                 wm = min(
-                    self.building.get_max_builder_work_parts_noextra(),
                     spawning.max_sections_of(self, creep_base_worker) * 3,
+                    self.building.get_max_builder_work_parts_noextra(),
                 )
         elif self.trying_to_get_full_storage_use:
-            wm = spawning.max_sections_of(self, creep_base_worker) * 2
+            wm = min(
+                spawning.max_sections_of(self, creep_base_worker) * 2,
+                self.building.get_max_builder_work_parts()
+            )
         elif self.room.energyCapacityAvailable < 550:
-            wm = base_num
+            wm = min(
+                base_num * spawning.max_sections_of(self, creep_base_worker),
+                self.building.get_max_builder_work_parts()
+            )
         else:
-            wm = base_num * max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
+            wm = min(
+                base_num * max(2, min(8, spawning.max_sections_of(self, creep_base_worker))),
+                self.building.get_max_builder_work_parts()
+            )
 
-        wm = min(wm, self.building.get_max_builder_work_parts())
         self._target_builder_work_mass = wm
         return wm
 
