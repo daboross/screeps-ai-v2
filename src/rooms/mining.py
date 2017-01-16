@@ -349,6 +349,21 @@ class MiningMind:
         )
         return not miner_carry_no_haulers and not no_haulers
 
+    def is_mine_linked(self, source):
+        flag = flags.look_for(self.room, source, LOCAL_MINE)
+        if flag:
+            # TODO: duplicated in get_next_needed_mining_role_for, haulers_can_target_mine
+            miner_carry_no_haulers = (
+                flag.pos.roomName == self.room.name
+                and self.room.room.energyCapacityAvailable >= 600
+                and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
+            )
+            return miner_carry_no_haulers
+        else:
+            # TODO: what to do here?
+            print("[mining] Warning: can't find local flag for mine {}!".format(source))
+            return False
+
     def get_next_needed_mining_role_for(self, flag):
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (

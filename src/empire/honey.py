@@ -361,6 +361,10 @@ class HoneyTrails:
                     for x in range(pos.x - 1, pos.x + 2):
                         for y in range(pos.y - 1, pos.y + 2):
                             increase_by(x, y, 11 * plain_cost)
+                elif stype == '--linked-source':
+                    for x in range(pos.x - 1, pos.x + 2):
+                        for y in range(pos.y - 1, pos.y + 2):
+                            increase_by(x, y, 10 * plain_cost)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in room.find(FIND_STRUCTURES):
@@ -370,7 +374,10 @@ class HoneyTrails:
         for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
             set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True)
         for source in room.find(FIND_SOURCES):
-            set_matrix("--source", source.pos, True)
+            if room.my and room.mining.is_mine_linked(source):
+                set_matrix("--linked-source", source.pos, True)
+            else:
+                set_matrix("--source", source.pos, True)
         for flag in spawn_fill_wait_flags:
             cost_matrix.set(flag.pos.x, flag.pos.y, 255)
         for flag in upgrader_wait_flags:
@@ -562,6 +569,10 @@ class HoneyTrails:
                         for x in range(pos.x - 1, pos.x + 2):
                             for y in range(pos.y - 1, pos.y + 2):
                                 increase_by(x, y, 11 * plain_cost)
+                elif stype == '--linked-source':
+                    for x in range(pos.x - 1, pos.x + 2):
+                        for y in range(pos.y - 1, pos.y + 2):
+                            increase_by(x, y, 10 * plain_cost)
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in room.find(FIND_STRUCTURES):
@@ -572,7 +583,10 @@ class HoneyTrails:
         for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
             set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True, True)
         for source in room.find(FIND_SOURCES):
-            set_matrix("--source", source.pos, False, True)
+            if room.my and room.mining.is_mine_linked(source):
+                set_matrix("--linked-source", source.pos, False, True)
+            else:
+                set_matrix("--source", source.pos, False, True)
         for flag in spawn_fill_wait_flags:
             cost_matrix.set(flag.pos.x, flag.pos.y, 255)
         for flag in upgrader_wait_flags:
