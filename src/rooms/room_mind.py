@@ -1597,7 +1597,7 @@ class RoomMind:
             role_upgrader: self.get_upgrader_size,
             role_upgrade_fill: self.get_target_upgrade_fill_mass,
             role_defender: lambda: min(4, spawning.max_sections_of(self, creep_base_defender)),
-            role_wall_defender: lambda: min(9, spawning.max_sections_of(self, creep_base_rampart_defense)),
+            role_wall_defender: lambda: spawning.max_sections_of(self, creep_base_rampart_defense),
             role_room_reserve:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:

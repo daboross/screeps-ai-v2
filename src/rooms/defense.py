@@ -299,9 +299,15 @@ class RoomDefense:
         if '_possible_heal' in hostile:
             return hostile._possible_heal
         else:
-            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1)
-            healing_possible = _.sum(
-                nearby, lambda obj: not obj.creep.my and obj.creep.getActiveBodypartsBoostEquivalent(HEAL, 'heal')) * 12
+            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 3)
+            healing_possible = 0
+            for obj in nearby:
+                creep = obj.creep
+                distance = movement.chebyshev_distance_room_pos(hostile, creep)
+                if distance <= 2:
+                    healing_possible += creep.getActiveBodypartsBoostEquivalent(HEAL, 'heal') * HEAL_POWER
+                else:
+                    healing_possible += creep.getActiveBodypartsBoostEquivalent(HEAL, 'rangedHeal') * RANGED_HEAL_POWER
             hostile._possible_heal = healing_possible
             return healing_possible
 
@@ -338,6 +344,7 @@ class RoomDefense:
         :type hostile: Creep
         :rtype: int
         """
+        under_siege = self.room.mem[rmem_key_currently_under_siege]
         user = hostile.owner.username
         if user == INVADER_USERNAME:
             if not hostile.hasBodyparts(ATTACK) and not hostile.hasBodyparts(RANGED_ATTACK):
@@ -355,25 +362,37 @@ class RoomDefense:
             return 0
         elif self.room.my:
             structs_near = _.some(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1),
-                                  lambda s: s.structureType == STRUCTURE_RAMPART
-                                            or s.structureType == STRUCTURE_WALL
-                                            or s.structureType == STRUCTURE_TOWER
-                                            or s.structureType == STRUCTURE_SPAWN)
+                                  lambda s: s.structure.structureType == STRUCTURE_RAMPART
+                                            or s.structure.structureType == STRUCTURE_WALL
+                                            or s.structure.structureType == STRUCTURE_TOWER
+                                            or s.structure.structureType == STRUCTURE_SPAWN)
             if structs_near and hostile.hasBodyparts(WORK):
                 return 100 + hostile.getActiveBodyparts(WORK) * DISMANTLE_POWER
             elif structs_near and hostile.hasBodyparts(ATTACK):
                 return 100 + hostile.getActiveBodyparts(ATTACK) * ATTACK_POWER
             elif hostile.hasActiveBodyparts(RANGED_ATTACK):
-                return 10
+                if under_siege:
+                    return 10.04
+                else:
+                    return 10
             elif hostile.hasBodyparts(ATTACK):
                 if (self.any_broken_walls() or structs_near or
                         _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
                                lambda obj: obj.creep.my)):
-                    return 7
+                    if under_siege:
+                        return 10.07
+                    else:
+                        return 7
+                else:
+                    if under_siege:
+                        return 10.05
+                    else:
+                        return 5
+            elif hostile.hasBodyparts(WORK):
+                if under_siege:
+                    return 10.04
                 else:
                     return 5
-            elif hostile.hasBodyparts(WORK):
-                return 5
             elif 1 < hostile.pos.x < 48 and 1 < hostile.pos.y < 48:
                 return 0.2
             else:
@@ -458,10 +477,11 @@ class RoomDefense:
                                 # Further away from closest target = less important
                                 + movement.minimum_chebyshev_distance(c, protect)
                                 # Further away average distance from targets = less important
+                                + self.healing_possible_on(c) * 30
+                                # More hits = less important
                                 + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
                                   / 50
-                                # More hits = less important
-                                - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100
+                                - (c.hitsMax - c.hits) / c.hitsMax / 100
                                 ) \
                         .value()
                     if self.mem.debug:
@@ -543,7 +563,7 @@ class RoomDefense:
             self.room.mem[rmem_key_currently_under_siege] = True
             self.room.reset_spending_state()
             self.hive.states.calculate_room_states()
-        self.mem.attack_until = Game.time + 10 * 1000
+        self.mem.attack_until = Game.time + 2000
         self.room.reset_planned_role()
         message = "{} activating live defenses.".format(self.room.name)
         Game.notify(message)
@@ -722,13 +742,13 @@ class RoomDefense:
                             Game.notify(message)
                             console.log(message)
                     else:
-                        self.mem.attack_until = Game.time + 10 * 1000
+                        self.mem.attack_until = Game.time + 2000
             self.tower_heal()
             return
 
         if self.room.mem[rmem_key_currently_under_siege] \
                 and _.some(self.all_hostiles(), lambda h: h.owner.username != INVADER_USERNAME):
-            self.mem.attack_until = Game.time + 10 * 1000
+            self.mem.attack_until = Game.time + 2000
 
         if Game.time % 5 == 1:
             if not self.room.being_bootstrapped() or self.room.mem[rmem_key_building_priority_walls]:
@@ -782,6 +802,7 @@ class RoomDefense:
                 if len(damaged_warriors):
                     for tower in towers:
                         tower.heal(damaged_warriors[0])
+
             tower_index = 0
             some_left = False
             for hostile in hostiles:
