@@ -681,7 +681,7 @@ if (!global.__customizations_active) {
     activateCustomizations()
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-01-12 23:17:02
+// Transcrypt'ed from Python, 2017-01-16 01:31:14
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -876,7 +876,7 @@ function main () {
                 __init__: function (__all__) {
                     var Exception = __class__ ('Exception', [object], {
                         get __init__ () {return __get__ (this, function (self) {
-                            var kwargs = dict ();
+                            var kwargs = {};
                             if (arguments.length) {
                                 var __ilastarg0__ = arguments.length - 1;
                                 if (arguments [__ilastarg0__] && arguments [__ilastarg0__].hasOwnProperty ("__kwargtrans__")) {
@@ -1359,8 +1359,18 @@ function main () {
     float.__name__ = 'float';
     __all__.float = float;
 
-    var int = function (any) {
-        return float (any) | 0
+    var int = function (any, radix) {
+        if (typeof any === 'number') {
+            return Math.floor(any);
+        }
+        var number = parseInt(any, radix);
+        if (isNaN (number)) {
+            if (radix == undefined) {
+                radix = 10;
+            }
+            throw ValueError('invalid literal for int() with base ' + radix + ': ' + any, new Error());
+        }
+        return number;
     };
     int.__name__ = 'int';
     __all__.int = int;
@@ -2470,6 +2480,8 @@ function main () {
     };
     __all__.pow = __pow__;
 
+    // Overloaded binary arithmetic
+
     var __mul__ = function (a, b) {
         if (typeof a == 'object' && '__mul__' in a) {
             return a.__mul__ (b);
@@ -2527,6 +2539,75 @@ function main () {
         }
     };
     __all__.__sub__ = __sub__;
+
+    // Overloaded binary bitwise
+
+    var __lshift__ = function (a, b) {
+        if (typeof a == 'object' && '__lshift__' in a) {
+            return a.__lshift__ (b);
+        }
+        else if (typeof b == 'object' && '__rlshift__' in b) {
+            return b.__rlshift__ (a);
+        }
+        else {
+            return a << b;
+        }
+    };
+    __all__.__lshift__ = __lshift__;
+
+    var __rshift__ = function (a, b) {
+        if (typeof a == 'object' && '__rshift__' in a) {
+            return a.__rshift__ (b);
+        }
+        else if (typeof b == 'object' && '__rrshift__' in b) {
+            return b.__rrshift__ (a);
+        }
+        else {
+            return a >> b;
+        }
+    };
+    __all__.__rshift__ = __rshift__;
+
+    var __or__ = function (a, b) {
+        if (typeof a == 'object' && '__or__' in a) {
+            return a.__or__ (b);
+        }
+        else if (typeof b == 'object' && '__ror__' in b) {
+            return b.__ror__ (a);
+        }
+        else {
+            return a | b;
+        }
+    };
+    __all__.__or__ = __or__;
+
+    var __xor__ = function (a, b) {
+        if (typeof a == 'object' && '__xor__' in a) {
+            return a.__xor__ (b);
+        }
+        else if (typeof b == 'object' && '__rxor__' in b) {
+            return b.__rxor__ (a);
+        }
+        else {
+            return a ^ b;
+        }
+    };
+    __all__.__xor__ = __xor__;
+
+    var __and__ = function (a, b) {
+        if (typeof a == 'object' && '__and__' in a) {
+            return a.__and__ (b);
+        }
+        else if (typeof b == 'object' && '__rand__' in b) {
+            return b.__rand__ (a);
+        }
+        else {
+            return a & b;
+        }
+    };
+    __all__.__and__ = __and__;
+
+    // Overloaded binary compare
 
     var __eq__ = function (a, b) {
         if (typeof a == 'object' && '__eq__' in a) {
@@ -2701,18 +2782,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -2809,7 +2920,7 @@ function main () {
                             }
                             var creep = Game.creeps [name];
                             if (!(creep)) {
-                                targets._unregister_all (name);
+                                targets.untarget_all ({'name': name});
                                 delete Memory.creeps [name];
                             }
                             else {
@@ -2823,8 +2934,8 @@ function main () {
                             }
                         }
                         var dead_next = Game.time + smallest_ticks_to_live;
-                        room.mem.meta.clear_next = dead_next + 1;
-                        room.mem.meta.reset_spawn_on = closest_replacement_time + 1;
+                        room.mem [rmem_key_metadata].clear_next = dead_next + 1;
+                        room.mem [rmem_key_metadata].reset_spawn_on = closest_replacement_time + 1;
                     };
                     var get_next_replacement_time = function (room) {
                         var closest_replacement_time = Game.time + 100;
@@ -2844,7 +2955,7 @@ function main () {
                             var __left0__ = __iterable0__ [__index0__];
                             var name = __left0__ [0];
                             var mem = __left0__ [1];
-                            if (('cache' in mem)) {
+                            if ((rmem_key_cache in mem)) {
                                 var __iterable1__ = Object.keys (mem.cache);
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                     var key = __iterable1__ [__index1__];
@@ -2857,7 +2968,7 @@ function main () {
                                     delete mem.cache;
                                 }
                             }
-                            if (('rea' in mem) && mem.rea <= Game.time) {
+                            if ((rmem_key_room_reserved_up_until_tick in mem) && mem.rea <= Game.time) {
                                 delete mem.rea;
                             }
                             if (_.isEmpty (mem)) {
@@ -2903,10 +3014,10 @@ function main () {
                             if (!(name in Game.creeps)) {
                                 var targets = target_mem [name];
                                 print ('[consistency] Clearing rouge targets for creep: {} ({})'.format (name, Object.keys (targets)));
-                                hive.targets._unregister_all (name);
+                                hive.targets.untarget_all ({'name': name});
                             }
                         }
-                        var __iterable0__ = list (['cpu_usage', 'profiler']);
+                        var __iterable0__ = ['cpu_usage', 'profiler', '_debug', 'x'];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var key = __iterable0__ [__index0__];
                             if ((key in Memory)) {
@@ -2920,6 +3031,12 @@ function main () {
                             var mem = Memory.rooms [name];
                             if (('_ly' in mem)) {
                                 delete mem ['_ly'];
+                            }
+                            if (('attack_until' in mem)) {
+                                delete mem ['attack_until'];
+                            }
+                            if (('alert' in mem)) {
+                                delete mem ['alert'];
                             }
                             if (!(len (mem))) {
                                 delete Memory.rooms [name];
@@ -3005,6 +3122,8 @@ function main () {
                         __all__.get_next_replacement_time = get_next_replacement_time;
                         __all__.global_cache = global_cache;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
@@ -3018,6 +3137,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -3113,7 +3262,7 @@ function main () {
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var root = function () {
                         if (!(Memory.cache)) {
-                            Memory.cache = dict ({});
+                            Memory.cache = {};
                         }
                         return Memory.cache;
                     };
@@ -3133,7 +3282,7 @@ function main () {
                     };
                     var set = function (key, value, ttl) {
                         var r = root ();
-                        r [key] = dict ({'v': value, 'd': Game.time + ttl, 'l': Game.time});
+                        r [key] = {'v': value, 'd': Game.time + ttl, 'l': Game.time};
                     };
                     var rem = function (key) {
                         var r = root ();
@@ -3231,7 +3380,7 @@ function main () {
                     var submem = function (key1, key2) {
                         var v = volatile ();
                         if (!(v.has (key1))) {
-                            v.set (key1, new_map (list ([list ([key2, new_map ()])])));
+                            v.set (key1, new_map ([[key2, new_map ()]]));
                         }
                         else if (!(v.get (key1).has (key2))) {
                             v.get (key1).set (key2, new_map ());
@@ -3261,35 +3410,33 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
-                    var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
-                    var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
-                    var creep_base_worker = 'worker';
                     var creep_base_1500miner = 'fast_small_miner';
                     var creep_base_3000miner = 'fast_big_miner';
+                    var creep_base_3h = 'ranged_3h';
                     var creep_base_4000miner = 'faster_bigger_miner';
                     var creep_base_carry3000miner = 'fast_miner_with_carry';
-                    var creep_base_hauler = 'med_hauler';
-                    var creep_base_half_move_hauler = 'hm_hauler';
-                    var creep_base_work_full_move_hauler = 'fw_fm_hauler';
-                    var creep_base_work_half_move_hauler = 'fw_hm_hauler';
-                    var creep_base_full_upgrader = 'min_carry_worker';
-                    var creep_base_reserving = 'remote_reserve';
-                    var creep_base_claiming = 'strong_claim';
                     var creep_base_claim_attack = 'claim_attack';
+                    var creep_base_claiming = 'strong_claim';
                     var creep_base_defender = 'simple_defender';
-                    var creep_base_mammoth_miner = 'mammoth_miner';
-                    var creep_base_half_move_healer = 'hm_healer';
-                    var creep_base_full_move_healer = 'fm_healer';
-                    var creep_base_goader = 'med_goader';
-                    var creep_base_full_move_goader = 'fm_goader';
                     var creep_base_dismantler = 'med_dismantle';
                     var creep_base_full_move_dismantler = 'fm_dismantle';
-                    var creep_base_power_attack = 'power_attack';
+                    var creep_base_full_move_goader = 'fm_goader';
+                    var creep_base_full_move_healer = 'fm_healer';
                     var creep_base_full_move_power_attack = 'fm_power_attack';
-                    var creep_base_scout = 'scout';
+                    var creep_base_full_upgrader = 'min_carry_worker';
+                    var creep_base_goader = 'med_goader';
+                    var creep_base_half_move_hauler = 'hm_hauler';
+                    var creep_base_half_move_healer = 'hm_healer';
+                    var creep_base_hauler = 'med_hauler';
+                    var creep_base_mammoth_miner = 'mammoth_miner';
+                    var creep_base_power_attack = 'power_attack';
                     var creep_base_rampart_defense = 'rampart_defender';
                     var creep_base_ranged_offense = 'ranged_offensive';
-                    var creep_base_3h = 'ranged_3h';
+                    var creep_base_reserving = 'remote_reserve';
+                    var creep_base_scout = 'scout';
+                    var creep_base_work_full_move_hauler = 'fw_fm_hauler';
+                    var creep_base_work_half_move_hauler = 'fw_hm_hauler';
+                    var creep_base_worker = 'worker';
                     var target_source = 0;
                     var target_closest_energy_site = 1;
                     var target_single_flag = 2;
@@ -3337,9 +3484,9 @@ function main () {
                     var role_power_attack = 'attack_power';
                     var role_power_cleanup = 'power_cleanup';
                     var role_scout = 'scout';
-                    var old_role_names = dict ({'ufiller': 'upgrade_fill', 'remote_miner': 'miner', 'remote_hauler': 'hauler', 'basic_colonist': 'colonist'});
-                    var role_bases = dict ([[role_spawn_fill_backup, creep_base_worker], [role_spawn_fill, creep_base_hauler], [role_upgrade_fill, creep_base_hauler], [role_builder, creep_base_worker], [role_tower_fill, creep_base_hauler], [role_remote_mining_reserve, creep_base_reserving], [role_link_manager, creep_base_half_move_hauler], [role_defender, creep_base_defender], [role_wall_defender, creep_base_rampart_defense], [role_cleanup, creep_base_hauler], [role_colonist, creep_base_worker], [role_simple_claim, creep_base_claiming], [role_room_reserve, creep_base_reserving], [role_mineral_miner, creep_base_mammoth_miner], [role_mineral_hauler, creep_base_hauler], [role_simple_dismantle, creep_base_dismantler], [role_scout, creep_base_scout], [role_mineral_steal, creep_base_half_move_hauler]]);
-                    var default_roles = dict ([[creep_base_worker, role_spawn_fill_backup], [creep_base_1500miner, role_miner], [creep_base_3000miner, role_miner], [creep_base_4000miner, role_miner], [creep_base_carry3000miner, role_miner], [creep_base_hauler, role_hauler], [creep_base_work_full_move_hauler, role_hauler], [creep_base_work_half_move_hauler, role_hauler], [creep_base_reserving, role_remote_mining_reserve], [creep_base_defender, role_defender], [creep_base_mammoth_miner, role_mineral_miner], [creep_base_goader, role_td_goad], [creep_base_full_move_goader, role_td_goad], [creep_base_half_move_healer, role_td_healer], [creep_base_full_move_healer, role_td_healer], [creep_base_dismantler, role_simple_dismantle], [creep_base_full_move_dismantler, role_simple_dismantle], [creep_base_full_upgrader, role_upgrader], [creep_base_scout, role_scout], [creep_base_power_attack, role_power_attack], [creep_base_full_move_power_attack, role_power_attack], [creep_base_rampart_defense, role_wall_defender], [creep_base_claim_attack, role_simple_claim]]);
+                    var old_role_names = {'ufiller': 'upgrade_fill', 'remote_miner': 'miner', 'remote_hauler': 'hauler', 'basic_colonist': 'colonist'};
+                    var role_bases = {[role_spawn_fill_backup]: creep_base_worker, [role_spawn_fill]: creep_base_hauler, [role_upgrade_fill]: creep_base_hauler, [role_builder]: creep_base_worker, [role_tower_fill]: creep_base_hauler, [role_remote_mining_reserve]: creep_base_reserving, [role_link_manager]: creep_base_half_move_hauler, [role_defender]: creep_base_defender, [role_wall_defender]: creep_base_rampart_defense, [role_cleanup]: creep_base_hauler, [role_colonist]: creep_base_worker, [role_simple_claim]: creep_base_claiming, [role_room_reserve]: creep_base_reserving, [role_mineral_miner]: creep_base_mammoth_miner, [role_mineral_hauler]: creep_base_hauler, [role_simple_dismantle]: creep_base_dismantler, [role_scout]: creep_base_scout, [role_mineral_steal]: creep_base_half_move_hauler};
+                    var default_roles = {[creep_base_worker]: role_spawn_fill_backup, [creep_base_1500miner]: role_miner, [creep_base_3000miner]: role_miner, [creep_base_4000miner]: role_miner, [creep_base_carry3000miner]: role_miner, [creep_base_hauler]: role_hauler, [creep_base_work_full_move_hauler]: role_hauler, [creep_base_work_half_move_hauler]: role_hauler, [creep_base_reserving]: role_remote_mining_reserve, [creep_base_defender]: role_defender, [creep_base_mammoth_miner]: role_mineral_miner, [creep_base_goader]: role_td_goad, [creep_base_full_move_goader]: role_td_goad, [creep_base_half_move_healer]: role_td_healer, [creep_base_full_move_healer]: role_td_healer, [creep_base_dismantler]: role_simple_dismantle, [creep_base_full_move_dismantler]: role_simple_dismantle, [creep_base_full_upgrader]: role_upgrader, [creep_base_scout]: role_scout, [creep_base_power_attack]: role_power_attack, [creep_base_full_move_power_attack]: role_power_attack, [creep_base_rampart_defense]: role_wall_defender, [creep_base_claim_attack]: role_simple_claim};
                     var DEPOT = 0;
                     var UPGRADER_SPOT = 1;
                     var SPAWN_FILL_WAIT = 2;
@@ -3377,8 +3524,41 @@ function main () {
                     var min_repave_mine_roads_every = 20 * 1000;
                     var max_repave_mine_roads_every = 25 * 1000;
                     var global_cache_mining_roads_suffix = '_mrd';
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants.memkeys).global_mem_key_room_mining_paths;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants.memkeys).global_mem_key_last_room_state_refresh;
+                    var rmem_key_building_paused = __init__ (__world__.constants.memkeys.room).mem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants.memkeys.room).mem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants.memkeys.room).mem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants.memkeys.room).mem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants.memkeys.room).mem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants.memkeys.room).mem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants.memkeys.room).mem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants.memkeys.room).mem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants.memkeys.room).mem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants.memkeys.room).mem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_mineral_mind_storage;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants.memkeys.room).mem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants.memkeys.room).mem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants.memkeys.room).mem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants.memkeys.room).mem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants.memkeys.room).mem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants.memkeys.room).mem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants.memkeys.room).mem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants.memkeys.room).mem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants.memkeys.room).mem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants.memkeys.room).mem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants.memkeys.room).mem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants.memkeys.room).mem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants.memkeys.room).mem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants.memkeys.room).mem_key_work_parts_by_role;
+                    var rmem_key_now_supporting = __init__ (__world__.constants.memkeys.room).mem_key_now_supporting;
                     __pragma__ ('<use>' +
-                        'jstools.screeps_constants' +
+                        'constants.memkeys' +
+                        'constants.memkeys.room' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.ATTACK_DISMANTLE = ATTACK_DISMANTLE;
@@ -3437,18 +3617,48 @@ function main () {
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
                         __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
-                        __all__.new_map = new_map;
-                        __all__.new_set = new_set;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -3504,6 +3714,96 @@ function main () {
     );
     __nest__ (
         __all__,
+        'constants.memkeys', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var global_mem_key_last_room_state_refresh = 'sr';
+                    var global_mem_key_room_mining_paths = 'mp';
+                    __pragma__ ('<all>')
+                        __all__.global_mem_key_last_room_state_refresh = global_mem_key_last_room_state_refresh;
+                        __all__.global_mem_key_room_mining_paths = global_mem_key_room_mining_paths;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'constants.memkeys.room', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var mem_key_cache = 'cache';
+                    var mem_key_metadata = 'meta';
+                    var mem_key_sponsor = 'sponsor';
+                    var mem_key_total_open_source_spaces = 'oss';
+                    var mem_key_creeps_by_role = 'roles_alive';
+                    var mem_key_work_parts_by_role = 'roles_work';
+                    var mem_key_carry_parts_by_role = 'roles_carry';
+                    var mem_key_creeps_by_role_and_replacement_time = 'rt_map';
+                    var mem_key_prepping_defenses = 'prepping_defenses';
+                    var mem_key_storage_use_enabled = 'full_storage_use';
+                    var mem_key_focusing_home = 'focusing_home';
+                    var mem_key_upgrading_paused = 'upgrading_paused';
+                    var mem_key_building_paused = 'building_paused';
+                    var mem_key_spawn_requests = '_requests';
+                    var mem_key_planned_role_to_spawn = 'next_role';
+                    var mem_key_flag_for_testing_spawning_in_simulation = 'completely_sim_testing';
+                    var mem_key_pause_all_room_operations = 'pause';
+                    var mem_key_empty_all_resources_into_room = 'empty_to';
+                    var mem_key_room_reserved_up_until_tick = 'rea';
+                    var mem_key_currently_under_siege = 'attack';
+                    var mem_key_remotes_safe_when_under_siege = 'remotes_safe';
+                    var mem_key_remotes_explicitly_marked_under_attack = 'remotes_attack';
+                    var mem_key_stored_hostiles = 'danger';
+                    var mem_key_defense_mind_storage = 'defense';
+                    var mem_key_linking_mind_storage = 'links';
+                    var mem_key_mineral_mind_storage = 'market';
+                    var mem_key_building_priority_walls = 'prio_walls';
+                    var mem_key_building_priority_spawn = 'prio_spawn';
+                    var mem_key_there_might_be_energy_lying_around = 'tons';
+                    var mem_key_now_supporting = 's';
+                    var cache_key_spending_now = 'ss';
+                    __pragma__ ('<all>')
+                        __all__.cache_key_spending_now = cache_key_spending_now;
+                        __all__.mem_key_building_paused = mem_key_building_paused;
+                        __all__.mem_key_building_priority_spawn = mem_key_building_priority_spawn;
+                        __all__.mem_key_building_priority_walls = mem_key_building_priority_walls;
+                        __all__.mem_key_cache = mem_key_cache;
+                        __all__.mem_key_carry_parts_by_role = mem_key_carry_parts_by_role;
+                        __all__.mem_key_creeps_by_role = mem_key_creeps_by_role;
+                        __all__.mem_key_creeps_by_role_and_replacement_time = mem_key_creeps_by_role_and_replacement_time;
+                        __all__.mem_key_currently_under_siege = mem_key_currently_under_siege;
+                        __all__.mem_key_defense_mind_storage = mem_key_defense_mind_storage;
+                        __all__.mem_key_empty_all_resources_into_room = mem_key_empty_all_resources_into_room;
+                        __all__.mem_key_flag_for_testing_spawning_in_simulation = mem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.mem_key_focusing_home = mem_key_focusing_home;
+                        __all__.mem_key_linking_mind_storage = mem_key_linking_mind_storage;
+                        __all__.mem_key_metadata = mem_key_metadata;
+                        __all__.mem_key_mineral_mind_storage = mem_key_mineral_mind_storage;
+                        __all__.mem_key_now_supporting = mem_key_now_supporting;
+                        __all__.mem_key_pause_all_room_operations = mem_key_pause_all_room_operations;
+                        __all__.mem_key_planned_role_to_spawn = mem_key_planned_role_to_spawn;
+                        __all__.mem_key_prepping_defenses = mem_key_prepping_defenses;
+                        __all__.mem_key_remotes_explicitly_marked_under_attack = mem_key_remotes_explicitly_marked_under_attack;
+                        __all__.mem_key_remotes_safe_when_under_siege = mem_key_remotes_safe_when_under_siege;
+                        __all__.mem_key_room_reserved_up_until_tick = mem_key_room_reserved_up_until_tick;
+                        __all__.mem_key_spawn_requests = mem_key_spawn_requests;
+                        __all__.mem_key_sponsor = mem_key_sponsor;
+                        __all__.mem_key_storage_use_enabled = mem_key_storage_use_enabled;
+                        __all__.mem_key_stored_hostiles = mem_key_stored_hostiles;
+                        __all__.mem_key_there_might_be_energy_lying_around = mem_key_there_might_be_energy_lying_around;
+                        __all__.mem_key_total_open_source_spaces = mem_key_total_open_source_spaces;
+                        __all__.mem_key_upgrading_paused = mem_key_upgrading_paused;
+                        __all__.mem_key_work_parts_by_role = mem_key_work_parts_by_role;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
         'creep_management.autoactions', {
             __all__: {
                 __inited__: false,
@@ -3537,7 +3837,7 @@ function main () {
                             return cache.get (room_name);
                         }
                         var my = is_room_mostly_safe (room_name);
-                        var enemy_positions = list ([]);
+                        var enemy_positions = [];
                         var __iterable0__ = defense.stored_hostiles_near (room_name);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var h = __iterable0__ [__index0__];
@@ -3570,7 +3870,7 @@ function main () {
                                 continue;
                             }
                             var pos = new RoomPosition (h.pos & 63, h.pos >> 6 & 63, h.room);
-                            enemy_positions.append (dict ({'pos': pos, 'range': enemy_range * 4}));
+                            enemy_positions.append ({'pos': pos, 'range': enemy_range * 4});
                         }
                         cache.set (room_name, enemy_positions);
                         return enemy_positions;
@@ -3647,9 +3947,9 @@ function main () {
                         return cost_matrix;
                     };
                     var get_path_away = function (origin, targets) {
-                        var result = PathFinder.search (origin, targets, dict ({'roomCallback': simple_cost_matrix, 'flee': true, 'maxRooms': 8}));
-                        var path = list ([]);
-                        var __left0__ = tuple ([origin.x, origin.y]);
+                        var result = PathFinder.search (origin, targets, {'roomCallback': simple_cost_matrix, 'flee': true, 'maxRooms': 8});
+                        var path = [];
+                        var __left0__ = [origin.x, origin.y];
                         var last_x = __left0__ [0];
                         var last_y = __left0__ [1];
                         var __iterable0__ = result.path;
@@ -3664,7 +3964,7 @@ function main () {
                                 print ('[autoactions][get_path_away] Unknown direction for pos: {},{}, last: {},{}'.format (pos.x, pos.y, last_x, last_y));
                                 return null;
                             }
-                            path.append (dict ({'x': pos.x, 'y': pos.y, 'dx': dx, 'dy': dy, 'direction': direction}));
+                            path.append ({'x': pos.x, 'y': pos.y, 'dx': dx, 'dy': dy, 'direction': direction});
                         }
                         return path;
                     };
@@ -3674,7 +3974,7 @@ function main () {
                         }
                         else {
                             var path = get_path_away (creep.pos, targets);
-                            creep.memory._away_path = dict ({'reset': Game.time + 10, 'path': Room.serializePath (path)});
+                            creep.memory._away_path = {'reset': Game.time + 10, 'path': Room.serializePath (path)};
                             return path;
                         }
                     };
@@ -3735,7 +4035,7 @@ function main () {
                     var run_away_check = function (creep, hostile_path_targets) {
                         var check_path = is_room_mostly_safe (creep.pos.roomName);
                         if (check_path && !(creep.memory._safe) || !(creep.memory._safe_from) || movement.chebyshev_distance_room_pos (creep.memory._safe_from, creep.pos) > 2) {
-                            creep.memory._safe = list ([]);
+                            creep.memory._safe = [];
                             creep.memory._safe_from = creep.pos;
                         }
                         var any_unsafe = false;
@@ -3762,7 +4062,7 @@ function main () {
                                 if (safe) {
                                     continue;
                                 }
-                                var enemy_path = PathFinder.search (target, dict ({'pos': creep.pos, 'range': 1}), dict ({'roomCallback': enemy_purposes_cost_matrix, 'maxRooms': 5, 'plainCost': 1, 'swampCost': 1, 'maxCost': 10}));
+                                var enemy_path = PathFinder.search (target, {'pos': creep.pos, 'range': 1}, {'roomCallback': enemy_purposes_cost_matrix, 'maxRooms': 5, 'plainCost': 1, 'swampCost': 1, 'maxCost': 10});
                                 if (enemy_path.incomplete) {
                                     creep.memory._safe.push (target);
                                     continue;
@@ -3815,7 +4115,7 @@ function main () {
                             var creep = __iterable0__ [__index0__];
                             if (creep.fatigue > 0 || len (creep.body) <= 1 || _.find (creep.body, (function __lambda__ (p) {
                                 return p.type == ATTACK || p.type == RANGED_ATTACK || p.type == HEAL;
-                            })) || creep.memory.role == role_simple_dismantle && (creep.memory.home in Game.rooms) && room.hive.get_room (creep.memory.home).conducting_siege () || !(creep.hasActiveBodyparts (MOVE)) || creep.memory.role == role_miner && _.find (creep.pos.lookFor (LOOK_STRUCTURES), dict ({'structureType': STRUCTURE_RAMPART}))) {
+                            })) || creep.memory.role == role_simple_dismantle && (creep.memory.home in Game.rooms) && room.hive.get_room (creep.memory.home).conducting_siege () || !(creep.hasActiveBodyparts (MOVE)) || creep.memory.role == role_miner && _.find (creep.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART})) {
                                 continue;
                             }
                             var overridden = run_away_check (creep, hostile_path_targets);
@@ -3974,18 +4274,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -4049,7 +4379,7 @@ function main () {
                     var utility = __init__ (__world__.creeps.roles.utility);
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
-                    var role_classes = dict ([[role_upgrader, upgrading.Upgrader], [role_spawn_fill, spawn_fill.SpawnFill], [role_spawn_fill_backup, spawn_fill.SpawnFill], [role_upgrade_fill, upgrading.DedicatedUpgradeFiller], [role_link_manager, utility.LinkManager], [role_builder, building.Builder], [role_tower_fill, tower_fill.TowerFill], [role_miner, mining.EnergyMiner], [role_hauler, mining.EnergyHauler], [role_remote_mining_reserve, mining.RemoteReserve], [role_defender, defensive.RoleDefender], [role_wall_defender, defensive.WallDefender], [role_ranged_offense, smart_offensive.KitingOffense], [role_cleanup, utility.Cleanup], [role_temporary_replacing, generic.ReplacingExpendedCreep], [role_colonist, colonizing.Colonist], [role_simple_claim, colonizing.Claim], [role_room_reserve, colonizing.ReserveNow], [role_mineral_steal, colonizing.MineralSteal], [role_recycling, generic.Recycling], [role_mineral_miner, minerals.MineralMiner], [role_mineral_hauler, minerals.MineralHauler], [role_td_healer, offensive.TowerDrainHealer], [role_td_goad, offensive.TowerDrainer], [role_simple_dismantle, offensive.Dismantler], [role_scout, exploring.Scout], [role_power_attack, offensive.PowerAttack], [role_power_cleanup, offensive.PowerCleanup], [role_energy_grab, offensive.EnergyGrab]]);
+                    var role_classes = {[role_upgrader]: upgrading.Upgrader, [role_spawn_fill]: spawn_fill.SpawnFill, [role_spawn_fill_backup]: spawn_fill.SpawnFill, [role_upgrade_fill]: upgrading.DedicatedUpgradeFiller, [role_link_manager]: utility.LinkManager, [role_builder]: building.Builder, [role_tower_fill]: tower_fill.TowerFill, [role_miner]: mining.EnergyMiner, [role_hauler]: mining.EnergyHauler, [role_remote_mining_reserve]: mining.RemoteReserve, [role_defender]: defensive.RoleDefender, [role_wall_defender]: defensive.WallDefender, [role_ranged_offense]: smart_offensive.KitingOffense, [role_cleanup]: utility.Cleanup, [role_temporary_replacing]: generic.ReplacingExpendedCreep, [role_colonist]: colonizing.Colonist, [role_simple_claim]: colonizing.Claim, [role_room_reserve]: colonizing.ReserveNow, [role_mineral_steal]: colonizing.MineralSteal, [role_recycling]: generic.Recycling, [role_mineral_miner]: minerals.MineralMiner, [role_mineral_hauler]: minerals.MineralHauler, [role_td_healer]: offensive.TowerDrainHealer, [role_td_goad]: offensive.TowerDrainer, [role_simple_dismantle]: offensive.Dismantler, [role_scout]: exploring.Scout, [role_power_attack]: offensive.PowerAttack, [role_power_cleanup]: offensive.PowerCleanup, [role_energy_grab]: offensive.EnergyGrab};
                     var wrap_creep = function (hive, targets, home, creep) {
                         var role = creep.memory.role;
                         if ((role in role_classes)) {
@@ -4144,6 +4474,8 @@ function main () {
                         __all__.exploring = exploring;
                         __all__.generic = generic;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
@@ -4159,6 +4491,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_classes = role_classes;
@@ -4250,18 +4612,18 @@ function main () {
                                             }
                                             return __accu0__;
                                         } ();
-                                        var msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format (name, _.get (Memory, list (['creeps', name, 'role']), 'creep'), room_name, (len (threats) > 1 ? '{} or {}'.format (', '.join (threats.__getslice__ (0, len (threats) - 1, 1)), threats [len (threats) - 1]) : threats [0]));
+                                        var msg = '[death] {}, a {} of {}, died, likely at the hands of {}.'.format (name, _.get (Memory, ['creeps', name, 'role'], 'creep'), room_name, (len (threats) > 1 ? '{} or {}'.format (', '.join (threats.__getslice__ (0, len (threats) - 1, 1)), threats [len (threats) - 1]) : threats [0]));
                                         print (msg);
                                         Game.notify (msg);
                                     }
-                                    var meta = _.get (Memory, list (['rooms', room_name, 'meta']));
+                                    var meta = _.get (Memory, ['rooms', room_name, 'meta']);
                                     if (meta) {
                                         meta.clear_next = 0;
                                     }
                                 }
                             }
                         }
-                        Memory.deathwatch = list ([]);
+                        Memory.deathwatch = [];
                     };
                     var mark_creeps = function (room) {
                         var hostiles = room.defense.dangerous_hostiles ();
@@ -4270,9 +4632,9 @@ function main () {
                             var __iterable0__ = room.find (FIND_MY_CREEPS);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var creep = __iterable0__ [__index0__];
-                                Memory.deathwatch.append (list ([creep.name, creep.memory.home, _ (hostiles).map ((function __lambda__ (h) {
-                                    return _.get (h, list (['owner', 'username']), 'unknown');
-                                })).uniq ().value ()]));
+                                Memory.deathwatch.append ([creep.name, creep.memory.home, _ (hostiles).map ((function __lambda__ (h) {
+                                    return _.get (h, ['owner', 'username'], 'unknown');
+                                })).uniq ().value ()]);
                             }
                         }
                         else {
@@ -4282,11 +4644,11 @@ function main () {
                                 if (_.some (hostiles, (function __lambda__ (h) {
                                     return movement.chebyshev_distance_room_pos (h, creep) < 4;
                                 }))) {
-                                    Memory.deathwatch.append (list ([creep.name, creep.memory.home, _ (hostiles).filter ((function __lambda__ (h) {
+                                    Memory.deathwatch.append ([creep.name, creep.memory.home, _ (hostiles).filter ((function __lambda__ (h) {
                                         return movement.chebyshev_distance_room_pos (h, creep) < 4;
                                     })).map ((function __lambda__ (h) {
-                                        return _.get (h, list (['owner, username']), 'unknown');
-                                    })).uniq ().value ()]));
+                                        return _.get (h, ['owner, username'], 'unknown');
+                                    })).uniq ().value ()]);
                                 }
                             }
                         }
@@ -4314,16 +4676,16 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
-                    var gmem_key_room_mining_paths = 'mp';
                     var no_spawn_name_name = 'none';
                     var _get_mem = function () {
                         if ((gmem_key_room_mining_paths in Memory)) {
                             return Memory [gmem_key_room_mining_paths];
                         }
                         else {
-                            var __left0__ = dict ({});
+                            var __left0__ = {};
                             var mem = __left0__;
                             Memory [gmem_key_room_mining_paths] = __left0__;
                             return mem;
@@ -4335,7 +4697,7 @@ function main () {
                                 var msg = '[mining_paths] WARNING: Unknown kind of mine data: {} ({}, {})'.format (JSON.stringify (mine_data), mine_data [0], mine_data [1]);
                                 print (msg);
                                 Game.notify (msg);
-                                return tuple ([null, null]);
+                                return [null, null];
                             }
                             var mine_name = mine_data [0].name;
                             var spawn_id = (mine_data [1] ? mine_data [1].id : no_spawn_name_name);
@@ -4345,12 +4707,12 @@ function main () {
                                 var msg = '[mining_paths] WARNING: Unknown kind of mine data: {} ({})'.format (JSON.stringify (mine_data), mine_data);
                                 print (msg);
                                 Game.notify (msg);
-                                return tuple ([null, null]);
+                                return [null, null];
                             }
                             var mine_name = mine_data.name;
                             var spawn_id = no_spawn_name_name;
                         }
-                        return tuple ([mine_name, spawn_id]);
+                        return [mine_name, spawn_id];
                     };
                     var register_new_mining_path = function (mine_data, raw_path) {
                         var __left0__ = _parse_mine_data (mine_data);
@@ -4361,10 +4723,10 @@ function main () {
                             __except0__.__cause__ = null;
                             throw __except0__;
                         }
-                        var serialized_string = list ([]);
+                        var serialized_string = [];
                         if (len (raw_path)) {
                             var last_room = raw_path [0].roomName;
-                            var room_pos_points = dict ([[last_room, serialized_string]]);
+                            var room_pos_points = {[last_room]: serialized_string};
                             var __iterable0__ = raw_path;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var pos = __iterable0__ [__index0__];
@@ -4373,7 +4735,7 @@ function main () {
                                         var serialized_string = room_pos_points [pos.roomName];
                                     }
                                     else {
-                                        var __left0__ = list ([]);
+                                        var __left0__ = [];
                                         var serialized_string = __left0__;
                                         room_pos_points [pos.roomName] = __left0__;
                                     }
@@ -4383,7 +4745,7 @@ function main () {
                             }
                         }
                         else {
-                            var room_pos_points = dict ({});
+                            var room_pos_points = {};
                         }
                         var our_key_start = ((String.fromCodePoint ((len (mine_name) + len (spawn_id)) + 2) + String.fromCodePoint (len (mine_name))) + mine_name) + spawn_id;
                         var gmem = _get_mem ();
@@ -4400,7 +4762,7 @@ function main () {
                                 data_array.push (our_data);
                             }
                             else {
-                                gmem [room_name] = list ([our_data]);
+                                gmem [room_name] = [our_data];
                             }
                         }
                         var __iterable0__ = Object.keys (gmem);
@@ -4454,7 +4816,7 @@ function main () {
                                 }
                             }
                         }
-                        var output = list ([]);
+                        var output = [];
                         for (var y = 0; y < 50; y++) {
                             output.push ('\n');
                             for (var x = 0; x < 50; x++) {
@@ -4464,7 +4826,7 @@ function main () {
                                     output.push (value);
                                 }
                                 else {
-                                    output.push (0);
+                                    output.push (' ');
                                 }
                                 output.push (' ');
                             }
@@ -4566,7 +4928,7 @@ function main () {
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var room_name = __iterable0__ [__index0__];
                             var data_list = path_mem [room_name];
-                            var to_remove_indices = list ([]);
+                            var to_remove_indices = [];
                             var __iterable1__ = enumerate (data_list);
                             for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                 var __left0__ = __iterable1__ [__index1__];
@@ -4588,6 +4950,7 @@ function main () {
                         }
                     };
                     __pragma__ ('<use>' +
+                        'constants' +
                         'jstools.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
@@ -4674,18 +5037,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -4737,11 +5130,11 @@ function main () {
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var naming = __init__ (__world__.utilities.naming);
-                    var initial_section = dict ([[creep_base_work_full_move_hauler, list ([WORK, WORK, MOVE, MOVE])], [creep_base_work_half_move_hauler, list ([WORK, WORK, MOVE])], [creep_base_goader, list ([ATTACK, MOVE, TOUGH])], [creep_base_full_move_goader, list ([ATTACK, MOVE])], [creep_base_full_upgrader, list ([MOVE, CARRY, CARRY])], [creep_base_1500miner, list ([WORK, WORK, WORK])], [creep_base_3000miner, list ([WORK, WORK, WORK, WORK, WORK])], [creep_base_4000miner, list ([WORK, WORK, WORK, WORK, WORK, WORK, WORK])], [creep_base_carry3000miner, list ([CARRY, WORK, WORK, WORK, WORK, WORK])], [creep_base_mammoth_miner, list ([MOVE, CARRY, WORK, WORK, WORK])], [creep_base_ranged_offense, list ([MOVE, HEAL])], [creep_base_3h, list ([MOVE, MOVE, MOVE, HEAL, HEAL, HEAL])]]);
-                    var scalable_sections = dict ([[creep_base_worker, list ([MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, WORK])], [creep_base_hauler, list ([MOVE, CARRY])], [creep_base_work_full_move_hauler, list ([MOVE, CARRY])], [creep_base_work_half_move_hauler, list ([MOVE, CARRY, CARRY])], [creep_base_reserving, list ([MOVE, CLAIM])], [creep_base_defender, list ([TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK])], [creep_base_rampart_defense, list ([MOVE, ATTACK, ATTACK])], [creep_base_ranged_offense, list ([MOVE, RANGED_ATTACK])], [creep_base_3h, list ([MOVE, RANGED_ATTACK])], [creep_base_1500miner, list ([MOVE])], [creep_base_3000miner, list ([MOVE])], [creep_base_4000miner, list ([MOVE])], [creep_base_carry3000miner, list ([MOVE])], [creep_base_goader, list ([MOVE, TOUGH, TOUGH])], [creep_base_full_move_goader, list ([MOVE, TOUGH, CARRY, CARRY])], [creep_base_half_move_healer, list ([MOVE, HEAL, HEAL])], [creep_base_full_move_healer, list ([MOVE, HEAL])], [creep_base_dismantler, list ([WORK, WORK, MOVE])], [creep_base_full_move_dismantler, list ([WORK, MOVE])], [creep_base_full_upgrader, list ([MOVE, WORK, WORK])], [creep_base_scout, list ([MOVE])], [creep_base_mammoth_miner, list ([MOVE, WORK, WORK, WORK, WORK])], [creep_base_full_move_power_attack, list ([MOVE, ATTACK])], [creep_base_power_attack, list ([MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK])], [creep_base_half_move_hauler, list ([MOVE, CARRY, CARRY])], [creep_base_claiming, list ([MOVE, MOVE, MOVE, CLAIM, MOVE])], [creep_base_claim_attack, list ([MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM])]]);
-                    var half_sections = dict ([[creep_base_worker, list ([WORK, MOVE])], [creep_base_work_half_move_hauler, list ([MOVE, CARRY])], [creep_base_half_move_hauler, list ([MOVE, CARRY])], [creep_base_full_upgrader, list ([MOVE, WORK])], [creep_base_defender, list ([ATTACK, MOVE])], [creep_base_rampart_defense, list ([ATTACK, MOVE])], [creep_base_goader, list ([TOUGH, MOVE])], [creep_base_half_move_healer, list ([MOVE, HEAL])], [creep_base_power_attack, list ([MOVE, ATTACK])], [creep_base_dismantler, list ([MOVE, WORK])], [creep_base_claim_attack, list ([MOVE, MOVE, TOUGH, HEAL])], [creep_base_3h, list ([MOVE, MOVE, TOUGH, TOUGH])]]);
-                    var low_energy_sections = dict ([[creep_base_worker, list ([MOVE, MOVE, CARRY, WORK])], [creep_base_full_upgrader, list ([MOVE, CARRY, WORK])], [creep_base_claiming, list ([MOVE, CLAIM, MOVE])]]);
-                    var low_energy_dynamic = list ([creep_base_1500miner, creep_base_3000miner, creep_base_4000miner]);
+                    var initial_section = {[creep_base_work_full_move_hauler]: [WORK, WORK, MOVE, MOVE], [creep_base_work_half_move_hauler]: [WORK, WORK, MOVE], [creep_base_goader]: [ATTACK, MOVE, TOUGH], [creep_base_full_move_goader]: [ATTACK, MOVE], [creep_base_full_upgrader]: [MOVE, CARRY, CARRY], [creep_base_1500miner]: [WORK, WORK, WORK], [creep_base_3000miner]: [WORK, WORK, WORK, WORK, WORK], [creep_base_4000miner]: [WORK, WORK, WORK, WORK, WORK, WORK, WORK], [creep_base_carry3000miner]: [CARRY, WORK, WORK, WORK, WORK, WORK], [creep_base_mammoth_miner]: [MOVE, CARRY, WORK, WORK, WORK], [creep_base_ranged_offense]: [MOVE, HEAL], [creep_base_3h]: [MOVE, MOVE, MOVE, HEAL, HEAL, HEAL]};
+                    var scalable_sections = {[creep_base_worker]: [MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, WORK], [creep_base_hauler]: [MOVE, CARRY], [creep_base_work_full_move_hauler]: [MOVE, CARRY], [creep_base_work_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_reserving]: [MOVE, CLAIM], [creep_base_defender]: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK], [creep_base_rampart_defense]: [MOVE, ATTACK, ATTACK], [creep_base_ranged_offense]: [MOVE, RANGED_ATTACK], [creep_base_3h]: [MOVE, RANGED_ATTACK], [creep_base_1500miner]: [MOVE], [creep_base_3000miner]: [MOVE], [creep_base_4000miner]: [MOVE], [creep_base_carry3000miner]: [MOVE], [creep_base_goader]: [MOVE, TOUGH, TOUGH], [creep_base_full_move_goader]: [MOVE, TOUGH, CARRY, CARRY], [creep_base_half_move_healer]: [MOVE, HEAL, HEAL], [creep_base_full_move_healer]: [MOVE, HEAL], [creep_base_dismantler]: [WORK, WORK, MOVE], [creep_base_full_move_dismantler]: [WORK, MOVE], [creep_base_full_upgrader]: [MOVE, WORK, WORK], [creep_base_scout]: [MOVE], [creep_base_mammoth_miner]: [MOVE, WORK, WORK, WORK, WORK], [creep_base_full_move_power_attack]: [MOVE, ATTACK], [creep_base_power_attack]: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK], [creep_base_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_claiming]: [MOVE, MOVE, MOVE, CLAIM, MOVE], [creep_base_claim_attack]: [MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM]};
+                    var half_sections = {[creep_base_worker]: [WORK, MOVE], [creep_base_work_half_move_hauler]: [MOVE, CARRY], [creep_base_half_move_hauler]: [MOVE, CARRY], [creep_base_full_upgrader]: [MOVE, WORK], [creep_base_defender]: [ATTACK, MOVE], [creep_base_rampart_defense]: [ATTACK, MOVE], [creep_base_goader]: [TOUGH, MOVE], [creep_base_half_move_healer]: [MOVE, HEAL], [creep_base_power_attack]: [MOVE, ATTACK], [creep_base_dismantler]: [MOVE, WORK], [creep_base_claim_attack]: [MOVE, MOVE, TOUGH, HEAL], [creep_base_3h]: [MOVE, MOVE, TOUGH, TOUGH]};
+                    var low_energy_sections = {[creep_base_worker]: [MOVE, MOVE, CARRY, WORK], [creep_base_full_upgrader]: [MOVE, CARRY, WORK], [creep_base_claiming]: [MOVE, CLAIM, MOVE]};
+                    var low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4000miner];
                     var would_be_emergency = function (room) {
                         var spawn_mass = (room.carry_mass_of (role_spawn_fill) + room.carry_mass_of (role_spawn_fill_backup)) + room.carry_mass_of (role_tower_fill);
                         return spawn_mass <= 0 || spawn_mass < room.get_target_total_spawn_fill_mass () / 2;
@@ -4829,7 +5222,7 @@ function main () {
                         }
                         var descriptive_level = null;
                         if (base === creep_base_1500miner) {
-                            var parts = list ([]);
+                            var parts = [];
                             var work_cost = BODYPART_COST [WORK];
                             var move_cost = BODYPART_COST [MOVE];
                             if (energy < work_cost * 3 + move_cost) {
@@ -4852,7 +5245,7 @@ function main () {
                         else if (base === creep_base_3000miner) {
                             var work_cost = BODYPART_COST [WORK];
                             var move_cost = BODYPART_COST [MOVE];
-                            var parts = list ([]);
+                            var parts = [];
                             if (energy < work_cost * 5 + move_cost) {
                                 print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
                                 var num_work = math.floor ((energy - move_cost) / work_cost);
@@ -4873,7 +5266,7 @@ function main () {
                         else if (base === creep_base_4000miner) {
                             var work_cost = BODYPART_COST [WORK];
                             var move_cost = BODYPART_COST [MOVE];
-                            var parts = list ([]);
+                            var parts = [];
                             if (energy < work_cost * 7 + move_cost) {
                                 print ('[{}][spawning] Building sub-optimal dedicated miner!'.format (room.name));
                                 var num_work = math.floor ((energy - move_cost) / work_cost);
@@ -4902,7 +5295,7 @@ function main () {
                                 }
                                 return ;
                             }
-                            var parts = list ([]);
+                            var parts = [];
                             var num_move = num_sections || 5;
                             var num_work = 5;
                             for (var i = 0; i < num_work; i++) {
@@ -4915,7 +5308,7 @@ function main () {
                             var descriptive_level = num_move;
                         }
                         else if (base === creep_base_reserving) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (MOVE);
                             }
@@ -4928,13 +5321,13 @@ function main () {
                             var claim_cost = BODYPART_COST [CLAIM];
                             var move_cost = BODYPART_COST [MOVE];
                             if (energy >= claim_cost + move_cost * 4) {
-                                var parts = list ([MOVE, MOVE, MOVE, CLAIM, MOVE]);
+                                var parts = [MOVE, MOVE, MOVE, CLAIM, MOVE];
                             }
                             else if (energy >= claim_cost + move_cost * 2) {
-                                var parts = list ([MOVE, CLAIM, MOVE]);
+                                var parts = [MOVE, CLAIM, MOVE];
                             }
                             else if (energy > claim_cost + move_cost) {
-                                var parts = list ([CLAIM, MOVE]);
+                                var parts = [CLAIM, MOVE];
                             }
                             else {
                                 print ('[{}][spawning] Too few extensions to build a claim creep!'.format (room.name));
@@ -4945,7 +5338,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_claim_attack) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < half_section; i++) {
                                 parts.append (TOUGH);
                             }
@@ -4966,7 +5359,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_hauler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (CARRY);
                             }
@@ -4976,7 +5369,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_half_move_hauler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections * 2 + half_section; i++) {
                                 parts.append (CARRY);
                             }
@@ -4986,7 +5379,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_work_full_move_hauler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (CARRY);
                             }
@@ -5001,7 +5394,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_work_half_move_hauler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections * 2 + half_section; i++) {
                                 parts.append (CARRY);
                             }
@@ -5020,7 +5413,7 @@ function main () {
                             var carry_cost = BODYPART_COST [CARRY];
                             var work_cost = BODYPART_COST [WORK];
                             if (energy >= (move_cost * 4 + carry_cost * 3) + work_cost) {
-                                var parts = list ([]);
+                                var parts = [];
                                 for (var i = 0; i < num_sections; i++) {
                                     parts.append (CARRY);
                                     parts.append (CARRY);
@@ -5036,11 +5429,11 @@ function main () {
                                 var descriptive_level = 'carry:{}-work:{}'.format (num_sections * 3, num_sections);
                             }
                             else if (energy >= (move_cost * 3 + carry_cost * 2) + work_cost) {
-                                var parts = list ([MOVE, MOVE, MOVE, CARRY, CARRY, WORK]);
+                                var parts = [MOVE, MOVE, MOVE, CARRY, CARRY, WORK];
                                 var descriptive_level = 'carry:2-work:1';
                             }
                             else if (energy >= (move_cost * 2 + carry_cost) + work_cost) {
-                                var parts = list ([MOVE, MOVE, CARRY, WORK]);
+                                var parts = [MOVE, MOVE, CARRY, WORK];
                                 var descriptive_level = 'carry:1-work:1';
                             }
                             else {
@@ -5052,7 +5445,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_defender) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (TOUGH);
                             }
@@ -5068,7 +5461,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_rampart_defense) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections + half_section; i++) {
                                 parts.append (MOVE);
                             }
@@ -5078,7 +5471,7 @@ function main () {
                             var descriptive_level = num_sections * 2 + half_section;
                         }
                         else if (base === creep_base_ranged_offense) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (RANGED_ATTACK);
                             }
@@ -5089,7 +5482,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_3h) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < half_section * 2; i++) {
                                 parts.append (TOUGH);
                             }
@@ -5105,7 +5498,7 @@ function main () {
                             var descriptive_level = num_sections;
                         }
                         else if (base === creep_base_mammoth_miner) {
-                            var parts = list ([MOVE, CARRY]);
+                            var parts = [MOVE, CARRY];
                             var move_cost = BODYPART_COST [MOVE];
                             var carry_cost = BODYPART_COST [CARRY];
                             var work_cost = BODYPART_COST [WORK];
@@ -5146,7 +5539,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_goader) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < (num_sections * 2 + 1) + half_section; i++) {
                                 parts.append (TOUGH);
                             }
@@ -5156,7 +5549,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_full_move_goader) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections * 2; i++) {
                                 parts.append (CARRY);
                             }
@@ -5169,7 +5562,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_half_move_healer) {
-                            var parts = list ([]);
+                            var parts = [];
                             var total_heal = num_sections * 2 + half_section;
                             var total_move = num_sections + half_section;
                             for (var i = 0; i < math.floor (total_move / 2); i++) {
@@ -5186,7 +5579,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_full_move_healer) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < math.floor (num_sections / 2); i++) {
                                 parts.append (MOVE);
                             }
@@ -5201,7 +5594,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_dismantler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections * 2 + half_section; i++) {
                                 parts.append (WORK);
                             }
@@ -5210,7 +5603,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_full_move_dismantler) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (WORK);
                             }
@@ -5220,7 +5613,7 @@ function main () {
                         }
                         else if (base === creep_base_full_upgrader) {
                             if (num_sections > 1 || half_section) {
-                                var parts = list ([CARRY]);
+                                var parts = [CARRY];
                                 var num_work = num_sections * 2 + half_section;
                                 var num_move = (num_sections + half_section) + 1;
                                 for (var i = 0; i < num_work; i++) {
@@ -5238,12 +5631,12 @@ function main () {
                                 var descriptive_level = num_work;
                             }
                             else {
-                                var parts = list ([MOVE, CARRY, WORK]);
+                                var parts = [MOVE, CARRY, WORK];
                                 var descriptive_level = 'min';
                             }
                         }
                         else if (base === creep_base_power_attack) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (TOUGH);
                             }
@@ -5255,7 +5648,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_full_move_power_attack) {
-                            var parts = list ([]);
+                            var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (MOVE);
                             }
@@ -5264,7 +5657,7 @@ function main () {
                             }
                         }
                         else if (base === creep_base_scout) {
-                            var parts = list ([MOVE]);
+                            var parts = [MOVE];
                         }
                         else {
                             print ('[{}][spawning] Unknown creep base {}! Role object: {}'.format (room.name, base, JSON.stringify (role_obj)));
@@ -5289,10 +5682,10 @@ function main () {
                         }
                         var home = room.name;
                         if (replacing) {
-                            var memory = dict ({'home': home, 'role': role_temporary_replacing, 'replacing': replacing, 'replacing_role': role});
+                            var memory = {'home': home, 'role': role_temporary_replacing, 'replacing': replacing, 'replacing_role': role};
                         }
                         else {
-                            var memory = dict ({'home': home, 'role': role});
+                            var memory = {'home': home, 'role': role};
                         }
                         if (role_obj.memory) {
                             _.extend (memory, role_obj.memory);
@@ -5332,7 +5725,7 @@ function main () {
                                     var __left0__ = __iterable0__ [__index0__];
                                     var target_type = __left0__ [0];
                                     var target_id = __left0__ [1];
-                                    room.hive.targets.manually_register (dict ({'name': name}), target_type, target_id);
+                                    room.hive.targets.manually_register ({'name': name}, target_type, target_id);
                                 }
                             }
                             if (role_obj.rkey) {
@@ -5670,6 +6063,8 @@ function main () {
                         __all__.floor = floor;
                         __all__.floor_sections = floor_sections;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.half_section_cost = half_section_cost;
                         __all__.half_sections = half_sections;
                         __all__.initial_section = initial_section;
@@ -5692,6 +6087,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -5815,18 +6240,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -5885,7 +6340,7 @@ function main () {
                     var SEMICONSTANT_MOVEMENT = 3;
                     var MILITARY = 2;
                     var MOVE_THEN_STOP = 1;
-                    var role_movement_types = dict ([[role_upgrader, MOVE_THEN_WORK], [role_spawn_fill, SEMICONSTANT_MOVEMENT], [role_spawn_fill_backup, SEMICONSTANT_MOVEMENT], [role_upgrade_fill, IDLE_ABOUT], [role_link_manager, MOVE_THEN_STOP], [role_builder, MOVE_THEN_WORK], [role_tower_fill, SEMICONSTANT_MOVEMENT], [role_miner, MOVE_THEN_STOP], [role_hauler, CONSTANT_MOVEMENT], [role_remote_mining_reserve, MOVE_THEN_STOP], [role_defender, MILITARY], [role_wall_defender, MILITARY], [role_ranged_offense, MILITARY], [role_cleanup, MOVE_THEN_WORK], [role_temporary_replacing, MOVE_THEN_WORK], [role_colonist, MOVE_THEN_WORK], [role_simple_claim, MOVE_THEN_WORK], [role_room_reserve, MOVE_THEN_STOP], [role_mineral_steal, CONSTANT_MOVEMENT], [role_recycling, CONSTANT_MOVEMENT], [role_mineral_miner, MOVE_THEN_STOP], [role_mineral_hauler, IDLE_ABOUT], [role_td_healer, MILITARY], [role_td_goad, MILITARY], [role_simple_dismantle, MILITARY], [role_scout, MILITARY], [role_power_attack, MILITARY], [role_power_cleanup, MILITARY], [role_energy_grab, MILITARY]]);
+                    var role_movement_types = {[role_upgrader]: MOVE_THEN_WORK, [role_spawn_fill]: SEMICONSTANT_MOVEMENT, [role_spawn_fill_backup]: SEMICONSTANT_MOVEMENT, [role_upgrade_fill]: IDLE_ABOUT, [role_link_manager]: MOVE_THEN_STOP, [role_builder]: MOVE_THEN_WORK, [role_tower_fill]: SEMICONSTANT_MOVEMENT, [role_miner]: MOVE_THEN_STOP, [role_hauler]: CONSTANT_MOVEMENT, [role_remote_mining_reserve]: MOVE_THEN_STOP, [role_defender]: MILITARY, [role_wall_defender]: MILITARY, [role_ranged_offense]: MILITARY, [role_cleanup]: MOVE_THEN_WORK, [role_temporary_replacing]: MOVE_THEN_WORK, [role_colonist]: MOVE_THEN_WORK, [role_simple_claim]: MOVE_THEN_WORK, [role_room_reserve]: MOVE_THEN_STOP, [role_mineral_steal]: CONSTANT_MOVEMENT, [role_recycling]: CONSTANT_MOVEMENT, [role_mineral_miner]: MOVE_THEN_STOP, [role_mineral_hauler]: IDLE_ABOUT, [role_td_healer]: MILITARY, [role_td_goad]: MILITARY, [role_simple_dismantle]: MILITARY, [role_scout]: MILITARY, [role_power_attack]: MILITARY, [role_power_cleanup]: MILITARY, [role_energy_grab]: MILITARY};
                     var move_prototype =
                     function move (direction) {
                         var result = this.__move(direction);
@@ -6050,7 +6505,7 @@ function main () {
                                 }
                             }
                         }
-                        var __iterable0__ = list ([0, 49]);
+                        var __iterable0__ = [0, 49];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var x = __iterable0__ [__index0__];
                             for (var y = 0; y < 49; y++) {
@@ -6069,7 +6524,7 @@ function main () {
                                 }
                             }
                         }
-                        var __iterable0__ = list ([0, 49]);
+                        var __iterable0__ = [0, 49];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var y = __iterable0__ [__index0__];
                             for (var x = 1; x < 48; x++) {
@@ -6239,6 +6694,8 @@ function main () {
                         __all__.get_basic_cost_matrix = get_basic_cost_matrix;
                         __all__.get_cost_matrix_for_creep = get_cost_matrix_for_creep;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.hostile_utils = hostile_utils;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
@@ -6253,6 +6710,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -6330,8 +6817,8 @@ function main () {
                     var flags = __init__ (__world__.position_management.flags);
                     var movement = __init__ (__world__.utilities.movement);
                     var _REUSE_PATH = 100;
-                    var _WITH_ROAD_PF_OPTIONS = dict ({'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 2, 'swampCost': 10});
-                    var _NO_ROAD_PF_OPTIONS = dict ({'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 1, 'swampCost': 5});
+                    var _WITH_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 2, 'swampCost': 10};
+                    var _NO_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 1, 'swampCost': 5};
                     var RoleBase = __class__ ('RoleBase', [object], {
                         get __init__ () {return __get__ (this, function (self, hive, targets, home, creep) {
                             self.hive = hive;
@@ -6345,7 +6832,7 @@ function main () {
                                 self.memory = Memory.creeps [creep.name];
                             }
                             else {
-                                var memory = dict ({'targets': dict ({}), 'path': dict ({})});
+                                var memory = {'targets': {}, 'path': {}};
                                 Memory.creeps [creep.name] = memory;
                                 self.memory = memory;
                             }
@@ -6446,7 +6933,7 @@ function main () {
                                     }
                                     if (!(tower_here)) {
                                         self.creep.suicide ();
-                                        self.home.mem.meta.clear_next = 0;
+                                        self.home.check_all_creeps_next_tick ();
                                     }
                                 }
                                 else if (result != OK) {
@@ -6547,7 +7034,7 @@ function main () {
                                 }
                                 return false;
                             }
-                            var containers = _.filter (self.room.find_in_range (FIND_STRUCTURES, 3, source.pos), dict ({'structureType': STRUCTURE_CONTAINER}));
+                            var containers = _.filter (self.room.find_in_range (FIND_STRUCTURES, 3, source.pos), {'structureType': STRUCTURE_CONTAINER});
                             if (len (containers) > 0) {
                                 var container = containers [0];
                                 if (!(self.pos.isNearTo (container))) {
@@ -6714,7 +7201,7 @@ function main () {
                                 var result = spawn.recycleCreep (self.creep);
                                 if (result == OK) {
                                     self._log_recycling ();
-                                    self.home.mem.meta.clear_next = 0;
+                                    self.home.check_all_creeps_next_tick ();
                                 }
                                 else {
                                     self.log ('Unknown result from {}.recycleCreep({})! {}', spawn, self.creep, result);
@@ -7067,7 +7554,7 @@ function main () {
                             var x = __left0__ [0];
                             var y = __left0__ [1];
                             if (x == 0 && y == 0 && self.pos.roomName == 'sim') {
-                                return list ([]);
+                                return [];
                             }
                             var rrx = __mod__ ((x < 0 ? -(x) - 1 : x), 10);
                             var rry = __mod__ ((y < 0 ? -(y) - 1 : y), 10);
@@ -7089,17 +7576,17 @@ function main () {
                             };
                             if (rrx == 0) {
                                 if (rry == 0) {
-                                    return list ([center_pos (room_xy_to_name (x, y))]);
+                                    return [center_pos (room_xy_to_name (x, y))];
                                 }
                                 else {
-                                    return list ([center_pos (room_xy_to_name (x, floor_thing (y))), center_pos (room_xy_to_name (x, ceil_thing (y)))]);
+                                    return [center_pos (room_xy_to_name (x, floor_thing (y))), center_pos (room_xy_to_name (x, ceil_thing (y)))];
                                 }
                             }
                             else if (rry == 0) {
-                                return list ([center_pos (room_xy_to_name (floor_thing (x), y)), center_pos (room_xy_to_name (ceil_thing (x), y))]);
+                                return [center_pos (room_xy_to_name (floor_thing (x), y)), center_pos (room_xy_to_name (ceil_thing (x), y))];
                             }
                             else {
-                                return list ([center_pos (room_xy_to_name (floor_thing (x), floor_thing (y))), center_pos (room_xy_to_name (floor_thing (x), ceil_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), floor_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), ceil_thing (y)))]);
+                                return [center_pos (room_xy_to_name (floor_thing (x), floor_thing (y))), center_pos (room_xy_to_name (floor_thing (x), ceil_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), floor_thing (y))), center_pos (room_xy_to_name (ceil_thing (x), ceil_thing (y)))];
                             }
                         });},
                         get find_midpoint () {return __get__ (this, function (self, origin, target) {
@@ -7152,7 +7639,7 @@ function main () {
                                 self.move_to (target);
                                 return ;
                             }
-                            var path_opts = dict ({'current_room': self.pos.roomName});
+                            var path_opts = {'current_room': self.pos.roomName};
                             if (opts) {
                                 var path_opts = _.create (path_opts, opts);
                             }
@@ -7217,7 +7704,7 @@ function main () {
                                 self.move_to (target);
                                 return ;
                             }
-                            var path_opts = dict ({'current_room': self.pos.roomName});
+                            var path_opts = {'current_room': self.pos.roomName};
                             if (opts) {
                                 var path_opts = _.create (path_opts, opts);
                             }
@@ -7351,7 +7838,7 @@ function main () {
                                         }
                                         else if (found_mine) {
                                             if (is_block_clear (self.room, pos.x, pos.y)) {
-                                                self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
+                                                self.memory.next_ppos = {'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName};
                                                 self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
                                                 break;
                                             }
@@ -7385,7 +7872,7 @@ function main () {
                                 var path_opts = opts;
                             }
                             else {
-                                var path_opts = dict ({});
+                                var path_opts = {};
                             }
                             path_opts.max_ops = chebyshev_distance_room_pos (spawn, target) * 150;
                             path_opts.max_rooms = math.ceil (chebyshev_distance_room_pos (spawn, target) / 5);
@@ -7424,6 +7911,7 @@ function main () {
                 __init__: function (__all__) {
                     var volatile_cache = __init__ (__world__.cache.volatile_cache);
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_hauler = __init__ (__world__.constants).role_hauler;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
@@ -7447,7 +7935,7 @@ function main () {
                             var base = room.get_variable_base (role);
                             var num_sections = spawning.max_sections_of (room, base);
                         }
-                        var role_obj = dict ({'role': role, 'base': base, 'num_sections': num_sections});
+                        var role_obj = {'role': role, 'base': base, 'num_sections': num_sections};
                         spawning.validate_role (role_obj);
                         return role_obj;
                     };
@@ -7596,7 +8084,7 @@ function main () {
                                     return ;
                                 }
                                 if (!(self.home.spawn.spawning) && self.home.get_next_role () === null) {
-                                    self.home.mem.next_role = generate_role_obj (self.home);
+                                    self.home.mem [rmem_key_planned_role_to_spawn] = generate_role_obj (self.home);
                                 }
                                 else {
                                     var v = volatile_cache.volatile ();
@@ -7609,7 +8097,7 @@ function main () {
                                     if (idle >= 3) {
                                         var role = self.home.get_next_role ();
                                         if (!(role) || role.role == role_hauler || role.role == role_spawn_fill || idle >= 7) {
-                                            self.home.mem.next_role = generate_role_obj (self.home);
+                                            self.home.mem [rmem_key_planned_role_to_spawn] = generate_role_obj (self.home);
                                             v.set ('refills_idle', -(Infinity));
                                         }
                                     }
@@ -7634,6 +8122,7 @@ function main () {
                         __all__.generate_role_obj = generate_role_obj;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
                         __all__.role_builder = role_builder;
                         __all__.role_hauler = role_hauler;
                         __all__.role_spawn_fill = role_spawn_fill;
@@ -7879,7 +8368,7 @@ function main () {
                             if (origin.isNearTo (target)) {
                                 var origin = self.home.spawn.pos;
                             }
-                            var opts = dict ({'current_room': self.pos.roomName, 'paved_for': mine});
+                            var opts = {'current_room': self.pos.roomName, 'paved_for': mine};
                             var path = self.hive.honey.find_serialized_path (origin, target, opts);
                             var result = self.creep.moveByPath (path);
                             if (result == ERR_NOT_FOUND || result == ERR_NO_PATH) {
@@ -7989,7 +8478,7 @@ function main () {
                                             }
                                             else if (found_mine) {
                                                 if (movement.is_block_clear (self.room, pos.x, pos.y)) {
-                                                    self.memory.next_ppos = dict ({'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName});
+                                                    self.memory.next_ppos = {'x': pos.x, 'y': pos.y, 'roomName': self.pos.roomName};
                                                     self.move_to (new RoomPosition (pos.x, pos.y, self.pos.roomName));
                                                     break;
                                                 }
@@ -8032,6 +8521,8 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
                     var role_upgrader = __init__ (__world__.constants).role_upgrader;
@@ -8133,10 +8624,10 @@ function main () {
                                     self.go_to_depot ();
                                 }
                                 else {
-                                    if (self.home.mem.tons) {
-                                        var closest = self.pos.findClosestByRange (FIND_DROPPED_ENERGY, dict ({'filter': (function __lambda__ (x) {
+                                    if (self.home.mem [rmem_key_there_might_be_energy_lying_around]) {
+                                        var closest = self.pos.findClosestByRange (FIND_DROPPED_ENERGY, {'filter': (function __lambda__ (x) {
                                             return x.amount >= self.creep.carryCapacity;
-                                        })}));
+                                        })});
                                         if (closest) {
                                             if (!(self.pos.isNearTo (closest))) {
                                                 self.move_to (closest);
@@ -8144,7 +8635,7 @@ function main () {
                                             }
                                         }
                                         else {
-                                            delete self.home.mem.tons;
+                                            delete self.home.mem [rmem_key_there_might_be_energy_lying_around];
                                         }
                                     }
                                     self.build_swamp_roads ();
@@ -8253,14 +8744,14 @@ function main () {
                                         return self.execute_repair_target (wall, 5000, target_repair);
                                     }
                                 }
-                                if (!(self.home.spawn) && (!(self.home.being_bootstrapped ()) || self.home.mem.prio_spawn)) {
+                                if (!(self.home.spawn) && (!(self.home.being_bootstrapped ()) || self.home.mem [rmem_key_building_priority_spawn])) {
                                     var target = null;
                                     if (self.home.rcl >= 4) {
-                                        if (self.home.room.storage && self.home.mem.tons) {
+                                        if (self.home.room.storage && self.home.mem [rmem_key_there_might_be_energy_lying_around]) {
                                             self.memory.la = 'f';
                                         }
-                                        else if (self.home.mem.tons) {
-                                            var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), dict ({'structureType': STRUCTURE_STORAGE}));
+                                        else if (self.home.mem [rmem_key_there_might_be_energy_lying_around]) {
+                                            var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_STORAGE});
                                             if (!(target)) {
                                                 var storage = flags.find_ms_flags (self.home, flags.MAIN_BUILD, flags.SUB_STORAGE) [0];
                                                 if (storage && len (self.home.look_at (LOOK_RESOURCES, storage))) {
@@ -8277,7 +8768,7 @@ function main () {
                                         }
                                     }
                                     if (!(target)) {
-                                        var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), dict ({'structureType': STRUCTURE_SPAWN}));
+                                        var target = _.find (self.home.find (FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN});
                                     }
                                     if (target) {
                                         self.targets.manually_register (self, target_construction, target.id);
@@ -8495,6 +8986,8 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.recycle_time = recycle_time;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
                         __all__.role_builder = role_builder;
                         __all__.role_recycling = role_recycling;
                         __all__.role_upgrader = role_upgrader;
@@ -8516,6 +9009,7 @@ function main () {
                 __inited__: false,
                 __init__: function (__all__) {
                     var CLAIM_LATER = __init__ (__world__.constants).CLAIM_LATER;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_mineral_steal = __init__ (__world__.constants).role_mineral_steal;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
@@ -8602,12 +9096,12 @@ function main () {
                                 }
                             }
                             else {
-                                self.follow_military_path (self.home.spawn, movement.center_pos (colony), dict ({'range': 20}));
+                                self.follow_military_path (self.home.spawn, movement.center_pos (colony), {'range': 20});
                             }
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             var colony = self.get_colony ();
-                            var path_len = self.get_military_path_length (self.home.spawn, movement.center_pos (colony), dict ({'range': 20}));
+                            var path_len = self.get_military_path_length (self.home.spawn, movement.center_pos (colony), {'range': 20});
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
@@ -8626,7 +9120,7 @@ function main () {
                                 if (!('checkpoint' in self.memory) || movement.chebyshev_distance_room_pos (self.memory.checkpoint, self.pos) > 50) {
                                     self.memory.checkpoint = self.pos;
                                 }
-                                var opts = dict ({'range': 15});
+                                var opts = {'range': 15};
                                 if (self.creep.getActiveBodyparts (MOVE) >= (len (self.creep.body) * 5) / 7) {
                                     opts.ignore_swamp = true;
                                     opts.use_roads = false;
@@ -8704,7 +9198,7 @@ function main () {
                             if (!(controller.reservation) || controller.reservation.ticksToEnd < 4998) {
                                 if (len (flags.find_flags (controller.room, CLAIM_LATER))) {
                                     self.creep.claimController (controller);
-                                    controller.room.memory.sponsor = self.home.name;
+                                    controller.room.memory [rmem_key_sponsor] = self.home.name;
                                 }
                                 self.creep.reserveController (controller);
                             }
@@ -8779,6 +9273,7 @@ function main () {
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
                         __all__.role_builder = role_builder;
                         __all__.role_mineral_steal = role_mineral_steal;
                         __all__.role_recycling = role_recycling;
@@ -8798,6 +9293,7 @@ function main () {
                 __inited__: false,
                 __init__: function (__all__) {
                     var INVADER_USERNAME = __init__ (__world__.constants).INVADER_USERNAME;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
                     var role_defender = __init__ (__world__.constants).role_defender;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
                     var target_rampart_defense = __init__ (__world__.constants).target_rampart_defense;
@@ -8880,23 +9376,25 @@ function main () {
                                     var enemy_checkpoint = __left0__;
                                     self.memory.enemy_checkpoint = __left0__;
                                 }
-                                self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), _.create (RoomPosition.prototype, enemy_checkpoint), dict ({'range': 1}));
+                                self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), _.create (RoomPosition.prototype, enemy_checkpoint), {'range': 1});
                                 return false;
                             }
                             var target = Game.getObjectById (target_id);
                             if (target === null || self.room.hostile && target.owner.username != INVADER_USERNAME) {
                                 delete self.memory.attack_target;
                                 delete Memory.hostiles [target_id];
-                                var room_hostiles = Memory.rooms [hostile_room].danger;
-                                var index = _.findIndex (room_hostiles, (function __lambda__ (x) {
-                                    return x.id == target_id;
-                                }));
-                                if (index != -(1)) {
-                                    room_hostiles.splice (index, 1);
+                                if ((hostile_room in Memory.rooms)) {
+                                    var room_hostiles = Memory.rooms [hostile_room] [rmem_key_stored_hostiles];
+                                    var index = _.findIndex (room_hostiles, (function __lambda__ (x) {
+                                        return x.id == target_id;
+                                    }));
+                                    if (index != -(1)) {
+                                        room_hostiles.splice (index, 1);
+                                    }
                                 }
                                 return true;
                             }
-                            self.creep.moveTo (target, _.create (self._move_options (target.pos.roomName), dict ({'reusePath': 2})));
+                            self.creep.moveTo (target, _.create (self._move_options (target.pos.roomName), {'reusePath': 2}));
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             return 0;
@@ -8960,6 +9458,7 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.positions = positions;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
                         __all__.role_defender = role_defender;
                         __all__.role_recycling = role_recycling;
                         __all__.target_rampart_defense = target_rampart_defense;
@@ -9009,13 +9508,13 @@ function main () {
                                     if (self.memory.rp == self.pos.roomName) {
                                         self.hive.honey.generate_serialized_cost_matrix (self.pos.roomName);
                                     }
-                                    self.recalc_military_path (self.home.spawn, destination, dict ({'ignore_swamp': true, 'use_roads': false}));
+                                    self.recalc_military_path (self.home.spawn, destination, {'ignore_swamp': true, 'use_roads': false});
                                     delete self.memory.rp;
                                 }
                                 if (self.memory.last_room != self.pos.roomName) {
                                     self.memory.last_room = self.pos.roomName;
                                     if (self.room.enemy && self.pos.roomName != destination.pos.roomName) {
-                                        self.recalc_military_path (self.home.spawn, destination, dict ({'ignore_swamp': true, 'use_roads': false}));
+                                        self.recalc_military_path (self.home.spawn, destination, {'ignore_swamp': true, 'use_roads': false});
                                     }
                                     var __left0__ = movement.parse_room_to_xy (self.pos.roomName);
                                     var rx = __left0__ [0];
@@ -9067,7 +9566,7 @@ function main () {
                                 self.basic_move_to (destination);
                             }
                             else {
-                                self.follow_military_path (self.home.spawn, destination, dict ({'ignore_swamp': true, 'use_roads': false}));
+                                self.follow_military_path (self.home.spawn, destination, {'ignore_swamp': true, 'use_roads': false});
                             }
                             if (self.pos.roomName == destination.pos.roomName && destination.memory.activate_attack_in) {
                                 if (len (self.room.defense.dangerous_hostiles ()) && _.sum (self.room.defense.dangerous_hostiles (), (function __lambda__ (h) {
@@ -9075,7 +9574,7 @@ function main () {
                                         return p.type == ATTACK || p.type == RANGED_ATTACK || p.type == HEAL;
                                     }));
                                 })) >= 10) {
-                                    var rooms_newly_activated = list ([]);
+                                    var rooms_newly_activated = [];
                                     var __iterable0__ = destination.memory.activate_attack_in;
                                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                         var name = __iterable0__ [__index0__];
@@ -9090,7 +9589,7 @@ function main () {
                                     }
                                     if (len (rooms_newly_activated)) {
                                         var with_mining_op_shutdowns = _.filter (rooms_newly_activated, (function __lambda__ (r) {
-                                            return !(_.get (Memory, list (['rooms', r, 'remotes_safe']), false));
+                                            return !(_.get (Memory, ['rooms', r, 'remotes_safe'], false));
                                         }));
                                         var hostiles = self.room.defense.dangerous_hostiles ();
                                         var message = '\nDANGER: -----\nHostile belonging to player {} detected in room {}. Game time: {}\n\n{}\n\nThis has triggered active-defense mode in rooms {}{}.\nDANGER: -----'.format (hostiles [0].owner.username, self.pos.roomName, Game.time, '\n'.join (function () {
@@ -9121,7 +9620,7 @@ function main () {
                             if (!(target)) {
                                 return -(1);
                             }
-                            var path_len = self.get_military_path_length (self.home.spawn, target, dict ({'ignore_swamp': true, 'use_roads': false}));
+                            var path_len = self.get_military_path_length (self.home.spawn, target, {'ignore_swamp': true, 'use_roads': false});
                             return path_len + 28;
                         });}
                     });
@@ -9214,18 +9713,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -9280,8 +9809,8 @@ function main () {
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var movement = __init__ (__world__.utilities.movement);
-                    var immediately_replace_roles = list ([]);
-                    var let_live_roles = list ([role_spawn_fill_backup, role_spawn_fill, role_upgrader, role_tower_fill, role_builder, role_cleanup, role_colonist, role_hauler, role_miner, role_remote_mining_reserve, role_mineral_steal, role_mineral_hauler]);
+                    var immediately_replace_roles = [];
+                    var let_live_roles = [role_spawn_fill_backup, role_spawn_fill, role_upgrader, role_tower_fill, role_builder, role_cleanup, role_colonist, role_hauler, role_miner, role_remote_mining_reserve, role_mineral_steal, role_mineral_hauler];
                     var ReplacingExpendedCreep = __class__ ('ReplacingExpendedCreep', [RoleBase], {
                         get run () {return __get__ (this, function (self) {
                             var old_name = self.memory.replacing;
@@ -9295,18 +9824,18 @@ function main () {
                             if (!(old_creep) || !(Memory.creeps [old_name]) || Memory.creeps [old_name].role == role_recycling || let_live_roles.includes (role)) {
                                 var home = self.memory.home;
                                 self.memory = Memory.creeps [self.name];
-                                Memory.creeps [self.name] = dict ({'role': role, 'home': home});
+                                Memory.creeps [self.name] = {'role': role, 'home': home};
                                 self.home.register_to_role (self);
                                 return ;
                             }
                             if (immediately_replace_roles.includes (role) && !(self.creep.spawning)) {
-                                Memory.creeps [old_creep.name] = dict ({'role': role_recycling, 'home': self.memory.home, 'last_role': 'replaced-{}'.format (self.memory.role)});
+                                Memory.creeps [old_creep.name] = {'role': role_recycling, 'home': self.memory.home, 'last_role': 'replaced-{}'.format (self.memory.role)};
                                 self.targets.untarget_all (old_creep);
                                 var home = self.memory.home;
                                 self.memory = Memory.creeps [self.name];
-                                Memory.creeps [self.name] = dict ({'role': role, 'home': home});
+                                Memory.creeps [self.name] = {'role': role, 'home': home};
                                 self.home.register_to_role (self);
-                                self.home.mem.meta.clear_next = 0;
+                                self.home.check_all_creeps_next_tick ();
                                 return ;
                             }
                             if (old_creep.ticksToLive > 1) {
@@ -9326,12 +9855,12 @@ function main () {
                                     old_creep.transfer (self.creep, mineral);
                                 }
                             }
-                            Memory.creeps [self.name] = dict ({});
+                            Memory.creeps [self.name] = {};
                             _.assign (Memory.creeps [self.name], Memory.creeps [old_name]);
                             self.targets.assume_identity (old_name, self.creep.name);
                             self.memory = Memory.creeps [self.name];
                             delete Memory.creeps [old_name];
-                            Memory.creeps [old_name] = dict ({'role': role_recycling, 'home': self.memory.home, 'last_role': 'replaced-{}'.format (self.memory.role)});
+                            Memory.creeps [old_name] = {'role': role_recycling, 'home': self.memory.home, 'last_role': 'replaced-{}'.format (self.memory.role)};
                             delete self.memory.calculated_replacement_time;
                             delete self.memory.replacement;
                             delete self.memory._path;
@@ -9343,7 +9872,7 @@ function main () {
                                     Memory.reserving [room] = self.name;
                                 }
                             }
-                            self.home.mem.meta.clear_next = 0;
+                            self.home.check_all_creeps_next_tick ();
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             return 0;
@@ -9368,14 +9897,14 @@ function main () {
                                 if (target === null) {
                                     var target = self.home.spawn;
                                 }
-                                if (target === null || self.creep.ticksToLive < self.pos.getRangeTo (target)) {
+                                if (target === null || self.creep.ticksToLive < movement.chebyshev_distance_room_pos (self, target)) {
                                     self.creep.suicide ();
                                     return false;
                                 }
                                 if (!('checkpoint' in self.memory) || movement.chebyshev_distance_room_pos (self.memory.checkpoint, self.pos) > 50) {
                                     self.memory.checkpoint = self.pos;
                                 }
-                                self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), target, dict ({'range': 1}));
+                                self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), target, {'range': 1});
                                 return false;
                             }
                             if (self.carry_sum () > 0) {
@@ -9484,6 +10013,8 @@ function main () {
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.default_roles = default_roles;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.immediately_replace_roles = immediately_replace_roles;
                         __all__.let_live_roles = let_live_roles;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
@@ -9499,6 +10030,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -9574,7 +10135,7 @@ function main () {
                                 return false;
                             }
                             var mineral = minerals [0];
-                            var extractor = _.find (self.home.look_at (LOOK_STRUCTURES, mineral.pos), dict ({'structureType': STRUCTURE_EXTRACTOR}));
+                            var extractor = _.find (self.home.look_at (LOOK_STRUCTURES, mineral.pos), {'structureType': STRUCTURE_EXTRACTOR});
                             if (!(extractor) || !(extractor.my)) {
                                 self.log ("MineralMiner's mineral at {} does not have an extractor. D:".format (mineral.pos));
                                 self.go_to_depot ();
@@ -9674,7 +10235,7 @@ function main () {
                             if (now_held < self.creep.carryCapacity) {
                                 var mineral = self.home.find (FIND_MINERALS) [0];
                                 if (mineral) {
-                                    var containers = _.filter (self.home.find_in_range (FIND_STRUCTURES, 2, mineral.pos), dict ({'structureType': STRUCTURE_CONTAINER}));
+                                    var containers = _.filter (self.home.find_in_range (FIND_STRUCTURES, 2, mineral.pos), {'structureType': STRUCTURE_CONTAINER});
                                     if (_.sum (containers, (function __lambda__ (s) {
                                         return _.sum (s.store);
                                     })) > 1000 || !(len (containers)) && _.find (self.home.find_in_range (FIND_MY_CREEPS, 1, mineral.pos), (function __lambda__ (c) {
@@ -9831,7 +10392,7 @@ function main () {
                                 return false;
                             }
                             var mineral = minerals [0];
-                            var extractor = _.find (self.home.look_at (LOOK_STRUCTURES, mineral.pos), dict ({'my': true, 'structureType': STRUCTURE_EXTRACTOR}));
+                            var extractor = _.find (self.home.look_at (LOOK_STRUCTURES, mineral.pos), {'my': true, 'structureType': STRUCTURE_EXTRACTOR});
                             if (!(extractor)) {
                                 self.log ("MineralHauler's mineral at {} does not have an extractor. D:".format (mineral.pos));
                                 self.go_to_depot ();
@@ -9893,11 +10454,17 @@ function main () {
                                 return true;
                             }
                             if (!(self.pos.isNearTo (mind.storage))) {
-                                self.move_to (mind.storage);
+                                var access = mind.storage_terminal_access_pos ();
+                                if (access) {
+                                    self.move_to (movement.room_pos_of_closest_serialized (self, access));
+                                }
+                                else {
+                                    self.move_to (mind.storage);
+                                }
                                 return false;
                             }
                             var __break0__ = false;
-                            var __iterable0__ = mind.adding_to_terminal ().concat (list ([tuple ([RESOURCE_ENERGY, mind.energy_needed_in_labs ()]), tuple ([mind.get_lab_target_mineral (), mind.amount_needed_in_lab1 ()]), tuple ([mind.get_lab2_target_mineral (), mind.amount_needed_in_lab2 ()])]));
+                            var __iterable0__ = mind.adding_to_terminal ().concat ([[RESOURCE_ENERGY, mind.energy_needed_in_labs ()], [mind.get_lab_target_mineral (), mind.amount_needed_in_lab1 ()], [mind.get_lab2_target_mineral (), mind.amount_needed_in_lab2 ()]]);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var resource = __left0__ [0];
@@ -9942,7 +10509,13 @@ function main () {
                                 return true;
                             }
                             if (!(self.pos.isNearTo (mind.terminal))) {
-                                self.move_to (mind.terminal);
+                                var access = mind.storage_terminal_access_pos ();
+                                if (access) {
+                                    self.move_to (movement.room_pos_of_closest_serialized (self, access));
+                                }
+                                else {
+                                    self.move_to (mind.terminal);
+                                }
                                 return false;
                             }
                             var __break0__ = false;
@@ -10108,7 +10681,9 @@ function main () {
                 __init__: function (__all__) {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
+                    var RANGED_DEFENSE = __init__ (__world__.constants).RANGED_DEFENSE;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
                     var role_hauler = __init__ (__world__.constants).role_hauler;
                     var role_miner = __init__ (__world__.constants).role_miner;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
@@ -10142,13 +10717,17 @@ function main () {
                                 self.memory.home = source_flag.memory.sponsor;
                             }
                             if (self.creep.hits < self.creep.hitsMax) {
-                                if (self.home.defense.healing_capable () && (self.pos.roomName != self.home.name || self.pos.x > 40 || self.pos.y > 40 || self.pos.x < 10 || self.pos.y < 10)) {
-                                    self.follow_energy_path (source_flag, self.home.spawn);
-                                    return ;
-                                }
-                                else if (!(self.creep.getActiveBodyparts (WORK))) {
-                                    self.creep.suicide ();
-                                    return ;
+                                if (!(len (flags.find_flags (self, RANGED_DEFENSE))) || !(_.some (self.room.find (FIND_CREEPS), (function __lambda__ (creep) {
+                                    return creep.hasActiveBodyparts (HEAL);
+                                })))) {
+                                    if (self.home.defense.healing_capable () && (self.pos.roomName != self.home.name || self.pos.x > 40 || self.pos.y > 40 || self.pos.x < 10 || self.pos.y < 10)) {
+                                        self.follow_energy_path (source_flag, self.home.spawn);
+                                        return ;
+                                    }
+                                    else if (!(self.creep.getActiveBodyparts (WORK))) {
+                                        self.creep.suicide ();
+                                        return ;
+                                    }
                                 }
                             }
                             if (self.memory.container_pos) {
@@ -10443,7 +11022,7 @@ function main () {
                             }
                             self.log ('WARNING: Calculating new reserve target for remote mining reserver!');
                             if (!(Memory.reserving)) {
-                                Memory.reserving = dict ({});
+                                Memory.reserving = {};
                             }
                             var lowest_time = Infinity;
                             var best = null;
@@ -10463,7 +11042,7 @@ function main () {
                                         Memory.no_controller [op_flag.pos.roomName] = true;
                                     }
                                     else {
-                                        Memory.no_controller = dict ([[op_flag.pos.roomName, true]]);
+                                        Memory.no_controller = {[op_flag.pos.roomName]: true};
                                     }
                                     continue;
                                 }
@@ -10526,7 +11105,7 @@ function main () {
                             else {
                                 self.creep.reserveController (controller);
                                 if (controller.reservation) {
-                                    controller.room.memory.rea = Game.time + controller.reservation.ticksToEnd;
+                                    controller.room.memory [rmem_key_room_reserved_up_until_tick] = Game.time + controller.reservation.ticksToEnd;
                                 }
                             }
                         });},
@@ -10560,6 +11139,7 @@ function main () {
                     __pragma__ ('<all>')
                         __all__.EnergyHauler = EnergyHauler;
                         __all__.EnergyMiner = EnergyMiner;
+                        __all__.RANGED_DEFENSE = RANGED_DEFENSE;
                         __all__.Refill = Refill;
                         __all__.RemoteReserve = RemoteReserve;
                         __all__.RoleBase = RoleBase;
@@ -10571,6 +11151,7 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.positions = positions;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
                         __all__.role_hauler = role_hauler;
                         __all__.role_miner = role_miner;
                         __all__.role_recycling = role_recycling;
@@ -10675,12 +11256,12 @@ function main () {
                                     // pass;
                                 }
                                 else if (movement.chebyshev_distance_room_pos (self.pos, goad_target) < 50) {
-                                    self.creep.moveTo (goad_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
-                                        return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
-                                    })}));
+                                    self.creep.moveTo (goad_target, {'costCallback': (function __lambda__ (room_name, matrix) {
+                                        return self.hive.honey.set_max_avoid (room_name, matrix, {'max_avoid': [goad_target.pos.roomName]});
+                                    })});
                                 }
                                 else {
-                                    self.follow_military_path (self.home.spawn, goad_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
+                                    self.follow_military_path (self.home.spawn, goad_target, {'avoid_rooms': [goad_target.pos.roomName]});
                                 }
                             }
                             else {
@@ -10698,12 +11279,12 @@ function main () {
                                     // pass;
                                 }
                                 else if (movement.chebyshev_distance_room_pos (self.pos, heal_target) < 50) {
-                                    self.creep.moveTo (heal_target, dict ({'costCallback': (function __lambda__ (room_name, matrix) {
-                                        return self.hive.honey.set_max_avoid (room_name, matrix, dict ({'max_avoid': list ([goad_target.pos.roomName])}));
-                                    })}));
+                                    self.creep.moveTo (heal_target, {'costCallback': (function __lambda__ (room_name, matrix) {
+                                        return self.hive.honey.set_max_avoid (room_name, matrix, {'max_avoid': [goad_target.pos.roomName]});
+                                    })});
                                 }
                                 else {
-                                    self.follow_military_path (self.home.spawn, heal_target, dict ({'avoid_rooms': list ([goad_target.pos.roomName])}));
+                                    self.follow_military_path (self.home.spawn, heal_target, {'avoid_rooms': [goad_target.pos.roomName]});
                                 }
                             }
                             autoactions.instinct_do_attack (self);
@@ -10713,7 +11294,7 @@ function main () {
                             if (!(target)) {
                                 return -(1);
                             }
-                            var path_len = self.get_military_path_length (self.home.spawn, target, dict ({'avoid_rooms': list ([target.pos.roomName])}));
+                            var path_len = self.get_military_path_length (self.home.spawn, target, {'avoid_rooms': [target.pos.roomName]});
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
@@ -11075,7 +11656,7 @@ function main () {
                                 }
                                 if (!(pile)) {
                                     delete self.memory.last_energy_target;
-                                    if (!(_.find (self.room.find (FIND_STRUCTURES), dict ({'structureType': STRUCTURE_POWER_BANK})))) {
+                                    if (!(_.find (self.room.find (FIND_STRUCTURES), {'structureType': STRUCTURE_POWER_BANK}))) {
                                         if (self.carry_sum () >= 0) {
                                             self.memory.filling = false;
                                         }
@@ -11214,6 +11795,7 @@ function main () {
                     var SK_LAIR_SOURCE_NOTED = __init__ (__world__.constants).SK_LAIR_SOURCE_NOTED;
                     var target_single_flag = __init__ (__world__.constants).target_single_flag;
                     var MilitaryBase = __init__ (__world__.creeps.behaviors.military).MilitaryBase;
+                    var errorlog = __init__ (__world__.jstools.errorlog);
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var flags = __init__ (__world__.position_management.flags);
@@ -11230,27 +11812,35 @@ function main () {
                             return false;
                         }
                         var cost_matrix = new PathFinder.CostMatrix ();
-                        var set_in_range_xy = function (x, y, drange, value, increase_by_center) {
-                            for (var x = x - drange; x < (x + drange) + 1; x++) {
-                                for (var y = y - drange; y < (y + drange) + 1; y++) {
-                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
-                                    if (terrain != 'wall' && cost_matrix.get (x, y) < value) {
-                                        if (terrain == 'swamp') {
-                                            cost_matrix.set (x, y, value + 25);
+                        var set_in_range_xy = function (initial_x, initial_y, distance, value, increase_by_center) {
+                            for (var x = initial_x - distance; x < (initial_x + distance) + 1; x++) {
+                                for (var y = initial_y - distance; y < (initial_y + distance) + 1; y++) {
+                                    if (increase_by_center) {
+                                        var value_here = value + increase_by_center * (distance - movement.chebyshev_distance_xy (initial_x, initial_y, x, y));
+                                    }
+                                    else {
+                                        var value_here = value;
+                                    }
+                                    var existing_cost = cost_matrix.get (x, y);
+                                    if (existing_cost == 0) {
+                                        var terrain_here = Game.map.getTerrainAt (x, y, room_name);
+                                        if (terrain_here [0] == 'p') {
+                                            var existing_cost = 1;
                                         }
-                                        else {
-                                            cost_matrix.set (x, y, value);
+                                        else if (terrain_here [0] == 's') {
+                                            var existing_cost = 25;
+                                        }
+                                        else if (terrain_here [0] == 'w') {
+                                            continue;
                                         }
                                     }
+                                    cost_matrix.set (x, y, existing_cost + value_here);
                                 }
                             }
-                            if (increase_by_center > 0 && drange > 0) {
-                                set_in_range_xy (x, y, drange - 1, value + increase_by_center, increase_by_center);
-                            }
                         };
-                        var set_in_range = function (pos, drange, value, increase_by_center) {
+                        var set_in_range = function (pos, distance, value, increase_by_center) {
                             var pos = pos.pos || pos;
-                            set_in_range_xy (pos.x, pos.y, drange, value, increase_by_center);
+                            set_in_range_xy (pos.x, pos.y, distance, value, increase_by_center);
                         };
                         var room = context.hive ().get_room (room_name);
                         if (room) {
@@ -11284,39 +11874,51 @@ function main () {
                             var flag = __iterable0__ [__index0__];
                             set_in_range (flag.pos, 4, 255, 0);
                         }
-                        var __iterable0__ = list ([0, 49]);
+                        var __iterable0__ = [0, 49];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var x = __iterable0__ [__index0__];
                             for (var y = 0; y < 49; y++) {
-                                var terrain = Game.map.getTerrainAt (x, y, room_name);
-                                if (terrain != 'wall') {
-                                    var existing = cost_matrix.get (x, y);
-                                    if (terrain == 'swamp') {
-                                        var existing = max (existing, 25);
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] == 'p') {
+                                        var existing = 1;
                                     }
-                                    cost_matrix.set (x, y, max (existing + 5, 5));
+                                    else if (terrain [0] == 's') {
+                                        var existing = 25;
+                                    }
+                                    else {
+                                        continue;
+                                    }
                                 }
+                                cost_matrix.set (x, y, existing + 5);
                             }
                         }
-                        var __iterable0__ = list ([0, 49]);
+                        var __iterable0__ = [0, 49];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var y = __iterable0__ [__index0__];
                             for (var x = 0; x < 49; x++) {
-                                var terrain = Game.map.getTerrainAt (x, y, room_name);
-                                if (terrain != 'wall') {
-                                    var existing = cost_matrix.get (x, y);
-                                    if (terrain == 'swamp') {
-                                        var existing = max (existing, 25);
+                                var existing = cost_matrix.get (x, y);
+                                if (existing == 0) {
+                                    var terrain = Game.map.getTerrainAt (x, y, room_name);
+                                    if (terrain [0] == 'p') {
+                                        var existing = 1;
                                     }
-                                    cost_matrix.set (x, y, max (existing + 5, 5));
+                                    else if (terrain [0] == 's') {
+                                        var existing = 25;
+                                    }
+                                    else {
+                                        continue;
+                                    }
                                 }
+                                cost_matrix.set (x, y, existing + 5);
                             }
                         }
                         cache.set (room_name, cost_matrix);
                         return cost_matrix;
                     };
                     var kiting_away_raw_path = function (origin, targets) {
-                        return PathFinder.search (origin, targets, dict ({'roomCallback': kiting_cost_matrix, 'flee': true, 'maxRooms': 8, 'swampCost': 25})).path;
+                        return PathFinder.search (origin, targets, {'roomCallback': kiting_cost_matrix, 'flee': true, 'maxRooms': 8, 'swampCost': 25}).path;
                     };
                     var KitingOffense = __class__ ('KitingOffense', [MilitaryBase], {
                         get boost () {return __get__ (this, function (self) {
@@ -11376,7 +11978,7 @@ function main () {
                             return false;
                         });},
                         get get_def_move_opts () {return __get__ (this, function (self, target_room) {
-                            return _.create (self._move_options (target_room), dict ({'reusePath': 2}));
+                            return _.create (self._move_options (target_room), {'reusePath': 2});
                         });},
                         get run () {return __get__ (this, function (self) {
                             if (self.creep.ticksToLive > 1450 && !(self.memory.boosted >= 2)) {
@@ -11402,7 +12004,7 @@ function main () {
                                     return false;
                                 }
                                 else {
-                                    var marker_flag = dict ({'pos': self.find_depot ()});
+                                    var marker_flag = {'pos': self.find_depot ()};
                                 }
                             }
                             if (len (hostiles_nearby)) {
@@ -11514,7 +12116,7 @@ function main () {
                                         if (hostile_utils.enemy_room (self.memory.checkpoint.roomName)) {
                                             self.memory.checkpoint = self.home.spawn || movement.find_an_open_space (self.home.name);
                                         }
-                                        self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), marker_flag, dict ({'range': 1}));
+                                        self.follow_military_path (_.create (RoomPosition.prototype, self.memory.checkpoint), marker_flag, {'range': 1});
                                         self.creep.say ('G1');
                                     }
                                     else if (distance >= 1) {
@@ -11580,31 +12182,32 @@ function main () {
                             else {
                                 var safe_distance = 3;
                             }
-                            var should_run = !(_.find (self.pos.lookFor (LOOK_STRUCTURES), dict ({'structureType': STRUCTURE_RAMPART, 'my': true}))) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
+                            var should_run = !(_.find (self.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': true})) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
                             var should_approach = !(should_run) && (harmless || min_distance > safe_distance);
                             if (should_approach) {
                                 self.creep.moveTo (_.create (RoomPosition.prototype, closest_pos), self.get_def_move_opts (closest_pos.roomName));
                             }
                             else if (should_run) {
                                 var away_path = null;
+                                var start = Game.cpu.getUsed ();
                                 try {
                                     var away_path = kiting_away_raw_path (self.pos, function () {
                                         var __accu0__ = [];
                                         var __iterable0__ = hostiles_nearby;
                                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                             var h = __iterable0__ [__index0__];
-                                            __accu0__.append (dict ({'pos': positions.deserialize_xy_to_pos (h.pos, h.room), 'range': 10}));
+                                            __accu0__.append ({'pos': positions.deserialize_xy_to_pos (h.pos, h.room), 'range': 10});
                                         }
                                         return __accu0__;
                                     } ());
                                     if (len (away_path)) {
-                                        self.creep.move (movement.diff_as_direction (self.pos, away_path [0]));
+                                        self.creep.move (self.pos.getDirectionTo (away_path [0]));
                                     }
                                 }
                                 catch (__except0__) {
-                                    self.log ('ERROR calculating/moving by kiting path:\n{}\nPath: {}'.format (__except0__.stack, away_path));
                                     self.creep.say ('ERROR');
                                     self.go_to_depot ();
+                                    errorlog.report_error ('kiting-offense', __except0__, 'Error calculating or moving by kiting path at pos {} (cpu used here: {}):\npath: {}\n'.format (self.pos, Game.cpu.getUsed () - start, away_path));
                                 }
                             }
                         });},
@@ -11622,6 +12225,7 @@ function main () {
                         'cache.volatile_cache' +
                         'constants' +
                         'creeps.behaviors.military' +
+                        'jstools.errorlog' +
                         'jstools.screeps_constants' +
                         'position_management.flags' +
                         'rooms.defense' +
@@ -11638,6 +12242,7 @@ function main () {
                         __all__.SK_LAIR_SOURCE_NOTED = SK_LAIR_SOURCE_NOTED;
                         __all__.context = context;
                         __all__.defense = defense;
+                        __all__.errorlog = errorlog;
                         __all__.flags = flags;
                         __all__.hostile_utils = hostile_utils;
                         __all__.kiting_away_raw_path = kiting_away_raw_path;
@@ -12025,7 +12630,7 @@ function main () {
                         var pos_split = pos_str.py_split (',');
                         var x = int (pos_split [0]);
                         var y = int (pos_split [1]);
-                        return tuple ([x, y]);
+                        return [x, y];
                     };
                     var Upgrader = __class__ ('Upgrader', [RoleBase], {
                         get run () {return __get__ (this, function (self) {
@@ -12076,11 +12681,11 @@ function main () {
                                         var __iterable0__ = self.home.creeps;
                                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                             var creep = __iterable0__ [__index0__];
-                                            if (creep.memory.role == role_upgrader && creep.name != needed.name) {
+                                            if (creep.memory.role == role_upgrader && creep.name != any_big_enough.name) {
                                                 creep.suicide ();
                                             }
                                         }
-                                        self.home.mem.meta.clear_next = 0;
+                                        self.home.check_all_creeps_next_tick ();
                                     }
                                 }
                             }
@@ -12097,13 +12702,13 @@ function main () {
                             else {
                                 if (self.creep.ticksToLive < 50) {
                                     self.creep.suicide ();
-                                    self.home.mem.meta.clear_next = 0;
+                                    self.home.check_all_creeps_next_tick ();
                                     return ;
                                 }
                                 self.log ('WARNING: Not enough set upgrader spots in {}'.format (self.memory.home));
                                 var available_positions = self.memory.controller_positions;
                                 if (!(available_positions) || __mod__ (Game.time + self.creep.ticksToLive, 25)) {
-                                    var available_positions = list ([]);
+                                    var available_positions = [];
                                     for (var x = link.pos.x - 1; x < link.pos.x + 2; x++) {
                                         for (var y = link.pos.y - 1; y < link.pos.y + 2; y++) {
                                             if (x != link.pos.x || y != link.pos.y) {
@@ -12185,7 +12790,7 @@ function main () {
                                     var __left0__ = split_pos_str (available_positions [__mod__ (Game.time + 2, len (available_positions))]);
                                     var target_x = __left0__ [0];
                                     var target_y = __left0__ [1];
-                                    self.basic_move_to (dict ({'x': target_x, 'y': target_y}));
+                                    self.basic_move_to ({'x': target_x, 'y': target_y});
                                 }
                             }
                         });},
@@ -12810,8 +13415,6 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
-                    var math = {};
-                    __nest__ (math, '', __init__ (__world__.math));
                     var ATTACK_DISMANTLE = __init__ (__world__.constants).ATTACK_DISMANTLE;
                     var ATTACK_POWER_BANK = __init__ (__world__.constants).ATTACK_POWER_BANK;
                     var CLAIM_LATER = __init__ (__world__.constants).CLAIM_LATER;
@@ -12868,18 +13471,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -12930,28 +13563,31 @@ function main () {
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
                     var creep_wrappers = __init__ (__world__.creep_management.creep_wrappers);
                     var HoneyTrails = __init__ (__world__.empire.honey).HoneyTrails;
+                    var StateCalc = __init__ (__world__.empire.states).StateCalc;
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var flags = __init__ (__world__.position_management.flags);
+                    var room_spending_state_visual = __init__ (__world__.rooms.room_constants).room_spending_state_visual;
                     var RoomMind = __init__ (__world__.rooms.room_mind).RoomMind;
                     var movement = __init__ (__world__.utilities.movement);
                     var HiveMind = __class__ ('HiveMind', [object], {
                         get __init__ () {return __get__ (this, function (self, targets) {
                             self.targets = targets;
                             self.honey = HoneyTrails (self);
+                            self.states = StateCalc (self);
                             self._my_rooms = null;
                             self._all_rooms = null;
-                            self._room_to_mind = dict ({});
+                            self._room_to_mind = {};
                             self.has_polled_for_creeps = false;
                         });},
                         get find_my_rooms () {return __get__ (this, function (self) {
                             if (!('enemy_rooms' in Memory)) {
-                                Memory.enemy_rooms = list ([]);
+                                Memory.enemy_rooms = [];
                             }
                             if (!(self._my_rooms)) {
-                                var my_rooms = list ([]);
-                                var all_rooms = list ([]);
-                                var sponsoring = dict ({});
+                                var my_rooms = [];
+                                var all_rooms = [];
+                                var sponsoring = {};
                                 var __iterable0__ = Object.keys (Game.rooms);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var name = __iterable0__ [__index0__];
@@ -12964,7 +13600,7 @@ function main () {
                                                 sponsoring [room_mind.sponsor_name].push (room_mind);
                                             }
                                             else {
-                                                sponsoring [room_mind.sponsor_name] = list ([room_mind]);
+                                                sponsoring [room_mind.sponsor_name] = [room_mind];
                                             }
                                         }
                                     }
@@ -13001,7 +13637,7 @@ function main () {
                         }, 'get_room');},
                         get poll_remote_mining_flags () {return __get__ (this, function (self) {
                             var flag_list = flags.find_flags_global (REMOTE_MINE);
-                            var room_to_flags = dict ({});
+                            var room_to_flags = {};
                             var __iterable0__ = flag_list;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
@@ -13028,7 +13664,7 @@ function main () {
                                         room_to_flags [sponsor.name].push (flag);
                                     }
                                     else {
-                                        room_to_flags [sponsor.name] = list ([flag]);
+                                        room_to_flags [sponsor.name] = [flag];
                                     }
                                 }
                             }
@@ -13039,7 +13675,7 @@ function main () {
                                     room._remote_mining_operations = room_to_flags [room.name];
                                 }
                                 else {
-                                    room._remote_mining_operations = list ([]);
+                                    room._remote_mining_operations = [];
                                 }
                             }
                         });},
@@ -13084,7 +13720,7 @@ function main () {
                             return closest_room;
                         }, 'get_closest_owned_room');},
                         get poll_all_creeps () {return __get__ (this, function (self) {
-                            var new_creep_lists = dict ({});
+                            var new_creep_lists = {};
                             var __iterable0__ = Object.keys (Game.creeps);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var name = __iterable0__ [__index0__];
@@ -13099,7 +13735,7 @@ function main () {
                                     new_creep_lists [home].append (creep);
                                 }
                                 else {
-                                    new_creep_lists [home] = list ([creep]);
+                                    new_creep_lists [home] = [creep];
                                 }
                             }
                             var __iterable0__ = Object.keys (new_creep_lists);
@@ -13126,102 +13762,6 @@ function main () {
                             }
                             self.has_polled_for_creeps = true;
                         });},
-                        get balance_rooms () {return __get__ (this, function (self) {
-                            if (!(_.some (self.my_rooms, (function __lambda__ (r) {
-                                return r.rcl >= 8 && !(r.minerals.has_no_terminal_or_storage ());
-                            })))) {
-                                print ('[hive][balance_rooms] Canceling: no RCL8 rooms.');
-                                return ;
-                            }
-                            var map_to_walls = function (room) {
-                                var smallest = _ (room.find (FIND_STRUCTURES)).filter ((function __lambda__ (s) {
-                                    return s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_RAMPART;
-                                })).min ((function __lambda__ (s) {
-                                    return s.hits;
-                                }));
-                                if (smallest == Infinity) {
-                                    return tuple ([room, Infinity]);
-                                }
-                                else {
-                                    return tuple ([room, smallest.hits]);
-                                }
-                            };
-                            var rooms_with_walls = _ (self.my_rooms).filter ((function __lambda__ (r) {
-                                return r.rcl >= 6 && !(r.minerals.has_no_terminal_or_storage ());
-                            })).map (map_to_walls).value ();
-                            var biggest_rcl8_room = _ (rooms_with_walls).filter ((function __lambda__ (t) {
-                                return t [0].rcl >= 8 && _.isEmpty (t [0].minerals.fulfilling [RESOURCE_ENERGY]) && !(t [0].mem.prepping_defenses);
-                            })).max ((function __lambda__ (t) {
-                                return t [1];
-                            }));
-                            var smallest_room = _.min (rooms_with_walls, (function __lambda__ (t) {
-                                return t [1];
-                            }));
-                            if (biggest_rcl8_room == -(Infinity) || smallest_room == Infinity || smallest_room [1] == Infinity || smallest_room [0].rcl >= 8 && smallest_room [1] >= (49 * 1000) * 1000 || smallest_room [0].name == biggest_rcl8_room [0].name) {
-                                print ('[hive][balance_rooms] Canceling.');
-                                return ;
-                            }
-                            var biggest_rcl8_room = biggest_rcl8_room [0];
-                            var smallest_room = smallest_room [0];
-                            var total_cutoff = 300 * 1000;
-                            var energy_cutoff = 100 * 1000;
-                            var extra_energy = min (_.sum (biggest_rcl8_room.minerals.get_total_room_resource_counts ()) - total_cutoff, biggest_rcl8_room.minerals.get_total_room_resource_counts ().energy - energy_cutoff);
-                            if (isNaN (extra_energy) || extra_energy <= 0) {
-                                print ('[hive][balance_rooms] Canceling: no extra energy in {}.'.format (biggest_rcl8_room.name));
-                                return ;
-                            }
-                            var distance = Game.map.getRoomLinearDistance (biggest_rcl8_room.name, smallest_room.name, true);
-                            var total_cost_of_1_energy = 1 + 1 * (math.log ((distance + 9) * 0.1) + 0.1);
-                            var max_to_send = math.floor (extra_energy / total_cost_of_1_energy);
-                            if (max_to_send <= 0) {
-                                print ("[hive][balance_rooms] Extra energy in {} ({}) isn't enough to send any to {} via a terminal.".format (biggest_rcl8_room.name, extra_energy, smallest_room.name));
-                                return ;
-                            }
-                            print ('[hive] Balancing rooms: sending {} energy from {} to {}.'.format (max_to_send, biggest_rcl8_room.name, smallest_room.name));
-                            biggest_rcl8_room.minerals.send_minerals (smallest_room.name, RESOURCE_ENERGY, max_to_send);
-                        });},
-                        get rebalance_from () {return __get__ (this, function (self, biggest_rcl8_room) {
-                            var map_to_walls = function (room) {
-                                var smallest = _ (room.find (FIND_STRUCTURES)).filter ((function __lambda__ (s) {
-                                    return s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_RAMPART;
-                                })).min ((function __lambda__ (s) {
-                                    return s.hits;
-                                }));
-                                if (smallest == Infinity) {
-                                    return tuple ([room, Infinity]);
-                                }
-                                else {
-                                    return tuple ([room, smallest.hits]);
-                                }
-                            };
-                            var rooms_with_walls = _ (self.my_rooms).filter ((function __lambda__ (r) {
-                                return r.rcl >= 6 && !(r.minerals.has_no_terminal_or_storage ());
-                            })).map (map_to_walls).value ();
-                            var smallest_room = _.min (rooms_with_walls, (function __lambda__ (t) {
-                                return t [1];
-                            }));
-                            if (smallest_room == Infinity || smallest_room [1] == Infinity || smallest_room [0].rcl >= 8 && smallest_room [1] >= (49 * 1000) * 1000 || smallest_room [0].name == biggest_rcl8_room.name) {
-                                print ('[hive][balance_rooms] Canceling.');
-                                return ;
-                            }
-                            var smallest_room = smallest_room [0];
-                            var total_cutoff = 300 * 1000;
-                            var energy_cutoff = 100 * 1000;
-                            var extra_energy = min (_.sum (biggest_rcl8_room.minerals.get_total_room_resource_counts ()) - total_cutoff, biggest_rcl8_room.minerals.get_total_room_resource_counts ().energy - energy_cutoff);
-                            if (isNaN (extra_energy) || extra_energy <= 0) {
-                                print ('[hive][balance_rooms] Canceling: no extra energy in {}.'.format (biggest_rcl8_room.name));
-                                return ;
-                            }
-                            var distance = Game.map.getRoomLinearDistance (biggest_rcl8_room.name, smallest_room.name, true);
-                            var total_cost_of_1_energy = 1 + 1 * (math.log ((distance + 9) * 0.1) + 0.1);
-                            var max_to_send = math.floor (extra_energy / total_cost_of_1_energy);
-                            if (max_to_send <= 0) {
-                                print ("[hive][balance_rooms] Extra energy in {} ({}) isn't enough to send any to {} via a terminal.".format (biggest_rcl8_room.name, extra_energy, smallest_room.name));
-                                return ;
-                            }
-                            print ('[hive] Balancing rooms: sending {} energy from {} to {}.'.format (max_to_send, biggest_rcl8_room.name, smallest_room.name));
-                            biggest_rcl8_room.minerals.send_minerals (smallest_room.name, RESOURCE_ENERGY, max_to_send);
-                        });},
                         get send_everything () {return __get__ (this, function (self, target_room) {
                             var target_room = target_room.name || target_room;
                             var __iterable0__ = self.my_rooms;
@@ -13234,8 +13774,8 @@ function main () {
                             }
                         });},
                         get mineral_report () {return __get__ (this, function (self) {
-                            var result = list ([]);
-                            var tally = dict ({});
+                            var result = ['Hive Mineral Report:'];
+                            var tally = {};
                             var __iterable0__ = self.my_rooms;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var room = __iterable0__ [__index0__];
@@ -13268,9 +13808,32 @@ function main () {
                             } ())));
                             return '\n'.join (result);
                         });},
+                        get status () {return __get__ (this, function (self) {
+                            var result = ['Hive Status Report:'];
+                            var __iterable0__ = self.my_rooms;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room = __iterable0__ [__index0__];
+                                var room_result = [];
+                                if (room.mem [rmem_key_currently_under_siege]) {
+                                    room_result.push ('under attack');
+                                }
+                                if (room.mem.pause) {
+                                    room_result.push ('paused');
+                                }
+                                if (room.mem [rmem_key_now_supporting]) {
+                                    room_result.push ('supporting {}'.format (room.mem [rmem_key_now_supporting]));
+                                }
+                                if (room.mem [rmem_key_prepping_defenses]) {
+                                    room_result.push ('prepping defenses');
+                                }
+                                room_result.push ('spending on {}.'.format (room_spending_state_visual [room.main_spending_expenditure ()]));
+                                result.push ('{}: {}'.format (room.name, ', '.join (room_result)));
+                            }
+                            return '\n'.join (result);
+                        });},
                         get sing () {return __get__ (this, function (self) {
                             if (!('_ly' in Memory)) {
-                                Memory ['_ly'] = dict ({});
+                                Memory ['_ly'] = {};
                             }
                             var creeps_by_room = _.groupBy (Game.creeps, 'pos.roomName');
                             var __iterable0__ = Object.keys (creeps_by_room);
@@ -13323,9 +13886,10 @@ function main () {
                         'constants' +
                         'creep_management.creep_wrappers' +
                         'empire.honey' +
+                        'empire.states' +
                         'jstools.screeps_constants' +
-                        'math' +
                         'position_management.flags' +
+                        'rooms.room_constants' +
                         'rooms.room_mind' +
                         'utilities.movement' +
                     '</use>')
@@ -13356,6 +13920,7 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.StateCalc = StateCalc;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
@@ -13391,6 +13956,8 @@ function main () {
                         __all__.default_roles = default_roles;
                         __all__.flags = flags;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
@@ -13404,6 +13971,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -13435,6 +14032,7 @@ function main () {
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
+                        __all__.room_spending_state_visual = room_spending_state_visual;
                         __all__.target_big_big_repair = target_big_big_repair;
                         __all__.target_big_repair = target_big_repair;
                         __all__.target_closest_energy_site = target_closest_energy_site;
@@ -13476,20 +14074,19 @@ function main () {
                     var hostile_utils = __init__ (__world__.utilities.hostile_utils);
                     var movement = __init__ (__world__.utilities.movement);
                     var dxdy_to_direction = __init__ (__world__.utilities.movement).dxdy_to_direction;
+                    var _path_cached_data_key_metadata = 'm';
                     var _path_cached_data_key_full_path = 'full';
                     var _path_cached_data_key_room_order = 'o';
                     var _path_cached_data_key_length = 'l';
                     var pathfinder_path_to_room_to_path_obj = function (origin, input_path) {
-                        var result_obj = dict ({});
-                        var __left0__ = list ([]);
-                        result_obj [_path_cached_data_key_room_order] = __left0__;
-                        var list_of_rooms = __left0__;
+                        var result_obj = {};
+                        var list_of_rooms = [];
                         var last_room = null;
                         var current_path = null;
-                        var __left0__ = tuple ([origin.x, origin.y]);
+                        var __left0__ = [origin.x, origin.y];
                         var last_x = __left0__ [0];
                         var last_y = __left0__ [1];
-                        var __left0__ = tuple ([null, null]);
+                        var __left0__ = [null, null];
                         var reroute_end_dx = __left0__ [0];
                         var reroute_end_dy = __left0__ [1];
                         var __iterable0__ = input_path;
@@ -13541,11 +14138,11 @@ function main () {
                                                 break;
                                             }
                                         }
-                                        current_path.push (dict ({'x': last_pos.x + dx, 'y': last_pos.y + dy, 'dx': dx, 'dy': dy, 'direction': dxdy_to_direction (dx, dy)}));
+                                        current_path.push ({'x': last_pos.x + dx, 'y': last_pos.y + dy, 'dx': dx, 'dy': dy, 'direction': dxdy_to_direction (dx, dy)});
                                     }
                                 }
                                 else {
-                                    var current_path = list ([]);
+                                    var current_path = [];
                                     result_obj [pos.roomName] = current_path;
                                     var last_room = pos.roomName;
                                     list_of_rooms.push (pos.roomName);
@@ -13554,7 +14151,7 @@ function main () {
                             if (reroute_end_dx !== null) {
                                 var dx = reroute_end_dx;
                                 var dy = reroute_end_dy;
-                                var __left0__ = tuple ([null, null]);
+                                var __left0__ = [null, null];
                                 var reroute_end_dx = __left0__ [0];
                                 var reroute_end_dy = __left0__ [1];
                             }
@@ -13591,10 +14188,11 @@ function main () {
                             }
                             var last_x = pos.x;
                             var last_y = pos.y;
-                            var item = dict ({'x': pos.x, 'y': pos.y, 'dx': dx, 'dy': dy, 'direction': direction});
+                            var item = {'x': pos.x, 'y': pos.y, 'dx': dx, 'dy': dy, 'direction': direction};
                             current_path.append (item);
                         }
-                        result_obj [_path_cached_data_key_length] = (len (input_path) - len (list_of_rooms)) + 1;
+                        var total_length = (len (input_path) - len (list_of_rooms)) + 1;
+                        result_obj [_path_cached_data_key_metadata] = ','.join ([total_length].concat (list_of_rooms));
                         return result_obj;
                     };
                     var clear_serialized_cost_matrix = function (room_name) {
@@ -13608,13 +14206,13 @@ function main () {
                     var get_global_cache_key = function (origin, destination, opts) {
                         if (opts) {
                             if (opts ['ignore_swamp']) {
-                                return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, 'swl']));
+                                return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, 'swl']);
                             }
                             else if (opts ['paved_for']) {
-                                return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, global_cache_mining_roads_suffix]));
+                                return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, global_cache_mining_roads_suffix]);
                             }
                         }
-                        return '_'.join (list (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y]));
+                        return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y]);
                     };
                     var HoneyTrails = __class__ ('HoneyTrails', [object], {
                         get __init__ () {return __get__ (this, function (self, hive) {
@@ -13628,7 +14226,7 @@ function main () {
                             var rrx = __mod__ ((room_x < 0 ? -(room_x) - 1 : room_x), 10);
                             var rry = __mod__ ((room_y < 0 ? -(room_y) - 1 : room_y), 10);
                             if (rrx == 0 || rry == 0) {
-                                var __iterable0__ = list ([0, 49]);
+                                var __iterable0__ = [0, 49];
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var x = __iterable0__ [__index0__];
                                     for (var y = 0; y < 50; y++) {
@@ -13637,7 +14235,7 @@ function main () {
                                         }
                                     }
                                 }
-                                var __iterable0__ = list ([0, 49]);
+                                var __iterable0__ = [0, 49];
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var y = __iterable0__ [__index0__];
                                     for (var x = 0; x < 50; x++) {
@@ -13648,7 +14246,7 @@ function main () {
                                 }
                             }
                             else {
-                                var __iterable0__ = list ([0, 49]);
+                                var __iterable0__ = [0, 49];
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var x = __iterable0__ [__index0__];
                                     for (var y = 0; y < 50; y++) {
@@ -13657,7 +14255,7 @@ function main () {
                                         }
                                     }
                                 }
-                                var __iterable0__ = list ([0, 49]);
+                                var __iterable0__ = [0, 49];
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var y = __iterable0__ [__index0__];
                                     for (var x = 0; x < 50; x++) {
@@ -13710,7 +14308,7 @@ function main () {
                                     var direction = __left0__ [0];
                                     var other_room = __left0__ [1];
                                     if ((other_room in opts ['max_avoid'])) {
-                                        print ('Setting max_avoid on the {} of room {}'.format (dict ([[TOP, 'top'], [BOTTOM, 'bottom'], [LEFT, 'left'], [RIGHT, 'right']]) [direction], room_name));
+                                        print ('Setting max_avoid on the {} of room {}'.format ({[TOP]: 'top', [BOTTOM]: 'bottom', [LEFT]: 'left', [RIGHT]: 'right'} [direction], room_name));
                                         if (direction == TOP) {
                                             for (var x = 0; x < 49; x++) {
                                                 if (Game.map.getTerrainAt (x, 0, room_name) != 'wall') {
@@ -13745,10 +14343,10 @@ function main () {
                         }, 'set_max_avoid');},
                         get generate_serialized_cost_matrix () {return __get__ (this, function (self, room_name) {
                             if (!(global_cache.has ('{}_cost_matrix_{}'.format (room_name, 1)))) {
-                                self.get_generic_cost_matrix (room_name, dict ({'roads': false}));
+                                self.get_generic_cost_matrix (room_name, {'roads': false});
                             }
                             if (!(global_cache.has ('{}_cost_matrix_{}'.format (room_name, 2)))) {
-                                self.get_generic_cost_matrix (room_name, dict ({'roads': true}));
+                                self.get_generic_cost_matrix (room_name, {'roads': true});
                             }
                         }, 'generate_serialized_cost_matrix');},
                         get get_generic_cost_matrix () {return __get__ (this, function (self, room_name, opts) {
@@ -13795,7 +14393,7 @@ function main () {
                             }
                             else {
                                 var avoid_extensions = false;
-                                var spawn_fill_wait_flags = list ([]);
+                                var spawn_fill_wait_flags = [];
                             }
                             if (room.my) {
                                 var upgrader_wait_flags = flags.find_flags (room, UPGRADER_SPOT);
@@ -13808,7 +14406,7 @@ function main () {
                             }
                             else {
                                 var avoid_controller = false;
-                                var upgrader_wait_flags = list ([]);
+                                var upgrader_wait_flags = [];
                             }
                             var cost_matrix = new PathFinder.CostMatrix ();
                             self.mark_exit_tiles (room_name, cost_matrix, opts);
@@ -13878,6 +14476,13 @@ function main () {
                                             }
                                         }
                                     }
+                                    else if (stype == '--linked-source') {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 10 * plain_cost);
+                                            }
+                                        }
+                                    }
                                 }
                                 cost_matrix.set (pos.x, pos.y, 255);
                             };
@@ -13901,7 +14506,12 @@ function main () {
                             var __iterable0__ = room.find (FIND_SOURCES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                set_matrix ('--source', source.pos, true);
+                                if (room.my && room.mining.is_mine_linked (source)) {
+                                    set_matrix ('--linked-source', source.pos, true);
+                                }
+                                else {
+                                    set_matrix ('--source', source.pos, true);
+                                }
                             }
                             var __iterable0__ = spawn_fill_wait_flags;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -13993,7 +14603,7 @@ function main () {
                             }
                             else {
                                 var avoid_extensions = false;
-                                var spawn_fill_wait_flags = list ([]);
+                                var spawn_fill_wait_flags = [];
                             }
                             if (room.my) {
                                 var upgrader_wait_flags = flags.find_flags (room, UPGRADER_SPOT);
@@ -14006,7 +14616,7 @@ function main () {
                             }
                             else {
                                 var avoid_controller = false;
-                                var upgrader_wait_flags = list ([]);
+                                var upgrader_wait_flags = [];
                             }
                             var cost_matrix = new PathFinder.CostMatrix ();
                             self.mark_exit_tiles (room_name, cost_matrix, opts);
@@ -14153,6 +14763,13 @@ function main () {
                                             }
                                         }
                                     }
+                                    else if (stype == '--linked-source') {
+                                        for (var x = pos.x - 1; x < pos.x + 2; x++) {
+                                            for (var y = pos.y - 1; y < pos.y + 2; y++) {
+                                                increase_by (x, y, 10 * plain_cost);
+                                            }
+                                        }
+                                    }
                                 }
                                 cost_matrix.set (pos.x, pos.y, 255);
                             };
@@ -14178,7 +14795,12 @@ function main () {
                             var __iterable0__ = room.find (FIND_SOURCES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                set_matrix ('--source', source.pos, false, true);
+                                if (room.my && room.mining.is_mine_linked (source)) {
+                                    set_matrix ('--linked-source', source.pos, false, true);
+                                }
+                                else {
+                                    set_matrix ('--source', source.pos, false, true);
+                                }
                             }
                             var __iterable0__ = spawn_fill_wait_flags;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -14255,7 +14877,7 @@ function main () {
                                 var pf_range = 1;
                                 var max_rooms = 16;
                                 var paved_for = null;
-                                var max_ops = self.get_default_max_ops (origin, destination, dict ({'use_roads': roads_better}));
+                                var max_ops = self.get_default_max_ops (origin, destination, {'use_roads': roads_better});
                                 var max_avoid = null;
                             }
                             if (('reroute' in Game.flags) && ('reroute_destination' in Game.flags)) {
@@ -14288,20 +14910,20 @@ function main () {
                                 var plain_cost = 1;
                                 var swamp_cost = 5;
                             }
-                            var result = PathFinder.search (origin, dict ({'pos': destination, 'range': pf_range}), dict ({'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
+                            var result = PathFinder.search (origin, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost}), 'maxRooms': max_rooms, 'maxOps': max_ops});
                             print ('[honey] Calculated new path from {} to {} in {} ops.'.format (origin, destination, result.ops));
                             var path = result.path;
                             if (result.incomplete) {
                                 print ('[honey] WARNING: Calculated incomplete path. Chebyshev distance: {}. Path distance found: {}. Ops used: {}. Max ops: {}. Max rooms: {}.'.format (movement.chebyshev_distance_room_pos (origin, destination), len (result.path), result.ops, max_ops, max_rooms));
                                 if (roads_better) {
                                     print ('[honey] Trying recalculation without preferring roads.');
-                                    return self._get_raw_path (origin, destination, _.create (opts, dict ({'use_roads': false})));
+                                    return self._get_raw_path (origin, destination, _.create (opts, {'use_roads': false}));
                                 }
                                 if (len (result.path) > 15) {
                                     var path_start = path.slice (0, -(10));
                                     var midpoint = path_start [len (path_start) - 1];
                                     print ('[honey] OK, trying to build the rest of the path from {} to {}, starting at {}'.format (origin, destination, midpoint));
-                                    var second_path_result = PathFinder.search (midpoint, dict ({'pos': destination, 'range': pf_range}), dict ({'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, dict ({'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost})), 'maxRooms': max_rooms, 'maxOps': max_ops}));
+                                    var second_path_result = PathFinder.search (midpoint, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost}), 'maxRooms': max_rooms, 'maxOps': max_ops});
                                     if (second_path_result.incomplete) {
                                         print ('[honey] Second path result incomplete, not appending.');
                                     }
@@ -14383,11 +15005,11 @@ function main () {
                                     var keep_for = 40 * 1000;
                                 }
                             }
-                            var serialized_path_obj = dict ({});
+                            var serialized_path_obj = {};
                             var __iterable0__ = Object.keys (room_to_path_obj);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var room_name = __iterable0__ [__index0__];
-                                if (room_name == _path_cached_data_key_room_order || room_name == _path_cached_data_key_length) {
+                                if (room_name == _path_cached_data_key_metadata) {
                                     serialized_path_obj [room_name] = room_to_path_obj [room_name];
                                 }
                                 else {
@@ -14416,11 +15038,11 @@ function main () {
                             var path = self._get_raw_path (origin, destination, opts);
                             var room_to_path_obj = pathfinder_path_to_room_to_path_obj (origin, path);
                             if (room_to_path_obj !== null) {
-                                var serialized_path_obj = dict ({});
+                                var serialized_path_obj = {};
                                 var __iterable0__ = Object.keys (room_to_path_obj);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var room_name = __iterable0__ [__index0__];
-                                    if (room_name == _path_cached_data_key_room_order || room_name == _path_cached_data_key_length) {
+                                    if (room_name == _path_cached_data_key_metadata) {
                                         serialized_path_obj [room_name] = room_to_path_obj [room_name];
                                     }
                                     else {
@@ -14475,7 +15097,7 @@ function main () {
                             }
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
                             if (serialized_path_obj === null || !(current_room in serialized_path_obj)) {
-                                return list ([]);
+                                return [];
                             }
                             try {
                                 var path = Room.deserializePath (serialized_path_obj [current_room]);
@@ -14488,7 +15110,7 @@ function main () {
                                     var path = Room.deserializePath (new_path_obj [current_room]);
                                 }
                                 else {
-                                    return list ([]);
+                                    return [];
                                 }
                             }
                             return path;
@@ -14528,9 +15150,12 @@ function main () {
                                 var destination = destination.pos;
                             }
                             var path_obj = self.get_serialized_path_obj (origin, destination, opts);
-                            var final_list = list ([]);
+                            var final_list = [];
                             if ((_path_cached_data_key_room_order in path_obj)) {
                                 var list_of_names = path_obj [_path_cached_data_key_room_order];
+                            }
+                            else if ((_path_cached_data_key_metadata in path_obj)) {
+                                var list_of_names = path_obj [_path_cached_data_key_metadata].split (',').slice (1);
                             }
                             else {
                                 var list_of_names = Object.keys (path_obj);
@@ -14557,6 +15182,9 @@ function main () {
                                 var opts = null;
                             };
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
+                            if ((_path_cached_data_key_metadata in serialized_path_obj)) {
+                                return int (serialized_path_obj [_path_cached_data_key_metadata].split (',') [0]);
+                            }
                             if ((_path_cached_data_key_full_path in serialized_path_obj)) {
                                 return (len (serialized_path_obj [_path_cached_data_key_full_path]) - _.sum (Object.keys (serialized_path_obj), (function __lambda__ (n) {
                                     return movement.is_valid_room_name (n);
@@ -14595,6 +15223,7 @@ function main () {
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
                         __all__._path_cached_data_key_full_path = _path_cached_data_key_full_path;
                         __all__._path_cached_data_key_length = _path_cached_data_key_length;
+                        __all__._path_cached_data_key_metadata = _path_cached_data_key_metadata;
                         __all__._path_cached_data_key_room_order = _path_cached_data_key_room_order;
                         __all__.clear_serialized_cost_matrix = clear_serialized_cost_matrix;
                         __all__.dxdy_to_direction = dxdy_to_direction;
@@ -14608,6 +15237,147 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.pathfinder_path_to_room_to_path_obj = pathfinder_path_to_room_to_path_obj;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'empire.states', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
+                    var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
+                    var _min_wall_hit_difference_to_balance = WALL_HITS_MAX / 300;
+                    var StateCalc = __class__ ('StateCalc', [object], {
+                        get __init__ () {return __get__ (this, function (self, hive) {
+                            self.hive = hive;
+                        });},
+                        get calculate_room_states () {return __get__ (this, function (self) {
+                            var under_siege = [];
+                            var not_under_siege = [];
+                            var __iterable0__ = self.hive.my_rooms;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room = __iterable0__ [__index0__];
+                                if (room.minerals.fully_setup ()) {
+                                    if (room.mem [rmem_key_currently_under_siege]) {
+                                        under_siege.append (room);
+                                    }
+                                    else {
+                                        not_under_siege.append (room);
+                                    }
+                                }
+                            }
+                            if (len (under_siege) > 0) {
+                                if (len (not_under_siege) > 0) {
+                                    if (len (under_siege) > 1) {
+                                        var under_siege = _.sortBy (under_siege, (function __lambda__ (x) {
+                                            return x.calculate_smallest_wall ();
+                                        }));
+                                        while (len (under_siege) < len (not_under_siege)) {
+                                            var under_siege = under_siege.concat (under_siege);
+                                        }
+                                        var __iterable0__ = under_siege;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var room = __iterable0__ [__index0__];
+                                            if (!(len (not_under_siege))) {
+                                                break;
+                                            }
+                                            var closest = null;
+                                            var closest_index = null;
+                                            var closest_distance = Infinity;
+                                            for (var i = 0; i < len (not_under_siege); i++) {
+                                                var room_to_check = not_under_siege [i];
+                                                var distance = Game.map.getLinearRoomDistance (room.name, room_to_check.name, true);
+                                                if (distance < closest_distance) {
+                                                    var closest = room_to_check;
+                                                    var closest_distance = distance;
+                                                    var closest_index = i;
+                                                }
+                                            }
+                                            not_under_siege.splice (closest_index, 1);
+                                            closest.set_supporting_room (room.name);
+                                        }
+                                    }
+                                    else {
+                                        var __iterable0__ = not_under_siege;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var room = __iterable0__ [__index0__];
+                                            room.set_supporting_room (under_siege [0].name);
+                                        }
+                                    }
+                                }
+                                else {
+                                    var __iterable0__ = under_siege;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var room = __iterable0__ [__index0__];
+                                        room.set_supporting_room (null);
+                                    }
+                                }
+                            }
+                            else if (len (not_under_siege) > 0) {
+                                if (len (not_under_siege) > 1) {
+                                    var smallest_room = null;
+                                    var smallest_room_smallest_wall = Infinity;
+                                    var biggest_room_smallest_wall = -(Infinity);
+                                    var __iterable0__ = not_under_siege;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var room = __iterable0__ [__index0__];
+                                        var hits = room.calculate_smallest_wall ();
+                                        if (hits < smallest_room_smallest_wall) {
+                                            var smallest_room_smallest_wall = hits;
+                                            var smallest_room = room.name;
+                                        }
+                                        else if (hits > biggest_room_smallest_wall) {
+                                            var biggest_room_smallest_wall = hits;
+                                        }
+                                    }
+                                    if (biggest_room_smallest_wall - smallest_room_smallest_wall > _min_wall_hit_difference_to_balance) {
+                                        var any_above_should_support = (biggest_room_smallest_wall + smallest_room_smallest_wall) / 2;
+                                        var __iterable0__ = not_under_siege;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var room = __iterable0__ [__index0__];
+                                            if (room.rcl >= 8) {
+                                                var hits = room.calculate_smallest_wall ();
+                                                if (hits >= any_above_should_support) {
+                                                    room.set_supporting_room (smallest_room);
+                                                }
+                                                else {
+                                                    room.set_supporting_room (null);
+                                                }
+                                            }
+                                            else {
+                                                room.set_supporting_room (null);
+                                            }
+                                        }
+                                    }
+                                    else {
+                                        var __iterable0__ = not_under_siege;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var room = __iterable0__ [__index0__];
+                                            room.set_supporting_room (null);
+                                        }
+                                    }
+                                }
+                                else {
+                                    not_under_siege [0].set_supporting_room (null);
+                                }
+                            }
+                        });}
+                    });
+                    __pragma__ ('<use>' +
+                        'constants' +
+                        'jstools.screeps_constants' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.StateCalc = StateCalc;
+                        __all__._min_wall_hit_difference_to_balance = _min_wall_hit_difference_to_balance;
+                        __all__.new_map = new_map;
+                        __all__.new_set = new_set;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
                     __pragma__ ('</all>')
                 }
             }
@@ -14678,18 +15448,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -14762,12 +15562,12 @@ function main () {
                         return max (work, carry);
                     };
                     var update_targeters_memory_0_to_1 = function (targeters) {
-                        var string_target_names_to_numbers = dict ({'source': 0, 'generic_deposit': 1, 'sccf': 2, 'sccf2': 3, 'hf': 4, 'refill': 5, 'construction_site': 10, 'repair_site': 11, 'extra_repair_site': 12, 'ders': 13, 'destruction_site': 14, 'spawn_deposit_site': 20, 'fillable_tower': 21, 'remote_miner_mine': 30, 'remote_mine_hauler': 31, 'top_priority_reserve': 32, 'rampart_def': 40});
-                        var new_targeters = dict ({});
+                        var string_target_names_to_numbers = {'source': 0, 'generic_deposit': 1, 'sccf': 2, 'sccf2': 3, 'hf': 4, 'refill': 5, 'construction_site': 10, 'repair_site': 11, 'extra_repair_site': 12, 'ders': 13, 'destruction_site': 14, 'spawn_deposit_site': 20, 'fillable_tower': 21, 'remote_miner_mine': 30, 'remote_mine_hauler': 31, 'top_priority_reserve': 32, 'rampart_def': 40};
+                        var new_targeters = {};
                         var __iterable0__ = Object.keys (targeters);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var targeter_id = __iterable0__ [__index0__];
-                            var new_targeter_map = dict ({});
+                            var new_targeter_map = {};
                             new_targeters [targeter_id] = new_targeter_map;
                             var __iterable1__ = Object.keys (targeters [targeter_id]);
                             for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
@@ -14802,33 +15602,33 @@ function main () {
                     var TargetMind = __class__ ('TargetMind', [object], {
                         get __init__ () {return __get__ (this, function (self) {
                             if (!(Memory.targets)) {
-                                Memory.targets = dict ({'targets_used': dict ({}), 'targeters_using': dict ({}), 'last_clear': Game.time, 'version': 1});
+                                Memory.targets = {'targets_used': {}, 'targeters_using': {}, 'last_clear': Game.time, 'version': 1};
                             }
                             self.mem = Memory.targets;
                             if (!('version' in self.mem) || self.mem.version < 1) {
-                                var targeters = self.mem.targeters_using || dict ({});
+                                var targeters = self.mem.targeters_using || {};
                                 self.mem.targeters_using = update_targeters_memory_0_to_1 (targeters);
                                 self._recreate_all_from_targeters ();
                                 self.mem.version = 1;
                                 self.mem.last_clear = Game.time;
                             }
                             if (!(self.mem.targets_used)) {
-                                self.mem.targets_used = dict ({});
+                                self.mem.targets_used = {};
                             }
                             if (!(self.mem.targets_workforce)) {
-                                self.mem.targets_workforce = dict ({});
+                                self.mem.targets_workforce = {};
                             }
                             if (!(self.mem.targeters_using)) {
-                                self.mem.targeters_using = dict ({});
+                                self.mem.targeters_using = {};
                             }
                             if (!(self.mem.targets_stealable)) {
-                                self.mem.targets_stealable = dict ({});
+                                self.mem.targets_stealable = {};
                             }
                             if ((self.mem.last_clear || 0) + 1000 < Game.time) {
                                 self._recreate_all_from_targeters ();
                                 self.mem.last_clear = Game.time;
                             }
-                            self.find_functions = dict ([[target_source, self._find_new_source], [target_construction, self._find_new_construction_site], [target_repair, self._find_new_repair_site], [target_big_repair, self._find_new_big_repair_site], [target_big_big_repair, self._find_new_big_big_repair_site], [target_destruction_site, self._find_new_destruction_site], [target_spawn_deposit, self._find_new_spawn_fill_site], [target_tower_fill, self._find_new_tower], [target_energy_miner_mine, self._find_new_energy_miner_mine], [target_energy_hauler_mine, self._find_new_energy_hauler_mine], [target_reserve_now, self._find_top_priority_reservable_room], [target_closest_energy_site, self._find_closest_deposit_site], [target_single_flag, self._find_closest_flag], [target_single_flag2, self._find_closest_flag2], [target_home_flag, self._find_closest_home_flag], [target_refill, self._find_refill_target], [target_rampart_defense, self._find_new_defendable_wall]]);
+                            self.find_functions = {[target_source]: self._find_new_source, [target_construction]: self._find_new_construction_site, [target_repair]: self._find_new_repair_site, [target_big_repair]: self._find_new_big_repair_site, [target_big_big_repair]: self._find_new_big_big_repair_site, [target_destruction_site]: self._find_new_destruction_site, [target_spawn_deposit]: self._find_new_spawn_fill_site, [target_tower_fill]: self._find_new_tower, [target_energy_miner_mine]: self._find_new_energy_miner_mine, [target_energy_hauler_mine]: self._find_new_energy_hauler_mine, [target_reserve_now]: self._find_top_priority_reservable_room, [target_closest_energy_site]: self._find_closest_deposit_site, [target_single_flag]: self._find_closest_flag, [target_single_flag2]: self._find_closest_flag2, [target_home_flag]: self._find_closest_home_flag, [target_refill]: self._find_refill_target, [target_rampart_defense]: self._find_new_defendable_wall};
                         }, '__init__');},
                         get __get_targets () {return __get__ (this, function (self) {
                             return self.mem.targets_used;
@@ -14858,11 +15658,11 @@ function main () {
                             return self.targets [ttype] && self.targets [ttype] [target] && self.targets_workforce [ttype] && self.targets_workforce [ttype] [target] || 0;
                         }, 'workforce_of');},
                         get creeps_now_targeting () {return __get__ (this, function (self, ttype, target_id) {
-                            return (ttype in self.reverse_targets) && self.reverse_targets [ttype] [target_id] || list ([]);
+                            return (ttype in self.reverse_targets) && self.reverse_targets [ttype] [target_id] || [];
                         }, 'creeps_now_targeting');},
                         get _register_new_targeter () {return __get__ (this, function (self, ttype, targeter_id, target_id) {
                             if (!(targeter_id in self.targeters)) {
-                                self.targeters [targeter_id] = dict ([[ttype, target_id]]);
+                                self.targeters [targeter_id] = {[ttype]: target_id};
                             }
                             else if (!(ttype in self.targeters [targeter_id])) {
                                 self.targeters [targeter_id] [ttype] = target_id;
@@ -14879,7 +15679,7 @@ function main () {
                                 }
                             }
                             if (!(ttype in self.targets)) {
-                                self.targets [ttype] = dict ([[target_id, 1]]);
+                                self.targets [ttype] = {[target_id]: 1};
                             }
                             else if (!(self.targets [ttype] [target_id])) {
                                 self.targets [ttype] [target_id] = 1;
@@ -14888,7 +15688,7 @@ function main () {
                                 self.targets [ttype] [target_id]++;
                             }
                             if (!(ttype in self.targets_workforce)) {
-                                self.targets_workforce [ttype] = dict ([[target_id, _mass_count (targeter_id)]]);
+                                self.targets_workforce [ttype] = {[target_id]: _mass_count (targeter_id)};
                             }
                             else if (!(target_id in self.targets_workforce [ttype])) {
                                 self.targets_workforce [ttype] [target_id] = _mass_count (targeter_id);
@@ -14897,19 +15697,19 @@ function main () {
                                 self.targets_workforce [ttype] [target_id] += _mass_count (targeter_id);
                             }
                             if (!(ttype in self.reverse_targets)) {
-                                self.reverse_targets [ttype] = dict ([[target_id, list ([targeter_id])]]);
+                                self.reverse_targets [ttype] = {[target_id]: [targeter_id]};
                             }
                             else if (!(target_id in self.reverse_targets [ttype])) {
-                                self.reverse_targets [ttype] [target_id] = list ([targeter_id]);
+                                self.reverse_targets [ttype] [target_id] = [targeter_id];
                             }
                             else {
                                 self.reverse_targets [ttype] [target_id].push (targeter_id);
                             }
                         }, '_register_new_targeter');},
                         get _recreate_all_from_targeters () {return __get__ (this, function (self) {
-                            var new_targets = dict ({});
-                            var new_workforce = dict ({});
-                            var new_reverse = dict ({});
+                            var new_targets = {};
+                            var new_workforce = {};
+                            var new_reverse = {};
                             var __iterable0__ = Object.keys (self.targeters);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var targeter_id = __iterable0__ [__index0__];
@@ -14927,7 +15727,7 @@ function main () {
                                         }
                                     }
                                     else {
-                                        new_targets [ttype] = dict ([[target_id, 1]]);
+                                        new_targets [ttype] = {[target_id]: 1};
                                     }
                                     if ((ttype in new_workforce)) {
                                         if ((target_id in new_workforce [ttype])) {
@@ -14938,18 +15738,18 @@ function main () {
                                         }
                                     }
                                     else {
-                                        new_workforce [ttype] = dict ([[target_id, mass]]);
+                                        new_workforce [ttype] = {[target_id]: mass};
                                     }
                                     if ((ttype in new_reverse)) {
                                         if ((target_id in new_reverse [ttype])) {
                                             new_reverse [ttype] [target_id].push (targeter_id);
                                         }
                                         else {
-                                            new_reverse [ttype] [target_id] = list ([targeter_id]);
+                                            new_reverse [ttype] [target_id] = [targeter_id];
                                         }
                                     }
                                     else {
-                                        new_reverse [ttype] = dict ([[target_id, list ([targeter_id])]]);
+                                        new_reverse [ttype] = {[target_id]: [targeter_id]};
                                     }
                                 }
                             }
@@ -15016,7 +15816,7 @@ function main () {
                                         }
                                     }
                                     else {
-                                        self.targets_workforce [ttype] = dict ([[target, new_mass]]);
+                                        self.targets_workforce [ttype] = {[target]: new_mass};
                                     }
                                     if ((ttype in self.reverse_targets) && (target in self.reverse_targets [ttype])) {
                                         var index = self.reverse_targets [ttype] [target].indexOf (old_targeter_id);
@@ -15030,13 +15830,13 @@ function main () {
                         }, '_move_targets');},
                         get _find_new_target () {return __get__ (this, function (self, ttype, creep, extra_var) {
                             if (!(ttype in self.targets)) {
-                                self.targets [ttype] = dict ({});
+                                self.targets [ttype] = {};
                             }
                             if (!(ttype in self.targets_workforce)) {
-                                self.targets_workforce [ttype] = dict ({});
+                                self.targets_workforce [ttype] = {};
                             }
                             if (!(ttype in self.reverse_targets)) {
-                                self.reverse_targets [ttype] = dict ({});
+                                self.reverse_targets [ttype] = {};
                             }
                             var func = self.find_functions [ttype];
                             if (func) {
@@ -15335,7 +16135,7 @@ function main () {
                             return best_id;
                         }, '_find_new_big_big_repair_site');},
                         get _find_new_destruction_site () {return __get__ (this, function (self, creep) {
-                            var construct_count = dict ({});
+                            var construct_count = {};
                             var __iterable0__ = creep.home.building.get_destruction_targets ();
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var struct_id = __iterable0__ [__index0__];
@@ -15728,6 +16528,8 @@ function main () {
                         __all__.default_roles = default_roles;
                         __all__.flags = flags;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.locations = locations;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
@@ -15742,6 +16544,36 @@ function main () {
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -15800,10 +16632,58 @@ function main () {
     );
     __nest__ (
         __all__,
+        'jstools.errorlog', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
+                    var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
+                    var report_error = function (place, err, description) {
+                        if (err == undefined) {
+                            if (err === null) {
+                                var err_description = 'null error';
+                            }
+                            else if (err === undefined) {
+                                var err_description = 'undefined error';
+                            }
+                            else {
+                                var err_description = err + ' error';
+                            }
+                        }
+                        else if (err.stack == undefined) {
+                            var err_description = 'error has undefined stack: {}'.format (err);
+                        }
+                        else {
+                            var err_description = "error '{}' has stack:\n{}".format (err, err.stack);
+                        }
+                        var msg = '[{}][{}] Error: {}\n{}'.format (place, Game.time, description, err_description);
+                        print (msg);
+                        Game.notify (msg);
+                        if (err == undefined) {
+                            throw err;
+                        }
+                    };
+                    __pragma__ ('<use>' +
+                        'jstools.screeps_constants' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.new_map = new_map;
+                        __all__.new_set = new_set;
+                        __all__.report_error = report_error;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
         'jstools.memory_info', {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var _path_cached_data_key_full_path = __init__ (__world__.empire.honey)._path_cached_data_key_full_path;
+                    var _path_cached_data_key_length = __init__ (__world__.empire.honey)._path_cached_data_key_length;
+                    var _path_cached_data_key_metadata = __init__ (__world__.empire.honey)._path_cached_data_key_metadata;
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var analyse_memory = function (path) {
@@ -15837,11 +16717,69 @@ function main () {
                         }
                         return total_count;
                     };
+                    var cache_stats = function () {
+                        var total_path_v1 = 0;
+                        var total_path_v2 = 0;
+                        var total_path_v3 = 0;
+                        var total_path_other = 0;
+                        var total_cost_matrix = 0;
+                        var total_other = 0;
+                        var __iterable0__ = Object.keys (Memory.cache);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var key = __iterable0__ [__index0__];
+                            if (key.startswith ('path_')) {
+                                var value = Memory.cache [key];
+                                if ((_path_cached_data_key_full_path in value)) {
+                                    total_path_v1++;
+                                }
+                                else if ((_path_cached_data_key_length in value)) {
+                                    total_path_v2++;
+                                }
+                                else if ((_path_cached_data_key_metadata in value)) {
+                                    total_path_v3++;
+                                }
+                                else {
+                                    total_path_other++;
+                                }
+                            }
+                            else if (key.includes ('cost_matrix')) {
+                                total_cost_matrix++;
+                            }
+                            else {
+                                total_other++;
+                            }
+                        }
+                        var result = ['Cache Stats:'];
+                        if (total_path_v1 > 0) {
+                            result.append ('Version 1 Paths: {}'.format (total_path_v1));
+                        }
+                        if (total_path_v2 > 0) {
+                            result.append ('Version 2 Paths: {}'.format (total_path_v2));
+                        }
+                        if (total_path_v3 > 0) {
+                            result.append ('Version 2 Paths: {}'.format (total_path_v3));
+                        }
+                        if (total_path_other > 0) {
+                            result.append ('Other Paths: {}'.format (total_path_other));
+                        }
+                        if (total_cost_matrix > 0) {
+                            result.append ('Cost Matrices: {}'.format (total_cost_matrix));
+                        }
+                        if (total_other > 0) {
+                            result.append ('Other: {}'.format (total_other));
+                        }
+                        return '\n'.join (result);
+                    };
                     __pragma__ ('<use>' +
+                        'empire.honey' +
                         'jstools.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
+                        __all__._path_cached_data_key_full_path = _path_cached_data_key_full_path;
+                        __all__._path_cached_data_key_length = _path_cached_data_key_length;
+                        __all__._path_cached_data_key_metadata = _path_cached_data_key_metadata;
                         __all__.analyse_memory = analyse_memory;
+                        __all__.cache_stats = cache_stats;
                         __all__.count_total_keys = count_total_keys;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
@@ -15868,7 +16806,7 @@ function main () {
                     var prep_recording = function () {
                         _averages = Memory ['_averages'];
                         if (!(_averages)) {
-                            var __left0__ = dict ({});
+                            var __left0__ = {};
                             _averages = __left0__;
                             Memory ['_averages'] = __left0__;
                         }
@@ -15877,7 +16815,7 @@ function main () {
                         if (_sub_recording_now) {
                             _sub_records = _averages ['_sub_records'];
                             if (!(_sub_records)) {
-                                var __left0__ = dict ({});
+                                var __left0__ = {};
                                 _sub_records = __left0__;
                                 _averages ['_sub_records'] = __left0__;
                             }
@@ -15895,7 +16833,7 @@ function main () {
                         Memory ['_averages'] ['_recording_now'] = true;
                     };
                     var reset_records = function () {
-                        Memory ['_averages'] = dict ({});
+                        Memory ['_averages'] = {};
                     };
                     var start_record = function () {
                         if (_recording_now) {
@@ -15910,7 +16848,7 @@ function main () {
                                 _averages [identity].time += end - _single_record_start;
                             }
                             else {
-                                _averages [identity] = dict ({'calls': 1, 'time': end - _single_record_start});
+                                _averages [identity] = {'calls': 1, 'time': end - _single_record_start};
                             }
                         }
                     };
@@ -15927,7 +16865,7 @@ function main () {
                                 _sub_records [identity].time += end - _sub_record_start;
                             }
                             else {
-                                _sub_records [identity] = dict ({'calls': 1, 'time': end - _sub_record_start});
+                                _sub_records [identity] = {'calls': 1, 'time': end - _sub_record_start};
                             }
                             _sub_record_start = null;
                         }
@@ -15975,7 +16913,7 @@ function main () {
                                 _averages ['memory.init'].time += time;
                             }
                             else {
-                                _averages ['memory.init'] = dict ({'calls': 1, 'time': time});
+                                _averages ['memory.init'] = {'calls': 1, 'time': time};
                             }
                         }
                     };
@@ -15986,7 +16924,7 @@ function main () {
                                 _averages ['code.compile'].time += time;
                             }
                             else {
-                                _averages ['code.compile'] = dict ({'calls': 1, 'time': time});
+                                _averages ['code.compile'] = {'calls': 1, 'time': time};
                             }
                         }
                     };
@@ -15997,7 +16935,7 @@ function main () {
                         return num.toFixed (val);
                     };
                     var output_records_full = function () {
-                        var rows = list (['time\tcalls\ttime/t\tcalls/t\taverage\tname']);
+                        var rows = ['time\tcalls\ttime/t\tcalls/t\taverage\tname'];
                         var total_time_in_records = 0;
                         var __iterable0__ = _ (_averages).pairs ().sortBy ((function __lambda__ (t) {
                             return -(t [1].time);
@@ -16026,7 +16964,7 @@ function main () {
                         if (!(_averages ['_ticks'])) {
                             return 'no data collected';
                         }
-                        var rows = list (['time/t\tcalls/t\taverage\tname']);
+                        var rows = ['time/t\tcalls/t\taverage\tname'];
                         var total_time_in_records = 0;
                         var __iterable0__ = _ (_averages).pairs ().sortBy ((function __lambda__ (t) {
                             return -(t [1].time);
@@ -16055,7 +16993,7 @@ function main () {
                         if (!(_sub_records ['_ticks'])) {
                             return 'no data collected';
                         }
-                        var rows = list (['time/t\tcalls/t\taverage\tname']);
+                        var rows = ['time/t\tcalls/t\taverage\tname'];
                         var total_time_in_records = 0;
                         var __iterable0__ = _ (_sub_records).pairs ().sortBy ((function __lambda__ (t) {
                             return -(t [1].time);
@@ -16269,12 +17207,12 @@ function main () {
                     var SUB_WALL = 120;
                     var SUB_ROAD = 121;
                     var SUB_CONTAINER = 122;
-                    var flag_definitions = dict ([[LOCAL_MINE, tuple ([COLOR_BLUE, COLOR_PURPLE])], [DEPOT, tuple ([COLOR_BLUE, COLOR_BLUE])], [SPAWN_FILL_WAIT, tuple ([COLOR_BLUE, COLOR_CYAN])], [UPGRADER_SPOT, tuple ([COLOR_BLUE, COLOR_GREEN])], [SLIGHTLY_AVOID, tuple ([COLOR_BLUE, COLOR_GREY])], [SK_LAIR_SOURCE_NOTED, tuple ([COLOR_BLUE, COLOR_WHITE])], [TD_H_H_STOP, tuple ([COLOR_CYAN, COLOR_RED])], [TD_H_D_STOP, tuple ([COLOR_CYAN, COLOR_PURPLE])], [TD_D_GOAD, tuple ([COLOR_CYAN, COLOR_BLUE])], [ATTACK_DISMANTLE, tuple ([COLOR_CYAN, COLOR_GREEN])], [RAID_OVER, tuple ([COLOR_CYAN, COLOR_YELLOW])], [ENERGY_GRAB, tuple ([COLOR_CYAN, COLOR_ORANGE])], [SCOUT, tuple ([COLOR_CYAN, COLOR_BROWN])], [RANGED_DEFENSE, tuple ([COLOR_CYAN, COLOR_CYAN])], [ATTACK_POWER_BANK, tuple ([COLOR_CYAN, COLOR_GREY])], [REAP_POWER_BANK, tuple ([COLOR_CYAN, COLOR_WHITE])], [REMOTE_MINE, tuple ([COLOR_GREEN, COLOR_CYAN])], [CLAIM_LATER, tuple ([COLOR_GREEN, COLOR_PURPLE])], [RESERVE_NOW, tuple ([COLOR_GREEN, COLOR_GREY])], [RAMPART_DEFENSE, tuple ([COLOR_GREEN, COLOR_GREEN])], [REROUTE, tuple ([COLOR_WHITE, COLOR_GREEN])], [REROUTE_DESTINATION, tuple ([COLOR_WHITE, COLOR_YELLOW])]]);
-                    var main_to_flag_primary = dict ([[MAIN_DESTRUCT, COLOR_RED], [MAIN_BUILD, COLOR_PURPLE]]);
-                    var sub_to_flag_secondary = dict ([[SUB_WALL, COLOR_RED], [SUB_RAMPART, COLOR_PURPLE], [SUB_EXTENSION, COLOR_BLUE], [SUB_SPAWN, COLOR_CYAN], [SUB_TOWER, COLOR_GREEN], [SUB_STORAGE, COLOR_YELLOW], [SUB_LINK, COLOR_ORANGE], [SUB_EXTRACTOR, COLOR_BROWN], [SUB_CONTAINER, COLOR_BROWN], [SUB_ROAD, COLOR_WHITE], [SUB_TERMINAL, COLOR_GREY]]);
-                    var flag_secondary_to_sub = dict ([[COLOR_RED, SUB_WALL], [COLOR_PURPLE, SUB_RAMPART], [COLOR_BLUE, SUB_EXTENSION], [COLOR_CYAN, SUB_SPAWN], [COLOR_GREEN, SUB_TOWER], [COLOR_YELLOW, SUB_STORAGE], [COLOR_ORANGE, SUB_LINK], [COLOR_BROWN, SUB_EXTRACTOR], [COLOR_GREY, SUB_TERMINAL], [COLOR_WHITE, SUB_ROAD]]);
-                    var flag_sub_to_structure_type = dict ([[SUB_SPAWN, STRUCTURE_SPAWN], [SUB_EXTENSION, STRUCTURE_EXTENSION], [SUB_RAMPART, STRUCTURE_RAMPART], [SUB_WALL, STRUCTURE_WALL], [SUB_STORAGE, STRUCTURE_STORAGE], [SUB_TOWER, STRUCTURE_TOWER], [SUB_LINK, STRUCTURE_LINK], [SUB_EXTRACTOR, STRUCTURE_EXTRACTOR], [SUB_CONTAINER, STRUCTURE_CONTAINER], [SUB_ROAD, STRUCTURE_ROAD], [SUB_TERMINAL, STRUCTURE_TERMINAL]]);
-                    var structure_type_to_flag_sub = dict ([[STRUCTURE_SPAWN, SUB_SPAWN], [STRUCTURE_EXTENSION, SUB_EXTENSION], [STRUCTURE_RAMPART, SUB_RAMPART], [STRUCTURE_WALL, SUB_WALL], [STRUCTURE_STORAGE, SUB_STORAGE], [STRUCTURE_TOWER, SUB_TOWER], [STRUCTURE_LINK, SUB_LINK], [STRUCTURE_EXTRACTOR, SUB_EXTRACTOR], [STRUCTURE_CONTAINER, SUB_CONTAINER], [STRUCTURE_ROAD, SUB_ROAD], [STRUCTURE_TERMINAL, SUB_TERMINAL]]);
+                    var flag_definitions = {[LOCAL_MINE]: [COLOR_BLUE, COLOR_PURPLE], [DEPOT]: [COLOR_BLUE, COLOR_BLUE], [SPAWN_FILL_WAIT]: [COLOR_BLUE, COLOR_CYAN], [UPGRADER_SPOT]: [COLOR_BLUE, COLOR_GREEN], [SLIGHTLY_AVOID]: [COLOR_BLUE, COLOR_GREY], [SK_LAIR_SOURCE_NOTED]: [COLOR_BLUE, COLOR_WHITE], [TD_H_H_STOP]: [COLOR_CYAN, COLOR_RED], [TD_H_D_STOP]: [COLOR_CYAN, COLOR_PURPLE], [TD_D_GOAD]: [COLOR_CYAN, COLOR_BLUE], [ATTACK_DISMANTLE]: [COLOR_CYAN, COLOR_GREEN], [RAID_OVER]: [COLOR_CYAN, COLOR_YELLOW], [ENERGY_GRAB]: [COLOR_CYAN, COLOR_ORANGE], [SCOUT]: [COLOR_CYAN, COLOR_BROWN], [RANGED_DEFENSE]: [COLOR_CYAN, COLOR_CYAN], [ATTACK_POWER_BANK]: [COLOR_CYAN, COLOR_GREY], [REAP_POWER_BANK]: [COLOR_CYAN, COLOR_WHITE], [REMOTE_MINE]: [COLOR_GREEN, COLOR_CYAN], [CLAIM_LATER]: [COLOR_GREEN, COLOR_PURPLE], [RESERVE_NOW]: [COLOR_GREEN, COLOR_GREY], [RAMPART_DEFENSE]: [COLOR_GREEN, COLOR_GREEN], [REROUTE]: [COLOR_WHITE, COLOR_GREEN], [REROUTE_DESTINATION]: [COLOR_WHITE, COLOR_YELLOW]};
+                    var main_to_flag_primary = {[MAIN_DESTRUCT]: COLOR_RED, [MAIN_BUILD]: COLOR_PURPLE};
+                    var sub_to_flag_secondary = {[SUB_WALL]: COLOR_RED, [SUB_RAMPART]: COLOR_PURPLE, [SUB_EXTENSION]: COLOR_BLUE, [SUB_SPAWN]: COLOR_CYAN, [SUB_TOWER]: COLOR_GREEN, [SUB_STORAGE]: COLOR_YELLOW, [SUB_LINK]: COLOR_ORANGE, [SUB_EXTRACTOR]: COLOR_BROWN, [SUB_CONTAINER]: COLOR_BROWN, [SUB_ROAD]: COLOR_WHITE, [SUB_TERMINAL]: COLOR_GREY};
+                    var flag_secondary_to_sub = {[COLOR_RED]: SUB_WALL, [COLOR_PURPLE]: SUB_RAMPART, [COLOR_BLUE]: SUB_EXTENSION, [COLOR_CYAN]: SUB_SPAWN, [COLOR_GREEN]: SUB_TOWER, [COLOR_YELLOW]: SUB_STORAGE, [COLOR_ORANGE]: SUB_LINK, [COLOR_BROWN]: SUB_EXTRACTOR, [COLOR_GREY]: SUB_TERMINAL, [COLOR_WHITE]: SUB_ROAD};
+                    var flag_sub_to_structure_type = {[SUB_SPAWN]: STRUCTURE_SPAWN, [SUB_EXTENSION]: STRUCTURE_EXTENSION, [SUB_RAMPART]: STRUCTURE_RAMPART, [SUB_WALL]: STRUCTURE_WALL, [SUB_STORAGE]: STRUCTURE_STORAGE, [SUB_TOWER]: STRUCTURE_TOWER, [SUB_LINK]: STRUCTURE_LINK, [SUB_EXTRACTOR]: STRUCTURE_EXTRACTOR, [SUB_CONTAINER]: STRUCTURE_CONTAINER, [SUB_ROAD]: STRUCTURE_ROAD, [SUB_TERMINAL]: STRUCTURE_TERMINAL};
+                    var structure_type_to_flag_sub = {[STRUCTURE_SPAWN]: SUB_SPAWN, [STRUCTURE_EXTENSION]: SUB_EXTENSION, [STRUCTURE_RAMPART]: SUB_RAMPART, [STRUCTURE_WALL]: SUB_WALL, [STRUCTURE_STORAGE]: SUB_STORAGE, [STRUCTURE_TOWER]: SUB_TOWER, [STRUCTURE_LINK]: SUB_LINK, [STRUCTURE_EXTRACTOR]: SUB_EXTRACTOR, [STRUCTURE_CONTAINER]: SUB_CONTAINER, [STRUCTURE_ROAD]: SUB_ROAD, [STRUCTURE_TERMINAL]: SUB_TERMINAL};
                     var _REFRESH_EVERY = 50;
                     var _last_flag_len = 0;
                     var _last_checked_flag_len = 0;
@@ -16321,10 +17259,10 @@ function main () {
                             var room = room.room;
                         }
                         if (room.name) {
-                            return tuple ([room, room.name]);
+                            return [room, room.name];
                         }
                         else {
-                            return tuple ([Game.rooms [room], room]);
+                            return [Game.rooms [room], room];
                         }
                     };
                     var __get_cache = function (room_name, flag_type) {
@@ -16350,10 +17288,10 @@ function main () {
                         }
                         var flag_def = flag_definitions [flag_type];
                         if (room) {
-                            var flag_list = room.find (FIND_FLAGS, dict ({'filter': dict ({'color': flag_def [0], 'secondaryColor': flag_def [1]})}));
+                            var flag_list = room.find (FIND_FLAGS, {'filter': {'color': flag_def [0], 'secondaryColor': flag_def [1]}});
                         }
                         else {
-                            var flag_list = list ([]);
+                            var flag_list = [];
                             var __iterable0__ = Object.keys (Game.flags);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag_name = __iterable0__ [__index0__];
@@ -16367,7 +17305,7 @@ function main () {
                             _room_flag_cache.get (room_name).set (flag_type, flag_list);
                         }
                         else {
-                            _room_flag_cache.set (room_name, new_map (list ([list ([flag_type, flag_list])])));
+                            _room_flag_cache.set (room_name, new_map ([[flag_type, flag_list]]));
                         }
                         return flag_list;
                     };
@@ -16381,15 +17319,15 @@ function main () {
                         }
                         var flag_primary = main_to_flag_primary [main_type];
                         if (room) {
-                            var flag_list = list ([]);
-                            var __iterable0__ = room.find (FIND_FLAGS, dict ({'filter': dict ({'color': flag_primary})}));
+                            var flag_list = [];
+                            var __iterable0__ = room.find (FIND_FLAGS, {'filter': {'color': flag_primary}});
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
-                                flag_list.append (tuple ([flag, flag_secondary_to_sub [flag.secondaryColor]]));
+                                flag_list.append ([flag, flag_secondary_to_sub [flag.secondaryColor]]);
                             }
                         }
                         else {
-                            var flag_list = list ([]);
+                            var flag_list = [];
                             var __iterable0__ = Object.keys (Game.flags);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var name = __iterable0__ [__index0__];
@@ -16397,7 +17335,7 @@ function main () {
                                 if (flag.pos.roomName == room_name && flag.color == flag_primary) {
                                     var secondary = flag_secondary_to_sub [flag.secondaryColor];
                                     if (secondary) {
-                                        flag_list.append (list ([flag, secondary]));
+                                        flag_list.append ([flag, secondary]);
                                     }
                                 }
                             }
@@ -16406,7 +17344,7 @@ function main () {
                             _room_flag_cache.get (room_name).set (main_type, flag_list);
                         }
                         else {
-                            _room_flag_cache.set (room_name, new_map (list ([list ([main_type, flag_list])])));
+                            _room_flag_cache.set (room_name, new_map ([[main_type, flag_list]]));
                         }
                         return flag_list;
                     };
@@ -16422,10 +17360,10 @@ function main () {
                         var primary = main_to_flag_primary [main_type];
                         var secondary = sub_to_flag_secondary [sub_type];
                         if (room) {
-                            var flag_list = room.find (FIND_FLAGS, dict ({'filter': dict ({'color': primary, 'secondaryColor': secondary})}));
+                            var flag_list = room.find (FIND_FLAGS, {'filter': {'color': primary, 'secondaryColor': secondary}});
                         }
                         else {
-                            var flag_list = list ([]);
+                            var flag_list = [];
                             var __iterable0__ = Object.keys (Game.flags);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag_name = __iterable0__ [__index0__];
@@ -16439,7 +17377,7 @@ function main () {
                             _room_flag_cache.get (room_name).set (type_name, flag_list);
                         }
                         else {
-                            _room_flag_cache.set (room_name, new_map (list ([list ([type_name, flag_list])])));
+                            _room_flag_cache.set (room_name, new_map ([[type_name, flag_list]]));
                         }
                         return flag_list;
                     };
@@ -16458,7 +17396,7 @@ function main () {
                             return _global_flag_cache.get (flag_type);
                         }
                         var flag_def = flag_definitions [flag_type];
-                        var flag_list = list ([]);
+                        var flag_list = [];
                         var __iterable0__ = Object.keys (Game.flags);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var name = __iterable0__ [__index0__];
@@ -16485,7 +17423,7 @@ function main () {
                         }
                         var primary = main_to_flag_primary [main_type];
                         var secondary = sub_to_flag_secondary [sub_type];
-                        var flag_list = list ([]);
+                        var flag_list = [];
                         var __iterable0__ = Object.keys (Game.flags);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var name = __iterable0__ [__index0__];
@@ -16510,7 +17448,7 @@ function main () {
                             return _global_flag_cache.get (main_type);
                         }
                         var primary = main_to_flag_primary [main_type];
-                        var flag_list = list ([]);
+                        var flag_list = [];
                         var __iterable0__ = Object.keys (Game.flags);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var name = __iterable0__ [__index0__];
@@ -16518,7 +17456,7 @@ function main () {
                             if (flag.color == primary) {
                                 var secondary = flag_secondary_to_sub [flag.secondaryColor];
                                 if (secondary) {
-                                    flag_list.append (list ([flag, secondary]));
+                                    flag_list.append ([flag, secondary]);
                                 }
                             }
                         }
@@ -16571,10 +17509,10 @@ function main () {
                             var known_position = Game.spawns [Object.keys (Game.spawns) [0]].pos;
                             var flag_name = known_position.createFlag (name, primary, secondary);
                             if (Memory.flags_to_move) {
-                                Memory.flags_to_move.push (tuple ([flag_name, position]));
+                                Memory.flags_to_move.push ([flag_name, position]);
                             }
                             else {
-                                Memory.flags_to_move = list ([tuple ([flag_name, position])]);
+                                Memory.flags_to_move = [[flag_name, position]];
                             }
                             return flag_name;
                         }
@@ -16656,7 +17594,7 @@ function main () {
                         else {
                             var flag_def = flag_definitions [main];
                             if (!(flag_def)) {
-                                return list ([]);
+                                return [];
                             }
                             return _.find (room.look_at (LOOK_FLAGS, position), (function __lambda__ (f) {
                                 return f.color == flag_def [0] && f.secondaryColor == flag_def [1];
@@ -16788,17 +17726,17 @@ function main () {
                         if (hint === undefined) {
                             var hint = null;
                         }
-                        Object.defineProperty (this, 'hint', dict ({'get': () => hint
-                        , 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                        Object.defineProperty (this, 'hint', {'get': () => hint
+                        , 'set': _set_hint, 'enumerable': true, 'configurable': true});
                         return hint;
                     };
                     var _set_hint = function (hint) {
-                        Object.defineProperty (this, 'hint', dict ({'get': () => hint
-                        , 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                        Object.defineProperty (this, 'hint', {'get': () => hint
+                        , 'set': _set_hint, 'enumerable': true, 'configurable': true});
                         _mem_hints [this.name] = hint;
                     };
                     var _deserialized_pos_to_string = function () {
-                        var things = list (['[Location ', this.name]);
+                        var things = ['[Location ', this.name];
                         if (this.hint) {
                             things.push (' (type: ', this.hint, ')');
                         }
@@ -16806,7 +17744,7 @@ function main () {
                         return ''.join (things);
                     };
                     DeserializedPos.prototype.py_update = _update_deserialized_pos_xy;
-                    Object.defineProperty (DeserializedPos.prototype, 'hint', dict ({'get': _get_hint, 'set': _set_hint, 'enumerable': true, 'configurable': true}));
+                    Object.defineProperty (DeserializedPos.prototype, 'hint', {'get': _get_hint, 'set': _set_hint, 'enumerable': true, 'configurable': true});
                     DeserializedPos.prototype.toString = _deserialized_pos_to_string;
                     var _deserialize = function (string, name) {
                         return new DeserializedPos (string, name);
@@ -16823,7 +17761,7 @@ function main () {
                             __except0__.__cause__ = null;
                             throw __except0__;
                         }
-                        var parts = list ([position.x | position.y << 6, position.roomName]);
+                        var parts = [position.x | position.y << 6, position.roomName];
                         if (expiration != undefined) {
                             parts.append (expiration);
                         }
@@ -16831,13 +17769,13 @@ function main () {
                     };
                     var init = function () {
                         if (!('_locations' in Memory)) {
-                            Memory ['_locations'] = dict ({'-': null});
+                            Memory ['_locations'] = {'-': null};
                         }
                         if (!('_hints' in Memory)) {
-                            Memory ['_hints'] = dict ({'-': null});
+                            Memory ['_hints'] = {'-': null};
                         }
                         if (!('_exp' in Memory)) {
-                            Memory ['_exp'] = dict ({'-': null});
+                            Memory ['_exp'] = {'-': null};
                         }
                         _mem = Memory ['_locations'];
                         _mem_hints = Memory ['_hints'];
@@ -17024,6 +17962,8 @@ function main () {
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
                     var mining_paths = __init__ (__world__.creep_management.mining_paths);
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
@@ -17034,15 +17974,15 @@ function main () {
                     var _cache_key_found_roads_for_mine = 'frfm';
                     var _build_roads_constant_missing_rooms = 'mr';
                     var _build_roads_constant_not_enough_sites = 'ns';
-                    var building_priorities = dict ([[STRUCTURE_EXTENSION, 0], [STRUCTURE_SPAWN, 1], [STRUCTURE_LINK, 1], [STRUCTURE_TOWER, 2], [STRUCTURE_STORAGE, 3], [STRUCTURE_WALL, 6], [STRUCTURE_RAMPART, 6], [STRUCTURE_TERMINAL, 8]]);
-                    var rcl_lt4_priorities = dict ([[STRUCTURE_SPAWN, 0], [STRUCTURE_TOWER, 1], [STRUCTURE_EXTENSION, 2], [STRUCTURE_ROAD, 3], [STRUCTURE_WALL, 11], [STRUCTURE_RAMPART, 12]]);
+                    var building_priorities = {[STRUCTURE_EXTENSION]: 0, [STRUCTURE_SPAWN]: 1, [STRUCTURE_LINK]: 1, [STRUCTURE_TOWER]: 2, [STRUCTURE_STORAGE]: 3, [STRUCTURE_WALL]: 6, [STRUCTURE_RAMPART]: 6, [STRUCTURE_TERMINAL]: 8};
+                    var rcl_lt4_priorities = {[STRUCTURE_SPAWN]: 0, [STRUCTURE_TOWER]: 1, [STRUCTURE_EXTENSION]: 2, [STRUCTURE_ROAD]: 3, [STRUCTURE_WALL]: 11, [STRUCTURE_RAMPART]: 12};
                     var default_priority = 10;
                     var max_priority_for_non_wall_sites = 5;
                     var get_priority = function (room, structure_type) {
                         if (!(room.spawn)) {
                             if (structure_type == STRUCTURE_SPAWN) {
                                 if (room.being_bootstrapped ()) {
-                                    if (room.mem.prio_spawn) {
+                                    if (room.mem [rmem_key_building_priority_spawn]) {
                                         return -(2);
                                     }
                                     else {
@@ -17059,8 +17999,11 @@ function main () {
                                 }
                             }
                             else if ((structure_type == STRUCTURE_WALL || structure_type == STRUCTURE_EXTENSION) && room.being_bootstrapped ()) {
-                                if (room.mem.prio_walls) {
+                                if (room.mem [rmem_key_building_priority_walls]) {
                                     return -(1);
+                                }
+                                else {
+                                    return -(3);
                                 }
                             }
                         }
@@ -17084,8 +18027,8 @@ function main () {
                             return flag !== undefined && flags.flag_secondary_to_sub [flag.secondaryColor] != flags.SUB_ROAD;
                         }
                     };
-                    var protect_with_ramparts = list ([STRUCTURE_SPAWN, STRUCTURE_POWER_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_TOWER, STRUCTURE_LAB]);
-                    var rampart_priorities = dict ([[STRUCTURE_STORAGE, 1], [STRUCTURE_TOWER, 2], [STRUCTURE_SPAWN, 3], [STRUCTURE_TERMINAL, 4], [STRUCTURE_POWER_SPAWN, 5], [STRUCTURE_LAB, 6]]);
+                    var protect_with_ramparts = [STRUCTURE_SPAWN, STRUCTURE_POWER_SPAWN, STRUCTURE_TERMINAL, STRUCTURE_STORAGE, STRUCTURE_TOWER, STRUCTURE_LAB];
+                    var rampart_priorities = {[STRUCTURE_STORAGE]: 1, [STRUCTURE_TOWER]: 2, [STRUCTURE_SPAWN]: 3, [STRUCTURE_TERMINAL]: 4, [STRUCTURE_POWER_SPAWN]: 5, [STRUCTURE_LAB]: 6};
                     var ConstructionMind = __class__ ('ConstructionMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
@@ -17100,20 +18043,14 @@ function main () {
                             };
                             self.refresh_num_builders (now);
                             if (now) {
-                                delete self.room.mem.cache.building_targets;
-                                delete self.room.mem.cache.non_wall_construction_targets;
-                                delete self.room.mem.cache.sieged_walls_unbuilt;
+                                self.room.delete_cached_property ('building_targets');
+                                self.room.delete_cached_property ('non_wall_construction_targets');
+                                self.room.delete_cached_property ('sieged_walls_unbuilt');
                             }
                             else {
-                                if (('building_targets' in self.room.mem.cache)) {
-                                    self.room.mem.cache.building_targets.dead_at = Game.time + 1;
-                                }
-                                if (('non_wall_construction_targets' in self.room.mem.cache)) {
-                                    self.room.mem.cache.non_wall_construction_targets.dead_at = Game.time + 1;
-                                }
-                                if (('sieged_walls_unbuilt' in self.room.mem.cache)) {
-                                    self.room.mem.cache.sieged_walls_unbuilt.dead_at = Game.time + 1;
-                                }
+                                self.room.expire_property_next_tick ('building_targets');
+                                self.room.expire_property_next_tick ('non_wall_construction_targets');
+                                self.room.expire_property_next_tick ('sieged_walls_unbuilt');
                             }
                         });},
                         get refresh_repair_targets () {return __get__ (this, function (self, now) {
@@ -17122,31 +18059,16 @@ function main () {
                             };
                             self.refresh_num_builders (now);
                             if (now) {
-                                delete self.room.mem.cache.repair_targets;
-                                delete self.room.mem.cache.big_repair_targets;
+                                self.room.delete_cached_property ('repair_targets');
+                                self.room.delete_cached_property ('big_repair_targets');
                             }
                             else {
-                                if (('repair_targets' in self.room.mem.cache)) {
-                                    self.room.mem.cache.repair_targets.dead_at = Game.time + 1;
-                                }
-                                var big_targets = self.room.get_cached_property ('big_repair_targets');
-                                if (big_targets) {
-                                    var max_hits = self.room.max_sane_wall_hits;
-                                    var i = 0;
-                                    while (i < len (big_targets)) {
-                                        var target = Game.getObjectById (big_targets [i]);
-                                        if (!(target) || target.hits >= min (target.hitsMax, max_hits) && (target.structureType == STRUCTURE_RAMPART || target.structureType == STRUCTURE_WALL)) {
-                                            big_targets.splice (i, 1);
-                                        }
-                                        else {
-                                            i++;
-                                        }
-                                    }
-                                }
+                                self.room.expire_property_next_tick ('repair_targets');
+                                self.room.expire_property_next_tick ('big_repair_targets');
                             }
                         });},
                         get refresh_destruction_targets () {return __get__ (this, function (self) {
-                            delete self.room.mem.cache.destruct_targets;
+                            self.room.delete_cached_property ('destruct_targets');
                         });},
                         get _max_hits_at () {return __get__ (this, function (self, struct, big_repair) {
                             if (typeof big_repair == 'undefined' || (big_repair != null && big_repair .hasOwnProperty ("__kwargtrans__"))) {;
@@ -17236,13 +18158,75 @@ function main () {
                             if (parts !== null) {
                                 return parts;
                             }
-                            var construction = _.sum (self.get_construction_targets (), (function __lambda__ (c) {
-                                return c.progressTotal - c.progress;
-                            }));
+                            var construction = 0;
+                            var __iterable0__ = self.get_construction_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var site_id = __iterable0__ [__index0__];
+                                var site = Game.getObjectById (site_id);
+                                if (site && site.progressTotal) {
+                                    construction += site.progressTotal - site.progress;
+                                }
+                            }
                             var repair = _.sum (self.get_big_repair_targets (), self._hits_left_to_repair_at);
                             var total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER;
                             var total_work_parts_needed = math.ceil (total_work_ticks_needed / (CREEP_LIFE_TIME / 2));
                             self.room.store_cached_property ('max_builder_work_parts', total_work_parts_needed, 1000);
+                            return total_work_parts_needed;
+                        });},
+                        get get_max_builder_work_parts_noextra () {return __get__ (this, function (self) {
+                            var parts = self.room.get_cached_property ('max_builder_work_parts_noextra');
+                            if (parts !== null) {
+                                return parts;
+                            }
+                            var construction = 0;
+                            var __iterable0__ = self.get_construction_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var site_id = __iterable0__ [__index0__];
+                                var site = Game.getObjectById (site_id);
+                                if (site && site.progressTotal) {
+                                    construction += site.progressTotal - site.progress;
+                                }
+                            }
+                            var repair = _.sum (self.get_repair_targets (), self._hits_left_to_repair_at);
+                            var total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER;
+                            var total_work_parts_needed = math.ceil (total_work_ticks_needed / (CREEP_LIFE_TIME / 2));
+                            self.room.store_cached_property ('max_builder_work_parts_noextra', total_work_parts_needed, 1000);
+                            return total_work_parts_needed;
+                        });},
+                        get get_max_builder_work_parts_urgent () {return __get__ (this, function (self) {
+                            var parts = self.room.get_cached_property ('max_builder_work_parts_urgent_only');
+                            if (parts !== null) {
+                                return parts;
+                            }
+                            var construction = 0;
+                            var __iterable0__ = self.get_construction_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var site_id = __iterable0__ [__index0__];
+                                var site = Game.getObjectById (site_id);
+                                if (!(site)) {
+                                    continue;
+                                }
+                                if (site && (site.structureType == STRUCTURE_WALL || site.structureType == STRUCTURE_RAMPART || site.structureType == STRUCTURE_SPAWN || site.structureType == STRUCTURE_ROAD)) {
+                                    construction += site.progressTotal - site.progress;
+                                }
+                            }
+                            var repair = 0;
+                            var __iterable0__ = self.get_repair_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var struct_id = __iterable0__ [__index0__];
+                                var struct = Game.getObjectById (struct_id);
+                                if (struct && struct.hits) {
+                                    if (struct.structureType == STRUCTURE_WALL || struct.structureType == STRUCTURE_RAMPART) {
+                                        repair += max (0, self.room.min_sane_wall_hits / 2 - struct.hits);
+                                    }
+                                    else {
+                                        repair += struct.hitsMax - struct.hits;
+                                    }
+                                }
+                            }
+                            var total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER;
+                            var total_work_parts_needed = math.ceil (total_work_ticks_needed / (CREEP_LIFE_TIME / 2));
+                            self.room.store_cached_property ('max_builder_work_parts_urgent_only', total_work_parts_needed, 1000);
                             return total_work_parts_needed;
                         });},
                         get refresh_num_builders () {return __get__ (this, function (self, now) {
@@ -17250,16 +18234,16 @@ function main () {
                                 var now = false;
                             };
                             if (now) {
-                                delete self.room.mem.cache.builders_needed;
-                                delete self.room.mem.cache.max_builder_work_parts;
+                                self.room.delete_cached_property ('builders_needed');
+                                self.room.delete_cached_property ('max_builder_work_parts');
+                                self.room.delete_cached_property ('max_builder_work_parts_noextra');
+                                self.room.delete_cached_property ('max_builder_work_parts_urgent_only');
                             }
                             else {
-                                if (('builders_needed' in self.room.mem.cache)) {
-                                    self.room.mem.cache.builders_needed.dead_at = Game.time + 1;
-                                }
-                                if (('max_builder_work_parts' in self.room.mem.cache)) {
-                                    self.room.mem.cache.max_builder_work_parts.dead_at = Game.time + 1;
-                                }
+                                self.room.expire_property_next_tick ('builders_needed');
+                                self.room.expire_property_next_tick ('max_builder_work_parts');
+                                self.room.expire_property_next_tick ('max_builder_work_parts_noextra');
+                                self.room.expire_property_next_tick ('max_builder_work_parts_urgent_only');
                             }
                         });},
                         get get_high_value_construction_targets () {return __get__ (this, function (self) {
@@ -17301,8 +18285,8 @@ function main () {
                                 }
                             }
                             print ('[{}] Calculating new construction targets'.format (self.room.name));
-                            delete self.room.mem.cache.non_wall_construction_targets;
-                            delete self.room.mem.cache.seiged_walls_unbuilt;
+                            self.room.delete_cached_property ('non_wall_construction_targets');
+                            self.room.delete_cached_property ('seiged_walls_unbuilt');
                             self.refresh_num_builders (true);
                             if (self.room.spawn) {
                                 var spawn_pos = self.room.spawn.pos;
@@ -17319,11 +18303,11 @@ function main () {
                             }
                             var volatile = volatile_cache.volatile ();
                             var total_count = len (Game.constructionSites) + (volatile.get ('construction_sites_placed') || 0);
-                            var new_sites = list ([]);
+                            var new_sites = [];
                             if (_.sum (self.room.find (FIND_CONSTRUCTION_SITES), not_road) < 15 && total_count < MAX_CONSTRUCTION_SITES) {
                                 var currently_existing = _ (self.room.find (FIND_STRUCTURES)).concat (self.room.find (FIND_MY_CONSTRUCTION_SITES)).countBy ('structureType').value ();
-                                var all_walls = self.room.rcl < 5 && self.room.being_bootstrapped () && self.room.mem.prio_walls;
-                                var prio_spawn = self.room.rcl < 5 && self.room.being_bootstrapped () && !(!(self.room.mem.prio_spawn));
+                                var all_walls = self.room.rcl < 5 && self.room.being_bootstrapped () && self.room.mem [rmem_key_building_priority_walls];
+                                var prio_spawn = self.room.rcl < 5 && self.room.being_bootstrapped () && !(!(self.room.mem [rmem_key_building_priority_spawn]));
                                 var no_walls = !(all_walls) && (self.room.rcl < 3 || self.room.rcl == 3 && !(_.find (self.room.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
                                     return s.structureType == STRUCTURE_TOWER;
                                 }))));
@@ -17359,7 +18343,7 @@ function main () {
                                             continue;
                                         }
                                     }
-                                    if (CONTROLLER_STRUCTURES [structure_type] [self.room.rcl] > (currently_existing [structure_type] || 0) && !(flags.look_for (self.room, flag, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub [structure_type])) && !(_.find (self.room.look_at (LOOK_STRUCTURES, flag.pos), dict ({'structureType': structure_type})) || _.find (self.room.look_at (LOOK_CONSTRUCTION_SITES, flag.pos)))) {
+                                    if (CONTROLLER_STRUCTURES [structure_type] [self.room.rcl] > (currently_existing [structure_type] || 0) && !(flags.look_for (self.room, flag, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub [structure_type])) && !(_.find (self.room.look_at (LOOK_STRUCTURES, flag.pos), {'structureType': structure_type}) || _.find (self.room.look_at (LOOK_CONSTRUCTION_SITES, flag.pos)))) {
                                         total_count++;
                                         flag.pos.createConstructionSite (structure_type);
                                         new_sites.append ('flag-{}'.format (flag.name));
@@ -17405,7 +18389,7 @@ function main () {
                             var max_hits = self.room.min_sane_wall_hits;
                             var any_destruct_flags = len (flags.find_by_main_with_sub (self.room, flags.MAIN_DESTRUCT));
                             var structures = _ (self.room.find (FIND_STRUCTURES)).map ((function __lambda__ (s) {
-                                return tuple ([s, (s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_RAMPART ? min (s.hitsMax, max_hits) : s.hitsMax)]);
+                                return [s, (s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_RAMPART ? min (s.hitsMax, max_hits) : s.hitsMax)];
                             })).filter ((function __lambda__ (t) {
                                 return (t [0].my || !(t [0].owner)) && t [0].hits < t [1] * 0.9 && (t [0].structureType != STRUCTURE_ROAD || t [0].hits < t [0].hitsMax * 0.8) && (!(any_destruct_flags) || !(flags.look_for (self.room, t [0].pos, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub [t [0].structureType])));
                             })).sortBy ((function __lambda__ (t) {
@@ -17437,7 +18421,7 @@ function main () {
                             if (target_list !== null) {
                                 return target_list;
                             }
-                            var target_list = list ([]);
+                            var target_list = [];
                             if (self.room.spawn) {
                                 var spawn_pos = self.room.spawn.pos;
                             }
@@ -17465,7 +18449,7 @@ function main () {
                                 var structures = _.filter (self.room.look_at (LOOK_STRUCTURES, flag.pos), (function __lambda__ (s) {
                                     return s.structureType == structure_type;
                                 }));
-                                if (structure_type != STRUCTURE_RAMPART && _.find (self.room.look_at (LOOK_STRUCTURES, flag.pos), dict ({'structureType': STRUCTURE_RAMPART}))) {
+                                if (structure_type != STRUCTURE_RAMPART && _.find (self.room.look_at (LOOK_STRUCTURES, flag.pos), {'structureType': STRUCTURE_RAMPART})) {
                                     var __iterable1__ = structures;
                                     for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                         var struct = __iterable1__ [__index1__];
@@ -17539,9 +18523,9 @@ function main () {
                                 self._repath_roads_for (mine_flag, deposit_point);
                                 self.room.store_cached_property (last_found_roads_key, latest_version, random.randint (min_repath_mine_roads_every, max_repath_mine_roads_every));
                             }
-                            var checked_positions = dict ({});
-                            var missing_rooms = list ([]);
-                            var all_modified_rooms = list ([]);
+                            var checked_positions = {};
+                            var missing_rooms = [];
+                            var all_modified_rooms = [];
                             var hive = self.hive;
                             var site_count = _.size (Game.constructionSites) + (volatile_cache.volatile ().get ('construction_sites_placed') || 0);
                             var need_more_sites = 0;
@@ -17604,12 +18588,12 @@ function main () {
                             };
                             var honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
-                                var all_positions = list ([]);
+                                var all_positions = [];
                             }
                             else {
-                                var route_to_mine = honey.get_serialized_path_obj (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
+                                var route_to_mine = honey.get_serialized_path_obj (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                                 check_route (route_to_mine, (mine_flag.pos || mine_flag).roomName, null);
-                                var all_positions = honey.list_of_room_positions_in_path (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
+                                var all_positions = honey.list_of_room_positions_in_path (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                             }
                             var __iterable0__ = self.room.spawns;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -17645,7 +18629,7 @@ function main () {
                                 if (closest.isNearTo (spawn)) {
                                     continue;
                                 }
-                                var route_to_spawn = honey.get_serialized_path_obj (spawn, closest, dict ({'paved_for': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
+                                var route_to_spawn = honey.get_serialized_path_obj (spawn, closest, {'paved_for': [mine_flag, spawn], 'keep_for': min_repath_mine_roads_every * 2});
                                 check_route (route_to_spawn, null, no_pave_end);
                             }
                             var __iterable0__ = all_modified_rooms;
@@ -17681,11 +18665,11 @@ function main () {
                         get _repath_roads_for () {return __get__ (this, function (self, mine_flag, deposit_point) {
                             var honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
-                                var mine_path = list ([]);
+                                var mine_path = [];
                                 mining_paths.register_new_mining_path (mine_flag, mine_path);
                             }
                             else {
-                                var mine_path = honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, dict ({'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2}));
+                                var mine_path = honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                             }
                             var __iterable0__ = self.room.spawns;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -17712,10 +18696,10 @@ function main () {
                                     var closest = mine_flag.pos || mine_flag;
                                 }
                                 if (closest.isNearTo (spawn)) {
-                                    mining_paths.register_new_mining_path (list ([mine_flag, spawn]), list ([]));
+                                    mining_paths.register_new_mining_path ([mine_flag, spawn], []);
                                     continue;
                                 }
-                                honey.completely_repath_and_get_raw_path (spawn, closest, dict ({'paved_for': list ([mine_flag, spawn]), 'keep_for': min_repath_mine_roads_every * 2}));
+                                honey.completely_repath_and_get_raw_path (spawn, closest, {'paved_for': [mine_flag, spawn], 'keep_for': min_repath_mine_roads_every * 2});
                             }
                         });},
                         get place_home_ramparts () {return __get__ (this, function (self) {
@@ -17788,13 +18772,13 @@ function main () {
                             self.room.store_cached_property ('placed_ramparts', 1, random.randint (500, 600));
                         });},
                         get re_place_home_ramparts () {return __get__ (this, function (self) {
-                            self.room.mem.cache.placed_ramparts.dead_at = Game.time + 1;
+                            self.room.expire_property_next_tick ('placed_ramparts');
                         });},
                         get find_loc_near_away_from () {return __get__ (this, function (self, near, away_from) {
                             if (near.pos) {
                                 var near = near.pos;
                             }
-                            var path = PathFinder.search (near, away_from, dict ({'roomCallback': self.hive.honey._get_callback (near, near, dict ({})), 'flee': true, 'maxRooms': 1}));
+                            var path = PathFinder.search (near, away_from, {'roomCallback': self.hive.honey._get_callback (near, near, {}), 'flee': true, 'maxRooms': 1});
                             if (path.incomplete) {
                                 print ("[{}][building] WARNING: Couldn't find full path near {} and away from {}!".format (self.room.name, near, function () {
                                     var __accu0__ = [];
@@ -17827,31 +18811,31 @@ function main () {
                             if (cache.has (cache_key)) {
                                 return ;
                             }
-                            var away_from = list ([dict ({'pos': center.pos, 'range': 4})]);
+                            var away_from = [{'pos': center.pos, 'range': 4}];
                             var __iterable0__ = self.room.sources;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var source = __iterable0__ [__index0__];
-                                away_from.append (dict ({'pos': source.pos, 'range': 5}));
+                                away_from.append ({'pos': source.pos, 'range': 5});
                             }
                             var __iterable0__ = self.room.spawns;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var spawn = __iterable0__ [__index0__];
-                                away_from.append (dict ({'pos': spawn.pos, 'range': 4}));
+                                away_from.append ({'pos': spawn.pos, 'range': 4});
                             }
                             var __iterable0__ = self.room.find (FIND_MINERALS);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var mineral = __iterable0__ [__index0__];
-                                away_from.append (dict ({'pos': mineral.pos, 'range': 4}));
+                                away_from.append ({'pos': mineral.pos, 'range': 4});
                             }
                             var __iterable0__ = flags.find_ms_flags (self.room, flags.MAIN_BUILD, flags.SUB_WALL);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
-                                away_from.append (dict ({'pos': flag.pos, 'range': 1}));
+                                away_from.append ({'pos': flag.pos, 'range': 1});
                             }
                             var __iterable0__ = flags.find_ms_flags (self.room, flags.MAIN_BUILD, flags.SUB_RAMPART);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
-                                away_from.append (dict ({'pos': flag.pos, 'range': 1}));
+                                away_from.append ({'pos': flag.pos, 'range': 1});
                             }
                             var target = self.find_loc_near_away_from (center, away_from);
                             flags.create_flag (target, DEPOT);
@@ -17863,7 +18847,7 @@ function main () {
                         var __iterable0__ = Object.keys (rooms_to_sites);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var room_name = __iterable0__ [__index0__];
-                            if (_.get (Game.rooms, list ([room_name, 'controller', 'my']), false)) {
+                            if (_.get (Game.rooms, [room_name, 'controller', 'my'], false)) {
                                 continue;
                             }
                             var planned_roads = mining_paths.get_set_of_all_serialized_positions_in (room_name);
@@ -17947,6 +18931,8 @@ function main () {
                         __all__.rampart_priorities = rampart_priorities;
                         __all__.rcl_lt4_priorities = rcl_lt4_priorities;
                         __all__.repave = repave;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
                 }
@@ -17966,8 +18952,13 @@ function main () {
                     var RAMPART_DEFENSE = __init__ (__world__.constants).RAMPART_DEFENSE;
                     var REMOTE_MINE = __init__ (__world__.constants).REMOTE_MINE;
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
                     var deathwatch = __init__ (__world__.creep_management.deathwatch);
+                    var errorlog = __init__ (__world__.jstools.errorlog);
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
@@ -17977,7 +18968,7 @@ function main () {
                     var movement = __init__ (__world__.utilities.movement);
                     var positions = __init__ (__world__.utilities.positions);
                     var _init_tough_part_multipliers = function () {
-                        var result = dict ({});
+                        var result = {};
                         var input_obj = BOOSTS [TOUGH];
                         var __iterable0__ = Object.keys (input_obj);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -17998,7 +18989,7 @@ function main () {
                     };
                     var poll_hostiles = function (hive, run_away_checks) {
                         if (!('hostiles' in Memory)) {
-                            Memory.hostiles = dict ({});
+                            Memory.hostiles = {};
                         }
                         var __iterable0__ = hive.visible_rooms;
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -18008,15 +18999,15 @@ function main () {
                             }
                             var targets = room.defense.dangerous_hostiles ();
                             if (len (targets)) {
-                                var danger = list ([]);
+                                var danger = [];
                                 var __iterable1__ = targets;
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                     var c = __iterable1__ [__index1__];
-                                    var store = dict ({'user': c.owner.username, 'pos': c.pos.x | c.pos.y << 6, 'room': c.pos.roomName, 'id': c.id, 'death': Game.time + c.ticksToLive, 'ranged': c.getActiveBodyparts (RANGED_ATTACK), 'attack': c.getActiveBodyparts (ATTACK), 'heal': c.getActiveBodyparts (HEAL), 'offensive': hostile_utils.is_offensive (c)});
+                                    var store = {'user': c.owner.username, 'pos': c.pos.x | c.pos.y << 6, 'room': c.pos.roomName, 'id': c.id, 'death': Game.time + c.ticksToLive, 'ranged': c.getActiveBodyparts (RANGED_ATTACK), 'attack': c.getActiveBodyparts (ATTACK), 'heal': c.getActiveBodyparts (HEAL), 'offensive': hostile_utils.is_offensive (c)};
                                     danger.push (store);
                                     Memory.hostiles [c.id] = store;
                                 }
-                                if (!('danger' in room.mem)) {
+                                if (!(rmem_key_stored_hostiles in room.mem)) {
                                     if (room.my) {
                                         room.reset_planned_role ();
                                     }
@@ -18031,19 +19022,20 @@ function main () {
                                         }
                                     }
                                 }
-                                room.mem.danger = danger;
+                                room.mem [rmem_key_stored_hostiles] = danger;
                                 try {
                                     run_away_checks (room);
                                     deathwatch.mark_creeps (room);
                                 }
                                 catch (__except0__) {
-                                    var msg = '[hive] Error running run-away-checks in {}!\n{}'.format (room.name, (__except0__ ? __except0__.stack : 'e: {}'.format (__except0__)));
-                                    print (msg);
-                                    Game.notify (msg);
+                                    errorlog.report_error ('defense.poll-hostiles', __except0__, 'Error running run-away-checks in {}.'.format (room.name));
                                 }
                             }
                             else if ((room.name in Memory.rooms)) {
-                                delete room.mem.danger;
+                                delete room.mem [rmem_key_stored_hostiles];
+                                if (!(len (room.mem))) {
+                                    delete Memory.rooms [room.name];
+                                }
                             }
                         }
                     };
@@ -18096,7 +19088,7 @@ function main () {
                         if (room_x == 0 && room_y == 0 && room_name == 'sim') {
                             return stored_hostiles_in (room_name);
                         }
-                        var result = list ([]);
+                        var result = [];
                         for (var x = room_x - 1; x < room_x + 2; x++) {
                             for (var y = room_y - 1; y < room_y + 2; y++) {
                                 var name = movement.room_xy_to_name (x, y);
@@ -18120,7 +19112,7 @@ function main () {
                         if (cache.has (room_name)) {
                             return cache.get (room_name);
                         }
-                        var result = list ([]);
+                        var result = [];
                         var mem = Memory.rooms [room_name];
                         if (mem !== undefined && ('danger' in mem)) {
                             var __iterable0__ = mem.danger;
@@ -18142,11 +19134,11 @@ function main () {
                             self.room = room;
                             self._cache = new_map ();
                             if (self.room.my) {
-                                self.mem = self.room.mem.defense;
+                                self.mem = self.room.mem [rmem_key_defense_mind_storage];
                                 if (self.mem == undefined) {
-                                    var __left0__ = dict ({});
+                                    var __left0__ = {};
                                     self.mem = __left0__;
-                                    self.room.mem.defense = __left0__;
+                                    self.room.mem [rmem_key_defense_mind_storage] = __left0__;
                                 }
                             }
                         });},
@@ -18162,7 +19154,7 @@ function main () {
                             }
                             else {
                                 var broken = false;
-                                if (self.room.being_bootstrapped () && !(self.room.mem.prio_walls)) {
+                                if (self.room.being_bootstrapped () && !(self.room.mem [rmem_key_building_priority_walls])) {
                                     var broken = true;
                                 }
                                 else {
@@ -18198,10 +19190,20 @@ function main () {
                                 return hostile._possible_heal;
                             }
                             else {
-                                var nearby = self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 1);
-                                var healing_possible = _.sum (nearby, (function __lambda__ (obj) {
-                                    return !(obj.creep.my) && obj.creep.getActiveBodypartsBoostEquivalent (HEAL, 'heal');
-                                })) * 12;
+                                var nearby = self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 3);
+                                var healing_possible = 0;
+                                var __iterable0__ = nearby;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var obj = __iterable0__ [__index0__];
+                                    var creep = obj.creep;
+                                    var distance = movement.chebyshev_distance_room_pos (hostile, creep);
+                                    if (distance <= 2) {
+                                        healing_possible += creep.getActiveBodypartsBoostEquivalent (HEAL, 'heal') * HEAL_POWER;
+                                    }
+                                    else {
+                                        healing_possible += creep.getActiveBodypartsBoostEquivalent (HEAL, 'rangedHeal') * RANGED_HEAL_POWER;
+                                    }
+                                }
                                 hostile._possible_heal = healing_possible;
                                 return healing_possible;
                             }
@@ -18234,6 +19236,7 @@ function main () {
                             }
                         }, 'any_attack_invaders');},
                         get _calc_danger_level () {return __get__ (this, function (self, hostile) {
+                            var under_siege = self.room.mem [rmem_key_currently_under_siege];
                             var user = hostile.owner.username;
                             if (user == INVADER_USERNAME) {
                                 if (!(hostile.hasBodyparts (ATTACK)) && !(hostile.hasBodyparts (RANGED_ATTACK))) {
@@ -18259,7 +19262,7 @@ function main () {
                             }
                             else if (self.room.my) {
                                 var structs_near = _.some (self.room.look_for_in_area_around (LOOK_STRUCTURES, hostile, 1), (function __lambda__ (s) {
-                                    return s.structureType == STRUCTURE_RAMPART || s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_TOWER || s.structureType == STRUCTURE_SPAWN;
+                                    return s.structure.structureType == STRUCTURE_RAMPART || s.structure.structureType == STRUCTURE_WALL || s.structure.structureType == STRUCTURE_TOWER || s.structure.structureType == STRUCTURE_SPAWN;
                                 }));
                                 if (structs_near && hostile.hasBodyparts (WORK)) {
                                     return 100 + hostile.getActiveBodyparts (WORK) * DISMANTLE_POWER;
@@ -18268,20 +19271,38 @@ function main () {
                                     return 100 + hostile.getActiveBodyparts (ATTACK) * ATTACK_POWER;
                                 }
                                 else if (hostile.hasActiveBodyparts (RANGED_ATTACK)) {
-                                    return 10;
+                                    if (under_siege) {
+                                        return 10.04;
+                                    }
+                                    else {
+                                        return 10;
+                                    }
                                 }
                                 else if (hostile.hasBodyparts (ATTACK)) {
                                     if (self.any_broken_walls () || structs_near || _.find (self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 1), (function __lambda__ (obj) {
                                         return obj.creep.my;
                                     }))) {
-                                        return 7;
+                                        if (under_siege) {
+                                            return 10.07;
+                                        }
+                                        else {
+                                            return 7;
+                                        }
+                                    }
+                                    else if (under_siege) {
+                                        return 10.05;
                                     }
                                     else {
                                         return 5;
                                     }
                                 }
                                 else if (hostile.hasBodyparts (WORK)) {
-                                    return 5;
+                                    if (under_siege) {
+                                        return 10.04;
+                                    }
+                                    else {
+                                        return 5;
+                                    }
                                 }
                                 else if ((1 < hostile.pos.x && hostile.pos.x < 48) && (1 < hostile.pos.y && hostile.pos.y < 48)) {
                                     return 0.2;
@@ -18326,13 +19347,13 @@ function main () {
                                 return self._cache.get ('active_hostiles');
                             }
                             else if (self.room.enemy) {
-                                var hostiles = list ([]);
+                                var hostiles = [];
                                 self._cache.set ('active_hostiles', hostiles);
                                 return hostiles;
                             }
                             else {
                                 if (self.room.my && self.room.room.controller.safeMode > 1000) {
-                                    var hostiles = list ([]);
+                                    var hostiles = [];
                                 }
                                 else {
                                     var hostiles = self.all_hostiles ();
@@ -18347,9 +19368,9 @@ function main () {
                                             protect.push (movement.center_pos (self.room.name));
                                         }
                                         var hostiles = _ (hostiles).filter (self.danger_level).sortBy ((function __lambda__ (c) {
-                                            return (((-(self.danger_level (c)) * 5000 - len (self.defenders_near (c)) * 500) + movement.minimum_chebyshev_distance (c, protect)) + (_.sum (protect, (function __lambda__ (s) {
+                                            return ((((-(self.danger_level (c)) * 5000 - len (self.defenders_near (c)) * 500) + movement.minimum_chebyshev_distance (c, protect)) + self.healing_possible_on (c) * 30) + (_.sum (protect, (function __lambda__ (s) {
                                                 return movement.chebyshev_distance_room_pos (c, s);
-                                            })) / len (protect)) / 50) - (((c.hitsMax - c.hits) + self.healing_possible_on (c)) / c.hitsMax) / 100;
+                                            })) / len (protect)) / 50) - ((c.hitsMax - c.hits) / c.hitsMax) / 100;
                                         })).value ();
                                         if (self.mem.debug) {
                                             print ('Chose hostiles:\n{}'.format ('\n'.join (function () {
@@ -18378,7 +19399,7 @@ function main () {
                                 return self._cache.get ('remote_active_hostiles');
                             }
                             else {
-                                var hostile_lists = list ([]);
+                                var hostile_lists = [];
                                 var checked_rooms = new_set ();
                                 var __iterable0__ = self.room.subsidiaries;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -18401,7 +19422,7 @@ function main () {
                                 }
                                 if (len (hostile_lists)) {
                                     var hostiles = Array.prototype.concat.apply
-                                     (list ([]), hostile_lists);
+                                     ([], hostile_lists);
                                 }
                                 else {
                                     var hostiles = hostile_lists;
@@ -18411,10 +19432,12 @@ function main () {
                             }
                         });},
                         get activate_live_defenses () {return __get__ (this, function (self) {
-                            if (!(self.room.mem.attack)) {
-                                self.room.mem.attack = true;
+                            if (!(self.room.mem [rmem_key_currently_under_siege])) {
+                                self.room.mem [rmem_key_currently_under_siege] = true;
+                                self.room.reset_spending_state ();
+                                self.hive.states.calculate_room_states ();
                             }
-                            self.room.mem.attack_until = Game.time + 10 * 1000;
+                            self.mem.attack_until = Game.time + 2000;
                             self.room.reset_planned_role ();
                             var message = '{} activating live defenses.'.format (self.room.name);
                             Game.notify (message);
@@ -18438,7 +19461,7 @@ function main () {
                             else {
                                 var enemy_positions = self.room.find (FIND_EXIT);
                             }
-                            var already_checked = list ([]);
+                            var already_checked = [];
                             var __iterable0__ = enemy_positions;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var enemy = __iterable0__ [__index0__];
@@ -18448,7 +19471,7 @@ function main () {
                                     continue;
                                 }
                                 already_checked.append (enemy);
-                                var path_obj = self.hive.honey.find_path (enemy, self.room.spawn, dict ({'use_roads': false, 'ignore_swamp': true, 'current_room': self.room.name}));
+                                var path_obj = self.hive.honey.find_path (enemy, self.room.spawn, {'use_roads': false, 'ignore_swamp': true, 'current_room': self.room.name});
                                 var __iterable1__ = path_obj;
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                     var position = __iterable1__ [__index1__];
@@ -18472,7 +19495,7 @@ function main () {
                             var current_iteration = Array.from (protect.entries ());
                             print ('[defense] Found inital walls: {} from {} paths'.format (len (current_iteration), len (already_checked)));
                             while (true) {
-                                var next_iteration = list ([]);
+                                var next_iteration = [];
                                 var __iterable0__ = current_iteration;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var __left0__ = __iterable0__ [__index0__];
@@ -18509,7 +19532,7 @@ function main () {
                                                     protect.set (serialized, new_priority);
                                                 }
                                                 if (new_priority < 5) {
-                                                    next_iteration.append (list ([serialized, new_priority]));
+                                                    next_iteration.append ([serialized, new_priority]);
                                                 }
                                             }
                                         }
@@ -18532,9 +19555,9 @@ function main () {
                             }
                             self._cache.delete ('live_defender_spots');
                             self.room.delete_cached_property ('rcrnd');
-                            var spots = list ([]);
-                            var hot = list ([]);
-                            var cold = list ([]);
+                            var spots = [];
+                            var hot = [];
+                            var cold = [];
                             var __iterable0__ = _.sortBy (Array.from (protect.entries ()), (function __lambda__ (x) {
                                 return x [1];
                             }));
@@ -18553,14 +19576,14 @@ function main () {
                             }
                             print ('[{}][defense] Found {} ramparts to protect during initial seed.'.format (self.room.name, len (spots)));
                             self.mem.known_locations = spots;
-                            self.room.store_cached_property ('rcrnd', list ([hot, cold]), 50);
+                            self.room.store_cached_property ('rcrnd', [hot, cold], 50);
                         });},
                         get towers () {return __get__ (this, function (self) {
                             if (self._cache.has ('towers')) {
                                 return self._cache.get ('towers');
                             }
                             else {
-                                var towers = _.filter (self.room.find (FIND_MY_STRUCTURES), dict ({'structureType': STRUCTURE_TOWER}));
+                                var towers = _.filter (self.room.find (FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER});
                                 self._cache.set ('towers', towers);
                                 return towers;
                             }
@@ -18569,7 +19592,7 @@ function main () {
                             return len (self.towers ());
                         });},
                         get set_ramparts () {return __get__ (this, function (self, defensive) {
-                            var __iterable0__ = _.filter (self.room.find (FIND_STRUCTURES), dict ({'structureType': STRUCTURE_RAMPART}));
+                            var __iterable0__ = _.filter (self.room.find (FIND_STRUCTURES), {'structureType': STRUCTURE_RAMPART});
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var rampart = __iterable0__ [__index0__];
                                 if (defensive || _.find (self.room.look_at (LOOK_STRUCTURES, rampart.pos), (function __lambda__ (s) {
@@ -18642,11 +19665,11 @@ function main () {
                                 return self._cache.get ('alert');
                             }
                             else {
-                                var alert = self.room.mem.alert;
+                                var alert = self.mem.alert;
                                 if (!(alert) && (self.room.my || __mod__ (Game.time, 3) == 1) && len (self.all_hostiles ())) {
                                     self.set_ramparts (true);
                                     var __left0__ = true;
-                                    self.room.mem.alert = __left0__;
+                                    self.mem.alert = __left0__;
                                     var alert = __left0__;
                                 }
                                 self._cache.set ('alert', alert);
@@ -18654,7 +19677,7 @@ function main () {
                             }
                         });},
                         get tick () {return __get__ (this, function (self) {
-                            if (__mod__ (Game.time, 6) == 0 && !(len (self.room.spawns)) && !(self.room.being_bootstrapped ()) && !(_.find (self.room.find (FIND_MY_CONSTRUCTION_SITES), dict ({'structureType': STRUCTURE_SPAWN})))) {
+                            if (__mod__ (Game.time, 6) == 0 && !(len (self.room.spawns)) && !(self.room.being_bootstrapped ()) && !(_.find (self.room.find (FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN}))) {
                                 self.room.building.refresh_building_targets (true);
                                 self.room.building.get_construction_targets ();
                             }
@@ -18662,31 +19685,31 @@ function main () {
                             if (!(alert)) {
                                 if (__mod__ (Game.time, 100) == 69) {
                                     self.set_ramparts (false);
-                                    if (self.room.mem.attack) {
-                                        if (self.room.mem.attack_until) {
-                                            if (Game.time > self.room.mem.attack_until) {
-                                                delete self.room.mem.attack;
-                                                delete self.room.mem.attack_until;
+                                    if (self.room.mem [rmem_key_currently_under_siege]) {
+                                        if (self.mem.attack_until) {
+                                            if (Game.time > self.mem.attack_until) {
+                                                delete self.room.mem [rmem_key_currently_under_siege];
+                                                delete self.mem.attack_until;
                                                 var message = '{}: disabling active defenses.'.format (self.room.name);
                                                 Game.notify (message);
                                                 console.log (message);
                                             }
                                         }
                                         else {
-                                            self.room.mem.attack_until = Game.time + 10 * 1000;
+                                            self.mem.attack_until = Game.time + 2000;
                                         }
                                     }
                                 }
                                 self.tower_heal ();
                                 return ;
                             }
-                            if (self.room.mem.attack && _.some (self.all_hostiles (), (function __lambda__ (h) {
+                            if (self.room.mem [rmem_key_currently_under_siege] && _.some (self.all_hostiles (), (function __lambda__ (h) {
                                 return h.owner.username != INVADER_USERNAME;
                             }))) {
-                                self.room.mem.attack_until = Game.time + 10 * 1000;
+                                self.mem.attack_until = Game.time + 2000;
                             }
                             if (__mod__ (Game.time, 5) == 1) {
-                                if (!(self.room.being_bootstrapped ()) || self.room.mem.prio_walls) {
+                                if (!(self.room.being_bootstrapped ()) || self.room.mem [rmem_key_building_priority_walls]) {
                                     var __iterable0__ = flags.find_ms_flags (self.room, flags.MAIN_BUILD, flags.SUB_RAMPART).concat (flags.find_ms_flags (self.room, flags.MAIN_BUILD, flags.SUB_WALL));
                                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                         var flag = __iterable0__ [__index0__];
@@ -18708,22 +19731,22 @@ function main () {
                                 }
                             }
                             if (!(len (self.all_hostiles ()))) {
-                                if (!(self.room.mem.alert_for < 0)) {
-                                    self.room.mem.alert_for = 0;
+                                if (!(self.mem.alert_for < 0)) {
+                                    self.mem.alert_for = 0;
                                 }
-                                self.room.mem.alert_for--;
-                                if (self.room.mem.alert_for < -(5)) {
+                                self.mem.alert_for--;
+                                if (self.mem.alert_for < -(5)) {
                                     self.set_ramparts (false);
-                                    delete self.room.mem.alert_for;
-                                    self.room.mem.alert = false;
+                                    delete self.mem.alert_for;
+                                    delete self.mem.alert;
                                 }
                                 return ;
                             }
-                            if (self.room.mem.alert_for > 0) {
-                                self.room.mem.alert_for++;
+                            if (self.mem.alert_for > 0) {
+                                self.mem.alert_for++;
                             }
                             else {
-                                self.room.mem.alert_for = 1;
+                                self.mem.alert_for = 1;
                             }
                             var hostiles = self.dangerous_hostiles ();
                             var towers = self.towers ();
@@ -18811,7 +19834,7 @@ function main () {
                             }
                         });},
                         get check_for_noninvader_raid () {return __get__ (this, function (self) {
-                            if (self.room.mem.attack) {
+                            if (self.room.mem [rmem_key_currently_under_siege]) {
                                 return ;
                             }
                             var total_noninvader = 0;
@@ -18827,7 +19850,7 @@ function main () {
                                         var part = __iterable1__ [__index1__];
                                         if (part.type == ATTACK) {
                                             if (part.boost) {
-                                                total_noninvader += _.get (BOOSTS, list ([ATTACK, part.boost, 'attack']), 1);
+                                                total_noninvader += _.get (BOOSTS, [ATTACK, part.boost, 'attack'], 1);
                                             }
                                             else {
                                                 total_noninvader++;
@@ -18835,7 +19858,7 @@ function main () {
                                         }
                                         else if (part.type == RANGED_ATTACK) {
                                             if (part.boost) {
-                                                total_noninvader += _.get (BOOSTS, list ([RANGED_ATTACK, part.boost, 'rangedAttack']), 1);
+                                                total_noninvader += _.get (BOOSTS, [RANGED_ATTACK, part.boost, 'rangedAttack'], 1);
                                             }
                                             else {
                                                 total_noninvader++;
@@ -18843,7 +19866,7 @@ function main () {
                                         }
                                         else if (part.type == HEAL) {
                                             if (part.boost) {
-                                                total_noninvader += _.get (BOOSTS, list ([HEAL, part.boost, 'heal']), 1) * 2;
+                                                total_noninvader += _.get (BOOSTS, [HEAL, part.boost, 'heal'], 1) * 2;
                                             }
                                             else {
                                                 total_noninvader += 2;
@@ -18851,7 +19874,7 @@ function main () {
                                         }
                                         else if (part.type == WORK) {
                                             if (part.boost) {
-                                                total_noninvader += _.get (BOOSTS, list ([WORK, part.boost, 'dismantle']), 1);
+                                                total_noninvader += _.get (BOOSTS, [WORK, part.boost, 'dismantle'], 1);
                                             }
                                             else {
                                                 total_noninvader += 0.5;
@@ -18888,20 +19911,20 @@ function main () {
                                 var cold = __left0__ [1];
                                 var hot = _ (hot).map (locations.get).filter ().value ();
                                 var cold = _ (cold).map (locations.get).filter ().value ();
-                                self._cache.set ('live_defender_spots', list ([hot, cold]));
-                                return tuple ([hot, cold]);
+                                self._cache.set ('live_defender_spots', [hot, cold]);
+                                return [hot, cold];
                             }
                             var last_used = self.mem.kllu;
                             if (last_used == undefined) {
-                                var __left0__ = dict ({});
+                                var __left0__ = {};
                                 var last_used = __left0__;
                                 self.mem.kllu = __left0__;
                             }
                             if (!(len (self.dangerous_hostiles ()))) {
-                                var hot = list ([]);
-                                var cold = list ([]);
+                                var hot = [];
+                                var cold = [];
                                 if (self.mem.known_locations) {
-                                    var to_remove = list ([]);
+                                    var to_remove = [];
                                     var __iterable0__ = self.mem.known_locations;
                                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                         var name = __iterable0__ [__index0__];
@@ -18941,16 +19964,16 @@ function main () {
                                         }
                                     }
                                 }
-                                self.room.store_cached_property ('rcrnd', list ([hot, cold]), 30);
-                                self._cache.set ('live_defender_spots', list ([hot, cold]));
-                                return tuple ([hot, cold]);
+                                self.room.store_cached_property ('rcrnd', [hot, cold], 30);
+                                self._cache.set ('live_defender_spots', [hot, cold]);
+                                return [hot, cold];
                             }
                             var serialized_locations = self.mem.known_locations;
                             var hot_found = new_set ();
-                            var hot_spots = list ([]);
-                            var cold_spots = list ([]);
+                            var hot_spots = [];
+                            var cold_spots = [];
                             if (serialized_locations != undefined) {
-                                var old_locs = list ([]);
+                                var old_locs = [];
                                 var __iterable0__ = serialized_locations;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var name = __iterable0__ [__index0__];
@@ -18976,11 +19999,11 @@ function main () {
                                 }
                             }
                             else {
-                                var __left0__ = list ([]);
+                                var __left0__ = [];
                                 var serialized_locations = __left0__;
                                 self.mem.known_locations = __left0__;
                             }
-                            var ramparts_undefended = list ([]);
+                            var ramparts_undefended = [];
                             var __iterable0__ = self.room.find (FIND_MY_STRUCTURES);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var rampart = __iterable0__ [__index0__];
@@ -19004,7 +20027,7 @@ function main () {
                                             }
                                         }
                                         if (total_offense) {
-                                            ramparts_undefended.push (list ([rampart, total_offense]));
+                                            ramparts_undefended.push ([rampart, total_offense]);
                                         }
                                     }
                                 }
@@ -19033,7 +20056,7 @@ function main () {
                                             }
                                         }
                                         nearest.py_update (rampart.pos.x, rampart.pos.y, rampart.pos.roomName);
-                                        _.pull (cold_spots, list ([nearest]));
+                                        _.pull (cold_spots, [nearest]);
                                         hot_spots.append (nearest);
                                     }
                                     else {
@@ -19043,8 +20066,8 @@ function main () {
                                     }
                                 }
                             }
-                            self._cache.set ('live_defender_spots', list ([hot_spots, cold_spots]));
-                            self.room.store_cached_property ('rcrnd', list ([function () {
+                            self._cache.set ('live_defender_spots', [hot_spots, cold_spots]);
+                            self.room.store_cached_property ('rcrnd', [function () {
                                 var __accu0__ = [];
                                 var __iterable0__ = hot_spots;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -19060,19 +20083,19 @@ function main () {
                                     __accu0__.append (s.name);
                                 }
                                 return __accu0__;
-                            } ()]), 3);
+                            } ()], 3);
                             var __iterable0__ = hot_spots;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var loc = __iterable0__ [__index0__];
                                 last_used [loc.name] = Game.time;
                             }
-                            return list ([hot_spots, cold_spots]);
+                            return [hot_spots, cold_spots];
                         });},
                         get get_old_defender_spots () {return __get__ (this, function (self) {
                             if (self._cache.has ('old_defender_spots')) {
                                 return self._cache.get ('old_defender_spots');
                             }
-                            var result = list ([]);
+                            var result = [];
                             if (self.mem.ods) {
                                 var __iterable0__ = self.mem.ods;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -19093,6 +20116,7 @@ function main () {
                         'cache.volatile_cache' +
                         'constants' +
                         'creep_management.deathwatch' +
+                        'jstools.errorlog' +
                         'jstools.screeps_constants' +
                         'math' +
                         'position_management.flags' +
@@ -19112,6 +20136,7 @@ function main () {
                         __all__.cleanup_stored_hostiles = cleanup_stored_hostiles;
                         __all__.deathwatch = deathwatch;
                         __all__.does_need_urgent_repair = does_need_urgent_repair;
+                        __all__.errorlog = errorlog;
                         __all__.flags = flags;
                         __all__.hostile_utils = hostile_utils;
                         __all__.locations = locations;
@@ -19120,6 +20145,10 @@ function main () {
                         __all__.new_set = new_set;
                         __all__.poll_hostiles = poll_hostiles;
                         __all__.positions = positions;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
                         __all__.role_wall_defender = role_wall_defender;
                         __all__.stored_hostiles_in = stored_hostiles_in;
                         __all__.stored_hostiles_near = stored_hostiles_near;
@@ -19139,6 +20168,7 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var volatile_cache = __init__ (__world__.cache.volatile_cache);
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var movement = __init__ (__world__.utilities.movement);
@@ -19152,7 +20182,7 @@ function main () {
                         }, '__init__');},
                         get _get_links () {return __get__ (this, function (self) {
                             if (self._links === null) {
-                                self._links = _.filter (self.room.find (FIND_MY_STRUCTURES), dict ({'structureType': STRUCTURE_LINK}));
+                                self._links = _.filter (self.room.find (FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LINK});
                             }
                             return self._links;
                         }, '_get_links');},
@@ -19176,13 +20206,13 @@ function main () {
                             if (link.id) {
                                 var link = link.id;
                             }
-                            if (!('links' in self.room.mem)) {
-                                self.room.mem.links = dict ({});
+                            if (!(rmem_key_linking_mind_storage in self.room.mem)) {
+                                self.room.mem [rmem_key_linking_mind_storage] = {};
                             }
-                            if (!(link in self.room.mem.links)) {
-                                self.room.mem.links [link] = dict ({});
+                            if (!(link in self.room.mem [rmem_key_linking_mind_storage])) {
+                                self.room.mem [rmem_key_linking_mind_storage] [link] = {};
                             }
-                            return self.room.mem.links [link];
+                            return self.room.mem [rmem_key_linking_mind_storage] [link];
                         }, 'link_mem');},
                         get volatile_link_mem () {return __get__ (this, function (self, link) {
                             if (link.id) {
@@ -19204,14 +20234,14 @@ function main () {
                             if (targeter.name) {
                                 var targeter = targeter.name;
                             }
-                            self.volatile_link_mem (target).set (targeter, dict ({'cap': -(needed), 'distance': distance}));
+                            self.volatile_link_mem (target).set (targeter, {'cap': -(needed), 'distance': distance});
                             self.link_mem (target).last_withdraw = Game.time;
                         }, 'register_target_withdraw');},
                         get register_target_deposit () {return __get__ (this, function (self, target, targeter, depositing, distance) {
                             if (targeter.name) {
                                 var targeter = targeter.name;
                             }
-                            self.volatile_link_mem (target).set (targeter, dict ({'cap': +(depositing), 'distance': distance}));
+                            self.volatile_link_mem (target).set (targeter, {'cap': +(depositing), 'distance': distance});
                             self.link_mem (target).last_deposit = Game.time;
                         }, 'register_target_deposit');},
                         get note_link_manager () {return __get__ (this, function (self, creep) {
@@ -19230,7 +20260,7 @@ function main () {
                                         creep2.send_to_link (amount - creep1.creep.carryCapacity / 2);
                                     }
                                 };
-                                self.link_creep = dict ({'send_to_link': send_to_link, 'send_from_link': send_from_link, 'creep': dict ({'carryCapacity': creep1.creep.carryCapacity + creep2.creep.carryCapacity})});
+                                self.link_creep = {'send_to_link': send_to_link, 'send_from_link': send_from_link, 'creep': {'carryCapacity': creep1.creep.carryCapacity + creep2.creep.carryCapacity}};
                             }
                             self.link_creep = creep;
                         }, 'note_link_manager');},
@@ -19239,10 +20269,10 @@ function main () {
                                 return ;
                             }
                             var main_link = self.get_main_link ();
-                            var current_output_links = list ([]);
-                            var current_input_links = list ([]);
-                            var future_output_links = list ([]);
-                            var future_input_links = list ([]);
+                            var current_output_links = [];
+                            var current_input_links = [];
+                            var future_output_links = [];
+                            var future_input_links = [];
                             var __iterable0__ = self.links;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var link = __iterable0__ [__index0__];
@@ -19264,18 +20294,18 @@ function main () {
                                 }
                                 if (energy_change_now > 0) {
                                     if (energy_change_now * 3 > link.energyCapacity - link.energy && link.cooldown <= 0) {
-                                        current_input_links.append (dict ({'link': link, 'priority': -(energy_change_now)}));
+                                        current_input_links.append ({'link': link, 'priority': -(energy_change_now)});
                                     }
                                     else {
-                                        future_input_links.append (dict ({'link': link, 'amount': energy_change_now, 'priority': link.cooldown}));
+                                        future_input_links.append ({'link': link, 'amount': energy_change_now, 'priority': link.cooldown});
                                     }
                                 }
                                 else if (energy_change_now < 0) {
                                     if (-(energy_change_now) * 3 > link.energy) {
-                                        current_output_links.append (dict ({'link': link, 'priority': energy_change_now}));
+                                        current_output_links.append ({'link': link, 'priority': energy_change_now});
                                     }
                                     else {
-                                        future_output_links.append (dict ({'link': link, 'amount': -(energy_change_now) - link.energy, 'priority': math.floor (link.energy / energy_change_now)}));
+                                        future_output_links.append ({'link': link, 'amount': -(energy_change_now) - link.energy, 'priority': math.floor (link.energy / energy_change_now)});
                                     }
                                 }
                                 else {
@@ -19298,18 +20328,18 @@ function main () {
                                         }
                                         if (count > 0) {
                                             if (count > link.energyCapacity - link.energy) {
-                                                future_input_links.append (dict ({'link': link, 'amount': -(count), 'priority': access_list [0].distance}));
+                                                future_input_links.append ({'link': link, 'amount': -(count), 'priority': access_list [0].distance});
                                             }
                                         }
                                         else if (count < link.energy) {
-                                            future_output_links.append (dict ({'link': link, 'amount': count, 'priority': access_list [0].distance}));
+                                            future_output_links.append ({'link': link, 'amount': count, 'priority': access_list [0].distance});
                                         }
                                     }
                                     else if (mem.last_deposit && (!(mem.last_withdraw) || mem.last_deposit > mem.last_withdraw)) {
-                                        future_input_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
+                                        future_input_links.append ({'link': link, 'amount': link.energy, 'priority': 10});
                                     }
                                     else if (mem.last_withdraw && (!(mem.last_deposit) || mem.last_withdraw > mem.last_deposit)) {
-                                        future_output_links.append (dict ({'link': link, 'amount': link.energy, 'priority': 10}));
+                                        future_output_links.append ({'link': link, 'amount': link.energy, 'priority': 10});
                                     }
                                 }
                             }
@@ -19427,6 +20457,7 @@ function main () {
                     Object.defineProperty (LinkingMind, 'enabled', property.call (LinkingMind, LinkingMind._enabled));;
                     __pragma__ ('<use>' +
                         'cache.volatile_cache' +
+                        'constants' +
                         'jstools.screeps_constants' +
                         'math' +
                         'utilities.movement' +
@@ -19436,6 +20467,7 @@ function main () {
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
                 }
@@ -19451,13 +20483,25 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var volatile_cache = __init__ (__world__.cache.volatile_cache);
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
                     var role_mineral_hauler = __init__ (__world__.constants).role_mineral_hauler;
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
+                    var energy_to_keep_always_in_reserve = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve;
+                    var energy_to_keep_always_in_reserve_when_supporting_sieged = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve_when_supporting_sieged;
+                    var max_minerals_to_keep = __init__ (__world__.rooms.room_constants).max_minerals_to_keep;
+                    var room_spending_state_supporting = __init__ (__world__.rooms.room_constants).room_spending_state_supporting;
+                    var room_spending_state_supporting_sieged = __init__ (__world__.rooms.room_constants).room_spending_state_supporting_sieged;
                     var movement = __init__ (__world__.utilities.movement);
                     var _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000;
-                    var sell_at_prices = dict ([[RESOURCE_OXYGEN, 2.0], [RESOURCE_HYDROGEN, 2.0], [RESOURCE_ZYNTHIUM, 2.0], [RESOURCE_UTRIUM, 2.0], [RESOURCE_LEMERGIUM, 2.0], [RESOURCE_KEANIUM, 2.0]]);
-                    var bottom_prices = dict ([[RESOURCE_OXYGEN, 0.8], [RESOURCE_HYDROGEN, 0.55], [RESOURCE_KEANIUM, 0.25], [RESOURCE_ZYNTHIUM, 0.15], [RESOURCE_UTRIUM, 0.2], [RESOURCE_LEMERGIUM, 0.2]]);
+                    var _SELL_ORDER_SIZE = 10 * 1000;
+                    var _KEEP_IN_TERMINAL_MY_MINERAL = TERMINAL_CAPACITY * 0.4;
+                    var _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = TERMINAL_CAPACITY * 0.5;
+                    var _KEEP_IN_TERMINAL_ENERGY = 0;
+                    var sell_at_prices = {[RESOURCE_OXYGEN]: 2.0, [RESOURCE_HYDROGEN]: 2.0, [RESOURCE_ZYNTHIUM]: 2.0, [RESOURCE_UTRIUM]: 2.0, [RESOURCE_LEMERGIUM]: 2.0, [RESOURCE_KEANIUM]: 2.0};
+                    var bottom_prices = {[RESOURCE_OXYGEN]: 0.8, [RESOURCE_HYDROGEN]: 0.55, [RESOURCE_KEANIUM]: 0.25, [RESOURCE_ZYNTHIUM]: 0.15, [RESOURCE_UTRIUM]: 0.2, [RESOURCE_LEMERGIUM]: 0.2};
                     var MineralMind = __class__ ('MineralMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
@@ -19465,45 +20509,53 @@ function main () {
                             self.targets = self.hive.targets;
                             self.storage = room.room.storage;
                             self.terminal = room.room.terminal;
-                            self._has_no_terminal_or_storage = !(self.terminal && self.storage && self.terminal.isActive () && self.storage.isActive ());
+                            self._has_no_terminal_or_storage = !(self.terminal && self.storage && self.terminal.my && self.storage.my && self.room.rcl >= 6);
                             if (self.has_no_terminal_or_storage ()) {
                                 return ;
                             }
-                            self._target_mineral_counts = null;
-                            self._total_resource_counts = null;
-                            self._next_mineral_to_empty = null;
-                            self._removing_from_terminal = null;
-                            self._adding_to_terminal = null;
-                            self._my_mineral_deposit_minerals = null;
-                            self._labs = null;
-                            self._needed_in_lab1 = null;
-                            self._needed_in_lab2 = null;
-                            self._energy_needed_in_labs = null;
-                            if (!('market' in room.mem)) {
-                                room.mem.market = dict ({'total_energy_needed': 0, 'fulfilling': dict ({})});
+                            if (!(rmem_key_mineral_mind_storage in room.mem)) {
+                                room.mem [rmem_key_mineral_mind_storage] = {'total_energy_needed': 0, 'fulfilling': {}};
                             }
                             else {
-                                if (!('total_energy_needed' in room.mem.market)) {
-                                    room.mem.market ['total_energy_needed'] = 0;
+                                if (!('total_energy_needed' in room.mem [rmem_key_mineral_mind_storage])) {
+                                    room.mem [rmem_key_mineral_mind_storage] ['total_energy_needed'] = 0;
                                 }
-                                if (!('fulfilling' in room.mem.market)) {
-                                    room.mem.market.fulfilling = dict ({});
+                                if (!('fulfilling' in room.mem [rmem_key_mineral_mind_storage])) {
+                                    room.mem [rmem_key_mineral_mind_storage].fulfilling = {};
                                 }
                             }
-                            self.mem = room.mem.market;
+                            self.mem = room.mem [rmem_key_mineral_mind_storage];
                             self.fulfilling = self.mem.fulfilling;
                             if (!('last_sold' in self.mem)) {
-                                self.mem.last_sold = dict ({});
+                                self.mem.last_sold = {};
                             }
                             if (!('last_sold_at' in self.mem)) {
-                                self.mem.last_sold_at = dict ({});
+                                self.mem.last_sold_at = {};
                             }
                         }, '__init__');},
                         get has_no_terminal_or_storage () {return __get__ (this, function (self) {
                             return self._has_no_terminal_or_storage;
                         }, 'has_no_terminal_or_storage');},
+                        get fully_setup () {return __get__ (this, function (self) {
+                            return !(self._has_no_terminal_or_storage);
+                        }, 'fully_setup');},
+                        get storage_terminal_access_pos () {return __get__ (this, function (self) {
+                            var cached = self.room.get_cached_property ('storage_terminal_access_pos');
+                            if (cached !== null) {
+                                return cached || null;
+                            }
+                            var in_between = movement.find_clear_inbetween_spaces (self.room, self.storage, self.terminal);
+                            if (len (in_between) > 0) {
+                                self.room.store_cached_property ('storage_terminal_access_pos', in_between, 1000);
+                                return in_between;
+                            }
+                            else {
+                                self.room.store_cached_property ('storage_terminal_access_pos', false, 1000);
+                                return null;
+                            }
+                        }, 'storage_terminal_access_pos');},
                         get note_mineral_hauler () {return __get__ (this, function (self, name) {
-                            self.room.mem.mineral_hauler = name;
+                            self.mem.mineral_hauler = name;
                         }, 'note_mineral_hauler');},
                         get send_minerals () {return __get__ (this, function (self, target_room, mineral, amount) {
                             self.fulfill_market_order (target_room, mineral, amount, null);
@@ -19539,16 +20591,16 @@ function main () {
                                 self.recalculate_energy_needed ();
                             }
                             if (order_id) {
-                                var obj = dict ({'order_id': order_id, 'room': target_room, 'amount': amount});
+                                var obj = {'order_id': order_id, 'room': target_room, 'amount': amount};
                             }
                             else {
-                                var obj = dict ({'room': target_room, 'amount': amount});
+                                var obj = {'room': target_room, 'amount': amount};
                             }
                             if ((mineral in self.fulfilling)) {
                                 self.fulfilling [mineral].push (obj);
                             }
                             else {
-                                self.fulfilling [mineral] = list ([obj]);
+                                self.fulfilling [mineral] = [obj];
                             }
                             self.log ('Now fulfilling: Order for {} {}, sent to {}!'.format (amount, mineral, target_room));
                             if (!(would_have_needed_haulers_before)) {
@@ -19557,7 +20609,6 @@ function main () {
                         }, 'fulfill_market_order');},
                         get recalculate_energy_needed () {return __get__ (this, function (self) {
                             var energy_needed = 0;
-                            var energy_needed_without_self_orders = 0;
                             var __iterable0__ = _.pairs (self.fulfilling);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
@@ -19574,19 +20625,15 @@ function main () {
                                         var needed_here = Game.market.calcTransactionCost (amount, self.room.name, order.room);
                                     }
                                     var energy_needed = max (energy_needed, needed_here);
-                                    if (mineral != RESOURCE_ENERGY || !(_.get (Game.rooms, list ([order.room, 'controller', 'my']), false))) {
-                                        var energy_needed_without_self_orders = max (energy_needed_without_self_orders, needed_here);
-                                    }
                                 }
                             }
                             self.mem ['total_energy_needed'] = energy_needed;
-                            self.mem ['ten_without_self_orders'] = energy_needed_without_self_orders;
                         }, 'recalculate_energy_needed');},
                         get log () {return __get__ (this, function (self, message) {
                             print ('[{}][market] {}'.format (self.room.name, message));
                         }, 'log');},
                         get get_mineral_hauler () {return __get__ (this, function (self) {
-                            return Game.creeps [self.room.mem.mineral_hauler];
+                            return Game.creeps [self.mem.mineral_hauler];
                         }, 'get_mineral_hauler');},
                         get mineral_hauler_carry () {return __get__ (this, function (self) {
                             var hauler = self.get_mineral_hauler ();
@@ -19594,16 +20641,16 @@ function main () {
                                 return hauler.carry;
                             }
                             else {
-                                return dict ({});
+                                return {};
                             }
                         }, 'mineral_hauler_carry');},
                         get my_mineral_deposit_minerals () {return __get__ (this, function (self) {
                             if (!(self._my_mineral_deposit_minerals)) {
-                                var result = list ([]);
+                                var result = [];
                                 var __iterable0__ = self.room.find (FIND_MINERALS);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var deposit = __iterable0__ [__index0__];
-                                    if (_.find (self.room.look_at (LOOK_STRUCTURES, deposit), dict ({'my': true, 'structureType': STRUCTURE_EXTRACTOR}))) {
+                                    if (_.find (self.room.look_at (LOOK_STRUCTURES, deposit), {'my': true, 'structureType': STRUCTURE_EXTRACTOR})) {
                                         result.append (deposit.mineralType);
                                     }
                                 }
@@ -19612,10 +20659,10 @@ function main () {
                             return self._my_mineral_deposit_minerals;
                         }, 'my_mineral_deposit_minerals');},
                         get get_all_terminal_targets () {return __get__ (this, function (self) {
-                            if (self._target_mineral_counts) {
+                            if (self._target_mineral_counts !== undefined) {
                                 return self._target_mineral_counts;
                             }
-                            var target_counts = dict ({});
+                            var target_counts = {};
                             var counts = self.get_total_room_resource_counts ();
                             var __iterable0__ = _.pairs (counts);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -19630,20 +20677,20 @@ function main () {
                                 }
                             }
                             if (_.sum (target_counts) == target_counts [RESOURCE_ENERGY]) {
-                                var target_counts = dict ({});
+                                var target_counts = {};
                             }
                             self._target_mineral_counts = target_counts;
                             return target_counts;
                         }, 'get_all_terminal_targets');},
                         get removing_from_terminal () {return __get__ (this, function (self) {
-                            if (self._removing_from_terminal === null) {
-                                var removing = list ([]);
+                            if (self._removing_from_terminal === undefined) {
+                                var removing = [];
                                 var __iterable0__ = Object.keys (self.terminal.store);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var resource = __iterable0__ [__index0__];
                                     var target = self.get_all_terminal_targets () [resource] || 0;
                                     if (self.terminal.store [resource] > target) {
-                                        removing.append (list ([resource, self.terminal.store [resource] - target]));
+                                        removing.append ([resource, self.terminal.store [resource] - target]);
                                     }
                                 }
                                 self._removing_from_terminal = removing;
@@ -19651,8 +20698,8 @@ function main () {
                             return self._removing_from_terminal;
                         }, 'removing_from_terminal');},
                         get adding_to_terminal () {return __get__ (this, function (self) {
-                            if (self._adding_to_terminal === null) {
-                                var adding = list ([]);
+                            if (self._adding_to_terminal === undefined) {
+                                var adding = [];
                                 var all_targets = self.get_all_terminal_targets ();
                                 var __iterable0__ = Object.keys (self.get_all_terminal_targets ());
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -19660,7 +20707,7 @@ function main () {
                                     var target = all_targets [resource];
                                     var current = self.terminal.store [resource] || 0;
                                     if (current < target) {
-                                        adding.append (list ([resource, target - current]));
+                                        adding.append ([resource, target - current]);
                                     }
                                 }
                                 self._adding_to_terminal = adding;
@@ -19668,13 +20715,13 @@ function main () {
                             return self._adding_to_terminal;
                         }, 'adding_to_terminal');},
                         get labs () {return __get__ (this, function (self) {
-                            if (self._labs === null) {
-                                self._labs = _.filter (self.room.find (FIND_MY_STRUCTURES), dict ({'structureType': STRUCTURE_LAB}));
+                            if (self._labs === undefined) {
+                                self._labs = _.filter (self.room.find (FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB});
                             }
                             return self._labs;
                         }, 'labs');},
                         get amount_needed_in_lab1 () {return __get__ (this, function (self) {
-                            if (self._needed_in_lab1 === null) {
+                            if (self._needed_in_lab1 === undefined) {
                                 var mineral = self.get_lab_target_mineral ();
                                 if (mineral === null) {
                                     return 0;
@@ -19697,7 +20744,7 @@ function main () {
                             return self._needed_in_lab1;
                         }, 'amount_needed_in_lab1');},
                         get amount_needed_in_lab2 () {return __get__ (this, function (self) {
-                            if (self._needed_in_lab2 === null) {
+                            if (self._needed_in_lab2 === undefined) {
                                 var mineral = self.get_lab2_target_mineral ();
                                 if (mineral === null) {
                                     return 0;
@@ -19720,7 +20767,7 @@ function main () {
                             return self._needed_in_lab2;
                         }, 'amount_needed_in_lab2');},
                         get energy_needed_in_labs () {return __get__ (this, function (self) {
-                            if (self._energy_needed_in_labs === null) {
+                            if (self._energy_needed_in_labs === undefined) {
                                 var mineral = self.get_lab_target_mineral ();
                                 if (mineral === null) {
                                     return 0;
@@ -19753,10 +20800,10 @@ function main () {
                             return null;
                         }, 'get_lab2_target_mineral');},
                         get get_total_room_resource_counts () {return __get__ (this, function (self) {
-                            if (self._total_resource_counts) {
+                            if (self._total_resource_counts !== undefined) {
                                 return self._total_resource_counts;
                             }
-                            var counts = dict ({});
+                            var counts = {};
                             var __iterable0__ = _.pairs (self.storage.store);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
@@ -19769,16 +20816,18 @@ function main () {
                                     counts [rtype] = amount;
                                 }
                             }
-                            var __iterable0__ = _.pairs (self.terminal.store);
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var __left0__ = __iterable0__ [__index0__];
-                                var rtype = __left0__ [0];
-                                var amount = __left0__ [1];
-                                if ((rtype in counts)) {
-                                    counts [rtype] += amount;
-                                }
-                                else {
-                                    counts [rtype] = amount;
+                            if (self.terminal) {
+                                var __iterable0__ = _.pairs (self.terminal.store);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var __left0__ = __iterable0__ [__index0__];
+                                    var rtype = __left0__ [0];
+                                    var amount = __left0__ [1];
+                                    if ((rtype in counts)) {
+                                        counts [rtype] += amount;
+                                    }
+                                    else {
+                                        counts [rtype] = amount;
+                                    }
                                 }
                             }
                             var creep_carry = self.mineral_hauler_carry ();
@@ -19794,24 +20843,26 @@ function main () {
                                     counts [rtype] = amount;
                                 }
                             }
-                            var __iterable0__ = self.room.find (FIND_MY_STRUCTURES);
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var lab = __iterable0__ [__index0__];
-                                if (lab.structureType == STRUCTURE_LAB) {
-                                    if (lab.mineralAmount) {
-                                        if ((lab.mineralType in counts)) {
-                                            counts [lab.mineralType] += lab.mineralAmount;
+                            if (self.room.rcl >= 6 && self.terminal) {
+                                var __iterable0__ = self.room.find (FIND_MY_STRUCTURES);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var lab = __iterable0__ [__index0__];
+                                    if (lab.structureType == STRUCTURE_LAB) {
+                                        if (lab.mineralAmount) {
+                                            if ((lab.mineralType in counts)) {
+                                                counts [lab.mineralType] += lab.mineralAmount;
+                                            }
+                                            else {
+                                                counts [lab.mineralType] = lab.mineralAmount;
+                                            }
                                         }
-                                        else {
-                                            counts [lab.mineralType] = lab.mineralAmount;
-                                        }
-                                    }
-                                    if (lab.energy) {
-                                        if ((RESOURCE_ENERGY in counts)) {
-                                            counts [RESOURCE_ENERGY] += lab.energy;
-                                        }
-                                        else {
-                                            counts [RESOURCE_ENERGY] = lab.energy;
+                                        if (lab.energy) {
+                                            if ((RESOURCE_ENERGY in counts)) {
+                                                counts [RESOURCE_ENERGY] += lab.energy;
+                                            }
+                                            else {
+                                                counts [RESOURCE_ENERGY] = lab.energy;
+                                            }
                                         }
                                     }
                                 }
@@ -19819,13 +20870,67 @@ function main () {
                             self._total_resource_counts = counts;
                             return counts;
                         }, 'get_total_room_resource_counts');},
+                        get get_estimate_total_energy () {return __get__ (this, function (self) {
+                            if (self._total_resource_counts !== undefined) {
+                                return self._total_resource_counts [RESOURCE_ENERGY] || 0;
+                            }
+                            if (self._estimate_energy !== undefined) {
+                                return self._estimate_energy;
+                            }
+                            var energy = 0;
+                            if ((RESOURCE_ENERGY in self.storage.store)) {
+                                energy += self.storage.store [RESOURCE_ENERGY];
+                            }
+                            if (self.terminal && (RESOURCE_ENERGY in self.terminal.store)) {
+                                energy += self.terminal.store [RESOURCE_ENERGY];
+                            }
+                            self._estimate_energy = energy;
+                            return energy;
+                        }, 'get_estimate_total_energy');},
+                        get get_estimate_total_non_energy () {return __get__ (this, function (self) {
+                            if (self._estimate_non_energy !== undefined) {
+                                return self._estimate_non_energy;
+                            }
+                            if (self._total_resource_counts !== undefined) {
+                                var amounts = self._total_resource_counts;
+                                var result = 0;
+                                var __iterable0__ = amounts;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var key = __iterable0__ [__index0__];
+                                    if (key != RESOURCE_ENERGY) {
+                                        result += amounts [key];
+                                    }
+                                }
+                                self._estimate_non_energy = result;
+                                return result;
+                            }
+                            var result = 0;
+                            var __iterable0__ = self.storage.store;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var resource = __iterable0__ [__index0__];
+                                if (resource != RESOURCE_ENERGY) {
+                                    result += self.storage.store [resource];
+                                }
+                            }
+                            if (self.terminal) {
+                                var __iterable0__ = self.terminal.store;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var resource = __iterable0__ [__index0__];
+                                    if (resource != RESOURCE_ENERGY) {
+                                        result += self.terminal.store [resource];
+                                    }
+                                }
+                            }
+                            self._estimate_non_energy = result;
+                            return result;
+                        }, 'get_estimate_total_non_energy');},
                         get sell_orders_by_mineral () {return __get__ (this, function (self) {
                             var vmem = volatile_cache.mem ('market');
                             if (vmem.has ('grouped_sell_orders')) {
-                                return vmem.get ('grouped_sell_orders') [self.room.name] || dict ({});
+                                return vmem.get ('grouped_sell_orders') [self.room.name] || {};
                             }
                             else {
-                                var all_sell_orders = dict ({});
+                                var all_sell_orders = {};
                                 var __iterable0__ = _.values (Game.market.orders);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var order = __iterable0__ [__index0__];
@@ -19834,7 +20939,7 @@ function main () {
                                             var room_orders = all_sell_orders [order.roomName];
                                         }
                                         else {
-                                            var __left0__ = dict ({});
+                                            var __left0__ = {};
                                             var room_orders = __left0__;
                                             all_sell_orders [order.roomName] = __left0__;
                                         }
@@ -19842,12 +20947,12 @@ function main () {
                                             room_orders [order.resourceType].push (order);
                                         }
                                         else {
-                                            room_orders [order.resourceType] = list ([order]);
+                                            room_orders [order.resourceType] = [order];
                                         }
                                     }
                                 }
                                 vmem.set ('grouped_sell_orders', all_sell_orders);
-                                return all_sell_orders [self.room.name] || dict ({});
+                                return all_sell_orders [self.room.name] || {};
                             }
                         }, 'sell_orders_by_mineral');},
                         get _terminal_target_for_resource () {return __get__ (this, function (self, mineral, currently_have) {
@@ -19858,7 +20963,7 @@ function main () {
                                 else if (currently_have <= 30 * 1000) {
                                     return currently_have - 20 * 1000;
                                 }
-                                if (self.room.mem.empty_to) {
+                                if (self.room.mem [rmem_key_empty_all_resources_into_room]) {
                                     var min_via_empty_to = self.find_emptying_mineral_and_cost () [1];
                                 }
                                 else {
@@ -19867,16 +20972,25 @@ function main () {
                                 if (!('ten_without_self_orders' in self.mem)) {
                                     self.recalculate_energy_needed ();
                                 }
-                                var min_via_fulfillment = self.mem ['ten_without_self_orders'];
-                                var min_via_balancing = min (_.sum (self.get_total_room_resource_counts ()) - 350 * 1000, currently_have - 120 * 1000, self.mem ['total_energy_needed']);
-                                return min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_balancing));
+                                var min_via_fulfillment = min (currently_have - 120 * 1000, self.mem ['total_energy_needed']);
+                                var spending_state = self.room.main_spending_expenditure ();
+                                if (spending_state == room_spending_state_supporting) {
+                                    var min_via_spending = currently_have - energy_to_keep_always_in_reserve;
+                                }
+                                else if (spending_state == room_spending_state_supporting_sieged) {
+                                    var min_via_spending = currently_have - energy_to_keep_always_in_reserve_when_supporting_sieged;
+                                }
+                                else {
+                                    var min_via_spending = 0;
+                                }
+                                return min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_spending));
                             }
                             else if (mineral == self.get_lab_target_mineral () || mineral == self.get_lab2_target_mineral ()) {
                                 return 0;
                             }
                             else {
                                 if (self.my_mineral_deposit_minerals ().includes (mineral)) {
-                                    return min (currently_have, _SINGLE_MINERAL_FULFILLMENT_MAX * 2);
+                                    return min (currently_have, _KEEP_IN_TERMINAL_MY_MINERAL);
                                 }
                                 var fulfilling = self.fulfilling [mineral];
                                 if (fulfilling && len (fulfilling)) {
@@ -19894,7 +21008,7 @@ function main () {
                                     }
                                     return biggest_order;
                                 }
-                                if (currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem.empty_to)) {
+                                if (currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem [rmem_key_empty_all_resources_into_room])) {
                                     return 1000 * min (math.floor (currently_have / 1000), 20);
                                 }
                                 else {
@@ -19903,17 +21017,23 @@ function main () {
                             }
                         }, '_terminal_target_for_resource');},
                         get tick_terminal () {return __get__ (this, function (self) {
+                            if (__mod__ (Game.time, 5) == 0 && self.room.main_spending_expenditure () == room_spending_state_supporting_sieged) {
+                                self.run_support ();
+                            }
                             if (self.has_no_terminal_or_storage () || Game.cpu.bucket < 4300 && !(__mod__ (Game.time, 1020) == 3 || __mod__ (Game.time, 765) == 8 || __mod__ (Game.time, 595) == 15)) {
                                 return ;
                             }
                             var py_split = __mod__ (Game.time, 85);
                             if (py_split == 8 && !(_.isEmpty (self.fulfilling))) {
                                 self.run_fulfillment ();
+                                if (self.room.main_spending_expenditure () == room_spending_state_supporting) {
+                                    self.run_support ();
+                                }
                             }
                             else if (py_split == 3 && len (self.my_mineral_deposit_minerals ())) {
                                 self.check_orders ();
                             }
-                            else if (py_split == 15 && ('empty_to' in self.room.mem)) {
+                            else if (py_split == 15 && (rmem_key_empty_all_resources_into_room in self.room.mem)) {
                                 self.run_emptying_terminal ();
                             }
                         }, 'tick_terminal');},
@@ -19929,11 +21049,11 @@ function main () {
                                         return ;
                                     }
                                     var amount = self.terminal.store [mineral_chosen];
-                                    var cost = Game.market.calcTransactionCost (amount, self.room.name, self.room.mem.empty_to);
-                                    self._next_mineral_to_empty = tuple ([mineral_chosen, cost]);
+                                    var cost = Game.market.calcTransactionCost (amount, self.room.name, self.room.mem [rmem_key_empty_all_resources_into_room]);
+                                    self._next_mineral_to_empty = [mineral_chosen, cost];
                                 }
                                 else {
-                                    self._next_mineral_to_empty = tuple ([null, 0]);
+                                    self._next_mineral_to_empty = [null, 0];
                                 }
                             }
                             return self._next_mineral_to_empty;
@@ -19946,7 +21066,7 @@ function main () {
                             if (energy < cost) {
                                 return ;
                             }
-                            self.terminal.send (mineral, self.terminal.store [mineral], self.room.mem.empty_to, 'Emptying to {}'.format (self.room.mem.empty_to));
+                            self.terminal.send (mineral, self.terminal.store [mineral], self.room.mem [rmem_key_empty_all_resources_into_room], 'Emptying to {}'.format (self.room.mem [rmem_key_empty_all_resources_into_room]));
                         }, 'run_emptying_terminal');},
                         get run_fulfillment () {return __get__ (this, function (self) {
                             var vmem = volatile_cache.mem ('market');
@@ -19988,6 +21108,32 @@ function main () {
                                 }
                             }
                         }, 'run_fulfillment');},
+                        get run_support () {return __get__ (this, function (self) {
+                            if (!(self.terminal) || !(self.terminal.store [RESOURCE_ENERGY]) || self.terminal.store [RESOURCE_ENERGY] < 5000) {
+                                return ;
+                            }
+                            var spending_state = self.room.main_spending_expenditure ();
+                            if (spending_state == room_spending_state_supporting) {
+                                var min_via_spending = self.get_estimate_total_energy () - energy_to_keep_always_in_reserve;
+                            }
+                            else if (spending_state == room_spending_state_supporting_sieged) {
+                                var min_via_spending = self.get_estimate_total_energy () - energy_to_keep_always_in_reserve_when_supporting_sieged;
+                            }
+                            else {
+                                return ;
+                            }
+                            var sending_to = self.room.mem [rmem_key_now_supporting];
+                            var to_send = min (self.terminal.store [RESOURCE_ENERGY], min_via_spending);
+                            var distance = Game.map.getRoomLinearDistance (self.room.name, sending_to, true);
+                            var total_cost_of_1_energy = 1 + 1 * (math.log ((distance + 9) * 0.1) + 0.1);
+                            var amount = math.floor (to_send / total_cost_of_1_energy);
+                            if (amount >= 100) {
+                                var result = self.terminal.send (RESOURCE_ENERGY, amount, sending_to, 'Sending support!');
+                                if (result != OK) {
+                                    self.log ("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}".format (amount, sending_to, result));
+                                }
+                            }
+                        }, 'run_support');},
                         get fulfill_now () {return __get__ (this, function (self, mineral, target_obj) {
                             if ((self.terminal.store [mineral] < 1000 && 1000 <= target_obj.amount)) {
                                 self.log ('WARNING: fulfill_now() called with mineral: {}, target: {},but {} < {}'.format (mineral, JSON.stringify (target_obj), self.terminal.store [mineral], 1000));
@@ -20080,18 +21226,18 @@ function main () {
                             var __iterable0__ = self.my_mineral_deposit_minerals ();
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var mineral = __iterable0__ [__index0__];
-                                if ((mineral in self.fulfilling) && len (self.fulfilling [mineral]) || (self.get_total_room_resource_counts () [mineral] || 0) < _SINGLE_MINERAL_FULFILLMENT_MAX) {
+                                if ((mineral in self.fulfilling) && len (self.fulfilling [mineral]) || (self.get_total_room_resource_counts () [mineral] || 0) < _SELL_ORDER_SIZE) {
                                     continue;
                                 }
                                 var current_sell_orders = self.sell_orders_by_mineral () [mineral];
                                 if (current_sell_orders) {
-                                    var current_sell_orders = _.filter (current_sell_orders, dict ({'roomName': self.room.name}));
+                                    var current_sell_orders = _.filter (current_sell_orders, {'roomName': self.room.name});
                                 }
                                 if (current_sell_orders && len (current_sell_orders)) {
                                     var to_check = _.min (current_sell_orders, 'price');
                                     self.mem.last_sold_at [mineral] = to_check.price;
-                                    if (to_check.remainingAmount < _SINGLE_MINERAL_FULFILLMENT_MAX) {
-                                        if (to_check.remainingAmount <= 100) {
+                                    if (to_check.remainingAmount < _SELL_ORDER_SIZE) {
+                                        if (to_check.remainingAmount <= _SELL_ORDER_SIZE * 0.2) {
                                             if ((mineral in self.mem.last_sold_at)) {
                                                 var price = min (max (1.0, sell_at_prices [mineral] - 1.5, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
                                             }
@@ -20100,15 +21246,15 @@ function main () {
                                             }
                                             self.log ('Increasing price on sell order for {} from {} to {}.'.format (mineral, to_check.price, price));
                                             Game.market.changeOrderPrice (to_check.id, price);
-                                            Game.market.extendOrder (to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX - to_check.remainingAmount);
+                                            Game.market.extendOrder (to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount);
                                         }
                                         else {
-                                            self.log ('Extending sell order for {} at price {} from {} to {} minerals.'.format (mineral, to_check.price, to_check.remainingAmount, _SINGLE_MINERAL_FULFILLMENT_MAX));
-                                            Game.market.extendOrder (to_check.id, _SINGLE_MINERAL_FULFILLMENT_MAX - to_check.remainingAmount);
+                                            self.log ('Extending sell order for {} at price {} from {} to {} minerals.'.format (mineral, to_check.price, to_check.remainingAmount, _SELL_ORDER_SIZE));
+                                            Game.market.extendOrder (to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount);
                                         }
                                         self.mem.last_sold [mineral] = Game.time;
                                     }
-                                    else if (self.mem.last_sold [mineral] < Game.time - 10000 && to_check.price > bottom_prices [mineral] + 0.01) {
+                                    else if (self.mem.last_sold [mineral] < Game.time - 8000 && to_check.price > bottom_prices [mineral] + 0.01) {
                                         var new_price = max (bottom_prices [mineral], to_check.price - 0.1);
                                         self.log ('Reducing price on sell order for {} from {} to {}'.format (mineral, to_check.price, new_price));
                                         Game.market.changeOrderPrice (to_check.id, new_price);
@@ -20119,15 +21265,15 @@ function main () {
                                         Game.market.changeOrderPrice (to_check.id, bottom_prices [mineral]);
                                     }
                                 }
-                                else if ((mineral in sell_at_prices) && Game.market.credits >= (0.05 * _SINGLE_MINERAL_FULFILLMENT_MAX) * sell_at_prices [mineral] && len (Game.market.orders) < 50) {
+                                else if ((mineral in sell_at_prices) && Game.market.credits >= (MARKET_FEE * _SELL_ORDER_SIZE) * sell_at_prices [mineral] && len (Game.market.orders) < 50) {
                                     if ((mineral in self.mem.last_sold_at)) {
                                         var price = min (max (1.0, sell_at_prices [mineral] - 1.5, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
                                     }
                                     else {
                                         var price = sell_at_prices [mineral];
                                     }
-                                    self.log ('Creating new sell order for {} {} at {} credits/{}'.format (_SINGLE_MINERAL_FULFILLMENT_MAX, mineral, price, mineral));
-                                    Game.market.createOrder (ORDER_SELL, mineral, price, _SINGLE_MINERAL_FULFILLMENT_MAX, self.room.name);
+                                    self.log ('Creating new sell order for {} {} at {} credits/{}'.format (_SELL_ORDER_SIZE, mineral, price, mineral));
+                                    Game.market.createOrder (ORDER_SELL, mineral, price, _SELL_ORDER_SIZE, self.room.name);
                                     self.mem.last_sold [mineral] = Game.time;
                                 }
                             }
@@ -20159,13 +21305,13 @@ function main () {
                             self.log ("WARNING: Couldn't find any open spots to place a container near {}".format (pos));
                         }, 'place_container_construction_site');},
                         get get_target_mineral_miner_count () {return __get__ (this, function (self) {
-                            if (self.has_no_terminal_or_storage () || self.room.mem.empty_to) {
+                            if (self.has_no_terminal_or_storage () || self.room.mem [rmem_key_empty_all_resources_into_room]) {
                                 return 0;
                             }
                             var mineral = self.room.find (FIND_MINERALS) [0];
-                            if (mineral && mineral.mineralAmount > 0 && _.find (self.room.look_at (LOOK_STRUCTURES, mineral), dict ({'my': true, 'structureType': STRUCTURE_EXTRACTOR}))) {
+                            if (mineral && mineral.mineralAmount > 0 && _.find (self.room.look_at (LOOK_STRUCTURES, mineral), {'my': true, 'structureType': STRUCTURE_EXTRACTOR})) {
                                 var have_now = self.get_total_room_resource_counts ();
-                                if (_.sum (have_now) - (have_now [RESOURCE_ENERGY] || 0) >= 400000) {
+                                if (_.sum (have_now) - (have_now [RESOURCE_ENERGY] || 0) >= max_minerals_to_keep) {
                                     return 0;
                                 }
                                 var container = _.find (self.room.find_in_range (FIND_STRUCTURES, 2, mineral), (function __lambda__ (s) {
@@ -20199,18 +21345,15 @@ function main () {
                             }
                         }, 'get_target_mineral_hauler_count');},
                         get mineral_report () {return __get__ (this, function (self) {
-                            var minstrings = list ([]);
+                            var minstrings = [];
                             var __iterable0__ = _.pairs (self.get_total_room_resource_counts ());
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var mineral = __left0__ [0];
                                 var amount = __left0__ [1];
-                                if (mineral == RESOURCE_ENERGY) {
-                                    continue;
-                                }
                                 minstrings.append ('{} {}'.format (amount, mineral));
                             }
-                            var orderstrings = list ([]);
+                            var orderstrings = [];
                             var __iterable0__ = _.pairs (self.fulfilling);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
@@ -20248,16 +21391,29 @@ function main () {
                         'constants' +
                         'jstools.screeps_constants' +
                         'math' +
+                        'rooms.room_constants' +
                         'utilities.movement' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.MineralMind = MineralMind;
+                        __all__._KEEP_IN_TERMINAL_ENERGY = _KEEP_IN_TERMINAL_ENERGY;
+                        __all__._KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING;
+                        __all__._KEEP_IN_TERMINAL_MY_MINERAL = _KEEP_IN_TERMINAL_MY_MINERAL;
+                        __all__._SELL_ORDER_SIZE = _SELL_ORDER_SIZE;
                         __all__._SINGLE_MINERAL_FULFILLMENT_MAX = _SINGLE_MINERAL_FULFILLMENT_MAX;
                         __all__.bottom_prices = bottom_prices;
+                        __all__.energy_to_keep_always_in_reserve = energy_to_keep_always_in_reserve;
+                        __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
+                        __all__.max_minerals_to_keep = max_minerals_to_keep;
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
                         __all__.role_mineral_hauler = role_mineral_hauler;
+                        __all__.room_spending_state_supporting = room_spending_state_supporting;
+                        __all__.room_spending_state_supporting_sieged = room_spending_state_supporting_sieged;
                         __all__.sell_at_prices = sell_at_prices;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
@@ -20285,6 +21441,7 @@ function main () {
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
                     var role_hauler = __init__ (__world__.constants).role_hauler;
                     var role_miner = __init__ (__world__.constants).role_miner;
                     var role_remote_mining_reserve = __init__ (__world__.constants).role_remote_mining_reserve;
@@ -20463,7 +21620,7 @@ function main () {
                         }, 'energy_sitting_at');},
                         get get_local_mining_flags () {return __get__ (this, function (self) {
                             if (self._local_mining_flags === null) {
-                                var result = list ([]);
+                                var result = [];
                                 var __iterable0__ = self.room.sources;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var source = __iterable0__ [__index0__];
@@ -20597,7 +21754,7 @@ function main () {
                                         Memory.no_controller [room_name] = true;
                                     }
                                     else {
-                                        Memory.no_controller = dict ([[room_name, true]]);
+                                        Memory.no_controller = {[room_name]: true};
                                     }
                                     return null;
                                 }
@@ -20606,10 +21763,10 @@ function main () {
                                 }
                             }
                             if (!(Memory.reserving)) {
-                                Memory.reserving = dict ({});
+                                Memory.reserving = {};
                             }
-                            if ((room_name in Memory.rooms) && ('rea' in Memory.rooms [room_name])) {
-                                var ticks_to_end = Memory.rooms [room_name].rea - Game.time;
+                            if ((room_name in Memory.rooms) && (rmem_key_room_reserved_up_until_tick in Memory.rooms [room_name])) {
+                                var ticks_to_end = Memory.rooms [room_name] [rmem_key_room_reserved_up_until_tick] - Game.time;
                                 if (ticks_to_end >= 1000) {
                                     var max_sections = min (5, spawning.max_sections_of (self.room, creep_base_reserving));
                                     if (5000 - ticks_to_end < max_sections * 600) {
@@ -20624,7 +21781,7 @@ function main () {
                                     Memory.no_controller [room_name] = true;
                                 }
                                 else {
-                                    return dict ({'role': role_remote_mining_reserve, 'base': creep_base_reserving, 'num_sections': min (5, spawning.max_sections_of (self.room, creep_base_reserving)), 'memory': dict ({'claiming': room_name}), 'run_after': "(name) => Memory.reserving['{}'] = name".format (room_name)});
+                                    return {'role': role_remote_mining_reserve, 'base': creep_base_reserving, 'num_sections': min (5, spawning.max_sections_of (self.room, creep_base_reserving)), 'memory': {'claiming': room_name}, 'run_after': "(name) => Memory.reserving['{}'] = name".format (room_name)};
                                 }
                             }
                             else {
@@ -20647,6 +21804,17 @@ function main () {
                             var no_haulers = flag.pos.roomName == self.room.name && (self.room.rcl < 4 || !(self.room.room.storage));
                             return !(miner_carry_no_haulers) && !(no_haulers);
                         }, 'haulers_can_target_mine');},
+                        get is_mine_linked () {return __get__ (this, function (self, source) {
+                            var flag = flags.look_for (self.room, source, LOCAL_MINE);
+                            if (flag) {
+                                var miner_carry_no_haulers = flag.pos.roomName == self.room.name && self.room.room.energyCapacityAvailable >= 600 && flag.pos.inRangeTo (self.closest_deposit_point_to_mine (flag), 2);
+                                return miner_carry_no_haulers;
+                            }
+                            else {
+                                print ("[mining] Warning: can't find local flag for mine {}!".format (source));
+                                return false;
+                            }
+                        }, 'is_mine_linked');},
                         get get_next_needed_mining_role_for () {return __get__ (this, function (self, flag) {
                             var flag_id = 'flag-{}'.format (flag.name);
                             var miner_carry_no_haulers = flag.pos.roomName == self.room.name && self.room.room.energyCapacityAvailable >= 600 && flag.pos.inRangeTo (self.closest_deposit_point_to_mine (flag), 2);
@@ -20722,7 +21890,7 @@ function main () {
                                 if (self.room.all_paved ()) {
                                     var num_sections = spawning.ceil_sections (num_sections / 2, base);
                                 }
-                                return dict ({'role': role_miner, 'base': base, 'num_sections': num_sections, 'targets': list ([list ([target_energy_miner_mine, flag_id])])});
+                                return {'role': role_miner, 'base': base, 'num_sections': num_sections, 'targets': [[target_energy_miner_mine, flag_id]]};
                             }
                             var reserver_needed = self.reserver_needed (flag);
                             if (reserver_needed) {
@@ -20761,7 +21929,7 @@ function main () {
                                 else {
                                     var base = creep_base_hauler;
                                 }
-                                return dict ({'role': role_hauler, 'base': base, 'num_sections': self.calculate_creep_num_sections_for_mine (flag), 'targets': list ([list ([target_energy_hauler_mine, flag_id])])});
+                                return {'role': role_hauler, 'base': base, 'num_sections': self.calculate_creep_num_sections_for_mine (flag), 'targets': [[target_energy_hauler_mine, flag_id]]};
                             }
                             return null;
                         }, 'get_next_needed_mining_role_for');},
@@ -20833,6 +22001,7 @@ function main () {
                         __all__.movement = movement;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
                         __all__.role_hauler = role_hauler;
                         __all__.role_miner = role_miner;
                         __all__.role_remote_mining_reserve = role_remote_mining_reserve;
@@ -20867,18 +22036,39 @@ function main () {
                     var energy_to_pause_building = 14 * 1000;
                     var energy_to_resume_building = 28 * 1000;
                     var min_stored_energy_to_draw_from_before_refilling = 20 * 1000;
-                    var rcl_to_min_wall_hits = list ([1, 20 * 1000, 50 * 1000, 150 * 1000, 500 * 1000, 1000 * 1000, (3 * 1000) * 1000, (10 * 1000) * 1000]);
-                    var rcl_to_sane_wall_hits = list ([2, 40 * 1000, 80 * 1000, 250 * 1000, 1000 * 1000, 1500 * 1000, (5 * 1000) * 1000, (100 * 1000) * 1000]);
+                    var rcl_to_target_wall_hits = [1, 20 * 1000, 50 * 1000, 150 * 1000, 500 * 1000, 1000 * 1000, (3 * 1000) * 1000, (10 * 1000) * 1000];
+                    var rcl_to_max_wall_hits = [2, 40 * 1000, 80 * 1000, 250 * 1000, 1000 * 1000, 1500 * 1000, (5 * 1000) * 1000, WALL_HITS_MAX];
+                    var energy_to_keep_always_in_reserve = STORAGE_CAPACITY / 2;
+                    var energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve * 0.25;
+                    var energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1;
+                    var energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1;
+                    var energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.05;
+                    var max_minerals_to_keep = STORAGE_CAPACITY / 4;
+                    var room_spending_state_building = 'b';
+                    var room_spending_state_upgrading = 'u';
+                    var room_spending_state_rcl8_building = '8';
+                    var room_spending_state_saving = 's';
+                    var room_spending_state_supporting = 'p';
+                    var room_spending_state_supporting_sieged = 'r';
+                    var room_spending_state_under_siege = 'n';
+                    var room_spending_state_selling = 'l';
+                    var room_spending_state_visual = {'b': 'building', 'u': 'upgrading', '8': 'rcl8_building', 's': 'saving', 'p': 'supporting', 'r': 'supporting_sieged', 'n': 'under_siege', 'l': 'selling'};
                     __pragma__ ('<use>' +
                         'jstools.screeps_constants' +
                     '</use>')
                     __pragma__ ('<all>')
+                        __all__.energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_building;
+                        __all__.energy_balance_point_for_rcl8_upgrading = energy_balance_point_for_rcl8_upgrading;
+                        __all__.energy_pre_rcl8_scaling_balance_point = energy_pre_rcl8_scaling_balance_point;
+                        __all__.energy_to_keep_always_in_reserve = energy_to_keep_always_in_reserve;
+                        __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
                         __all__.energy_to_pause_building = energy_to_pause_building;
                         __all__.energy_to_pause_upgrading = energy_to_pause_upgrading;
                         __all__.energy_to_resume_building = energy_to_resume_building;
                         __all__.energy_to_resume_upgrading = energy_to_resume_upgrading;
                         __all__.max_energy_disable_full_storage_use = max_energy_disable_full_storage_use;
                         __all__.max_energy_resume_remote_mining = max_energy_resume_remote_mining;
+                        __all__.max_minerals_to_keep = max_minerals_to_keep;
                         __all__.max_total_resume_remote_mining = max_total_resume_remote_mining;
                         __all__.min_energy_enable_full_storage_use = min_energy_enable_full_storage_use;
                         __all__.min_energy_pause_remote_mining = min_energy_pause_remote_mining;
@@ -20889,8 +22079,17 @@ function main () {
                         __all__.new_set = new_set;
                         __all__.rcl8_energy_to_pause_upgrading = rcl8_energy_to_pause_upgrading;
                         __all__.rcl8_energy_to_resume_upgrading = rcl8_energy_to_resume_upgrading;
-                        __all__.rcl_to_min_wall_hits = rcl_to_min_wall_hits;
-                        __all__.rcl_to_sane_wall_hits = rcl_to_sane_wall_hits;
+                        __all__.rcl_to_max_wall_hits = rcl_to_max_wall_hits;
+                        __all__.rcl_to_target_wall_hits = rcl_to_target_wall_hits;
+                        __all__.room_spending_state_building = room_spending_state_building;
+                        __all__.room_spending_state_rcl8_building = room_spending_state_rcl8_building;
+                        __all__.room_spending_state_saving = room_spending_state_saving;
+                        __all__.room_spending_state_selling = room_spending_state_selling;
+                        __all__.room_spending_state_supporting = room_spending_state_supporting;
+                        __all__.room_spending_state_supporting_sieged = room_spending_state_supporting_sieged;
+                        __all__.room_spending_state_under_siege = room_spending_state_under_siege;
+                        __all__.room_spending_state_upgrading = room_spending_state_upgrading;
+                        __all__.room_spending_state_visual = room_spending_state_visual;
                     __pragma__ ('</all>')
                 }
             }
@@ -20961,18 +22160,48 @@ function main () {
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var default_roles = __init__ (__world__.constants).default_roles;
                     var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+                    var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+                    var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
                     var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
                     var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
                     var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-                    var new_map = __init__ (__world__.constants).new_map;
-                    var new_set = __init__ (__world__.constants).new_set;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+                    var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+                    var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+                    var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+                    var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+                    var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+                    var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+                    var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+                    var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+                    var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+                    var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+                    var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+                    var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+                    var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+                    var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+                    var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+                    var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+                    var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+                    var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+                    var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+                    var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+                    var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+                    var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+                    var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+                    var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+                    var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+                    var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+                    var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
                     var role_bases = __init__ (__world__.constants).role_bases;
                     var role_builder = __init__ (__world__.constants).role_builder;
                     var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -21021,6 +22250,37 @@ function main () {
                     var target_source = __init__ (__world__.constants).target_source;
                     var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
+                    var cache_key_spending_now = __init__ (__world__.constants.memkeys.room).cache_key_spending_now;
+                    var mem_key_building_paused = __init__ (__world__.constants.memkeys.room).mem_key_building_paused;
+                    var mem_key_building_priority_spawn = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_spawn;
+                    var mem_key_building_priority_walls = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_walls;
+                    var mem_key_cache = __init__ (__world__.constants.memkeys.room).mem_key_cache;
+                    var mem_key_carry_parts_by_role = __init__ (__world__.constants.memkeys.room).mem_key_carry_parts_by_role;
+                    var mem_key_creeps_by_role = __init__ (__world__.constants.memkeys.room).mem_key_creeps_by_role;
+                    var mem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants.memkeys.room).mem_key_creeps_by_role_and_replacement_time;
+                    var mem_key_currently_under_siege = __init__ (__world__.constants.memkeys.room).mem_key_currently_under_siege;
+                    var mem_key_defense_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_defense_mind_storage;
+                    var mem_key_empty_all_resources_into_room = __init__ (__world__.constants.memkeys.room).mem_key_empty_all_resources_into_room;
+                    var mem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants.memkeys.room).mem_key_flag_for_testing_spawning_in_simulation;
+                    var mem_key_focusing_home = __init__ (__world__.constants.memkeys.room).mem_key_focusing_home;
+                    var mem_key_linking_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_linking_mind_storage;
+                    var mem_key_metadata = __init__ (__world__.constants.memkeys.room).mem_key_metadata;
+                    var mem_key_mineral_mind_storage = __init__ (__world__.constants.memkeys.room).mem_key_mineral_mind_storage;
+                    var mem_key_now_supporting = __init__ (__world__.constants.memkeys.room).mem_key_now_supporting;
+                    var mem_key_pause_all_room_operations = __init__ (__world__.constants.memkeys.room).mem_key_pause_all_room_operations;
+                    var mem_key_planned_role_to_spawn = __init__ (__world__.constants.memkeys.room).mem_key_planned_role_to_spawn;
+                    var mem_key_prepping_defenses = __init__ (__world__.constants.memkeys.room).mem_key_prepping_defenses;
+                    var mem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants.memkeys.room).mem_key_remotes_explicitly_marked_under_attack;
+                    var mem_key_remotes_safe_when_under_siege = __init__ (__world__.constants.memkeys.room).mem_key_remotes_safe_when_under_siege;
+                    var mem_key_room_reserved_up_until_tick = __init__ (__world__.constants.memkeys.room).mem_key_room_reserved_up_until_tick;
+                    var mem_key_spawn_requests = __init__ (__world__.constants.memkeys.room).mem_key_spawn_requests;
+                    var mem_key_sponsor = __init__ (__world__.constants.memkeys.room).mem_key_sponsor;
+                    var mem_key_storage_use_enabled = __init__ (__world__.constants.memkeys.room).mem_key_storage_use_enabled;
+                    var mem_key_stored_hostiles = __init__ (__world__.constants.memkeys.room).mem_key_stored_hostiles;
+                    var mem_key_there_might_be_energy_lying_around = __init__ (__world__.constants.memkeys.room).mem_key_there_might_be_energy_lying_around;
+                    var mem_key_total_open_source_spaces = __init__ (__world__.constants.memkeys.room).mem_key_total_open_source_spaces;
+                    var mem_key_upgrading_paused = __init__ (__world__.constants.memkeys.room).mem_key_upgrading_paused;
+                    var mem_key_work_parts_by_role = __init__ (__world__.constants.memkeys.room).mem_key_work_parts_by_role;
                     var creep_wrappers = __init__ (__world__.creep_management.creep_wrappers);
                     var spawning = __init__ (__world__.creep_management.spawning);
                     var fit_num_sections = __init__ (__world__.creep_management.spawning).fit_num_sections;
@@ -21033,12 +22293,18 @@ function main () {
                     var LinkingMind = __init__ (__world__.rooms.links).LinkingMind;
                     var MineralMind = __init__ (__world__.rooms.minerals).MineralMind;
                     var MiningMind = __init__ (__world__.rooms.mining).MiningMind;
+                    var energy_balance_point_for_rcl8_building = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_building;
+                    var energy_balance_point_for_rcl8_upgrading = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_upgrading;
+                    var energy_pre_rcl8_scaling_balance_point = __init__ (__world__.rooms.room_constants).energy_pre_rcl8_scaling_balance_point;
+                    var energy_to_keep_always_in_reserve = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve;
+                    var energy_to_keep_always_in_reserve_when_supporting_sieged = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve_when_supporting_sieged;
                     var energy_to_pause_building = __init__ (__world__.rooms.room_constants).energy_to_pause_building;
                     var energy_to_pause_upgrading = __init__ (__world__.rooms.room_constants).energy_to_pause_upgrading;
                     var energy_to_resume_building = __init__ (__world__.rooms.room_constants).energy_to_resume_building;
                     var energy_to_resume_upgrading = __init__ (__world__.rooms.room_constants).energy_to_resume_upgrading;
                     var max_energy_disable_full_storage_use = __init__ (__world__.rooms.room_constants).max_energy_disable_full_storage_use;
                     var max_energy_resume_remote_mining = __init__ (__world__.rooms.room_constants).max_energy_resume_remote_mining;
+                    var max_minerals_to_keep = __init__ (__world__.rooms.room_constants).max_minerals_to_keep;
                     var max_total_resume_remote_mining = __init__ (__world__.rooms.room_constants).max_total_resume_remote_mining;
                     var min_energy_enable_full_storage_use = __init__ (__world__.rooms.room_constants).min_energy_enable_full_storage_use;
                     var min_energy_pause_remote_mining = __init__ (__world__.rooms.room_constants).min_energy_pause_remote_mining;
@@ -21049,8 +22315,17 @@ function main () {
                     var new_set = __init__ (__world__.rooms.room_constants).new_set;
                     var rcl8_energy_to_pause_upgrading = __init__ (__world__.rooms.room_constants).rcl8_energy_to_pause_upgrading;
                     var rcl8_energy_to_resume_upgrading = __init__ (__world__.rooms.room_constants).rcl8_energy_to_resume_upgrading;
-                    var rcl_to_min_wall_hits = __init__ (__world__.rooms.room_constants).rcl_to_min_wall_hits;
-                    var rcl_to_sane_wall_hits = __init__ (__world__.rooms.room_constants).rcl_to_sane_wall_hits;
+                    var rcl_to_max_wall_hits = __init__ (__world__.rooms.room_constants).rcl_to_max_wall_hits;
+                    var rcl_to_target_wall_hits = __init__ (__world__.rooms.room_constants).rcl_to_target_wall_hits;
+                    var room_spending_state_building = __init__ (__world__.rooms.room_constants).room_spending_state_building;
+                    var room_spending_state_rcl8_building = __init__ (__world__.rooms.room_constants).room_spending_state_rcl8_building;
+                    var room_spending_state_saving = __init__ (__world__.rooms.room_constants).room_spending_state_saving;
+                    var room_spending_state_selling = __init__ (__world__.rooms.room_constants).room_spending_state_selling;
+                    var room_spending_state_supporting = __init__ (__world__.rooms.room_constants).room_spending_state_supporting;
+                    var room_spending_state_supporting_sieged = __init__ (__world__.rooms.room_constants).room_spending_state_supporting_sieged;
+                    var room_spending_state_under_siege = __init__ (__world__.rooms.room_constants).room_spending_state_under_siege;
+                    var room_spending_state_upgrading = __init__ (__world__.rooms.room_constants).room_spending_state_upgrading;
+                    var room_spending_state_visual = __init__ (__world__.rooms.room_constants).room_spending_state_visual;
                     var movement = __init__ (__world__.utilities.movement);
                     var speech = __init__ (__world__.utilities.speech);
                     var clamp_room_x_or_y = __init__ (__world__.utilities.positions).clamp_room_x_or_y;
@@ -21059,7 +22334,7 @@ function main () {
                         get __init__ () {return __get__ (this, function (self, hive, room) {
                             self.hive = hive;
                             self.room = room;
-                            Object.defineProperty (self, 'name', dict ({'value': self.room.name}));
+                            Object.defineProperty (self, 'name', {'value': self.room.name});
                             self.my = room.controller && room.controller.my;
                             if (self.my) {
                                 self.rcl = self.room.controller.level;
@@ -21072,7 +22347,7 @@ function main () {
                                 self.rcl = 0;
                             }
                             self.defense = RoomDefense (self);
-                            self.subsidiaries = list ([]);
+                            self.subsidiaries = [];
                             self._find_cache = new_map ();
                             self.hostile = !(room.controller) || room.controller.owner && !(room.controller.my);
                             if (room.controller && room.controller.owner) {
@@ -21092,8 +22367,8 @@ function main () {
                             else {
                                 self.enemy = false;
                             }
-                            if (self.mem.sponsor) {
-                                self.sponsor_name = self.mem.sponsor;
+                            if ((mem_key_sponsor in self.mem)) {
+                                self.sponsor_name = self.mem [mem_key_sponsor];
                             }
                             else {
                                 self.sponsor_name = null;
@@ -21103,10 +22378,10 @@ function main () {
                             return self.room.memory;
                         }, '_get_mem');},
                         get get_cached_property () {return __get__ (this, function (self, name) {
-                            if (!('cache' in self.mem)) {
+                            if (!(self.mem [mem_key_cache])) {
                                 return null;
                             }
-                            var prop_mem = self.mem.cache [name];
+                            var prop_mem = self.mem [mem_key_cache] [name];
                             if (prop_mem && prop_mem.dead_at > Game.time) {
                                 return prop_mem.value;
                             }
@@ -21115,32 +22390,41 @@ function main () {
                             }
                         }, 'get_cached_property');},
                         get store_cached_property () {return __get__ (this, function (self, name, value, ttl) {
-                            if (!(self.mem.cache)) {
-                                self.mem.cache = dict ({});
+                            if (!(self.mem [mem_key_cache])) {
+                                self.mem [mem_key_cache] = {};
                             }
-                            self.mem.cache [name] = dict ({'value': value, 'dead_at': Game.time + ttl});
+                            self.mem [mem_key_cache] [name] = {'value': value, 'dead_at': Game.time + ttl};
                         }, 'store_cached_property');},
                         get store_cached_property_at () {return __get__ (this, function (self, name, value, dead_at) {
-                            if (!(self.mem.cache)) {
-                                self.mem.cache = dict ({});
+                            if (!(self.mem [mem_key_cache])) {
+                                self.mem [mem_key_cache] = {};
                             }
-                            self.mem.cache [name] = dict ({'value': value, 'dead_at': dead_at});
+                            self.mem [mem_key_cache] [name] = {'value': value, 'dead_at': dead_at};
                         }, 'store_cached_property_at');},
                         get delete_cached_property () {return __get__ (this, function (self, name) {
-                            if (!(self.mem.cache)) {
+                            if (!(self.mem [mem_key_cache])) {
                                 return ;
                             }
-                            delete self.mem.cache [name];
+                            delete self.mem [mem_key_cache] [name];
                         }, 'delete_cached_property');},
+                        get expire_property_next_tick () {return __get__ (this, function (self, name) {
+                            if (!(self.mem [mem_key_cache])) {
+                                return ;
+                            }
+                            if (!(name in self.mem [mem_key_cache])) {
+                                return ;
+                            }
+                            self.mem [mem_key_cache] [name].dead_at = Game.time + 1;
+                        }, 'expire_property_next_tick');},
                         get find () {return __get__ (this, function (self, parameter) {
                             if (self._find_cache.has (parameter)) {
                                 return self._find_cache.get (parameter);
                             }
                             else {
                                 if (parameter == FIND_HOSTILE_CREEPS && len (Memory.meta.friends)) {
-                                    var result = self.room.find (FIND_HOSTILE_CREEPS, dict ({'filter': (function __lambda__ (c) {
+                                    var result = self.room.find (FIND_HOSTILE_CREEPS, {'filter': (function __lambda__ (c) {
                                         return !(Memory.meta.friends.includes (c.owner.username));
-                                    })}));
+                                    })});
                                 }
                                 else if (parameter === PYFIND_REPAIRABLE_ROADS) {
                                     var result = _.filter (self.find (FIND_STRUCTURES), (function __lambda__ (s) {
@@ -21178,7 +22462,7 @@ function main () {
                                     return room.look_at (look_type, x, y);
                                 }
                                 else {
-                                    return list ([]);
+                                    return [];
                                 }
                             }
                             var result = self.room.lookForAt (look_type, x, y);
@@ -21198,11 +22482,11 @@ function main () {
                                     return room.find_in_range (find_type, find_range, x, y);
                                 }
                                 else {
-                                    return list ([]);
+                                    return [];
                                 }
                             }
                             var raw_find_results = self.find (find_type);
-                            var found = list ([]);
+                            var found = [];
                             if (len (raw_find_results)) {
                                 var __iterable0__ = raw_find_results;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -21275,7 +22559,7 @@ function main () {
                             if (!('_creeps' in self)) {
                                 if (self.my && !(self.hive.has_polled_for_creeps)) {
                                     print ('[{}] Warning: tried to retrieve creeps of room {} before calling poll_all_creeps!'.format (self.name, self.name));
-                                    var creeps = list ([]);
+                                    var creeps = [];
                                     var __iterable0__ = Object.keys (Game.creeps);
                                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                         var name = __iterable0__ [__index0__];
@@ -21287,7 +22571,7 @@ function main () {
                                     self._creeps = creeps;
                                 }
                                 else {
-                                    self._creeps = list ([]);
+                                    self._creeps = [];
                                 }
                             }
                             return self._creeps;
@@ -21296,11 +22580,11 @@ function main () {
                             if (!('_unique_owned_index' in self)) {
                                 if (self.my) {
                                     if (!('_owned_rooms_index' in Memory.meta)) {
-                                        Memory.meta._owned_rooms_index = _ (self.hive.my_rooms).sortByOrder (list (['rcl', (function __lambda__ (r) {
+                                        Memory.meta._owned_rooms_index = _ (self.hive.my_rooms).sortByOrder (['rcl', (function __lambda__ (r) {
                                             return r.position [0];
                                         }), (function __lambda__ (r) {
                                             return r.position [1];
-                                        })]), list (['desc', 'asc', 'asc'])).pluck ('name').value ();
+                                        })], ['desc', 'asc', 'asc']).pluck ('name').value ();
                                         var index = Memory.meta._owned_rooms_index.indexOf (self.name);
                                     }
                                     else {
@@ -21324,34 +22608,34 @@ function main () {
                                 }
                                 else {
                                     print ('[{}] Warning: accessing remote mining operations of unowned room {}.'.format (self.name, self.name));
-                                    self._remote_mining_operations = list ([]);
+                                    self._remote_mining_operations = [];
                                 }
                             }
                             return self._remote_mining_operations;
                         }, '_get_remote_mining_operations');},
                         get _get_role_counts () {return __get__ (this, function (self) {
-                            if (!(self.mem.roles_alive)) {
+                            if (!(self.mem [mem_key_creeps_by_role])) {
                                 self.recalculate_roles_alive ();
                             }
-                            return self.mem.roles_alive;
+                            return self.mem [mem_key_creeps_by_role];
                         }, '_get_role_counts');},
                         get _get_work_mass () {return __get__ (this, function (self) {
-                            if (!(self.mem.roles_work)) {
+                            if (!(self.mem [mem_key_work_parts_by_role])) {
                                 self.recalculate_roles_alive ();
                             }
-                            return self.mem.roles_work;
+                            return self.mem [mem_key_work_parts_by_role];
                         }, '_get_work_mass');},
                         get _get_carry_mass () {return __get__ (this, function (self) {
-                            if (!(self.mem.roles_carry)) {
+                            if (!(self.mem [mem_key_carry_parts_by_role])) {
                                 self.recalculate_roles_alive ();
                             }
-                            return self.mem.roles_carry;
+                            return self.mem [mem_key_carry_parts_by_role];
                         }, '_get_carry_mass');},
                         get _get_rt_map () {return __get__ (this, function (self) {
-                            if (!(self.mem.rt_map)) {
+                            if (!(self.mem [mem_key_creeps_by_role_and_replacement_time])) {
                                 self.recalculate_roles_alive ();
                             }
-                            return self.mem.rt_map;
+                            return self.mem [mem_key_creeps_by_role_and_replacement_time];
                         }, '_get_rt_map');},
                         get role_count () {return __get__ (this, function (self, role) {
                             var count = self.role_counts [role];
@@ -21404,9 +22688,9 @@ function main () {
                                 self.work_mass_map [role] = spawning.work_count (creep);
                             }
                             var rt_map = self._get_rt_map ();
-                            var rt_pair = list ([creep.name, creep.get_replacement_time ()]);
+                            var rt_pair = [creep.name, creep.get_replacement_time ()];
                             if (!(rt_map [role])) {
-                                rt_map [role] = list ([rt_pair]);
+                                rt_map [role] = [rt_pair];
                             }
                             else {
                                 rt_map [role].splice (_.sortedIndex (rt_map [role], rt_pair, (function __lambda__ (p) {
@@ -21415,10 +22699,10 @@ function main () {
                             }
                         }, 'register_to_role');},
                         get recalculate_roles_alive () {return __get__ (this, function (self) {
-                            var roles_alive = dict ({});
-                            var roles_work = dict ({});
-                            var roles_carry = dict ({});
-                            var rt_map = dict ({});
+                            var roles_alive = {};
+                            var roles_work = {};
+                            var roles_carry = {};
+                            var rt_map = {};
                             var __iterable0__ = self.creeps;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var creep = __iterable0__ [__index0__];
@@ -21448,9 +22732,9 @@ function main () {
                                     continue;
                                 }
                                 var creep = creep_wrappers.wrap_creep (self.hive, self.hive.targets, self, creep);
-                                var rt_pair = tuple ([creep.name, creep.get_replacement_time ()]);
+                                var rt_pair = [creep.name, creep.get_replacement_time ()];
                                 if (!(rt_map [role])) {
-                                    rt_map [role] = list ([rt_pair]);
+                                    rt_map [role] = [rt_pair];
                                 }
                                 else {
                                     rt_map [role].splice (_.sortedIndex (rt_map [role], rt_pair, (function __lambda__ (p) {
@@ -21458,10 +22742,10 @@ function main () {
                                     })), 0, rt_pair);
                                 }
                             }
-                            self.mem.roles_alive = roles_alive;
-                            self.mem.roles_work = roles_work;
-                            self.mem.roles_carry = roles_carry;
-                            self.mem.rt_map = rt_map;
+                            self.mem [mem_key_creeps_by_role] = roles_alive;
+                            self.mem [mem_key_work_parts_by_role] = roles_work;
+                            self.mem [mem_key_carry_parts_by_role] = roles_carry;
+                            self.mem [mem_key_creeps_by_role_and_replacement_time] = rt_map;
                         }, 'recalculate_roles_alive');},
                         get get_next_replacement_name () {return __get__ (this, function (self, role) {
                             var rt_map = self.rt_map;
@@ -21579,12 +22863,16 @@ function main () {
                             }
                             return creep.get_replacement_time ();
                         }, 'replacement_time_of');},
+                        get check_all_creeps_next_tick () {return __get__ (this, function (self) {
+                            self.mem [mem_key_cache] ['clear_next'] = 0;
+                        }, 'check_all_creeps_next_tick');},
                         get precreep_tick_actions () {return __get__ (this, function (self) {
                             var time = Game.time;
-                            var meta = self.mem.meta;
+                            var meta = self.mem [mem_key_metadata];
                             if (!(meta)) {
-                                var meta = dict ({'clear_next': 0, 'reset_spawn_on': 0});
-                                self.mem.meta = meta;
+                                var __left0__ = {'clear_next': 0, 'reset_spawn_on': 0};
+                                self.mem [mem_key_metadata] = __left0__;
+                                var meta = __left0__;
                             }
                             if (time >= meta.clear_next) {
                                 consistency.clear_memory (self);
@@ -21697,15 +22985,15 @@ function main () {
                                     }
                                 }
                                 else if (self.trying_to_get_full_storage_use) {
-                                    if (self.mem.full_storage_use && self.room.storage.store [RESOURCE_ENERGY] <= max_energy_disable_full_storage_use) {
+                                    if (self.mem [mem_key_storage_use_enabled] && self.room.storage.store [RESOURCE_ENERGY] <= max_energy_disable_full_storage_use) {
                                         print ('[{}] Disabling full storage use.'.format (self.name));
-                                        self.mem.full_storage_use = false;
+                                        self.mem [mem_key_storage_use_enabled] = false;
                                     }
-                                    if (!(self.mem.full_storage_use) && self.room.storage.store [RESOURCE_ENERGY] > min_energy_enable_full_storage_use) {
+                                    if (!(self.mem [mem_key_storage_use_enabled]) && self.room.storage.store [RESOURCE_ENERGY] > min_energy_enable_full_storage_use) {
                                         print ('[{}] Enabling full storage use.'.format (self.name));
-                                        self.mem.full_storage_use = true;
+                                        self.mem [mem_key_storage_use_enabled] = true;
                                     }
-                                    self._full_storage_use = self.mem.full_storage_use;
+                                    self._full_storage_use = self.mem [mem_key_storage_use_enabled];
                                 }
                                 else {
                                     self._full_storage_use = false;
@@ -21727,13 +23015,13 @@ function main () {
                             if (!(self.full_storage_use)) {
                                 return false;
                             }
-                            if (self.mem.focusing_home && _.sum (self.room.storage.store) < max_total_resume_remote_mining || self.room.storage.store.energy < max_energy_resume_remote_mining) {
-                                self.mem.focusing_home = false;
+                            if (self.mem [mem_key_focusing_home] && _.sum (self.room.storage.store) < max_total_resume_remote_mining || self.room.storage.store.energy < max_energy_resume_remote_mining) {
+                                self.mem [mem_key_focusing_home] = false;
                             }
-                            if (!(self.mem.focusing_home) && _.sum (self.room.storage.store) > min_total_pause_remote_mining && self.room.storage.store.energy > min_energy_pause_remote_mining) {
-                                self.mem.focusing_home = true;
+                            if (!(self.mem [mem_key_focusing_home]) && _.sum (self.room.storage.store) > min_total_pause_remote_mining && self.room.storage.store.energy > min_energy_pause_remote_mining) {
+                                self.mem [mem_key_focusing_home] = true;
                             }
-                            return !(!(self.mem.focusing_home));
+                            return !(!(self.mem [mem_key_focusing_home]));
                         }, 'mining_ops_paused');},
                         get upgrading_paused () {return __get__ (this, function (self) {
                             if (!('_upgrading_paused' in self)) {
@@ -21745,22 +23033,22 @@ function main () {
                                 }
                                 else {
                                     if (self.rcl >= 8) {
-                                        if (self.mem.upgrading_paused && self.room.storage.store.energy > rcl8_energy_to_resume_upgrading) {
-                                            self.mem.upgrading_paused = false;
+                                        if (self.mem [mem_key_upgrading_paused] && self.room.storage.store.energy > rcl8_energy_to_resume_upgrading) {
+                                            self.mem [mem_key_upgrading_paused] = false;
                                         }
-                                        if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < rcl8_energy_to_pause_upgrading) {
-                                            self.mem.upgrading_paused = true;
+                                        if (!(self.mem [mem_key_upgrading_paused]) && self.room.storage.store.energy < rcl8_energy_to_pause_upgrading) {
+                                            self.mem [mem_key_upgrading_paused] = true;
                                         }
                                     }
                                     else {
-                                        if (self.mem.upgrading_paused && self.room.storage.store.energy > energy_to_resume_upgrading) {
-                                            self.mem.upgrading_paused = false;
+                                        if (self.mem [mem_key_upgrading_paused] && self.room.storage.store.energy > energy_to_resume_upgrading) {
+                                            self.mem [mem_key_upgrading_paused] = false;
                                         }
-                                        if (!(self.mem.upgrading_paused) && self.room.storage.store.energy < energy_to_pause_upgrading) {
-                                            self.mem.upgrading_paused = true;
+                                        if (!(self.mem [mem_key_upgrading_paused]) && self.room.storage.store.energy < energy_to_pause_upgrading) {
+                                            self.mem [mem_key_upgrading_paused] = true;
                                         }
                                     }
-                                    self._upgrading_paused = !(!(self.mem.upgrading_paused));
+                                    self._upgrading_paused = !(!(self.mem [mem_key_upgrading_paused]));
                                 }
                             }
                             return self._upgrading_paused;
@@ -21774,13 +23062,13 @@ function main () {
                                     self._building_paused = true;
                                 }
                                 else {
-                                    if (self.mem.building_paused && self.room.storage.store.energy > energy_to_resume_building) {
-                                        self.mem.building_paused = false;
+                                    if (self.mem [mem_key_building_paused] && self.room.storage.store.energy > energy_to_resume_building) {
+                                        self.mem [mem_key_building_paused] = false;
                                     }
-                                    if (!(self.mem.building_paused) && self.room.storage.store.energy < energy_to_pause_building) {
-                                        self.mem.building_paused = true;
+                                    if (!(self.mem [mem_key_building_paused]) && self.room.storage.store.energy < energy_to_pause_building) {
+                                        self.mem [mem_key_building_paused] = true;
                                     }
-                                    if (self.mem.building_paused) {
+                                    if (self.mem [mem_key_building_paused]) {
                                         self._building_paused = self.spawn && len (_.filter (self.find (FIND_MY_STRUCTURES), (function __lambda__ (s) {
                                             return s.structureType == STRUCTURE_SPAWN || s.structureType == STRUCTURE_EXTENSION;
                                         }))) > len (_.filter (self.find (FIND_MY_CONSTRUCTION_SITES), (function __lambda__ (s) {
@@ -21816,13 +23104,13 @@ function main () {
                             return deprioritized;
                         }, 'upgrading_deprioritized');},
                         get under_siege () {return __get__ (this, function (self) {
-                            return !(!(self.mem.attack));
+                            return !(!(self.mem [mem_key_currently_under_siege]));
                         }, 'under_siege');},
                         get any_remotes_under_siege () {return __get__ (this, function (self) {
-                            return self.mem.attack || self.mem.remotes_attack;
+                            return self.mem [mem_key_currently_under_siege] || self.mem [mem_key_remotes_explicitly_marked_under_attack];
                         }, 'any_remotes_under_siege');},
                         get remote_under_siege () {return __get__ (this, function (self, flag) {
-                            return self.any_remotes_under_siege () && flag.pos.roomName != self.name && (!(self.mem.remotes_safe) || !(self.mem.remotes_safe.includes (flag.pos.roomName)));
+                            return self.any_remotes_under_siege () && flag.pos.roomName != self.name && (!(self.mem [mem_key_remotes_safe_when_under_siege]) || !(self.mem [mem_key_remotes_safe_when_under_siege].includes (flag.pos.roomName)));
                         }, 'remote_under_siege');},
                         get conducting_siege () {return __get__ (this, function (self) {
                             if (!('_conducting_siege' in self)) {
@@ -21864,10 +23152,10 @@ function main () {
                             }
                         }, 'get_max_mining_op_count');},
                         get get_max_sane_wall_hits () {return __get__ (this, function (self) {
-                            return rcl_to_sane_wall_hits [self.rcl - 1] || 0;
+                            return rcl_to_max_wall_hits [self.rcl - 1] || 0;
                         }, 'get_max_sane_wall_hits');},
                         get get_min_sane_wall_hits () {return __get__ (this, function (self) {
-                            return rcl_to_min_wall_hits [self.rcl - 1] || 0;
+                            return rcl_to_target_wall_hits [self.rcl - 1] || 0;
                         }, 'get_min_sane_wall_hits');},
                         get get_upgrader_energy_struct () {return __get__ (this, function (self) {
                             if (self._upgrader_source === undefined) {
@@ -21892,20 +23180,20 @@ function main () {
                                     }
                                     else {
                                         var all_structs_near = _ (self.find_in_range (FIND_STRUCTURES, 4, self.room.controller.pos));
-                                        if (self.links.main_link && all_structs_near.find (dict ({'structureType': STRUCTURE_LINK, 'my': true}))) {
-                                            var structure = all_structs_near.filter (dict ({'structureType': STRUCTURE_LINK})).min ((function __lambda__ (s) {
+                                        if (self.links.main_link && all_structs_near.find ({'structureType': STRUCTURE_LINK, 'my': true})) {
+                                            var structure = all_structs_near.filter ({'structureType': STRUCTURE_LINK}).min ((function __lambda__ (s) {
                                                 return movement.chebyshev_distance_room_pos (s, self.room.controller);
                                             }));
                                         }
-                                        else if (all_structs_near.find (dict ({'structureType': STRUCTURE_CONTAINER}))) {
-                                            var structure = all_structs_near.filter (dict ({'structureType': STRUCTURE_CONTAINER})).min ((function __lambda__ (s) {
+                                        else if (all_structs_near.find ({'structureType': STRUCTURE_CONTAINER})) {
+                                            var structure = all_structs_near.filter ({'structureType': STRUCTURE_CONTAINER}).min ((function __lambda__ (s) {
                                                 return movement.chebyshev_distance_room_pos (s, self.room.controller);
                                             }));
                                         }
                                     }
                                 }
                                 else {
-                                    var structure = _ (self.find_in_range (FIND_STRUCTURES, 4, self.room.controller.pos)).filter (dict ({'structureType': STRUCTURE_CONTAINER})).min ((function __lambda__ (s) {
+                                    var structure = _ (self.find_in_range (FIND_STRUCTURES, 4, self.room.controller.pos)).filter ({'structureType': STRUCTURE_CONTAINER}).min ((function __lambda__ (s) {
                                         return movement.chebyshev_distance_room_pos (s, self.room.controller);
                                     }));
                                     if (structure == Infinity || structure == -(Infinity)) {
@@ -21925,7 +23213,7 @@ function main () {
                         }, 'get_upgrader_energy_struct');},
                         get get_extra_fill_targets () {return __get__ (this, function (self) {
                             if (!('_extra_fill_targets' in self)) {
-                                var extra_targets = list ([]);
+                                var extra_targets = [];
                                 var cont = self.get_upgrader_energy_struct ();
                                 if (cont && cont.structureType == STRUCTURE_CONTAINER) {
                                     extra_targets.push (cont);
@@ -21950,9 +23238,9 @@ function main () {
                                         }
                                     }
                                 }
-                                self.mem.oss = oss;
+                                self.mem [mem_key_total_open_source_spaces] = oss;
                             }
-                            return self.mem.oss;
+                            return self.mem [mem_key_total_open_source_spaces];
                         }, 'get_open_source_spaces');},
                         get get_open_source_spaces_around () {return __get__ (this, function (self, source) {
                             var key = 'oss-{}'.format (source.id);
@@ -21969,6 +23257,85 @@ function main () {
                             }
                             return self.mem [key];
                         }, 'get_open_source_spaces_around');},
+                        get calculate_smallest_wall () {return __get__ (this, function (self) {
+                            if (self._smallest_wall_hits === undefined) {
+                                var least_hits = Infinity;
+                                var __iterable0__ = self.find (FIND_STRUCTURES);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var struct = __iterable0__ [__index0__];
+                                    if (struct.structureType == STRUCTURE_WALL || struct.structureType == STRUCTURE_RAMPART) {
+                                        if (struct.hits < least_hits) {
+                                            var least_hits = struct.hits;
+                                        }
+                                    }
+                                }
+                                if (least_hits === Infinity) {
+                                    var least_hits = 0;
+                                }
+                                self._smallest_wall_hits = least_hits;
+                            }
+                            return self._smallest_wall_hits;
+                        }, 'calculate_smallest_wall');},
+                        get set_supporting_room () {return __get__ (this, function (self, target) {
+                            var old_target = self.mem [mem_key_now_supporting];
+                            self.mem [mem_key_now_supporting] = target;
+                            if (target != old_target || target !== null && _.get (Memory, ['rooms', target, mem_key_currently_under_siege]) && self.main_spending_expenditure () != room_spending_state_supporting_sieged) {
+                                self.reset_spending_state ();
+                            }
+                        }, 'set_supporting_room');},
+                        get reset_spending_state () {return __get__ (this, function (self) {
+                            self.delete_cached_property (cache_key_spending_now);
+                            self.reset_planned_role ();
+                        }, 'reset_spending_state');},
+                        get main_spending_expenditure () {return __get__ (this, function (self) {
+                            var cached = self.get_cached_property (cache_key_spending_now);
+                            if (cached) {
+                                return cached;
+                            }
+                            if (!(self.full_storage_use)) {
+                                self.store_cached_property (cache_key_spending_now, room_spending_state_saving, 500);
+                                return room_spending_state_saving;
+                            }
+                            if (self.mem [mem_key_now_supporting]) {
+                                var room = self.hive.get_room (self.mem [mem_key_now_supporting]);
+                                if (room.mem [mem_key_currently_under_siege]) {
+                                    var state = room_spending_state_supporting_sieged;
+                                }
+                                else {
+                                    var energy = self.minerals.get_estimate_total_energy ();
+                                    if (energy < energy_to_keep_always_in_reserve) {
+                                        var state = room_spending_state_saving;
+                                    }
+                                    else {
+                                        var state = room_spending_state_supporting;
+                                    }
+                                }
+                            }
+                            else {
+                                var energy = self.minerals.get_estimate_total_energy ();
+                                var non_energy = self.room.terminal && self.minerals.get_estimate_total_non_energy ();
+                                if (energy < energy_to_keep_always_in_reserve) {
+                                    var state = room_spending_state_saving;
+                                }
+                                else if (self.rcl >= 8) {
+                                    var state = room_spending_state_building;
+                                }
+                                else if (self.building.get_target_num_builders () > 1 && self.building.get_max_builder_work_parts () > 5) {
+                                    var state = room_spending_state_building;
+                                }
+                                else {
+                                    var least_hits = self.calculate_smallest_wall ();
+                                    if (least_hits < self.min_sane_wall_hits) {
+                                        var state = room_spending_state_building;
+                                    }
+                                    else {
+                                        var state = room_spending_state_upgrading;
+                                    }
+                                }
+                            }
+                            self.store_cached_property (cache_key_spending_now, state, 500);
+                            return state;
+                        }, 'main_spending_expenditure');},
                         get _any_closest_to_me () {return __get__ (this, function (self, flag_type) {
                             var __iterable0__ = flags.find_flags_global (flag_type);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -21993,7 +23360,7 @@ function main () {
                             return false;
                         });},
                         get flags_without_target () {return __get__ (this, function (self, flag_type) {
-                            var result = list ([]);
+                            var result = [];
                             var __iterable0__ = flags.find_flags_global (flag_type);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
@@ -22036,9 +23403,9 @@ function main () {
                             if (flag.memory.size) {
                                 var sections = min (sections, flag.memory.size);
                             }
-                            var obj = dict ({'role': role, 'base': base, 'num_sections': sections, 'targets': list ([list ([target_single_flag, 'flag-{}'.format (flag.name)])])});
+                            var obj = {'role': role, 'base': base, 'num_sections': sections, 'targets': [[target_single_flag, 'flag-{}'.format (flag.name)]]};
                             if (('boosted' in flag.memory) && !(flag.memory.boosted)) {
-                                obj.memory = dict ({'boosted': 2});
+                                obj.memory = {'boosted': 2};
                             }
                             return obj;
                         });},
@@ -22141,7 +23508,7 @@ function main () {
                                     }))) {
                                         continue;
                                     }
-                                    var distance = self.hive.honey.find_path_length (self.spawn, movement.center_pos (room.name), dict ({'range': 15}));
+                                    var distance = self.hive.honey.find_path_length (self.spawn, movement.center_pos (room.name), {'range': 15});
                                     var room_work_mass = 0;
                                     var rt_map = room.rt_map;
                                     var __iterable1__ = Object.keys (room.work_mass_map);
@@ -22223,7 +23590,7 @@ function main () {
                                             }
                                         }
                                     }
-                                    if (self.under_siege () || self.mem.prepping_defenses) {
+                                    if (self.under_siege () || self.mem [mem_key_prepping_defenses]) {
                                         self._target_spawn_fill_mass = total_mass;
                                     }
                                     else {
@@ -22243,7 +23610,7 @@ function main () {
                                 }
                                 else {
                                     self._total_needed_spawn_fill_mass = math.pow ((self.room.energyCapacityAvailable / 50.0) * 200, 0.3);
-                                    if (self.under_siege () || self.mem.prepping_defenses) {
+                                    if (self.under_siege () || self.mem [mem_key_prepping_defenses]) {
                                         self._total_needed_spawn_fill_mass *= 1.5;
                                     }
                                     else if (len (self.mining.active_mines) < 2) {
@@ -22254,60 +23621,66 @@ function main () {
                             return self._total_needed_spawn_fill_mass;
                         });},
                         get get_target_builder_work_mass () {return __get__ (this, function (self) {
-                            if (!('_target_builder_work_mass' in self)) {
+                            if (('_target_builder_work_mass' in self)) {
+                                return self._target_builder_work_mass;
+                            }
+                            self._target_builder_work_mass = 0;
+                            if (self.building_paused ()) {
                                 self._target_builder_work_mass = 0;
-                                if (!(self.building_paused ())) {
-                                    var base_num = self.building.get_target_num_builders ();
-                                    if (base_num > 0) {
-                                        var extra = 0;
-                                        if (self.room.storage) {
-                                            if (self.mem.prepping_defenses) {
-                                                var overflow = min (_.sum (self.room.storage.store) - 400 * 1000, self.room.storage.store.energy - 100 * 1000);
-                                            }
-                                            else {
-                                                var overflow = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
-                                            }
-                                            if (!(self.room.storage.storeCapacity)) {
-                                                var overflow = self.room.storage.store.energy;
-                                            }
-                                            if (overflow > 0) {
-                                                if (!(self.room.storage.storeCapacity)) {
-                                                    var extra = min (25, math.floor (overflow / (20 * 1000)));
-                                                }
-                                                else {
-                                                    var extra = min (5, math.floor (overflow / (20 * 1000)));
-                                                }
-                                            }
-                                            else if (overflow < -(100) * 1000 && base_num > 2) {
-                                                var base_num = 2;
-                                            }
-                                        }
-                                        if (self.rcl < 8) {
-                                            if (self.rcl < 4 && self.room.energyCapacityAvailable < 550) {
-                                                var worker_size = 1;
-                                            }
-                                            else {
-                                                var worker_size = max (2, min (8, spawning.max_sections_of (self, creep_base_worker)));
-                                            }
-                                            var parts = (base_num + extra) * worker_size;
-                                        }
-                                        else if (extra > 0) {
-                                            var worker_size = spawning.max_sections_of (self, creep_base_worker);
-                                            var parts = (base_num + extra) * worker_size;
-                                        }
-                                        else {
-                                            var worker_size = min (4, spawning.max_sections_of (self, creep_base_worker));
-                                            var parts = 1 * worker_size;
-                                        }
-                                        var max_parts = self.building.get_max_builder_work_parts ();
-                                        if (parts > max_parts) {
-                                            var parts = max_parts;
-                                        }
-                                        self._target_builder_work_mass = parts;
+                                return 0;
+                            }
+                            var base_num = self.building.get_target_num_builders ();
+                            if (base_num <= 0) {
+                                self._target_builder_work_mass = 0;
+                                return 0;
+                            }
+                            if (self.full_storage_use) {
+                                var spending = self.main_spending_expenditure ();
+                                if (spending == room_spending_state_building) {
+                                    var extra = self.minerals.get_estimate_total_energy () - energy_pre_rcl8_scaling_balance_point;
+                                    var wm = spawning.max_sections_of (self, creep_base_worker);
+                                    if (extra > 0) {
+                                        wm += math.floor (extra / (20 * 1000));
                                     }
                                 }
+                                else if (spending == room_spending_state_rcl8_building) {
+                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
+                                    var wm = min (4, spawning.max_sections_of (self, creep_base_worker));
+                                    if (extra > 0) {
+                                        wm += math.floor (extra / (20 * 1000));
+                                    }
+                                }
+                                else if (spending == room_spending_state_supporting_sieged) {
+                                    var wm = self.building.get_max_builder_work_parts_urgent ();
+                                }
+                                else if (spending == room_spending_state_under_siege) {
+                                    if (self.minerals.get_estimate_total_energy () < energy_to_keep_always_in_reserve / 2) {
+                                        var wm = self.building.get_max_builder_work_parts_urgent ();
+                                    }
+                                    else {
+                                        var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
+                                        var wm = spawning.max_sections_of (self, creep_base_worker) * 3;
+                                        if (extra > 0) {
+                                            wm += math.floor (extra / (20 * 1000));
+                                        }
+                                    }
+                                }
+                                else {
+                                    var wm = min (self.building.get_max_builder_work_parts_noextra (), spawning.max_sections_of (self, creep_base_worker) * 3);
+                                }
                             }
-                            return self._target_builder_work_mass;
+                            else if (self.trying_to_get_full_storage_use) {
+                                var wm = spawning.max_sections_of (self, creep_base_worker) * 2;
+                            }
+                            else if (self.room.energyCapacityAvailable < 550) {
+                                var wm = base_num;
+                            }
+                            else {
+                                var wm = base_num * max (2, min (8, spawning.max_sections_of (self, creep_base_worker)));
+                            }
+                            var wm = min (wm, self.building.get_max_builder_work_parts ());
+                            self._target_builder_work_mass = wm;
+                            return wm;
                         });},
                         get get_target_upgrade_fill_mass () {return __get__ (this, function (self) {
                             if (!('_target_upgrade_fill_work_mass' in self)) {
@@ -22315,129 +23688,124 @@ function main () {
                                 if (!(target) || target.structureType != STRUCTURE_CONTAINER) {
                                     self._target_upgrade_fill_work_mass = 0;
                                 }
-                                else if (self.upgrading_deprioritized () || self.overprioritize_building ()) {
-                                    if (self.room.controller.ticksToDowngrade > 5000) {
+                                else {
+                                    var upgrader_work_mass = self.get_target_upgrader_work_mass ();
+                                    if (upgrader_work_mass <= 0) {
                                         self._target_upgrade_fill_work_mass = 0;
                                     }
-                                    else {
+                                    else if (upgrader_work_mass <= 1) {
                                         self._target_upgrade_fill_work_mass = 1;
                                     }
-                                }
-                                else if (_.sum (target.store) >= target.storeCapacity * 0.5 && self.role_count (role_upgrader) <= 1) {
-                                    self._target_upgrade_fill_work_mass = 0;
-                                }
-                                else {
-                                    self._target_upgrade_fill_work_mass = min (8, spawning.max_sections_of (self, creep_base_hauler));
-                                    if (self.full_storage_use) {
-                                        if (Memory.hyper_upgrade) {
-                                            var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
+                                    else {
+                                        if (self.room.storage) {
+                                            var distance = self.hive.honey.find_path_length (self.room.storage, target, {'use_roads': false});
                                         }
                                         else {
-                                            var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
+                                            var distance = 0;
+                                            var __iterable0__ = self.sources;
+                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                var source = __iterable0__ [__index0__];
+                                                distance += self.hive.honey.find_path_length (source, target, {'use_roads': false});
+                                            }
+                                            distance /= len (self.sources);
                                         }
-                                        if (extra > 0) {
-                                            self._target_upgrade_fill_work_mass *= 2;
-                                        }
+                                        var carry_per_tick_per_part = CARRY_CAPACITY / (distance * 2) + 5;
+                                        var need_per_tick = upgrader_work_mass * UPGRADE_CONTROLLER_POWER;
+                                        self._target_upgrade_fill_work_mass = math.ceil (need_per_tick / carry_per_tick_per_part);
                                     }
                                 }
                             }
                             return self._target_upgrade_fill_work_mass;
                         });},
                         get get_target_upgrader_work_mass () {return __get__ (this, function (self) {
-                            if (!('_target_upgrader_work_mass' in self)) {
-                                var base = self.get_variable_base (role_upgrader);
-                                var sections = spawning.max_sections_of (self, base);
-                                if (base === creep_base_full_upgrader) {
-                                    var worker_size = max (4, 2 * sections);
+                            if (('_target_upgrader_work_mass' in self)) {
+                                return self._target_upgrader_work_mass;
+                            }
+                            var base = self.get_variable_base (role_upgrader);
+                            var sections = spawning.max_sections_of (self, base);
+                            if (base === creep_base_full_upgrader) {
+                                var worker_size = max (4, 2 * sections);
+                            }
+                            else {
+                                var worker_size = max (1, math.ceil (sections));
+                            }
+                            if (self.upgrading_deprioritized () || self.overprioritize_building ()) {
+                                if (self.room.controller.ticksToDowngrade <= 5000) {
+                                    var wm = 1;
                                 }
                                 else {
-                                    var worker_size = max (1, math.ceil (sections));
+                                    var wm = 0;
                                 }
-                                if (self.upgrading_deprioritized () || self.overprioritize_building ()) {
-                                    if (self.room.controller.ticksToDowngrade <= 5000) {
+                                self._target_upgrader_work_mass = wm;
+                                return wm;
+                            }
+                            else if (self.get_full_storage_use ()) {
+                                var spending = self.main_spending_expenditure ();
+                                if (spending == room_spending_state_upgrading) {
+                                    var wm = 4;
+                                    var extra = self.minerals.get_estimate_total_energy () - energy_to_keep_always_in_reserve;
+                                    if (extra > 0) {
+                                        wm += math.floor (extra / 2000);
+                                        if (extra >= STORAGE_CAPACITY / 5) {
+                                            wm += math.ceil ((extra - STORAGE_CAPACITY / 5) / 400);
+                                        }
+                                    }
+                                }
+                                else if (spending == room_spending_state_rcl8_building || spending == room_spending_state_supporting) {
+                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_upgrading;
+                                    if (extra < 0) {
+                                        var wm = 4;
+                                    }
+                                    else {
+                                        var wm = 15;
+                                    }
+                                }
+                                else if (spending == room_spending_state_supporting) {
+                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_upgrading;
+                                    if (extra < 0) {
+                                        var wm = 4;
+                                    }
+                                    else if (len (self.possible_remote_mining_operations) >= 3) {
+                                        var wm = 15;
+                                    }
+                                    else {
+                                        var wm = 10;
+                                    }
+                                }
+                                else if (spending == room_spending_state_supporting_sieged || spending == room_spending_state_under_siege) {
+                                    if (self.room.controller.ticksToDowngrade <= 10 * 1000) {
                                         var wm = 1;
                                     }
                                     else {
                                         var wm = 0;
                                     }
-                                    self._target_upgrader_work_mass = wm;
-                                    return wm;
                                 }
-                                else if (self.rcl == 8) {
-                                    if (len (self.possible_remote_mining_operations) >= 3 && _.sum (self.room.storage.store) > 250 * 1000 && self.room.storage.store.energy > 100 * 1000 && !(self.mem.prepping_defenses)) {
-                                        var wm = 15;
-                                    }
-                                    else if (_.sum (self.room.storage.store) > 700 * 1000 && self.room.storage.store.energy > 200 * 1000) {
-                                        var wm = 7;
-                                    }
-                                    else {
-                                        var wm = max (2, min (7, math.floor (self.room.storage.store.energy / (50 * 1000))));
-                                    }
-                                }
-                                else if (self.mining_ops_paused ()) {
-                                    var wm = worker_size * 4;
-                                }
-                                else if (self.trying_to_get_full_storage_use) {
+                                else {
                                     var wm = 4;
                                 }
-                                else if (self.room.energyCapacityAvailable < 550) {
-                                    var wm = self.get_open_source_spaces () * worker_size;
-                                    var __iterable0__ = self.sources;
-                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                        var source = __iterable0__ [__index0__];
-                                        var energy = _.sum (self.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount');
-                                        wm += energy / 200.0;
-                                    }
+                            }
+                            else if (self.room.energyCapacityAvailable < 550) {
+                                var wm = self.get_open_source_spaces () * worker_size;
+                                var __iterable0__ = self.sources;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var source = __iterable0__ [__index0__];
+                                    var energy = _.sum (self.find_in_range (FIND_DROPPED_ENERGY, 1, source.pos), 'amount');
+                                    wm += energy / 200.0;
                                 }
-                                else {
-                                    var wm = (len (self.sources) * 2) * worker_size;
-                                }
-                                if (self.full_storage_use) {
-                                    if (self.room.storage.storeCapacity) {
-                                        if (self.mem.prepping_defenses) {
-                                            var extra = min (_.sum (self.room.storage.store) - 600 * 1000, self.room.storage.store.energy - 200 * 1000);
-                                        }
-                                        else if (Memory.hyper_upgrade) {
-                                            var extra = min (_.sum (self.room.storage.store) - 100 * 1000, self.room.storage.store.energy - 50 * 1000);
-                                        }
-                                        else {
-                                            var extra = min (_.sum (self.room.storage.store) - 500 * 1000, self.room.storage.store.energy - 150 * 1000);
-                                        }
-                                    }
-                                    else {
-                                        var extra = 200 * 1000 + self.room.storage.store.energy;
-                                    }
-                                    if (extra > 0) {
-                                        if (Memory.hyper_upgrade) {
-                                            wm += math.ceil (extra / 1000);
-                                        }
-                                        else {
-                                            wm += math.floor (extra / 2000);
-                                        }
-                                        if (extra >= 200 * 1000) {
-                                            wm += math.ceil ((extra - 200 * 1000) / 400);
-                                            if (self.rcl < 8) {
-                                                print ('[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})'.format (self.name, wm, worker_size));
-                                            }
-                                            else {
-                                                self.hive.rebalance_from (self);
-                                                // pass;
-                                            }
-                                        }
-                                    }
-                                }
-                                if (self.rcl >= 8) {
-                                    var wm = min (wm, 15);
-                                }
-                                if (base === creep_base_full_upgrader) {
-                                    self._target_upgrader_work_mass = min (wm, worker_size * 4);
-                                }
-                                else if (self.room.storage && !(self.room.storage.storeCapacity)) {
-                                    self._target_upgrader_work_mass = min (wm, worker_size * 15);
-                                }
-                                else {
-                                    self._target_upgrader_work_mass = min (wm, worker_size * 8);
-                                }
+                            }
+                            else {
+                                var wm = (len (self.sources) * 2) * worker_size;
+                            }
+                            if (base === creep_base_full_upgrader) {
+                                var max_upgraders = max (4, len (flags.find_flags (self, UPGRADER_SPOT)));
+                                self._target_upgrader_work_mass = min (wm, worker_size * max_upgraders);
+                            }
+                            else if (self.room.storage && !(self.room.storage.storeCapacity)) {
+                                self._target_upgrader_work_mass = min (wm, worker_size * 15);
+                            }
+                            else {
+                                var max_upgraders = max (8, len (flags.find_flags (self, UPGRADER_SPOT)));
+                                self._target_upgrader_work_mass = min (wm, worker_size * max_upgraders);
                             }
                             return self._target_upgrader_work_mass;
                         });},
@@ -22476,7 +23844,7 @@ function main () {
                             return self._target_room_reserve_count;
                         });},
                         get get_target_spawn_fill_size () {return __get__ (this, function (self) {
-                            if (self.under_siege () || self.mem.prepping_defenses) {
+                            if (self.under_siege () || self.mem [mem_key_prepping_defenses]) {
                                 return fit_num_sections (self.get_target_total_spawn_fill_mass (), spawning.max_sections_of (self, creep_base_hauler));
                             }
                             else {
@@ -22496,11 +23864,15 @@ function main () {
                         });},
                         get get_builder_size () {return __get__ (this, function (self) {
                             var base = self.get_variable_base (role_builder);
-                            if (self.rcl < 8) {
-                                return min (8, spawning.max_sections_of (self, base), self.building.get_max_builder_work_parts ());
+                            return min (spawning.max_sections_of (self, base), self.building.get_max_builder_work_parts ());
+                        });},
+                        get get_upgrade_fill_size () {return __get__ (this, function (self) {
+                            var mass = self.get_target_upgrade_fill_mass ();
+                            if (mass <= 0) {
+                                return 1;
                             }
                             else {
-                                return min (self.get_target_builder_work_mass (), spawning.max_sections_of (self, base));
+                                return fit_num_sections (mass + 2, spawning.max_sections_of (self, creep_base_hauler));
                             }
                         });},
                         get request_creep () {return __get__ (this, function (self, role, opts) {
@@ -22508,20 +23880,20 @@ function main () {
                                 var opts = null;
                             };
                             var req_key = Math.floor ((1 + Math.random ()) * 65536).toString (16).substring (1);
-                            if (('_requests' in self.mem)) {
-                                while ((req_key in self.mem._requests ['s'])) {
+                            if ((mem_key_spawn_requests in self.mem)) {
+                                while ((req_key in self.mem [mem_key_spawn_requests] ['s'])) {
                                     req_key += Math.floor ((1 + Math.random ()) * 65536).toString (16).substring (1);
                                 }
                             }
-                            self.register_creep_request (req_key, request_priority_low, Game.time + 50 * 1000, _.merge (dict ({'role': role, 'base': self.get_variable_base (role), 'num_sections': self.get_max_sections_for_role (role)}), opts));
+                            self.register_creep_request (req_key, request_priority_low, Game.time + 50 * 1000, _.merge ({'role': role, 'base': self.get_variable_base (role), 'num_sections': self.get_max_sections_for_role (role)}, opts));
                         });},
                         get register_creep_request () {return __get__ (this, function (self, specific_key, priority, expire_at, role_obj) {
-                            if (!('_requests' in self.mem)) {
-                                self.mem._requests = dict ({'q': list ([]), 's': dict ({})});
+                            if (!(mem_key_spawn_requests in self.mem)) {
+                                self.mem [mem_key_spawn_requests] = {'q': [], 's': {}};
                             }
-                            var req = self.mem._requests;
-                            var old_priority = _.get (req, list (['s', specific_key, 'p']), null);
-                            req ['s'] [specific_key] = dict ({'e': expire_at, 'p': priority, 'o': JSON.stringify (role_obj)});
+                            var req = self.mem [mem_key_spawn_requests];
+                            var old_priority = _.get (req, ['s', specific_key, 'p'], null);
+                            req ['s'] [specific_key] = {'e': expire_at, 'p': priority, 'o': JSON.stringify (role_obj)};
                             if (req ['q'].includes (specific_key)) {
                                 if (old_priority === null || old_priority == priority) {
                                     return ;
@@ -22541,10 +23913,10 @@ function main () {
                             if (typeof max_priority == 'undefined' || (max_priority != null && max_priority .hasOwnProperty ("__kwargtrans__"))) {;
                                 var max_priority = Infinity;
                             };
-                            if (!('_requests' in self.mem)) {
+                            if (!(mem_key_spawn_requests in self.mem)) {
                                 return ;
                             }
-                            var requests = self.mem._requests;
+                            var requests = self.mem [mem_key_spawn_requests];
                             while (len (requests ['q']) > 0) {
                                 var request_key = requests ['q'] [0];
                                 var request = requests ['s'] [request_key];
@@ -22562,10 +23934,10 @@ function main () {
                             return null;
                         });},
                         get successfully_spawned_request () {return __get__ (this, function (self, request_key) {
-                            if (!('_requests' in self.mem)) {
+                            if (!(mem_key_spawn_requests in self.mem)) {
                                 return ;
                             }
-                            var requests = self.mem._requests;
+                            var requests = self.mem [mem_key_spawn_requests];
                             var index = requests ['q'].indexOf (request_key);
                             if (index != -(1)) {
                                 requests ['q'].splice (index, 1);
@@ -22573,19 +23945,19 @@ function main () {
                             delete requests ['s'] [request_key];
                         });},
                         get _check_request_expirations () {return __get__ (this, function (self) {
-                            if (!('_requests' in self.mem)) {
+                            if (!(mem_key_spawn_requests in self.mem)) {
                                 return ;
                             }
-                            var requests = self.mem._requests;
+                            var requests = self.mem [mem_key_spawn_requests];
                             var __iterable0__ = _.remove (requests ['q'], (function __lambda__ (key) {
-                                return _.get (requests ['s'], list ([key, 'e']), 0) < Game.time;
+                                return _.get (requests ['s'], [key, 'e'], 0) < Game.time;
                             }));
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var key = __iterable0__ [__index0__];
                                 delete requests ['s'] [key];
                             }
                             if (!(len (requests ['q']))) {
-                                delete self.mem._requests;
+                                delete self.mem [mem_key_spawn_requests];
                             }
                         });},
                         get _check_role_reqs () {return __get__ (this, function (self, role_list) {
@@ -22615,7 +23987,7 @@ function main () {
                                 }
                             }
                             if (role_needed) {
-                                return dict ({'role': role_needed, 'base': self.get_variable_base (role_needed), 'replacing': self.get_next_replacement_name (role_needed), 'num_sections': self.get_max_sections_for_role (role_needed)});
+                                return {'role': role_needed, 'base': self.get_variable_base (role_needed), 'replacing': self.get_next_replacement_name (role_needed), 'num_sections': self.get_max_sections_for_role (role_needed)};
                             }
                             else {
                                 return null;
@@ -22646,29 +24018,29 @@ function main () {
                             }
                         });},
                         get get_max_sections_for_role () {return __get__ (this, function (self, role) {
-                            var max_mass = dict ([[role_spawn_fill_backup, (function __lambda__ () {
+                            var max_mass = {[role_spawn_fill_backup]: (function __lambda__ () {
                                 return fit_num_sections ((spawning.using_lower_energy_section (self, creep_base_worker) ? self.get_target_spawn_fill_backup_carry_mass () : spawning.ceil_sections (self.get_target_spawn_fill_backup_carry_mass () / 3, creep_base_worker)), spawning.max_sections_of (self, creep_base_worker));
-                            })], [role_link_manager, (function __lambda__ () {
+                            }), [role_link_manager]: (function __lambda__ () {
                                 return min (self.get_target_link_manager_count () * 8, spawning.max_sections_of (self, creep_base_hauler));
-                            })], [role_spawn_fill, self.get_target_spawn_fill_size], [role_tower_fill, self.get_target_spawn_fill_size], [role_upgrader, self.get_upgrader_size], [role_upgrade_fill, self.get_target_upgrade_fill_mass], [role_defender, (function __lambda__ () {
+                            }), [role_spawn_fill]: self.get_target_spawn_fill_size, [role_tower_fill]: self.get_target_spawn_fill_size, [role_upgrader]: self.get_upgrader_size, [role_upgrade_fill]: self.get_target_upgrade_fill_mass, [role_defender]: (function __lambda__ () {
                                 return min (4, spawning.max_sections_of (self, creep_base_defender));
-                            })], [role_wall_defender, (function __lambda__ () {
-                                return min (9, spawning.max_sections_of (self, creep_base_rampart_defense));
-                            })], [role_room_reserve, (function __lambda__ () {
+                            }), [role_wall_defender]: (function __lambda__ () {
+                                return spawning.max_sections_of (self, creep_base_rampart_defense);
+                            }), [role_room_reserve]: (function __lambda__ () {
                                 return min (2, spawning.max_sections_of (self, creep_base_reserving));
-                            })], [role_colonist, (function __lambda__ () {
+                            }), [role_colonist]: (function __lambda__ () {
                                 return spawning.max_sections_of (self, creep_base_worker);
-                            })], [role_builder, self.get_builder_size], [role_mineral_miner, (function __lambda__ () {
+                            }), [role_builder]: self.get_builder_size, [role_mineral_miner]: (function __lambda__ () {
                                 return min (4, spawning.max_sections_of (self, creep_base_mammoth_miner));
-                            })], [role_mineral_hauler, (function __lambda__ () {
+                            }), [role_mineral_hauler]: (function __lambda__ () {
                                 return min (10, spawning.max_sections_of (self, creep_base_hauler));
-                            })], [role_td_goad, (function __lambda__ () {
+                            }), [role_td_goad]: (function __lambda__ () {
                                 return spawning.max_sections_of (self, creep_base_goader);
-                            })], [role_td_healer, (function __lambda__ () {
+                            }), [role_td_healer]: (function __lambda__ () {
                                 return spawning.max_sections_of (self, creep_base_half_move_healer);
-                            })], [role_simple_dismantle, (function __lambda__ () {
+                            }), [role_simple_dismantle]: (function __lambda__ () {
                                 return spawning.max_sections_of (self, creep_base_dismantler);
-                            })]]);
+                            })};
                             if ((role in max_mass)) {
                                 return max_mass [role] ();
                             }
@@ -22680,19 +24052,19 @@ function main () {
                         get _next_needed_local_mining_role () {return __get__ (this, function (self) {
                             if (spawning.would_be_emergency (self)) {
                                 if (!(self.full_storage_use) && !(self.any_local_miners ())) {
-                                    var next_role = self._check_role_reqs (list ([list ([role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, true])]));
+                                    var next_role = self._check_role_reqs ([[role_spawn_fill_backup, self.get_target_spawn_fill_backup_carry_mass, true]]);
                                     if (next_role !== null) {
                                         return next_role;
                                     }
                                 }
-                                var next_role = self._check_role_reqs (list ([list ([role_tower_fill, self.get_target_tower_fill_mass, true]), list ([role_spawn_fill, self.get_target_spawn_fill_mass, true])]));
+                                var next_role = self._check_role_reqs ([[role_tower_fill, self.get_target_tower_fill_mass, true], [role_spawn_fill, self.get_target_spawn_fill_mass, true]]);
                                 if (next_role !== null) {
                                     return next_role;
                                 }
                             }
-                            var next_role = self._check_role_reqs (list ([list ([role_defender, (function __lambda__ () {
+                            var next_role = self._check_role_reqs ([[role_defender, (function __lambda__ () {
                                 return self.get_target_simple_defender_count (true);
-                            })]), list ([role_link_manager, self.get_target_link_manager_count])]));
+                            })], [role_link_manager, self.get_target_link_manager_count]]);
                             if (next_role !== null) {
                                 return next_role;
                             }
@@ -22700,18 +24072,18 @@ function main () {
                             if (mining_role !== null && mining_role.role == role_miner) {
                                 return mining_role;
                             }
-                            var next_role = self._check_role_reqs (list ([list ([role_tower_fill, self.get_target_tower_fill_mass, true]), list ([role_spawn_fill, self.get_target_spawn_fill_mass, true]), list ([role_wall_defender, self.get_target_wall_defender_count]), list ([role_defender, self.get_target_simple_defender_count]), list ([role_colonist, self.get_target_colonist_work_mass, false, true])]));
+                            var next_role = self._check_role_reqs ([[role_tower_fill, self.get_target_tower_fill_mass, true], [role_spawn_fill, self.get_target_spawn_fill_mass, true], [role_wall_defender, self.get_target_wall_defender_count], [role_defender, self.get_target_simple_defender_count], [role_colonist, self.get_target_colonist_work_mass, false, true]]);
                             if (next_role !== null) {
                                 return next_role;
                             }
                             if (self.room.controller.ticksToDowngrade < 2000) {
-                                var upgrader = self._check_role_reqs (list ([list ([role_upgrade_fill, self.get_target_upgrade_fill_mass, true]), list ([role_upgrader, self.get_target_upgrader_work_mass, false, true])]));
+                                var upgrader = self._check_role_reqs ([[role_upgrade_fill, self.get_target_upgrade_fill_mass, true], [role_upgrader, self.get_target_upgrader_work_mass, false, true]]);
                                 if (upgrader !== null) {
                                     return upgrader;
                                 }
                             }
                             else if (_.get (self, 'room.storage.store.energy', 0) > 800 * 1000) {
-                                var overflow_role = self._check_role_reqs (list ([list ([role_builder, self.get_target_builder_work_mass, false, true]), list ([role_upgrade_fill, self.get_target_upgrade_fill_mass, true]), list ([role_upgrader, self.get_target_upgrader_work_mass, false, true])]));
+                                var overflow_role = self._check_role_reqs ([[role_builder, self.get_target_builder_work_mass, false, true], [role_upgrade_fill, self.get_target_upgrade_fill_mass, true], [role_upgrader, self.get_target_upgrader_work_mass, false, true]]);
                                 if (overflow_role !== null) {
                                     return overflow_role;
                                 }
@@ -22722,14 +24094,14 @@ function main () {
                             return null;
                         });},
                         get _next_needed_local_role () {return __get__ (this, function (self) {
-                            var requirements = list ([list ([role_upgrade_fill, self.get_target_upgrade_fill_mass, true]), list ([role_builder, self.get_target_builder_work_mass, false, true]), list ([role_upgrader, self.get_target_upgrader_work_mass, false, true]), list ([role_room_reserve, self.get_target_room_reserve_count]), list ([role_colonist, self.get_target_colonist_work_mass, false, true]), list ([role_mineral_steal, self.get_target_mineral_steal_mass, true]), list ([role_mineral_hauler, self.minerals.get_target_mineral_hauler_count]), list ([role_mineral_miner, self.minerals.get_target_mineral_miner_count])]);
+                            var requirements = [[role_upgrade_fill, self.get_target_upgrade_fill_mass, true], [role_builder, self.get_target_builder_work_mass, false, true], [role_upgrader, self.get_target_upgrader_work_mass, false, true], [role_room_reserve, self.get_target_room_reserve_count], [role_colonist, self.get_target_colonist_work_mass, false, true], [role_mineral_steal, self.get_target_mineral_steal_mass, true], [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count], [role_mineral_miner, self.minerals.get_target_mineral_miner_count]];
                             return self._check_role_reqs (requirements);
                         });},
                         get _next_cheap_military_role () {return __get__ (this, function (self) {
                             return self.spawn_one_creep_per_flag (SCOUT, role_scout, creep_base_scout, creep_base_scout, 1);
                         });},
                         get wall_defense () {return __get__ (this, function (self) {
-                            return self._check_role_reqs (list ([list ([role_wall_defender, self.get_target_wall_defender_count])]));
+                            return self._check_role_reqs ([[role_wall_defender, self.get_target_wall_defender_count]]);
                         });},
                         get _next_complex_defender () {return __get__ (this, function (self) {
                             if (self.room.energyCapacityAvailable >= 500) {
@@ -22830,7 +24202,7 @@ function main () {
                             }
                         });},
                         get reset_planned_role () {return __get__ (this, function (self) {
-                            delete self.mem.next_role;
+                            delete self.mem [mem_key_planned_role_to_spawn];
                             if (!(self.spawn)) {
                                 var sponsor = self.hive.get_room (self.sponsor_name);
                                 if (sponsor && sponsor.spawn) {
@@ -22844,17 +24216,17 @@ function main () {
                             if (!(self.my)) {
                                 return null;
                             }
-                            if (self.mem.completely_sim_testing) {
-                                var funcs_to_try = list ([(function __lambda__ () {
-                                    return self._check_role_reqs (list ([list ([role_spawn_fill, self.get_target_spawn_fill_mass, true])]));
-                                }), self.wall_defense, self._next_cheap_military_role, self._next_tower_breaker_role, self._next_complex_defender, self._get_next_requested_creep]);
+                            if (self.mem [mem_key_flag_for_testing_spawning_in_simulation]) {
+                                var funcs_to_try = [(function __lambda__ () {
+                                    return self._check_role_reqs ([[role_spawn_fill, self.get_target_spawn_fill_mass, true]]);
+                                }), self.wall_defense, self._next_cheap_military_role, self._next_tower_breaker_role, self._next_complex_defender, self._get_next_requested_creep];
                             }
                             else {
-                                var funcs_to_try = list ([self._next_needed_local_mining_role, (function __lambda__ () {
+                                var funcs_to_try = [self._next_needed_local_mining_role, (function __lambda__ () {
                                     return self._get_next_requested_creep (request_priority_imminent_threat_defense);
                                 }), self.wall_defense, self._next_cheap_military_role, self.next_cheap_dismantle_goal, self._next_complex_defender, self.mining.next_mining_role, (function __lambda__ () {
                                     return self._get_next_requested_creep (request_priority_economy);
-                                }), self._next_tower_breaker_role, self._next_needed_local_role, self._next_claim, self._get_next_requested_creep]);
+                                }), self._next_tower_breaker_role, self._next_needed_local_role, self._next_claim, self._get_next_requested_creep];
                             }
                             var next_role = null;
                             var __iterable0__ = funcs_to_try;
@@ -22871,25 +24243,25 @@ function main () {
                                 }
                             }
                             if (next_role) {
-                                self.mem.next_role = next_role;
+                                self.mem [mem_key_planned_role_to_spawn] = next_role;
                             }
                             else {
                                 if (len (self.spawns) <= 1) {
                                     print ('[{}] All creep targets reached!'.format (self.name));
                                 }
-                                self.mem.next_role = null;
+                                self.mem [mem_key_planned_role_to_spawn] = null;
                             }
                         });},
                         get get_next_role () {return __get__ (this, function (self) {
-                            if (self.mem.next_role === undefined) {
+                            if (self.mem [mem_key_planned_role_to_spawn] === undefined) {
                                 self.plan_next_role ();
-                                spawning.validate_role (self.mem.next_role);
+                                spawning.validate_role (self.mem [mem_key_planned_role_to_spawn]);
                             }
-                            return self.mem.next_role;
+                            return self.mem [mem_key_planned_role_to_spawn];
                         });},
                         get sing () {return __get__ (this, function (self, creeps_here_now) {
                             if (!(self.name in Memory ['_ly'])) {
-                                Memory ['_ly'] [self.name] = list ([_ (speech.songs).keys ().sample (), 0]);
+                                Memory ['_ly'] [self.name] = [_ (speech.songs).keys ().sample (), 0];
                             }
                             var __left0__ = Memory ['_ly'] [self.name];
                             var song_key = __left0__ [0];
@@ -22902,7 +24274,7 @@ function main () {
                             if (note !== null) {
                                 _.sample (creeps_here_now).say (note, true);
                             }
-                            Memory ['_ly'] [self.name] = list ([song_key, position + 1]);
+                            Memory ['_ly'] [self.name] = [song_key, position + 1];
                         });},
                         get toString () {return __get__ (this, function (self) {
                             return 'RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]'.format (self.name, self.my, self.full_storage_use, self.conducting_siege ());
@@ -22928,6 +24300,7 @@ function main () {
                     __pragma__ ('<use>' +
                         'cache.consistency' +
                         'constants' +
+                        'constants.memkeys.room' +
                         'creep_management.creep_wrappers' +
                         'creep_management.spawning' +
                         'creeps.base' +
@@ -22979,6 +24352,7 @@ function main () {
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.cache_key_spending_now = cache_key_spending_now;
                         __all__.clamp_room_x_or_y = clamp_room_x_or_y;
                         __all__.consistency = consistency;
                         __all__.creep_base_1500miner = creep_base_1500miner;
@@ -23010,6 +24384,11 @@ function main () {
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.creep_wrappers = creep_wrappers;
                         __all__.default_roles = default_roles;
+                        __all__.energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_building;
+                        __all__.energy_balance_point_for_rcl8_upgrading = energy_balance_point_for_rcl8_upgrading;
+                        __all__.energy_pre_rcl8_scaling_balance_point = energy_pre_rcl8_scaling_balance_point;
+                        __all__.energy_to_keep_always_in_reserve = energy_to_keep_always_in_reserve;
+                        __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
                         __all__.energy_to_pause_building = energy_to_pause_building;
                         __all__.energy_to_pause_upgrading = energy_to_pause_upgrading;
                         __all__.energy_to_resume_building = energy_to_resume_building;
@@ -23017,11 +24396,44 @@ function main () {
                         __all__.fit_num_sections = fit_num_sections;
                         __all__.flags = flags;
                         __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+                        __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+                        __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
                         __all__.max_energy_disable_full_storage_use = max_energy_disable_full_storage_use;
                         __all__.max_energy_resume_remote_mining = max_energy_resume_remote_mining;
+                        __all__.max_minerals_to_keep = max_minerals_to_keep;
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.max_total_resume_remote_mining = max_total_resume_remote_mining;
+                        __all__.mem_key_building_paused = mem_key_building_paused;
+                        __all__.mem_key_building_priority_spawn = mem_key_building_priority_spawn;
+                        __all__.mem_key_building_priority_walls = mem_key_building_priority_walls;
+                        __all__.mem_key_cache = mem_key_cache;
+                        __all__.mem_key_carry_parts_by_role = mem_key_carry_parts_by_role;
+                        __all__.mem_key_creeps_by_role = mem_key_creeps_by_role;
+                        __all__.mem_key_creeps_by_role_and_replacement_time = mem_key_creeps_by_role_and_replacement_time;
+                        __all__.mem_key_currently_under_siege = mem_key_currently_under_siege;
+                        __all__.mem_key_defense_mind_storage = mem_key_defense_mind_storage;
+                        __all__.mem_key_empty_all_resources_into_room = mem_key_empty_all_resources_into_room;
+                        __all__.mem_key_flag_for_testing_spawning_in_simulation = mem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.mem_key_focusing_home = mem_key_focusing_home;
+                        __all__.mem_key_linking_mind_storage = mem_key_linking_mind_storage;
+                        __all__.mem_key_metadata = mem_key_metadata;
+                        __all__.mem_key_mineral_mind_storage = mem_key_mineral_mind_storage;
+                        __all__.mem_key_now_supporting = mem_key_now_supporting;
+                        __all__.mem_key_pause_all_room_operations = mem_key_pause_all_room_operations;
+                        __all__.mem_key_planned_role_to_spawn = mem_key_planned_role_to_spawn;
+                        __all__.mem_key_prepping_defenses = mem_key_prepping_defenses;
+                        __all__.mem_key_remotes_explicitly_marked_under_attack = mem_key_remotes_explicitly_marked_under_attack;
+                        __all__.mem_key_remotes_safe_when_under_siege = mem_key_remotes_safe_when_under_siege;
+                        __all__.mem_key_room_reserved_up_until_tick = mem_key_room_reserved_up_until_tick;
+                        __all__.mem_key_spawn_requests = mem_key_spawn_requests;
+                        __all__.mem_key_sponsor = mem_key_sponsor;
+                        __all__.mem_key_storage_use_enabled = mem_key_storage_use_enabled;
+                        __all__.mem_key_stored_hostiles = mem_key_stored_hostiles;
+                        __all__.mem_key_there_might_be_energy_lying_around = mem_key_there_might_be_energy_lying_around;
+                        __all__.mem_key_total_open_source_spaces = mem_key_total_open_source_spaces;
+                        __all__.mem_key_upgrading_paused = mem_key_upgrading_paused;
+                        __all__.mem_key_work_parts_by_role = mem_key_work_parts_by_role;
                         __all__.min_energy_enable_full_storage_use = min_energy_enable_full_storage_use;
                         __all__.min_energy_pause_remote_mining = min_energy_pause_remote_mining;
                         __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
@@ -23036,13 +24448,43 @@ function main () {
                         __all__.parse_xy_arguments = parse_xy_arguments;
                         __all__.rcl8_energy_to_pause_upgrading = rcl8_energy_to_pause_upgrading;
                         __all__.rcl8_energy_to_resume_upgrading = rcl8_energy_to_resume_upgrading;
-                        __all__.rcl_to_min_wall_hits = rcl_to_min_wall_hits;
-                        __all__.rcl_to_sane_wall_hits = rcl_to_sane_wall_hits;
+                        __all__.rcl_to_max_wall_hits = rcl_to_max_wall_hits;
+                        __all__.rcl_to_target_wall_hits = rcl_to_target_wall_hits;
                         __all__.recycle_time = recycle_time;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_building_paused = rmem_key_building_paused;
+                        __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+                        __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+                        __all__.rmem_key_cache = rmem_key_cache;
+                        __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+                        __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+                        __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+                        __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+                        __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+                        __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+                        __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+                        __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+                        __all__.rmem_key_metadata = rmem_key_metadata;
+                        __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+                        __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+                        __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+                        __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+                        __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+                        __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+                        __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+                        __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+                        __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+                        __all__.rmem_key_sponsor = rmem_key_sponsor;
+                        __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+                        __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+                        __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+                        __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+                        __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
                         __all__.role_bases = role_bases;
                         __all__.role_builder = role_builder;
                         __all__.role_cleanup = role_cleanup;
@@ -23074,6 +24516,15 @@ function main () {
                         __all__.role_upgrade_fill = role_upgrade_fill;
                         __all__.role_upgrader = role_upgrader;
                         __all__.role_wall_defender = role_wall_defender;
+                        __all__.room_spending_state_building = room_spending_state_building;
+                        __all__.room_spending_state_rcl8_building = room_spending_state_rcl8_building;
+                        __all__.room_spending_state_saving = room_spending_state_saving;
+                        __all__.room_spending_state_selling = room_spending_state_selling;
+                        __all__.room_spending_state_supporting = room_spending_state_supporting;
+                        __all__.room_spending_state_supporting_sieged = room_spending_state_supporting_sieged;
+                        __all__.room_spending_state_under_siege = room_spending_state_under_siege;
+                        __all__.room_spending_state_upgrading = room_spending_state_upgrading;
+                        __all__.room_spending_state_visual = room_spending_state_visual;
                         __all__.spawning = spawning;
                         __all__.speech = speech;
                         __all__.target_big_big_repair = target_big_big_repair;
@@ -23141,6 +24592,7 @@ function main () {
                     __nest__ (math, '', __init__ (__world__.math));
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
+                    var positions = __init__ (__world__.utilities.positions);
                     var room_regex = new RegExp ('(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})');
                     var squared_distance = function (xy1, xy2) {
                         var x_diff = xy1 [0] - xy2 [0];
@@ -23150,7 +24602,7 @@ function main () {
                     var parse_room_to_xy = function (room_name) {
                         var matches = room_regex.exec (room_name);
                         if (!(matches)) {
-                            return tuple ([0, 0]);
+                            return [0, 0];
                         }
                         if (matches [1] == 'W') {
                             var x = -(int (matches [2])) - 1;
@@ -23164,7 +24616,7 @@ function main () {
                         else {
                             var y = +(int (matches [4]));
                         }
-                        return tuple ([x, y]);
+                        return [x, y];
                     };
                     var is_valid_room_name = function (room_name) {
                         var matches = room_regex.exec (room_name);
@@ -23186,7 +24638,7 @@ function main () {
                                 return new RoomPosition (24 + x, 24 + y, room_name);
                             }
                             if (x == y || x < 0 && x == -(y) || x > 0 && x == -(y) + 1) {
-                                var __left0__ = tuple ([-(dy), dx]);
+                                var __left0__ = [-(dy), dx];
                                 var dx = __left0__ [0];
                                 var dy = __left0__ [1];
                             }
@@ -23196,6 +24648,58 @@ function main () {
                         print ('[movement] WARNING: Could not find open space in {}'.format (room_name));
                         return new RoomPosition (25, 25, room_name);
                     };
+                    var find_clear_inbetween_spaces = function (room, pos1, pos2) {
+                        if (pos1.pos) {
+                            var pos1 = pos1.pos;
+                        }
+                        if (pos2.pos) {
+                            var pos2 = pos2.pos;
+                        }
+                        var distance = chebyshev_distance_room_pos (pos1, pos2);
+                        var result = [];
+                        if (distance > 2 || pos1.roomName != pos2.roomName) {
+                            return result;
+                        }
+                        for (var x = pos1.x - 1; x < pos1.x + 2; x++) {
+                            for (var y = pos1.y - 1; y < pos1.y + 2; y++) {
+                                var xdiff = abs (x - pos2.x);
+                                var ydiff = abs (y - pos2.y);
+                                if (xdiff < 2 && ydiff < 2) {
+                                    if (is_block_empty (room, x, y)) {
+                                        result.push (positions.serialize_xy (x, y));
+                                    }
+                                }
+                            }
+                        }
+                        return result;
+                    };
+                    var room_pos_of_closest_serialized = function (here_pos, list_of_serialized) {
+                        if (here_pos.pos) {
+                            var here_pos = here_pos.pos;
+                        }
+                        var length = len (list_of_serialized);
+                        var room_name = here_pos.roomName;
+                        if (length == 1) {
+                            return positions.deserialize_xy_to_pos (list_of_serialized [0], room_name);
+                        }
+                        var here_x = here_pos.x;
+                        var here_y = here_pos.y;
+                        var closest = null;
+                        var closest_length = Infinity;
+                        var __iterable0__ = list_of_serialized;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var xy = __iterable0__ [__index0__];
+                            var __left0__ = positions.deserialize_xy (xy);
+                            var x = __left0__ [0];
+                            var y = __left0__ [1];
+                            var distance = max (abs (here_x - x), abs (here_y - y));
+                            if (distance < closest_length) {
+                                var closest_length = distance;
+                                var closest = xy;
+                            }
+                        }
+                        return positions.deserialize_xy_to_pos (closest, room_name);
+                    };
                     var distance_squared_room_pos = function (room_position_1, room_position_2) {
                         if (room_position_1.pos) {
                             var room_position_1 = room_position_1.pos;
@@ -23204,12 +24708,12 @@ function main () {
                             var room_position_2 = room_position_2.pos;
                         }
                         if (room_position_1.roomName == room_position_2.roomName) {
-                            return squared_distance (tuple ([room_position_1.x, room_position_1.y]), tuple ([room_position_2.x, room_position_2.y]));
+                            return squared_distance ([room_position_1.x, room_position_1.y], [room_position_2.x, room_position_2.y]);
                         }
                         var room_1_pos = parse_room_to_xy (room_position_1.roomName);
                         var room_2_pos = parse_room_to_xy (room_position_2.roomName);
-                        var full_pos_1 = tuple ([room_1_pos [0] * 50 + room_position_1.x, room_1_pos [1] * 50 + room_position_1.y]);
-                        var full_pos_2 = tuple ([room_2_pos [0] * 50 + room_position_2.x, room_2_pos [1] * 50 + room_position_2.y]);
+                        var full_pos_1 = [room_1_pos [0] * 50 + room_position_1.x, room_1_pos [1] * 50 + room_position_1.y];
+                        var full_pos_2 = [room_2_pos [0] * 50 + room_position_2.x, room_2_pos [1] * 50 + room_position_2.y];
                         return squared_distance (full_pos_1, full_pos_2);
                     };
                     var chebyshev_distance_room_pos = function (pos1, pos2) {
@@ -23224,9 +24728,12 @@ function main () {
                         }
                         var room_1_pos = parse_room_to_xy (pos1.roomName);
                         var room_2_pos = parse_room_to_xy (pos2.roomName);
-                        var world_pos_1 = tuple ([room_1_pos [0] * 49 + pos1.x, room_1_pos [1] * 49 + pos1.y]);
-                        var world_pos_2 = tuple ([room_2_pos [0] * 49 + pos2.x, room_2_pos [1] * 49 + pos2.y]);
+                        var world_pos_1 = [room_1_pos [0] * 49 + pos1.x, room_1_pos [1] * 49 + pos1.y];
+                        var world_pos_2 = [room_2_pos [0] * 49 + pos2.x, room_2_pos [1] * 49 + pos2.y];
                         return max (abs (world_pos_1 [0] - world_pos_2 [0]), abs (world_pos_1 [1] - world_pos_2 [1]));
+                    };
+                    var chebyshev_distance_xy = function (x1, y1, x2, y2) {
+                        return max (abs (x1 - x2), abs (y1 - y2));
                     };
                     var minimum_chebyshev_distance = function (comparison_pos, targets) {
                         var min_distance = Infinity;
@@ -23391,15 +24898,18 @@ function main () {
                     __pragma__ ('<use>' +
                         'jstools.screeps_constants' +
                         'math' +
+                        'utilities.positions' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.center_pos = center_pos;
                         __all__.chebyshev_distance_room_pos = chebyshev_distance_room_pos;
+                        __all__.chebyshev_distance_xy = chebyshev_distance_xy;
                         __all__.diff_as_direction = diff_as_direction;
                         __all__.distance_room_pos = distance_room_pos;
                         __all__.distance_squared_room_pos = distance_squared_room_pos;
                         __all__.dxdy_to_direction = dxdy_to_direction;
                         __all__.find_an_open_space = find_an_open_space;
+                        __all__.find_clear_inbetween_spaces = find_clear_inbetween_spaces;
                         __all__.get_entrance_for_exit_pos = get_entrance_for_exit_pos;
                         __all__.get_entrance_for_exit_pos_with_room = get_entrance_for_exit_pos_with_room;
                         __all__.is_block_clear = is_block_clear;
@@ -23409,6 +24919,8 @@ function main () {
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.parse_room_to_xy = parse_room_to_xy;
+                        __all__.positions = positions;
+                        __all__.room_pos_of_closest_serialized = room_pos_of_closest_serialized;
                         __all__.room_regex = room_regex;
                         __all__.room_xy_to_name = room_xy_to_name;
                         __all__.squared_distance = squared_distance;
@@ -23450,13 +24962,13 @@ function main () {
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var parse_xy_arguments = function (pos, optional_y) {
                         if (optional_y !== null && optional_y !== undefined) {
-                            return tuple ([pos, optional_y, null]);
+                            return [pos, optional_y, null];
                         }
                         else if (pos.pos) {
-                            return tuple ([pos.pos.x, pos.pos.y, pos.pos.roomName]);
+                            return [pos.pos.x, pos.pos.y, pos.pos.roomName];
                         }
                         else {
-                            return tuple ([pos.x, pos.y, pos.roomName]);
+                            return [pos.x, pos.y, pos.roomName];
                         }
                     };
                     var clamp_room_x_or_y = function (coord) {
@@ -23470,7 +24982,7 @@ function main () {
                         return pos.x | pos.y << 6;
                     };
                     var deserialize_xy = function (xy) {
-                        return tuple ([xy & 63, xy >> 6 & 63]);
+                        return [xy & 63, xy >> 6 & 63];
                     };
                     var deserialize_xy_to_pos = function (xy, room_name) {
                         return new RoomPosition (xy & 63, xy >> 6 & 63, room_name);
@@ -23501,15 +25013,15 @@ function main () {
                     var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
                     var new_set = __init__ (__world__.jstools.screeps_constants).new_set;
                     var translate_lyrics = function (input_str) {
-                        var result = list ([]);
-                        var next_lyric = list ([]);
+                        var result = [];
+                        var next_lyric = [];
                         var __iterable0__ = input_str;
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var char = __iterable0__ [__index0__];
                             if (char === '\n' || char === ' ') {
                                 if (len (next_lyric)) {
                                     result.push (''.join (next_lyric));
-                                    var next_lyric = list ([]);
+                                    var next_lyric = [];
                                 }
                                 if (char === '\n') {
                                     result.push (null);
@@ -23529,7 +25041,7 @@ function main () {
                     var h_s_t_k = translate_lyrics ("\nI've got a television it's filling with home\nI've got a television it's filling with home\nWherever I end up wherever I roam\nHey I've got a television it's filling with home\nI've got a phone that beeps, let's me know I'm not alone\nI've got a phone that beeps, let's me know I'm not alone\nWherever I end up I sleep like a stone, yeah\nI've got a phone that beeps, let's me know I'm not alone\n\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey're running everywhere in fancy clothes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey take me to where I want to go\n\nBright\nOh, young\nKinda hurt\nDon't you wanna get some\nEsso\nBright\nYoung\nHurt\nDon't you wanna get some\n\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey're running everywhere in fancy clothes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey take me to where I need to go\n\nAll around the party, we stand in circles numb\nYeah, all around the party, we stand in circles numb\nOh, who can I find here, who knows where I come from\nAll around the party we stand in circles numb\nI had a thread before now I don't know where it's gone\nI had a thread before now I don't know where it's gone\nOh, how did I get here did it say when I was young\nI had a thread before now I don't know where it's gone\n\nI've got a television it's filling with home\nI've got a television it's filling with home\nWherever I end up wherever I roam\nHey I've got a television it's filling with home\n\nBright\nOh, young\nKinda hurt\nDon't you wanna get some\nEsso\nBright\nYoung\nHurt\nDon't you wanna get some,\n\nWanna get, wanna get, wanna get...\n\nSome, some, some, some\n\nWanna get, wanna get, wanna get...\n\nSome, some, some, some\n\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey're running everywhere in fancy clothes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey take me to where I need to go\n\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nThey're running everywhere in fancy clothes\nMy head my shoulders knees and toes\nMy head my shoulders knees and toes\nHead my shoulders knees and toes\nThey take me to where I need to go\n");
                     var breeze_blocks = translate_lyrics ("\nShe may contain the urge to run away\nBut hold her down with soggy clothes and breezeblocks\nCetirizine your fever's gripped me again\nNever kisses— -all you ever send are full stops, la, la, la\n\nDo you know where the wild things go?\nThey go along to take your honey, la, la, la\nBreak down, now weep,\nBuild up breakfast, now let's eat\nMy love, my love, love, love, la, la, la\n\nMuscle to muscle and toe to toe\nThe fear has gripped me but here I go\nMy heart sinks as I jump up\nYour hand grips hand as my eyes shut\n\nDo you know where the wild things go?\nThey go along to take your honey, la, la, la\nBreak down, now sleep\nBuild up breakfast, now let's eat\nMy love my love, love, love\n\nShe bruises, coughs, she splutters pistol shots\nHold her down with soggy clothes and breezeblocks\nShe's morphine, queen of my vaccine\nMy love, my love, love, love, la, la, la\n\nMuscle to muscle and toe to toe\nThe fear has gripped me but here I go\nMy heart sinks as I jump up\nYour hand grips hand as my eyes shut\n\nShe may contain the urge to run away\nBut hold her down with soggy clothes and breezeblocks\nGermolene, disinfect the scene\nMy love, my love, love, love\nBut please don't go, I love you so, my lovely\n\nPlease don't go, please don't go\nI love you so, I love you so\nPlease don't go, please don't go\nI love you so, I love you so\nPlease break my heart, hey\n\nPlease don't go, please don't go\nI love you so, I love you so\nPlease don't go, please don't go\nI love you so, I love you so\nPlease break my heart\n\nPlease don't go, I'll eat you whole\nI love you so, I love you so, I love you so\nPlease don't go I'll eat you whole\nI love you so, I love you so, I love you so, I love you so\n\nI'll eat you whole\nI love you so, I love you so\nI'll eat you whole\nI love you so, I love you so\n\nI'll eat you whole\nI love you so, I love you so\nPlease don't go, I'll eat you whole\nI love you so, I love you so, I love you so\nPlease don't go, I'll eat you whole\nI love you so, I love you so, I love you so\n");
                     var tessellate = translate_lyrics ("\nBite chunks out of me\nYou're a shark and I'm swimming\nMy heart still thumps as I bleed\nAnd all your friends come sniffing\n\nTriangles are my favorite shape\nThree points where two lines meet\nToe to toe, back to back, let's go, my love; it's very late\n'Til morning comes, let's tessellate\n\nGo alone my flower\nAnd keep my whole lovely you\nWild green stones alone my lover\nAnd keep us on my heart\n\nThree guns and one goes off\nOne's empty, one's not quick enough\nOne burn, one red, one grin\nSearch the graves while the camera spins\n\nChunks of you will sink down to seals\nBlubber rich in mourning, they'll nosh you up\nYes, they'll nosh the love away but it's fair to say\nYou will still haunt me\n\nTriangles are my favorite shape\nThree points where two lines meet\nToe to toe, back to back, let's go my love; it's very late\n'Til morning comes, let's tessellate\n");
-                    var songs = dict ({'a': breeze_blocks, 'm': we_are_miners, 'w': wolf, 'h': h_s_t_k, 't': tessellate});
+                    var songs = {'a': breeze_blocks, 'm': we_are_miners, 'w': wolf, 'h': h_s_t_k, 't': tessellate};
                     __pragma__ ('<use>' +
                         'jstools.screeps_constants' +
                     '</use>')
@@ -23626,18 +25138,48 @@ function main () {
         var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
         var default_roles = __init__ (__world__.constants).default_roles;
         var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
+        var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
+        var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
         var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
         var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
         var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
         var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-        var new_map = __init__ (__world__.constants).new_map;
-        var new_set = __init__ (__world__.constants).new_set;
         var old_role_names = __init__ (__world__.constants).old_role_names;
         var recycle_time = __init__ (__world__.constants).recycle_time;
         var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
         var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
         var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
         var request_priority_low = __init__ (__world__.constants).request_priority_low;
+        var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
+        var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
+        var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
+        var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
+        var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
+        var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
+        var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
+        var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
+        var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
+        var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
+        var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
+        var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
+        var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
+        var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
+        var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
+        var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
+        var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
+        var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
+        var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
+        var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
+        var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
+        var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
+        var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
+        var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
+        var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
+        var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+        var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
+        var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
+        var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
+        var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
         var role_bases = __init__ (__world__.constants).role_bases;
         var role_builder = __init__ (__world__.constants).role_builder;
         var role_cleanup = __init__ (__world__.constants).role_cleanup;
@@ -23695,6 +25237,7 @@ function main () {
         var RoleBase = __init__ (__world__.creeps.base).RoleBase;
         var HiveMind = __init__ (__world__.empire.hive).HiveMind;
         var TargetMind = __init__ (__world__.empire.targets).TargetMind;
+        var errorlog = __init__ (__world__.jstools.errorlog);
         var memory_info = __init__ (__world__.jstools.memory_info);
         var records = __init__ (__world__.jstools.records);
         var new_map = __init__ (__world__.jstools.screeps_constants).new_map;
@@ -23707,29 +25250,7 @@ function main () {
         var movement = __init__ (__world__.utilities.movement);
         walkby_move.apply_move_prototype ();
         var report_error = function (err, description) {
-            if (err == undefined) {
-                if (err === null) {
-                    var err_description = 'null error';
-                }
-                else if (err === undefined) {
-                    var err_description = 'undefined error';
-                }
-                else {
-                    var err_description = err + ' error';
-                }
-            }
-            else if (err.stack == undefined) {
-                var err_description = 'error has undefined stack: {}'.format (err);
-            }
-            else {
-                var err_description = 'error {} has stack: {}'.format (err, err.stack);
-            }
-            var msg = '[main] Error: {}\n{}'.format (description, err_description);
-            print (msg);
-            Game.notify (msg);
-            if (err == undefined) {
-                throw err;
-            }
+            return errorlog.report_error ('main', err, description);
         };
         var run_creep = function (hive, targets, creeps_skipped, room, creep) {
             if (Game.cpu.getUsed () > Game.cpu.limit * 0.5 && (Game.cpu.bucket < 3000 && (Game.gcl.level > 1 || Game.cpu.bucket < 1000))) {
@@ -23739,7 +25260,7 @@ function main () {
                         creeps_skipped [room.name].append (creep.name);
                     }
                     else {
-                        creeps_skipped [room.name] = list ([creep.name]);
+                        creeps_skipped [room.name] = [creep.name];
                     }
                     return ;
                 }
@@ -23795,7 +25316,7 @@ function main () {
         };
         var run_room = function (targets, creeps_skipped, room) {
             try {
-                if (room.mem.pause) {
+                if (room.mem [rmem_key_pause_all_room_operations]) {
                     return ;
                 }
                 records.start_record ();
@@ -23881,7 +25402,7 @@ function main () {
             _memory_init = null;
             records.start_record ();
             if (!('meta' in Memory)) {
-                Memory.meta = dict ({'pause': false, 'quiet': false, 'friends': list ([])});
+                Memory.meta = {'pause': false, 'quiet': false, 'friends': []};
             }
             var bucket_tier = math.floor ((Game.cpu.bucket - 1) / 1000);
             if (bucket_tier != Memory.meta.last_bucket && bucket_tier) {
@@ -23974,17 +25495,22 @@ function main () {
                 records.finish_record ('defense.clean-hostiles');
             }
             if (!(Memory.creeps)) {
-                Memory.creeps = dict ({});
+                Memory.creeps = {};
                 var __iterable0__ = Object.keys (Game.creeps);
                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                     var name = __iterable0__ [__index0__];
-                    Memory.creeps [name] = dict ({});
+                    Memory.creeps [name] = {};
                 }
             }
             records.start_record ();
             hive.find_my_rooms ();
             records.finish_record ('hive.poll-rooms');
-            var creeps_skipped = dict ({});
+            if (__mod__ (Game.time, 50) == 40) {
+                records.start_record ();
+                hive.states.calculate_room_states ();
+                records.finish_record ('hive.calc-states');
+            }
+            var creeps_skipped = {};
             if (('skipped_last_turn' in Memory)) {
                 print ('[main] Running {} creeps skipped last tick, to save CPU.'.format (_.sum (Memory.skipped_last_turn, 'length')));
                 var __iterable0__ = Object.keys (Memory.skipped_last_turn);
@@ -24030,11 +25556,6 @@ function main () {
                 autoactions.cleanup_running_memory ();
                 records.finish_record ('auto.running-memory-cleanup');
             }
-            if (__mod__ (Game.time, 10000) == 367) {
-                records.start_record ();
-                hive.balance_rooms ();
-                records.finish_record ('hive.balance_rooms');
-            }
             if (!(_.isEmpty (creeps_skipped))) {
                 var skipped_count = _.sum (creeps_skipped, 'length');
                 if (skipped_count) {
@@ -24058,7 +25579,7 @@ function main () {
         };
         module.exports.loop = main;
         global
-        .py = dict ({'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'building': building, 'mining_paths': mining_paths, 'hive': (function __lambda__ () {
+        .py = {'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'building': building, 'mining_paths': mining_paths, 'meminfo': memory_info, 'hive': (function __lambda__ () {
             return context.hive ();
         }), 'get_room': (function __lambda__ (name) {
             return context.hive ().get_room (name);
@@ -24068,7 +25589,9 @@ function main () {
             return consistency.complete_refresh (context.hive ());
         }), 'analyse_mem': (function __lambda__ (path) {
             return memory_info.analyse_memory (path);
-        }), 'records': dict ({'start': records.start_recording, 'stop': records.stop_recording, 'start_sub': records.start_sub_recording, 'output': records.output_records, 'output_sub': records.output_sub_records, 'reset': records.reset_records})});
+        }), 'cache_stats': (function __lambda__ () {
+            return memory_info.cache_stats ();
+        }), 'records': {'start': records.start_recording, 'stop': records.stop_recording, 'start_sub': records.start_sub_recording, 'output': records.output_records, 'output_sub': records.output_sub_records, 'reset': records.reset_records}};
         RoomPosition.prototype.createFlag2 = (function __lambda__ (flag_type) {
             return flags.create_flag (this, flag_type);
         });
@@ -24092,6 +25615,7 @@ function main () {
             'creeps.base' +
             'empire.hive' +
             'empire.targets' +
+            'jstools.errorlog' +
             'jstools.memory_info' +
             'jstools.records' +
             'jstools.screeps_constants' +
@@ -24170,9 +25694,12 @@ function main () {
             __all__.deathwatch = deathwatch;
             __all__.default_roles = default_roles;
             __all__.defense = defense;
+            __all__.errorlog = errorlog;
             __all__.flags = flags;
             __all__.global_cache = global_cache;
             __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
+            __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
+            __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
             __all__.hostile_utils = hostile_utils;
             __all__.init_memory = init_memory;
             __all__.locations = locations;
@@ -24194,6 +25721,36 @@ function main () {
             __all__.request_priority_helping_party = request_priority_helping_party;
             __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
             __all__.request_priority_low = request_priority_low;
+            __all__.rmem_key_building_paused = rmem_key_building_paused;
+            __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
+            __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
+            __all__.rmem_key_cache = rmem_key_cache;
+            __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
+            __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
+            __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
+            __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
+            __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
+            __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
+            __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
+            __all__.rmem_key_focusing_home = rmem_key_focusing_home;
+            __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
+            __all__.rmem_key_metadata = rmem_key_metadata;
+            __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
+            __all__.rmem_key_now_supporting = rmem_key_now_supporting;
+            __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
+            __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
+            __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
+            __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
+            __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
+            __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
+            __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
+            __all__.rmem_key_sponsor = rmem_key_sponsor;
+            __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
+            __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+            __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
+            __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
+            __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
+            __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
             __all__.role_bases = role_bases;
             __all__.role_builder = role_builder;
             __all__.role_cleanup = role_cleanup;
