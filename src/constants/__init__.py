@@ -193,9 +193,8 @@ global_cache_mining_roads_suffix = '_mrd'
 # replace with: $1 as r$1, \\\n
 from constants.memkeys import \
     global_mem_key_room_mining_paths as gmem_key_room_mining_paths, \
-    global_mem_key_room_states as gmem_key_room_states
-from constants.memkeys.room import \
-    mem_key_building_paused as rmem_key_building_paused, \
+    global_mem_key_last_room_state_refresh as gmem_key_last_room_state_refresh
+from constants.memkeys.room import mem_key_building_paused as rmem_key_building_paused, \
     mem_key_building_priority_spawn as rmem_key_building_priority_spawn, \
     mem_key_building_priority_walls as rmem_key_building_priority_walls, \
     mem_key_cache as rmem_key_cache, \
@@ -223,4 +222,5 @@ from constants.memkeys.room import \
     mem_key_there_might_be_energy_lying_around as rmem_key_there_might_be_energy_lying_around, \
     mem_key_total_open_source_spaces as rmem_key_total_open_source_spaces, \
     mem_key_upgrading_paused as rmem_key_upgrading_paused, \
-    mem_key_work_parts_by_role as rmem_key_work_parts_by_role
+    mem_key_work_parts_by_role as rmem_key_work_parts_by_role, \
+    mem_key_now_supporting as rmem_key_now_supporting

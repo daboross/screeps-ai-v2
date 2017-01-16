@@ -85,7 +85,7 @@ py.context.targets().manually_register({name: "2366"}, 40, "57fe2bc3985c67b3701c
 Game.rooms.E56N21.find(FIND_MY_CREEPS).forEach(c => c.memory.role = py.constants.role_builder)
 
 # Check on status of owned rooms
-for (let room of py.hive().my_rooms) { console.log(`${room.name}: def: ${!!room.mem.prepping_defenses}, pause: ${!!room.mem.pause}`) }
+py.hive().status()
 
 # Get RCL and minimum wall hits for each owned room
 _(py.hive().my_rooms).map(x => [x, _(x.find(FIND_STRUCTURES)).filter(s => s.structureType == STRUCTURE_WALL || s.structureType == STRUCTURE_RAMPART).min('hits')]).map(t => [t[0], t[1] == Infinity ? 0 : t[1].hits]).sortBy(t => t[1]).map(t => `${t[0].name}: ${t[0].rcl}, ${t[1] / 1000000}M`).join('\n')

@@ -31,3 +31,6 @@ mem_key_mineral_mind_storage = 'market'
 mem_key_building_priority_walls = 'prio_walls'
 mem_key_building_priority_spawn = 'prio_spawn'
 mem_key_there_might_be_energy_lying_around = 'tons'
+
+mem_key_now_supporting = 's'
+cache_key_spending_now = 'ss'

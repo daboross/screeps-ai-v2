@@ -1,8 +1,12 @@
 import math
 
 from cache import volatile_cache
-from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, role_mineral_hauler
+from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, rmem_key_now_supporting, \
+    role_mineral_hauler
 from jstools.screeps_constants import *
+from rooms.room_constants import energy_to_keep_always_in_reserve, \
+    energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, room_spending_state_supporting, \
+    room_spending_state_supporting_sieged
 from utilities import movement
 
 __pragma__('noalias', 'name')
@@ -52,20 +56,24 @@ class MineralMind:
         self.targets = self.hive.targets
         self.storage = room.room.storage
         self.terminal = room.room.terminal
-        self._has_no_terminal_or_storage = not (self.terminal and self.storage
-                                                and self.terminal.isActive() and self.storage.isActive())
+        self._has_no_terminal_or_storage = not (self.terminal and self.storage and self.terminal.my
+                                                and self.storage.my and self.room.rcl >= 6)
         if self.has_no_terminal_or_storage():
             return
-        self._target_mineral_counts = None
-        self._total_resource_counts = None
-        self._next_mineral_to_empty = None
-        self._removing_from_terminal = None
-        self._adding_to_terminal = None
-        self._my_mineral_deposit_minerals = None
-        self._labs = None
-        self._needed_in_lab1 = None
-        self._needed_in_lab2 = None
-        self._energy_needed_in_labs = None
+        __pragma__('skip')
+        self._target_mineral_counts = undefined
+        self._total_resource_counts = undefined
+        self._estimate_energy = undefined
+        self._estimate_non_energy = undefined
+        self._next_mineral_to_empty = undefined
+        self._removing_from_terminal = undefined
+        self._adding_to_terminal = undefined
+        self._my_mineral_deposit_minerals = undefined
+        self._labs = undefined
+        self._needed_in_lab1 = undefined
+        self._needed_in_lab2 = undefined
+        self._energy_needed_in_labs = undefined
+        __pragma__('noskip')
         if rmem_key_mineral_mind_storage not in room.mem:
             # Memory format:
             # market: {
@@ -76,7 +84,7 @@ class MineralMind:
         else:
             if 'total_energy_needed' not in room.mem[rmem_key_mineral_mind_storage]:
                 room.mem[rmem_key_mineral_mind_storage]['total_energy_needed'] = 0
-            rmem_key_mineral_mind_storage
+
             if 'fulfilling' not in room.mem[rmem_key_mineral_mind_storage]:
                 # Memory format:
                 # fulfilling: {
@@ -99,7 +107,9 @@ class MineralMind:
 
     def has_no_terminal_or_storage(self):
         return self._has_no_terminal_or_storage
-        # return not (self.terminal and self.storage and self.terminal.isActive() and self.storage.isActive())
+
+    def fully_setup(self):
+        return not self._has_no_terminal_or_storage
 
     def note_mineral_hauler(self, name):
         self.mem.mineral_hauler = name
@@ -151,7 +161,6 @@ class MineralMind:
 
     def recalculate_energy_needed(self):
         energy_needed = 0
-        energy_needed_without_self_orders = 0
         for mineral, order_list in _.pairs(self.fulfilling):
             for order in order_list:
                 amount = min(_SINGLE_MINERAL_FULFILLMENT_MAX, order.amount)
@@ -160,10 +169,7 @@ class MineralMind:
                 else:
                     needed_here = Game.market.calcTransactionCost(amount, self.room.name, order.room)
                 energy_needed = max(energy_needed, needed_here)
-                if mineral != RESOURCE_ENERGY or not _.get(Game.rooms, [order.room, 'controller', 'my'], False):
-                    energy_needed_without_self_orders = max(energy_needed_without_self_orders, needed_here)
         self.mem['total_energy_needed'] = energy_needed
-        self.mem['ten_without_self_orders'] = energy_needed_without_self_orders
 
     def log(self, message):
         print("[{}][market] {}".format(self.room.name, message))
@@ -189,7 +195,7 @@ class MineralMind:
         return self._my_mineral_deposit_minerals
 
     def get_all_terminal_targets(self):
-        if self._target_mineral_counts:
+        if self._target_mineral_counts is not undefined:
             return self._target_mineral_counts
         target_counts = {}
 
@@ -205,7 +211,7 @@ class MineralMind:
         return target_counts
 
     def removing_from_terminal(self):
-        if self._removing_from_terminal is None:
+        if self._removing_from_terminal is undefined:
             removing = []
             for resource in Object.keys(self.terminal.store):
                 target = self.get_all_terminal_targets()[resource] or 0
@@ -215,7 +221,7 @@ class MineralMind:
         return self._removing_from_terminal
 
     def adding_to_terminal(self):
-        if self._adding_to_terminal is None:
+        if self._adding_to_terminal is undefined:
             adding = []
             all_targets = self.get_all_terminal_targets()
             for resource in Object.keys(self.get_all_terminal_targets()):
@@ -227,12 +233,12 @@ class MineralMind:
         return self._adding_to_terminal
 
     def labs(self):
-        if self._labs is None:
+        if self._labs is undefined:
             self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
         return self._labs
 
     def amount_needed_in_lab1(self):
-        if self._needed_in_lab1 is None:
+        if self._needed_in_lab1 is undefined:
             mineral = self.get_lab_target_mineral()
             if mineral is None:
                 return 0
@@ -248,7 +254,7 @@ class MineralMind:
         return self._needed_in_lab1
 
     def amount_needed_in_lab2(self):
-        if self._needed_in_lab2 is None:
+        if self._needed_in_lab2 is undefined:
             mineral = self.get_lab2_target_mineral()
             if mineral is None:
                 return 0
@@ -264,7 +270,7 @@ class MineralMind:
         return self._needed_in_lab2
 
     def energy_needed_in_labs(self):
-        if self._energy_needed_in_labs is None:
+        if self._energy_needed_in_labs is undefined:
             mineral = self.get_lab_target_mineral()
             if mineral is None:
                 return 0
@@ -291,7 +297,7 @@ class MineralMind:
         return None
 
     def get_total_room_resource_counts(self):
-        if self._total_resource_counts:
+        if self._total_resource_counts is not undefined:
             return self._total_resource_counts
         counts = {}
         for rtype, amount in _.pairs(self.storage.store):
@@ -299,31 +305,68 @@ class MineralMind:
                 counts[rtype] += amount
             else:
                 counts[rtype] = amount
-        for rtype, amount in _.pairs(self.terminal.store):
-            if rtype in counts:
-                counts[rtype] += amount
-            else:
-                counts[rtype] = amount
+        if self.terminal:
+            for rtype, amount in _.pairs(self.terminal.store):
+                if rtype in counts:
+                    counts[rtype] += amount
+                else:
+                    counts[rtype] = amount
         creep_carry = self.mineral_hauler_carry()
         for rtype, amount in _.pairs(creep_carry):
             if rtype in counts:
                 counts[rtype] += amount
             else:
                 counts[rtype] = amount
-        for lab in self.room.find(FIND_MY_STRUCTURES):
-            if lab.structureType == STRUCTURE_LAB:
-                if lab.mineralAmount:
-                    if lab.mineralType in counts:
-                        counts[lab.mineralType] += lab.mineralAmount
-                    else:
-                        counts[lab.mineralType] = lab.mineralAmount
-                if lab.energy:
-                    if RESOURCE_ENERGY in counts:
-                        counts[RESOURCE_ENERGY] += lab.energy
-                    else:
-                        counts[RESOURCE_ENERGY] = lab.energy
+        if self.room.rcl >= 6 and self.terminal:
+            for lab in self.room.find(FIND_MY_STRUCTURES):
+                if lab.structureType == STRUCTURE_LAB:
+                    if lab.mineralAmount:
+                        if lab.mineralType in counts:
+                            counts[lab.mineralType] += lab.mineralAmount
+                        else:
+                            counts[lab.mineralType] = lab.mineralAmount
+                    if lab.energy:
+                        if RESOURCE_ENERGY in counts:
+                            counts[RESOURCE_ENERGY] += lab.energy
+                        else:
+                            counts[RESOURCE_ENERGY] = lab.energy
         self._total_resource_counts = counts
         return counts
+
+    def get_estimate_total_energy(self):
+        if self._total_resource_counts is not undefined:
+            return self._total_resource_counts[RESOURCE_ENERGY] or 0
+        if self._estimate_energy is not undefined:
+            return self._estimate_energy
+        energy = 0
+        if RESOURCE_ENERGY in self.storage.store:
+            energy += self.storage.store[RESOURCE_ENERGY]
+        if self.terminal and RESOURCE_ENERGY in self.terminal.store:
+            energy += self.terminal.store[RESOURCE_ENERGY]
+        self._estimate_energy = energy
+        return energy
+
+    def get_estimate_total_non_energy(self):
+        if self._estimate_non_energy is not undefined:
+            return self._estimate_non_energy
+        if self._total_resource_counts is not undefined:
+            amounts = self._total_resource_counts
+            result = 0
+            for key in amounts:
+                if key != RESOURCE_ENERGY:
+                    result += amounts[key]
+            self._estimate_non_energy = result
+            return result
+        result = 0
+        for resource in self.storage.store:
+            if resource != RESOURCE_ENERGY:
+                result += self.storage.store[resource]
+        if self.terminal:
+            for resource in self.terminal.store:
+                if resource != RESOURCE_ENERGY:
+                    result += self.terminal.store[resource]
+        self._estimate_non_energy = result
+        return result
 
     def sell_orders_by_mineral(self):
         vmem = volatile_cache.mem("market")
@@ -356,11 +399,15 @@ class MineralMind:
                 min_via_empty_to = 0
             if 'ten_without_self_orders' not in self.mem:
                 self.recalculate_energy_needed()
-            min_via_fulfillment = self.mem['ten_without_self_orders']
-            min_via_balancing = min(_.sum(self.get_total_room_resource_counts()) - 350 * 1000,
-                                    currently_have - 120 * 1000, self.mem['total_energy_needed'])
-            return min(currently_have - 50 * 1000, max(0, min_via_empty_to, min_via_fulfillment,
-                                                       min_via_balancing))
+            min_via_fulfillment = min(currently_have - 120 * 1000, self.mem['total_energy_needed'])
+            spending_state = self.room.main_spending_expenditure()
+            if spending_state == room_spending_state_supporting:
+                min_via_spending = currently_have - energy_to_keep_always_in_reserve
+            elif spending_state == room_spending_state_supporting_sieged:
+                min_via_spending = currently_have - energy_to_keep_always_in_reserve_when_supporting_sieged
+            else:
+                min_via_spending = 0
+            return min(currently_have - 50 * 1000, max(0, min_via_empty_to, min_via_fulfillment, min_via_spending))
         elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
             return 0
         else:
@@ -386,6 +433,9 @@ class MineralMind:
                 return 0
 
     def tick_terminal(self):
+        if Game.time % 5 == 0 and self.room.main_spending_expenditure() == room_spending_state_supporting_sieged:
+            self.run_support()
+
         # 1020, 765 and 595 are all multiples of 85.
         if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (Game.time % 1020 == 3
                                                                                  or Game.time % 765 == 8
@@ -394,6 +444,8 @@ class MineralMind:
         split = Game.time % 85
         if split == 8 and not _.isEmpty(self.fulfilling):
             self.run_fulfillment()
+            if self.room.main_spending_expenditure() == room_spending_state_supporting:
+                self.run_support()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
             self.check_orders()
         elif split == 15 and rmem_key_empty_all_resources_into_room in self.room.mem:
@@ -452,6 +504,29 @@ class MineralMind:
                     self.log("Used up all of our {}: removing {} remaining orders!".format(
                         mineral, len(self.fulfilling[mineral])))
                 del self.fulfilling[mineral]
+
+    def run_support(self):
+        if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] or self.terminal.store[RESOURCE_ENERGY] < 5000:
+            return
+        spending_state = self.room.main_spending_expenditure()
+        if spending_state == room_spending_state_supporting:
+            min_via_spending = self.get_estimate_total_energy() - energy_to_keep_always_in_reserve
+        elif spending_state == room_spending_state_supporting_sieged:
+            min_via_spending = self.get_estimate_total_energy() - energy_to_keep_always_in_reserve_when_supporting_sieged
+        else:
+            return
+
+        sending_to = self.room.mem[rmem_key_now_supporting]
+
+        to_send = min(self.terminal.store[RESOURCE_ENERGY], min_via_spending)
+        distance = Game.map.getRoomLinearDistance(self.room.name, sending_to, True)
+        total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
+        amount = math.floor(to_send / total_cost_of_1_energy)
+        if amount >= 100:
+            result = self.terminal.send(RESOURCE_ENERGY, amount, sending_to, "Sending support!")
+            if result != OK:
+                self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}"
+                         .format(amount, sending_to, result))
 
     def fulfill_now(self, mineral, target_obj):
         if self.terminal.store[mineral] < 1000 <= target_obj.amount:
@@ -622,7 +697,7 @@ class MineralMind:
         if mineral and mineral.mineralAmount > 0 and _.find(self.room.look_at(LOOK_STRUCTURES, mineral),
                                                             {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
             have_now = self.get_total_room_resource_counts()
-            if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= 400000:
+            if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= max_minerals_to_keep:
                 return 0
             container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
                                lambda s: s.structureType == STRUCTURE_CONTAINER)
@@ -651,8 +726,6 @@ class MineralMind:
     def mineral_report(self):
         minstrings = []
         for mineral, amount in _.pairs(self.get_total_room_resource_counts()):
-            if mineral == RESOURCE_ENERGY:
-                continue
             minstrings.append("{} {}".format(amount, mineral))
         orderstrings = []
         for mineral, target_list in _.pairs(self.fulfilling):

@@ -289,6 +289,11 @@ def main():
     hive.find_my_rooms()
     records.finish_record('hive.poll-rooms')
 
+    if Game.time % 50 == 40:
+        records.start_record()
+        hive.states.calculate_room_states()
+        records.finish_record('hive.calc-states')
+
     creeps_skipped = {}
     if 'skipped_last_turn' in Memory:
         print("[main] Running {} creeps skipped last tick, to save CPU.".format(
@@ -321,11 +326,6 @@ def main():
         records.start_record()
         autoactions.cleanup_running_memory()
         records.finish_record('auto.running-memory-cleanup')
-
-    if Game.time % 10000 == 367:
-        records.start_record()
-        hive.balance_rooms()
-        records.finish_record('hive.balance_rooms')
 
     if not _.isEmpty(creeps_skipped):
         skipped_count = _.sum(creeps_skipped, 'length')

@@ -212,7 +212,11 @@ class ConstructionMind:
         if parts is not None:
             return parts
 
-        construction = _.sum(self.get_construction_targets(), lambda c: c.progressTotal - c.progress)
+        construction = 0
+        for site_id in self.get_construction_targets():
+            site = Game.getObjectById(site_id)
+            if site and site.progressTotal:
+                construction += site.progressTotal - site.progress
         repair = _.sum(self.get_big_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
@@ -222,13 +226,66 @@ class ConstructionMind:
         self.room.store_cached_property("max_builder_work_parts", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
+    def get_max_builder_work_parts_noextra(self):
+        parts = self.room.get_cached_property("max_builder_work_parts_noextra")
+        if parts is not None:
+            return parts
+
+        construction = 0
+        for site_id in self.get_construction_targets():
+            site = Game.getObjectById(site_id)
+            if site and site.progressTotal:
+                construction += site.progressTotal - site.progress
+        repair = _.sum(self.get_repair_targets(), self._hits_left_to_repair_at)
+        total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
+        # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
+        # site.
+        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+
+        self.room.store_cached_property("max_builder_work_parts_noextra", total_work_parts_needed, 1000)
+        return total_work_parts_needed
+
+    def get_max_builder_work_parts_urgent(self):
+        parts = self.room.get_cached_property("max_builder_work_parts_urgent_only")
+        if parts is not None:
+            return parts
+
+        construction = 0
+        for site_id in self.get_construction_targets():
+            site = Game.getObjectById(site_id)
+            if not site:
+                continue
+            if site and (site.structureType == STRUCTURE_WALL or site.structureType == STRUCTURE_RAMPART
+                         or site.structureType == STRUCTURE_SPAWN or site.structureType == STRUCTURE_ROAD):
+                construction += site.progressTotal - site.progress
+        repair = 0
+        for struct_id in self.get_repair_targets():
+            struct = Game.getObjectById(struct_id)
+            if struct and struct.hits:
+                if struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART:
+                    repair += max(0, self.room.min_sane_wall_hits / 2 - struct.hits)
+                else:
+                    repair += struct.hitsMax - struct.hits
+
+        total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
+        # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
+        # site.
+        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+
+        self.room.store_cached_property("max_builder_work_parts_urgent_only", total_work_parts_needed, 1000)
+        return total_work_parts_needed
+
     def refresh_num_builders(self, now=False):
         if now:
             self.room.delete_cached_property('builders_needed')
             self.room.delete_cached_property('max_builder_work_parts')
+            self.room.delete_cached_property('max_builder_work_parts_noextra')
+            self.room.delete_cached_property('max_builder_work_parts_urgent_only')
         else:
             self.room.expire_property_next_tick('builders_needed')
             self.room.expire_property_next_tick('max_builder_work_parts')
+            self.room.expire_property_next_tick('max_builder_work_parts_noextra')
+            self.room.expire_property_next_tick('max_builder_work_parts_urgent_only')
 
     def get_high_value_construction_targets(self):
         if self.room.under_siege():

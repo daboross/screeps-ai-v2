@@ -168,6 +168,7 @@ __all__ = [
     "MAX_CONSTRUCTION_SITES",
     "TERMINAL_CAPACITY",
     "MARKET_FEE",
+    "STORAGE_CAPACITY",
     # JavaScript things
     "typeof",
     "require",

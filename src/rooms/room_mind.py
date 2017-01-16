@@ -81,6 +81,7 @@ class RoomMind:
         self._all_miners = undefined
         self._trying_to_get_full_storage_use = undefined
         self._full_storage_use = undefined
+        self._smallest_wall_hits = undefined
 
         # properties which represent some multi-tick state
         self._upgrader_source = undefined
@@ -755,18 +756,18 @@ class RoomMind:
                 self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
             else:
                 if self.rcl >= 8:
-                    if self.mem[
-                        mem_key_upgrading_paused] and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
+                    if self.mem[mem_key_upgrading_paused] \
+                            and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
                         self.mem[mem_key_upgrading_paused] = False
-                    if not self.mem[
-                        mem_key_upgrading_paused] and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
+                    if not self.mem[mem_key_upgrading_paused] \
+                            and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
                 else:
-                    if self.mem[
-                        mem_key_upgrading_paused] and self.room.storage.store.energy > energy_to_resume_upgrading:
+                    if self.mem[mem_key_upgrading_paused] \
+                            and self.room.storage.store.energy > energy_to_resume_upgrading:
                         self.mem[mem_key_upgrading_paused] = False
-                    if not self.mem[
-                        mem_key_upgrading_paused] and self.room.storage.store.energy < energy_to_pause_upgrading:
+                    if not self.mem[mem_key_upgrading_paused] \
+                            and self.room.storage.store.energy < energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
                 self._upgrading_paused = not not self.mem[mem_key_upgrading_paused]
         return self._upgrading_paused
@@ -887,10 +888,10 @@ class RoomMind:
         """
         :rtype: int
         """
-        return rcl_to_sane_wall_hits[self.rcl - 1] or 0  # 1-to-0-based index
+        return rcl_to_max_wall_hits[self.rcl - 1] or 0  # 1-to-0-based index
 
     def get_min_sane_wall_hits(self):
-        return rcl_to_min_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
+        return rcl_to_target_wall_hits[self.rcl - 1] or 0  # 1-to-0 based index
 
     def get_upgrader_energy_struct(self):
         if self._upgrader_source is undefined:
@@ -962,6 +963,76 @@ class RoomMind:
                         oss += 1
             self.mem[key] = oss
         return self.mem[key]
+
+    def calculate_smallest_wall(self):
+        if self._smallest_wall_hits is undefined:
+            least_hits = Infinity
+            for struct in self.find(FIND_STRUCTURES):
+                if struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART:
+                    if struct.hits < least_hits:
+                        least_hits = struct.hits
+            if least_hits is Infinity:
+                least_hits = 0
+            self._smallest_wall_hits = least_hits
+        return self._smallest_wall_hits
+
+    def set_supporting_room(self, target):
+        old_target = self.mem[mem_key_now_supporting]
+        self.mem[mem_key_now_supporting] = target
+
+        if target != old_target or (target is not None
+                                    and _.get(Memory, ['rooms', target, mem_key_currently_under_siege])
+                                    and self.main_spending_expenditure() != room_spending_state_supporting_sieged):
+            self.reset_spending_state()
+
+    def reset_spending_state(self):
+        self.delete_cached_property(cache_key_spending_now)
+        self.reset_planned_role()
+
+    def main_spending_expenditure(self):
+        cached = self.get_cached_property(cache_key_spending_now)
+        if cached:
+            return cached
+        if not self.full_storage_use:
+            self.store_cached_property(cache_key_spending_now, room_spending_state_saving, 500)
+            return room_spending_state_saving
+        if self.mem[mem_key_now_supporting]:
+            room = self.hive.get_room(self.mem[mem_key_now_supporting])
+            if room.mem[mem_key_currently_under_siege]:
+                state = room_spending_state_supporting_sieged
+            else:
+                energy = self.minerals.get_estimate_total_energy()
+                if energy < energy_to_keep_always_in_reserve:
+                    state = room_spending_state_saving
+                else:
+                    state = room_spending_state_supporting
+        else:
+            energy = self.minerals.get_estimate_total_energy()
+            non_energy = self.room.terminal and self.minerals.get_estimate_total_non_energy()
+            # TODO: implement selling in MineralMind, and then enable this state.
+            # if energy < energy_to_keep_always_in_reserve / 2:
+            #     state = room_spending_state_saving
+            # elif self.room.terminal and non_energy > max_minerals_to_keep:
+            #     state = room_spending_state_selling
+            # el
+            if energy < energy_to_keep_always_in_reserve:
+                state = room_spending_state_saving
+            # elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
+            #     state = room_spending_state_selling
+            elif self.rcl >= 8:
+                state = room_spending_state_building
+            else:
+                if self.building.get_target_num_builders() > 1 and self.building.get_max_builder_work_parts() > 5:
+                    state = room_spending_state_building
+                else:
+                    least_hits = self.calculate_smallest_wall()
+                    if least_hits < self.min_sane_wall_hits:
+                        state = room_spending_state_building
+                    else:
+                        state = room_spending_state_upgrading
+
+        self.store_cached_property(cache_key_spending_now, state, 500)
+        return state
 
     __pragma__('nofcall')
 
@@ -1175,154 +1246,145 @@ class RoomMind:
         return self._total_needed_spawn_fill_mass
 
     def get_target_builder_work_mass(self):
-        if '_target_builder_work_mass' not in self:
+        if '_target_builder_work_mass' in self:
+            return self._target_builder_work_mass
+
+        self._target_builder_work_mass = 0
+        if self.building_paused():
             self._target_builder_work_mass = 0
-            if not self.building_paused():
-                base_num = self.building.get_target_num_builders()
-                if base_num > 0:
-                    extra = 0
-                    if self.room.storage:
-                        if self.mem[mem_key_prepping_defenses]:
-                            # purposefully a smaller threshold than upgrading has
-                            overflow = min(_.sum(self.room.storage.store) - 400 * 1000,
-                                           self.room.storage.store.energy - 100 * 1000)
-                        else:
-                            overflow = min(_.sum(self.room.storage.store) - 500 * 1000,
-                                           self.room.storage.store.energy - 150 * 1000)
-                        if not self.room.storage.storeCapacity:
-                            overflow = self.room.storage.store.energy
-                        if overflow > 0:
-                            # TODO: utility method for "empty storage asap"
-                            if not self.room.storage.storeCapacity:
-                                extra = min(25, math.floor(overflow / (20 * 1000)))
-                            else:
-                                extra = min(5, math.floor(overflow / (20 * 1000)))
-                        elif overflow < -100 * 1000 and base_num > 2:
-                            base_num = 2
-                    if self.rcl < 8:
-                        if self.rcl < 4 and self.room.energyCapacityAvailable < 550:
-                            worker_size = 1
-                        else:
-                            worker_size = max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
-                        parts = (base_num + extra) * worker_size
-                    else:
-                        if extra > 0:
-                            worker_size = spawning.max_sections_of(self, creep_base_worker)
-                            parts = (base_num + extra) * worker_size
-                        else:
-                            # Since we have a constant 15-part upgrader going at RCL8, workers have to be more of the
-                            # 'scaling' factor.
-                            worker_size = min(4, spawning.max_sections_of(self, creep_base_worker))
-                            parts = 1 * worker_size
-                    max_parts = self.building.get_max_builder_work_parts()
-                    if parts > max_parts:
-                        parts = max_parts
-                    self._target_builder_work_mass = parts
-        return self._target_builder_work_mass
+            return 0
+        base_num = self.building.get_target_num_builders()
+        if base_num <= 0:
+            self._target_builder_work_mass = 0
+            return 0
+
+        if self.full_storage_use:
+            spending = self.main_spending_expenditure()
+            if spending == room_spending_state_building:
+                extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point
+                wm = spawning.max_sections_of(self, creep_base_worker)
+                if extra > 0:
+                    wm += math.floor(extra / (20 * 1000))
+            elif spending == room_spending_state_rcl8_building:
+                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
+                wm = min(4, spawning.max_sections_of(self, creep_base_worker))
+                if extra > 0:
+                    wm += math.floor(extra / (20 * 1000))
+            elif spending == room_spending_state_supporting_sieged:
+                wm = self.building.get_max_builder_work_parts_urgent()
+            elif spending == room_spending_state_under_siege:
+                if self.minerals.get_estimate_total_energy() < energy_to_keep_always_in_reserve / 2:
+                    wm = self.building.get_max_builder_work_parts_urgent()
+                else:
+                    extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
+                    wm = spawning.max_sections_of(self, creep_base_worker) * 3
+                    if extra > 0:
+                        wm += math.floor(extra / (20 * 1000))
+            else:
+                wm = min(
+                    self.building.get_max_builder_work_parts_noextra(),
+                    spawning.max_sections_of(self, creep_base_worker) * 3,
+                )
+        elif self.trying_to_get_full_storage_use:
+            wm = spawning.max_sections_of(self, creep_base_worker) * 2
+        elif self.room.energyCapacityAvailable < 550:
+            wm = base_num
+        else:
+            wm = base_num * max(2, min(8, spawning.max_sections_of(self, creep_base_worker)))
+
+        wm = min(wm, self.building.get_max_builder_work_parts())
+        self._target_builder_work_mass = wm
+        return wm
 
     def get_target_upgrade_fill_mass(self):
         if '_target_upgrade_fill_work_mass' not in self:
             target = self.get_upgrader_energy_struct()
             if not target or target.structureType != STRUCTURE_CONTAINER:
                 self._target_upgrade_fill_work_mass = 0
-            elif self.upgrading_deprioritized() or self.overprioritize_building():
-                if self.room.controller.ticksToDowngrade > 5000:
-                    self._target_upgrade_fill_work_mass = 0
-                else:
-                    self._target_upgrade_fill_work_mass = 1
-            elif _.sum(target.store) >= target.storeCapacity * 0.5 and self.role_count(role_upgrader) <= 1:
-                self._target_upgrade_fill_work_mass = 0
             else:
-                # TODO: dynamic calculation here
-                self._target_upgrade_fill_work_mass = min(8, spawning.max_sections_of(self, creep_base_hauler))
-                if self.full_storage_use:
-                    if Memory.hyper_upgrade:
-                        extra = min(_.sum(self.room.storage.store) - 100 * 1000,
-                                    self.room.storage.store.energy - 50 * 1000)
+                upgrader_work_mass = self.get_target_upgrader_work_mass()
+                if upgrader_work_mass <= 0:
+                    self._target_upgrade_fill_work_mass = 0
+                elif upgrader_work_mass <= 1:
+                    self._target_upgrade_fill_work_mass = 1
+                else:
+                    if self.room.storage:
+                        distance = self.hive.honey.find_path_length(self.room.storage, target, {'use_roads': False})
                     else:
-                        extra = min(_.sum(self.room.storage.store) - 500 * 1000,
-                                    self.room.storage.store.energy - 150 * 1000)
-                    if extra > 0:
-                        self._target_upgrade_fill_work_mass *= 2
+                        distance = 0
+                        for source in self.sources:
+                            distance += self.hive.honey.find_path_length(source, target, {'use_roads': False})
+                        distance /= len(self.sources)
+                    carry_per_tick_per_part = CARRY_CAPACITY / (distance * 2) + 5
+                    need_per_tick = upgrader_work_mass * UPGRADE_CONTROLLER_POWER
+                    self._target_upgrade_fill_work_mass = math.ceil(need_per_tick / carry_per_tick_per_part)
         return self._target_upgrade_fill_work_mass
 
     def get_target_upgrader_work_mass(self):
-        if '_target_upgrader_work_mass' not in self:
-            base = self.get_variable_base(role_upgrader)
-            sections = spawning.max_sections_of(self, base)
-            if base is creep_base_full_upgrader:
-                worker_size = max(4, 2 * sections)
-            else:
-                # A half (0.5) section represents one work and no carry.
-                worker_size = max(1, math.ceil(sections))
+        if '_target_upgrader_work_mass' in self:
+            return self._target_upgrader_work_mass
+        base = self.get_variable_base(role_upgrader)
+        sections = spawning.max_sections_of(self, base)
+        if base is creep_base_full_upgrader:
+            worker_size = max(4, 2 * sections)
+        else:
+            # A half (0.5) section represents one work and no carry.
+            worker_size = max(1, math.ceil(sections))
 
-            if self.upgrading_deprioritized() or self.overprioritize_building():
-                if self.room.controller.ticksToDowngrade <= 5000:
+        if self.upgrading_deprioritized() or self.overprioritize_building():
+            if self.room.controller.ticksToDowngrade <= 5000:
+                wm = 1
+            else:
+                wm = 0
+            self._target_upgrader_work_mass = wm
+            return wm
+        elif self.get_full_storage_use():
+            spending = self.main_spending_expenditure()
+            if spending == room_spending_state_upgrading:
+                wm = 4
+                extra = self.minerals.get_estimate_total_energy() - energy_to_keep_always_in_reserve
+                if extra > 0:
+                    wm += math.floor(extra / 2000)
+                    if extra >= STORAGE_CAPACITY / 5:
+                        wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
+            elif spending == room_spending_state_rcl8_building or spending == room_spending_state_supporting:
+                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
+                if extra < 0:
+                    wm = 4
+                else:
+                    wm = 15
+            elif spending == room_spending_state_supporting:
+                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
+                if extra < 0:
+                    wm = 4
+                # TODO: see if this is the best possible condition we could have...
+                elif len(self.possible_remote_mining_operations) >= 3:
+                    wm = 15
+                else:
+                    wm = 10
+            elif spending == room_spending_state_supporting_sieged or spending == room_spending_state_under_siege:
+                if self.room.controller.ticksToDowngrade <= 10 * 1000:
                     wm = 1
                 else:
                     wm = 0
-                self._target_upgrader_work_mass = wm
-                return wm  # Upgrading auto-turns-off being deprioritized if energy is above 700 * 1000
-            elif self.rcl == 8:
-                if len(self.possible_remote_mining_operations) >= 3 \
-                        and _.sum(self.room.storage.store) > 250 * 1000 \
-                        and self.room.storage.store.energy > 100 * 1000 \
-                        and not self.mem[mem_key_prepping_defenses]:
-                    wm = 15
-                elif _.sum(self.room.storage.store) > 700 * 1000 \
-                        and self.room.storage.store.energy > 200 * 1000:
-                    wm = 7
-                else:
-                    wm = max(2, min(7, math.floor(self.room.storage.store.energy / (50 * 1000))))
-            elif self.mining_ops_paused():
-                wm = worker_size * 4
-            elif self.trying_to_get_full_storage_use:
+            else:
                 wm = 4
-            elif self.room.energyCapacityAvailable < 550:
-                wm = self.get_open_source_spaces() * worker_size
-                for source in self.sources:
-                    energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
-                    wm += energy / 200.0
-            else:
-                wm = len(self.sources) * 2 * worker_size
-            if self.full_storage_use:
-                if self.room.storage.storeCapacity:
-                    if self.mem[mem_key_prepping_defenses]:
-                        extra = min(_.sum(self.room.storage.store) - 600 * 1000,
-                                    self.room.storage.store.energy - 200 * 1000)
-                    elif Memory.hyper_upgrade:
-                        extra = min(_.sum(self.room.storage.store) - 100 * 1000,
-                                    self.room.storage.store.energy - 50 * 1000)
-                    else:
-                        extra = min(_.sum(self.room.storage.store) - 500 * 1000,
-                                    self.room.storage.store.energy - 150 * 1000)
-                else:
-                    extra = 200 * 1000 + self.room.storage.store.energy
-                if extra > 0:
-                    if Memory.hyper_upgrade:
-                        wm += math.ceil(extra / 1000)
-                    else:
-                        wm += math.floor(extra / 2000)
-                    if extra >= 200 * 1000:
-                        wm += math.ceil((extra - 200 * 1000) / 400)
-                        if self.rcl < 8:
-                            print("[{}] Spawning more emergency upgraders! Target work mass: {} (worker_size: {})"
-                                  .format(self.name, wm, worker_size))
-                        else:
-                            # TODO: put this somewhere better
-                            self.hive.rebalance_from(self)
-                            pass
+        elif self.room.energyCapacityAvailable < 550:
+            wm = self.get_open_source_spaces() * worker_size
+            for source in self.sources:
+                energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                wm += energy / 200.0
+        else:
+            wm = len(self.sources) * 2 * worker_size
 
-            if self.rcl >= 8:
-                wm = min(wm, 15)
-
-            # TODO: calculate open spaces near controller to determine this
-            if base is creep_base_full_upgrader:
-                self._target_upgrader_work_mass = min(wm, worker_size * 4)
-            elif self.room.storage and not self.room.storage.storeCapacity:
-                self._target_upgrader_work_mass = min(wm, worker_size * 15)
-            else:
-                self._target_upgrader_work_mass = min(wm, worker_size * 8)
+        if base is creep_base_full_upgrader:
+            max_upgraders = max(4, len(flags.find_flags(self, UPGRADER_SPOT)))
+            self._target_upgrader_work_mass = min(wm, worker_size * max_upgraders)
+        elif self.room.storage and not self.room.storage.storeCapacity:
+            self._target_upgrader_work_mass = min(wm, worker_size * 15)
+        else:
+            max_upgraders = max(8, len(flags.find_flags(self, UPGRADER_SPOT)))
+            self._target_upgrader_work_mass = min(wm, worker_size * max_upgraders)
         return self._target_upgrader_work_mass
 
     def get_target_tower_fill_mass(self):
@@ -1372,10 +1434,14 @@ class RoomMind:
 
     def get_builder_size(self):
         base = self.get_variable_base(role_builder)
-        if self.rcl < 8:
-            return min(8, spawning.max_sections_of(self, base), self.building.get_max_builder_work_parts())
+        return min(spawning.max_sections_of(self, base), self.building.get_max_builder_work_parts())
+
+    def get_upgrade_fill_size(self):
+        mass = self.get_target_upgrade_fill_mass()
+        if mass <= 0:
+            return 1
         else:
-            return min(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
+            return fit_num_sections(mass + 2, spawning.max_sections_of(self, creep_base_hauler))
 
     def request_creep(self, role, opts=None):
         """
@@ -1472,11 +1538,13 @@ class RoomMind:
         role_needed = None
         for role, get_ideal, count_carry, count_work in role_list:
             if count_carry:
-                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                if self.carry_mass_of(role) - self.carry_mass_of_replacements_currently_needed_for(
+                        role) < get_ideal():
                     role_needed = role
                     break
             elif count_work:
-                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(role) < get_ideal():
+                if self.work_mass_of(role) - self.work_mass_of_replacements_currently_needed_for(
+                        role) < get_ideal():
                     role_needed = role
                     break
             else:
@@ -1515,11 +1583,12 @@ class RoomMind:
     def get_max_sections_for_role(self, role):
         max_mass = {
             role_spawn_fill_backup:
-                lambda: fit_num_sections(self.get_target_spawn_fill_backup_carry_mass()
-                                         if spawning.using_lower_energy_section(self, creep_base_worker)
-                                         else spawning.ceil_sections(self.get_target_spawn_fill_backup_carry_mass() / 3,
-                                                                     creep_base_worker),
-                                         spawning.max_sections_of(self, creep_base_worker)),
+                lambda: fit_num_sections(
+                    self.get_target_spawn_fill_backup_carry_mass()
+                    if spawning.using_lower_energy_section(self, creep_base_worker)
+                    else spawning.ceil_sections(self.get_target_spawn_fill_backup_carry_mass() / 3, creep_base_worker),
+                    spawning.max_sections_of(self, creep_base_worker)
+                ),
             role_link_manager:
                 lambda: min(self.get_target_link_manager_count() * 8,
                             spawning.max_sections_of(self, creep_base_hauler)),

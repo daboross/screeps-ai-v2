@@ -24,7 +24,7 @@ energy_to_pause_building = 14 * 1000
 energy_to_resume_building = 28 * 1000
 min_stored_energy_to_draw_from_before_refilling = 20 * 1000
 
-rcl_to_min_wall_hits = [
+rcl_to_target_wall_hits = [
     1,  # RCL 1
     20 * 1000,  # RCL 2
     50 * 1000,  # RCL 3
@@ -34,7 +34,7 @@ rcl_to_min_wall_hits = [
     3 * 1000 * 1000,  # RCL 7
     10 * 1000 * 1000,  # RCL 8
 ]
-rcl_to_sane_wall_hits = [
+rcl_to_max_wall_hits = [
     2,  # RCL 1
     40 * 1000,  # RCL 2
     80 * 1000,  # RCL 3
@@ -42,5 +42,33 @@ rcl_to_sane_wall_hits = [
     1000 * 1000,  # RCL 5
     1500 * 1000,  # RCL 6
     5 * 1000 * 1000,  # RCL 7
-    100 * 1000 * 1000  # RCL 8
+    WALL_HITS_MAX,  # RCL 8
 ]
+
+energy_to_keep_always_in_reserve = STORAGE_CAPACITY / 2
+energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve * 0.25
+energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1
+energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1
+energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.05
+max_minerals_to_keep = STORAGE_CAPACITY / 4
+
+room_spending_state_building = 'b'
+room_spending_state_upgrading = 'u'
+room_spending_state_rcl8_building = '8'
+room_spending_state_saving = 's'
+room_spending_state_supporting = 'p'
+room_spending_state_supporting_sieged = 'r'
+room_spending_state_under_siege = 'n'
+room_spending_state_selling = 'l'
+
+# s/room_spending_state_([^ \n]+) = '([^'\n]+)'\n/'$2': "$1",\n/
+room_spending_state_visual = {
+    'b': "building",
+    'u': "upgrading",
+    '8': "rcl8_building",
+    's': "saving",
+    'p': "supporting",
+    'r': "supporting_sieged",
+    'n': "under_siege",
+    'l': "selling",
+}

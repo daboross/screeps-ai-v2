@@ -541,6 +541,8 @@ class RoomDefense:
     def activate_live_defenses(self):
         if not self.room.mem[rmem_key_currently_under_siege]:
             self.room.mem[rmem_key_currently_under_siege] = True
+            self.room.reset_spending_state()
+            self.hive.states.calculate_room_states()
         self.mem.attack_until = Game.time + 10 * 1000
         self.room.reset_planned_role()
         message = "{} activating live defenses.".format(self.room.name)
