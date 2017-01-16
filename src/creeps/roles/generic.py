@@ -130,7 +130,7 @@ class Recycling(Refill, MilitaryBase):
                 target = self.home.room.storage
             if target is None:
                 target = self.home.spawn
-            if target is None or self.creep.ticksToLive < self.pos.getRangeTo(target):
+            if target is None or self.creep.ticksToLive < movement.chebyshev_distance_room_pos(self, target):
                 self.creep.suicide()
                 return False
             if 'checkpoint' not in self.memory or \
