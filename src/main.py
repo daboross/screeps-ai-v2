@@ -363,6 +363,7 @@ __pragma__('js', 'global').py = {
     "hostile_utils": hostile_utils,
     "building": building,
     "mining_paths": mining_paths,
+    "meminfo": memory_info,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,
@@ -371,6 +372,7 @@ __pragma__('js', 'global').py = {
     "cc": global_cache.clear_values_matching,
     "full_refresh": lambda: consistency.complete_refresh(context.hive()),
     "analyse_mem": lambda path: memory_info.analyse_memory(path),
+    "cache_stats": lambda: memory_info.cache_stats(),
     "records": {
         'start': records.start_recording,
         'stop': records.stop_recording,
