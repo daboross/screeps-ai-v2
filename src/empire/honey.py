@@ -15,6 +15,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
+_path_cached_data_key_metadata = 'm'
 _path_cached_data_key_full_path = 'full'
 _path_cached_data_key_room_order = 'o'
 _path_cached_data_key_length = 'l'
@@ -22,7 +23,7 @@ _path_cached_data_key_length = 'l'
 
 def pathfinder_path_to_room_to_path_obj(origin, input_path):
     result_obj = {}
-    result_obj[_path_cached_data_key_room_order] = list_of_rooms = []
+    list_of_rooms = []
     last_room = None
     current_path = None
     last_x, last_y = origin.x, origin.y
@@ -125,7 +126,8 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
             'direction': direction
         }
         current_path.append(item)
-    result_obj[_path_cached_data_key_length] = len(input_path) - len(list_of_rooms) + 1
+    total_length = len(input_path) - len(list_of_rooms) + 1
+    result_obj[_path_cached_data_key_metadata] = ','.join([total_length].concat(list_of_rooms))
     return result_obj
 
 
@@ -799,7 +801,7 @@ class HoneyTrails:
                     keep_for = 40 * 1000
         serialized_path_obj = {}
         for room_name in Object.keys(room_to_path_obj):
-            if room_name == _path_cached_data_key_room_order or room_name == _path_cached_data_key_length:
+            if room_name == _path_cached_data_key_metadata:
                 serialized_path_obj[room_name] = room_to_path_obj[room_name]
             else:
                 serialized_path_obj[room_name] = Room.serializePath(room_to_path_obj[room_name])
@@ -824,7 +826,7 @@ class HoneyTrails:
         if room_to_path_obj is not None:
             serialized_path_obj = {}
             for room_name in Object.keys(room_to_path_obj):
-                if room_name == _path_cached_data_key_room_order or room_name == _path_cached_data_key_length:
+                if room_name == _path_cached_data_key_metadata:
                     serialized_path_obj[room_name] = room_to_path_obj[room_name]
                 else:
                     serialized_path_obj[room_name] = Room.serializePath(room_to_path_obj[room_name])
@@ -911,6 +913,8 @@ class HoneyTrails:
 
         if _path_cached_data_key_room_order in path_obj:
             list_of_names = path_obj[_path_cached_data_key_room_order]
+        elif _path_cached_data_key_metadata in path_obj:
+            list_of_names = path_obj[_path_cached_data_key_metadata].js_split(',').slice(1)
         else:
             list_of_names = Object.keys(path_obj)
 
@@ -927,13 +931,16 @@ class HoneyTrails:
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
         # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
 
-        # return len(serialized_path_obj['full'])   # The length of the path
-        #  - 4 + 1                                  # The first four characters only represent one position
-        #  - (
-        # len(Object.keys(serialized_path_obj))     # On each room edge, creeps moving along the path skip one square
-        # - 1)                                      # -1 because we want the count of room _exits_, which is one less
-        #                                           #  than the room count.
+        if _path_cached_data_key_metadata in serialized_path_obj: # Version 3 stored path
+            return int(serialized_path_obj[_path_cached_data_key_metadata].js_split(',')[0])
         if _path_cached_data_key_full_path in serialized_path_obj:  # Version 1 stored path
+            # return len(serialized_path_obj['full'])   # The length of the path
+            #  - 4 + 1                                  # The first four characters only represent one position
+            #  - (
+            # len(Object.keys(serialized_path_obj))     # On each room edge, creeps moving along the path skip one
+            #                                           # square
+            # - 1)                                      # -1 because we want the count of room _exits_, which is one
+            #                                           # less than the room count.
             return len(serialized_path_obj[_path_cached_data_key_full_path]) \
                    - _.sum(Object.keys(serialized_path_obj), lambda n: movement.is_valid_room_name(n)) - 2
         elif _path_cached_data_key_length in serialized_path_obj:  # Version two stored path
