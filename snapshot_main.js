@@ -681,7 +681,7 @@ if (!global.__customizations_active) {
     activateCustomizations()
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-01-16 01:31:14
+// Transcrypt'ed from Python, 2017-01-16 15:03:40
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -16917,17 +16917,6 @@ function main () {
                             }
                         }
                     };
-                    var record_compile_amount = function (time) {
-                        if (_recording_now) {
-                            if (('code.compile' in _averages)) {
-                                _averages ['code.compile'].calls++;
-                                _averages ['code.compile'].time += time;
-                            }
-                            else {
-                                _averages ['code.compile'] = {'calls': 1, 'time': time};
-                            }
-                        }
-                    };
                     var display_num = function (num, val) {
                         if (typeof val == 'undefined' || (val != null && val .hasOwnProperty ("__kwargtrans__"))) {;
                             var val = 2;
@@ -17033,7 +17022,6 @@ function main () {
                         __all__.output_records_full = output_records_full;
                         __all__.output_sub_records = output_sub_records;
                         __all__.prep_recording = prep_recording;
-                        __all__.record_compile_amount = record_compile_amount;
                         __all__.record_memory_amount = record_memory_amount;
                         __all__.reset_records = reset_records;
                         __all__.start_main_record = start_main_record;
@@ -22042,7 +22030,7 @@ function main () {
                     var energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve * 0.25;
                     var energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1;
                     var energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1;
-                    var energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.05;
+                    var energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.1;
                     var max_minerals_to_keep = STORAGE_CAPACITY / 4;
                     var room_spending_state_building = 'b';
                     var room_spending_state_upgrading = 'u';
@@ -23318,7 +23306,7 @@ function main () {
                                     var state = room_spending_state_saving;
                                 }
                                 else if (self.rcl >= 8) {
-                                    var state = room_spending_state_building;
+                                    var state = room_spending_state_rcl8_building;
                                 }
                                 else if (self.building.get_target_num_builders () > 1 && self.building.get_max_builder_work_parts () > 5) {
                                     var state = room_spending_state_building;
@@ -23640,15 +23628,17 @@ function main () {
                                     var extra = self.minerals.get_estimate_total_energy () - energy_pre_rcl8_scaling_balance_point;
                                     var wm = spawning.max_sections_of (self, creep_base_worker);
                                     if (extra > 0) {
-                                        wm += math.floor (extra / (20 * 1000));
+                                        wm += math.floor (extra / 2500);
                                     }
+                                    var wm = min (wm, self.building.get_max_builder_work_parts ());
                                 }
                                 else if (spending == room_spending_state_rcl8_building) {
                                     var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
                                     var wm = min (4, spawning.max_sections_of (self, creep_base_worker));
                                     if (extra > 0) {
-                                        wm += math.floor (extra / (20 * 1000));
+                                        wm += math.floor (extra / 2500);
                                     }
+                                    var wm = min (wm, self.building.get_max_builder_work_parts ());
                                 }
                                 else if (spending == room_spending_state_supporting_sieged) {
                                     var wm = self.building.get_max_builder_work_parts_urgent ();
@@ -23661,24 +23651,24 @@ function main () {
                                         var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
                                         var wm = spawning.max_sections_of (self, creep_base_worker) * 3;
                                         if (extra > 0) {
-                                            wm += math.floor (extra / (20 * 1000));
+                                            wm += math.floor (extra / 2500);
                                         }
+                                        var wm = min (wm, self.building.get_max_builder_work_parts ());
                                     }
                                 }
                                 else {
-                                    var wm = min (self.building.get_max_builder_work_parts_noextra (), spawning.max_sections_of (self, creep_base_worker) * 3);
+                                    var wm = min (spawning.max_sections_of (self, creep_base_worker) * 3, self.building.get_max_builder_work_parts_noextra ());
                                 }
                             }
                             else if (self.trying_to_get_full_storage_use) {
-                                var wm = spawning.max_sections_of (self, creep_base_worker) * 2;
+                                var wm = min (spawning.max_sections_of (self, creep_base_worker) * 2, self.building.get_max_builder_work_parts ());
                             }
                             else if (self.room.energyCapacityAvailable < 550) {
-                                var wm = base_num;
+                                var wm = min (base_num * spawning.max_sections_of (self, creep_base_worker), self.building.get_max_builder_work_parts ());
                             }
                             else {
-                                var wm = base_num * max (2, min (8, spawning.max_sections_of (self, creep_base_worker)));
+                                var wm = min (base_num * max (2, min (8, spawning.max_sections_of (self, creep_base_worker))), self.building.get_max_builder_work_parts ());
                             }
-                            var wm = min (wm, self.building.get_max_builder_work_parts ());
                             self._target_builder_work_mass = wm;
                             return wm;
                         });},
@@ -25063,171 +25053,22 @@ function main () {
     (function () {
         var constants = {};
         var math = {};
-        var _memory_init = null;
-        var init_memory = function () {
-            var start = Game.cpu.getUsed ();
-            var x = Memory;
-            var end = Game.cpu.getUsed ();
-            _memory_init = end - start;
-        };
-        init_memory ();
-        var _start_of_compile = Game.cpu.getUsed ();
-
-        if (!global.__customizations_active) {
-            require("customizations");
-        }
         __nest__ (math, '', __init__ (__world__.math));
         __nest__ (constants, '', __init__ (__world__.constants));
         var consistency = __init__ (__world__.cache.consistency);
         var context = __init__ (__world__.cache.context);
         var global_cache = __init__ (__world__.cache.global_cache);
         var volatile_cache = __init__ (__world__.cache.volatile_cache);
-        var ATTACK_DISMANTLE = __init__ (__world__.constants).ATTACK_DISMANTLE;
-        var ATTACK_POWER_BANK = __init__ (__world__.constants).ATTACK_POWER_BANK;
-        var CLAIM_LATER = __init__ (__world__.constants).CLAIM_LATER;
-        var DEPOT = __init__ (__world__.constants).DEPOT;
-        var ENERGY_GRAB = __init__ (__world__.constants).ENERGY_GRAB;
-        var INVADER_USERNAME = __init__ (__world__.constants).INVADER_USERNAME;
-        var LOCAL_MINE = __init__ (__world__.constants).LOCAL_MINE;
-        var PYFIND_BUILDABLE_ROADS = __init__ (__world__.constants).PYFIND_BUILDABLE_ROADS;
-        var PYFIND_HURT_CREEPS = __init__ (__world__.constants).PYFIND_HURT_CREEPS;
-        var PYFIND_REPAIRABLE_ROADS = __init__ (__world__.constants).PYFIND_REPAIRABLE_ROADS;
-        var RAID_OVER = __init__ (__world__.constants).RAID_OVER;
-        var RAMPART_DEFENSE = __init__ (__world__.constants).RAMPART_DEFENSE;
-        var RANGED_DEFENSE = __init__ (__world__.constants).RANGED_DEFENSE;
-        var REAP_POWER_BANK = __init__ (__world__.constants).REAP_POWER_BANK;
-        var REMOTE_MINE = __init__ (__world__.constants).REMOTE_MINE;
-        var REROUTE = __init__ (__world__.constants).REROUTE;
-        var REROUTE_DESTINATION = __init__ (__world__.constants).REROUTE_DESTINATION;
-        var RESERVE_NOW = __init__ (__world__.constants).RESERVE_NOW;
-        var SCOUT = __init__ (__world__.constants).SCOUT;
-        var SK_LAIR_SOURCE_NOTED = __init__ (__world__.constants).SK_LAIR_SOURCE_NOTED;
-        var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
-        var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
-        var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
-        var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
-        var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
-        var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
-        var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
-        var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
-        var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
-        var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
-        var creep_base_4000miner = __init__ (__world__.constants).creep_base_4000miner;
-        var creep_base_carry3000miner = __init__ (__world__.constants).creep_base_carry3000miner;
-        var creep_base_claim_attack = __init__ (__world__.constants).creep_base_claim_attack;
-        var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
-        var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
-        var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
-        var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
-        var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
-        var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-        var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
-        var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
-        var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
-        var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
-        var creep_base_half_move_healer = __init__ (__world__.constants).creep_base_half_move_healer;
-        var creep_base_hauler = __init__ (__world__.constants).creep_base_hauler;
-        var creep_base_mammoth_miner = __init__ (__world__.constants).creep_base_mammoth_miner;
-        var creep_base_power_attack = __init__ (__world__.constants).creep_base_power_attack;
-        var creep_base_rampart_defense = __init__ (__world__.constants).creep_base_rampart_defense;
-        var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
-        var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
-        var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
-        var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
-        var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
-        var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
         var default_roles = __init__ (__world__.constants).default_roles;
-        var global_cache_mining_roads_suffix = __init__ (__world__.constants).global_cache_mining_roads_suffix;
-        var gmem_key_last_room_state_refresh = __init__ (__world__.constants).gmem_key_last_room_state_refresh;
-        var gmem_key_room_mining_paths = __init__ (__world__.constants).gmem_key_room_mining_paths;
-        var max_repath_mine_roads_every = __init__ (__world__.constants).max_repath_mine_roads_every;
-        var max_repave_mine_roads_every = __init__ (__world__.constants).max_repave_mine_roads_every;
-        var min_repath_mine_roads_every = __init__ (__world__.constants).min_repath_mine_roads_every;
-        var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
-        var old_role_names = __init__ (__world__.constants).old_role_names;
-        var recycle_time = __init__ (__world__.constants).recycle_time;
-        var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
-        var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
-        var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
-        var request_priority_low = __init__ (__world__.constants).request_priority_low;
-        var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
-        var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
-        var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
-        var rmem_key_cache = __init__ (__world__.constants).rmem_key_cache;
-        var rmem_key_carry_parts_by_role = __init__ (__world__.constants).rmem_key_carry_parts_by_role;
-        var rmem_key_creeps_by_role = __init__ (__world__.constants).rmem_key_creeps_by_role;
-        var rmem_key_creeps_by_role_and_replacement_time = __init__ (__world__.constants).rmem_key_creeps_by_role_and_replacement_time;
-        var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
-        var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
-        var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
-        var rmem_key_flag_for_testing_spawning_in_simulation = __init__ (__world__.constants).rmem_key_flag_for_testing_spawning_in_simulation;
-        var rmem_key_focusing_home = __init__ (__world__.constants).rmem_key_focusing_home;
-        var rmem_key_linking_mind_storage = __init__ (__world__.constants).rmem_key_linking_mind_storage;
-        var rmem_key_metadata = __init__ (__world__.constants).rmem_key_metadata;
-        var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
-        var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
         var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
-        var rmem_key_planned_role_to_spawn = __init__ (__world__.constants).rmem_key_planned_role_to_spawn;
-        var rmem_key_prepping_defenses = __init__ (__world__.constants).rmem_key_prepping_defenses;
-        var rmem_key_remotes_explicitly_marked_under_attack = __init__ (__world__.constants).rmem_key_remotes_explicitly_marked_under_attack;
-        var rmem_key_remotes_safe_when_under_siege = __init__ (__world__.constants).rmem_key_remotes_safe_when_under_siege;
-        var rmem_key_room_reserved_up_until_tick = __init__ (__world__.constants).rmem_key_room_reserved_up_until_tick;
-        var rmem_key_spawn_requests = __init__ (__world__.constants).rmem_key_spawn_requests;
-        var rmem_key_sponsor = __init__ (__world__.constants).rmem_key_sponsor;
-        var rmem_key_storage_use_enabled = __init__ (__world__.constants).rmem_key_storage_use_enabled;
-        var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
-        var rmem_key_there_might_be_energy_lying_around = __init__ (__world__.constants).rmem_key_there_might_be_energy_lying_around;
-        var rmem_key_total_open_source_spaces = __init__ (__world__.constants).rmem_key_total_open_source_spaces;
-        var rmem_key_upgrading_paused = __init__ (__world__.constants).rmem_key_upgrading_paused;
-        var rmem_key_work_parts_by_role = __init__ (__world__.constants).rmem_key_work_parts_by_role;
-        var role_bases = __init__ (__world__.constants).role_bases;
-        var role_builder = __init__ (__world__.constants).role_builder;
-        var role_cleanup = __init__ (__world__.constants).role_cleanup;
-        var role_colonist = __init__ (__world__.constants).role_colonist;
-        var role_defender = __init__ (__world__.constants).role_defender;
-        var role_energy_grab = __init__ (__world__.constants).role_energy_grab;
         var role_hauler = __init__ (__world__.constants).role_hauler;
         var role_link_manager = __init__ (__world__.constants).role_link_manager;
         var role_miner = __init__ (__world__.constants).role_miner;
-        var role_mineral_hauler = __init__ (__world__.constants).role_mineral_hauler;
-        var role_mineral_miner = __init__ (__world__.constants).role_mineral_miner;
-        var role_mineral_steal = __init__ (__world__.constants).role_mineral_steal;
-        var role_power_attack = __init__ (__world__.constants).role_power_attack;
-        var role_power_cleanup = __init__ (__world__.constants).role_power_cleanup;
         var role_ranged_offense = __init__ (__world__.constants).role_ranged_offense;
-        var role_recycling = __init__ (__world__.constants).role_recycling;
-        var role_remote_mining_reserve = __init__ (__world__.constants).role_remote_mining_reserve;
-        var role_room_reserve = __init__ (__world__.constants).role_room_reserve;
-        var role_scout = __init__ (__world__.constants).role_scout;
-        var role_simple_claim = __init__ (__world__.constants).role_simple_claim;
-        var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
         var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
-        var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
-        var role_td_goad = __init__ (__world__.constants).role_td_goad;
-        var role_td_healer = __init__ (__world__.constants).role_td_healer;
         var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
         var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
-        var role_tower_fill_once = __init__ (__world__.constants).role_tower_fill_once;
-        var role_upgrade_fill = __init__ (__world__.constants).role_upgrade_fill;
-        var role_upgrader = __init__ (__world__.constants).role_upgrader;
         var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
-        var target_big_big_repair = __init__ (__world__.constants).target_big_big_repair;
-        var target_big_repair = __init__ (__world__.constants).target_big_repair;
-        var target_closest_energy_site = __init__ (__world__.constants).target_closest_energy_site;
-        var target_construction = __init__ (__world__.constants).target_construction;
-        var target_destruction_site = __init__ (__world__.constants).target_destruction_site;
-        var target_energy_hauler_mine = __init__ (__world__.constants).target_energy_hauler_mine;
-        var target_energy_miner_mine = __init__ (__world__.constants).target_energy_miner_mine;
-        var target_home_flag = __init__ (__world__.constants).target_home_flag;
-        var target_rampart_defense = __init__ (__world__.constants).target_rampart_defense;
-        var target_refill = __init__ (__world__.constants).target_refill;
-        var target_repair = __init__ (__world__.constants).target_repair;
-        var target_reserve_now = __init__ (__world__.constants).target_reserve_now;
-        var target_single_flag = __init__ (__world__.constants).target_single_flag;
-        var target_single_flag2 = __init__ (__world__.constants).target_single_flag2;
-        var target_source = __init__ (__world__.constants).target_source;
-        var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
-        var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
         var autoactions = __init__ (__world__.creep_management.autoactions);
         var deathwatch = __init__ (__world__.creep_management.deathwatch);
         var mining_paths = __init__ (__world__.creep_management.mining_paths);
@@ -25248,7 +25089,18 @@ function main () {
         var defense = __init__ (__world__.rooms.defense);
         var hostile_utils = __init__ (__world__.utilities.hostile_utils);
         var movement = __init__ (__world__.utilities.movement);
+
+        if (!global.__customizations_active) {
+            require("customizations");
+        }
         walkby_move.apply_move_prototype ();
+        var _memory_init = null;
+        var init_memory = function () {
+            var start = Game.cpu.getUsed ();
+            var x = Memory;
+            var end = Game.cpu.getUsed ();
+            _memory_init = end - start;
+        };
         var report_error = function (err, description) {
             return errorlog.report_error ('main', err, description);
         };
@@ -25402,7 +25254,7 @@ function main () {
             _memory_init = null;
             records.start_record ();
             if (!('meta' in Memory)) {
-                Memory.meta = {'pause': false, 'quiet': false, 'friends': []};
+                Memory.meta = {'pause': false, 'quiet': true, 'friends': []};
             }
             var bucket_tier = math.floor ((Game.cpu.bucket - 1) / 1000);
             if (bucket_tier != Memory.meta.last_bucket && bucket_tier) {
@@ -25598,8 +25450,6 @@ function main () {
         RoomPosition.prototype.cfms = (function __lambda__ (main_type, sub_type) {
             return flags.create_ms_flag (this, main_type, sub_type);
         });
-        records.prep_recording ();
-        records.record_compile_amount (Game.cpu.getUsed () - _start_of_compile);
         __pragma__ ('<use>' +
             'cache.consistency' +
             'cache.context' +
@@ -25628,180 +25478,43 @@ function main () {
             'utilities.movement' +
         '</use>')
         __pragma__ ('<all>')
-            __all__.ATTACK_DISMANTLE = ATTACK_DISMANTLE;
-            __all__.ATTACK_POWER_BANK = ATTACK_POWER_BANK;
-            __all__.CLAIM_LATER = CLAIM_LATER;
-            __all__.DEPOT = DEPOT;
-            __all__.ENERGY_GRAB = ENERGY_GRAB;
             __all__.HiveMind = HiveMind;
-            __all__.INVADER_USERNAME = INVADER_USERNAME;
-            __all__.LOCAL_MINE = LOCAL_MINE;
-            __all__.PYFIND_BUILDABLE_ROADS = PYFIND_BUILDABLE_ROADS;
-            __all__.PYFIND_HURT_CREEPS = PYFIND_HURT_CREEPS;
-            __all__.PYFIND_REPAIRABLE_ROADS = PYFIND_REPAIRABLE_ROADS;
-            __all__.RAID_OVER = RAID_OVER;
-            __all__.RAMPART_DEFENSE = RAMPART_DEFENSE;
-            __all__.RANGED_DEFENSE = RANGED_DEFENSE;
-            __all__.REAP_POWER_BANK = REAP_POWER_BANK;
-            __all__.REMOTE_MINE = REMOTE_MINE;
-            __all__.REROUTE = REROUTE;
-            __all__.REROUTE_DESTINATION = REROUTE_DESTINATION;
-            __all__.RESERVE_NOW = RESERVE_NOW;
             __all__.RoleBase = RoleBase;
-            __all__.SCOUT = SCOUT;
-            __all__.SK_LAIR_SOURCE_NOTED = SK_LAIR_SOURCE_NOTED;
-            __all__.SK_USERNAME = SK_USERNAME;
-            __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
-            __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
-            __all__.TD_D_GOAD = TD_D_GOAD;
-            __all__.TD_H_D_STOP = TD_H_D_STOP;
-            __all__.TD_H_H_STOP = TD_H_H_STOP;
             __all__.TargetMind = TargetMind;
-            __all__.UPGRADER_SPOT = UPGRADER_SPOT;
             __all__._memory_init = _memory_init;
-            __all__._start_of_compile = _start_of_compile;
             __all__.autoactions = autoactions;
             __all__.building = building;
             __all__.consistency = consistency;
             __all__.context = context;
-            __all__.creep_base_1500miner = creep_base_1500miner;
-            __all__.creep_base_3000miner = creep_base_3000miner;
-            __all__.creep_base_3h = creep_base_3h;
-            __all__.creep_base_4000miner = creep_base_4000miner;
-            __all__.creep_base_carry3000miner = creep_base_carry3000miner;
-            __all__.creep_base_claim_attack = creep_base_claim_attack;
-            __all__.creep_base_claiming = creep_base_claiming;
-            __all__.creep_base_defender = creep_base_defender;
-            __all__.creep_base_dismantler = creep_base_dismantler;
-            __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
-            __all__.creep_base_full_move_goader = creep_base_full_move_goader;
-            __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-            __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
-            __all__.creep_base_full_upgrader = creep_base_full_upgrader;
-            __all__.creep_base_goader = creep_base_goader;
-            __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
-            __all__.creep_base_half_move_healer = creep_base_half_move_healer;
-            __all__.creep_base_hauler = creep_base_hauler;
-            __all__.creep_base_mammoth_miner = creep_base_mammoth_miner;
-            __all__.creep_base_power_attack = creep_base_power_attack;
-            __all__.creep_base_rampart_defense = creep_base_rampart_defense;
-            __all__.creep_base_ranged_offense = creep_base_ranged_offense;
-            __all__.creep_base_reserving = creep_base_reserving;
-            __all__.creep_base_scout = creep_base_scout;
-            __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
-            __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
-            __all__.creep_base_worker = creep_base_worker;
             __all__.deathwatch = deathwatch;
             __all__.default_roles = default_roles;
             __all__.defense = defense;
             __all__.errorlog = errorlog;
             __all__.flags = flags;
             __all__.global_cache = global_cache;
-            __all__.global_cache_mining_roads_suffix = global_cache_mining_roads_suffix;
-            __all__.gmem_key_last_room_state_refresh = gmem_key_last_room_state_refresh;
-            __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
             __all__.hostile_utils = hostile_utils;
             __all__.init_memory = init_memory;
             __all__.locations = locations;
             __all__.main = main;
-            __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
-            __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
             __all__.memory_info = memory_info;
-            __all__.min_repath_mine_roads_every = min_repath_mine_roads_every;
-            __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
             __all__.mining_paths = mining_paths;
             __all__.movement = movement;
             __all__.new_map = new_map;
             __all__.new_set = new_set;
-            __all__.old_role_names = old_role_names;
             __all__.records = records;
-            __all__.recycle_time = recycle_time;
             __all__.report_error = report_error;
-            __all__.request_priority_economy = request_priority_economy;
-            __all__.request_priority_helping_party = request_priority_helping_party;
-            __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
-            __all__.request_priority_low = request_priority_low;
-            __all__.rmem_key_building_paused = rmem_key_building_paused;
-            __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
-            __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
-            __all__.rmem_key_cache = rmem_key_cache;
-            __all__.rmem_key_carry_parts_by_role = rmem_key_carry_parts_by_role;
-            __all__.rmem_key_creeps_by_role = rmem_key_creeps_by_role;
-            __all__.rmem_key_creeps_by_role_and_replacement_time = rmem_key_creeps_by_role_and_replacement_time;
-            __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
-            __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
-            __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
-            __all__.rmem_key_flag_for_testing_spawning_in_simulation = rmem_key_flag_for_testing_spawning_in_simulation;
-            __all__.rmem_key_focusing_home = rmem_key_focusing_home;
-            __all__.rmem_key_linking_mind_storage = rmem_key_linking_mind_storage;
-            __all__.rmem_key_metadata = rmem_key_metadata;
-            __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
-            __all__.rmem_key_now_supporting = rmem_key_now_supporting;
             __all__.rmem_key_pause_all_room_operations = rmem_key_pause_all_room_operations;
-            __all__.rmem_key_planned_role_to_spawn = rmem_key_planned_role_to_spawn;
-            __all__.rmem_key_prepping_defenses = rmem_key_prepping_defenses;
-            __all__.rmem_key_remotes_explicitly_marked_under_attack = rmem_key_remotes_explicitly_marked_under_attack;
-            __all__.rmem_key_remotes_safe_when_under_siege = rmem_key_remotes_safe_when_under_siege;
-            __all__.rmem_key_room_reserved_up_until_tick = rmem_key_room_reserved_up_until_tick;
-            __all__.rmem_key_spawn_requests = rmem_key_spawn_requests;
-            __all__.rmem_key_sponsor = rmem_key_sponsor;
-            __all__.rmem_key_storage_use_enabled = rmem_key_storage_use_enabled;
-            __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
-            __all__.rmem_key_there_might_be_energy_lying_around = rmem_key_there_might_be_energy_lying_around;
-            __all__.rmem_key_total_open_source_spaces = rmem_key_total_open_source_spaces;
-            __all__.rmem_key_upgrading_paused = rmem_key_upgrading_paused;
-            __all__.rmem_key_work_parts_by_role = rmem_key_work_parts_by_role;
-            __all__.role_bases = role_bases;
-            __all__.role_builder = role_builder;
-            __all__.role_cleanup = role_cleanup;
-            __all__.role_colonist = role_colonist;
-            __all__.role_defender = role_defender;
-            __all__.role_energy_grab = role_energy_grab;
             __all__.role_hauler = role_hauler;
             __all__.role_link_manager = role_link_manager;
             __all__.role_miner = role_miner;
-            __all__.role_mineral_hauler = role_mineral_hauler;
-            __all__.role_mineral_miner = role_mineral_miner;
-            __all__.role_mineral_steal = role_mineral_steal;
-            __all__.role_power_attack = role_power_attack;
-            __all__.role_power_cleanup = role_power_cleanup;
             __all__.role_ranged_offense = role_ranged_offense;
-            __all__.role_recycling = role_recycling;
-            __all__.role_remote_mining_reserve = role_remote_mining_reserve;
-            __all__.role_room_reserve = role_room_reserve;
-            __all__.role_scout = role_scout;
-            __all__.role_simple_claim = role_simple_claim;
-            __all__.role_simple_dismantle = role_simple_dismantle;
             __all__.role_spawn_fill = role_spawn_fill;
-            __all__.role_spawn_fill_backup = role_spawn_fill_backup;
-            __all__.role_td_goad = role_td_goad;
-            __all__.role_td_healer = role_td_healer;
             __all__.role_temporary_replacing = role_temporary_replacing;
             __all__.role_tower_fill = role_tower_fill;
-            __all__.role_tower_fill_once = role_tower_fill_once;
-            __all__.role_upgrade_fill = role_upgrade_fill;
-            __all__.role_upgrader = role_upgrader;
             __all__.role_wall_defender = role_wall_defender;
             __all__.run_creep = run_creep;
             __all__.run_room = run_room;
             __all__.spawning = spawning;
-            __all__.target_big_big_repair = target_big_big_repair;
-            __all__.target_big_repair = target_big_repair;
-            __all__.target_closest_energy_site = target_closest_energy_site;
-            __all__.target_construction = target_construction;
-            __all__.target_destruction_site = target_destruction_site;
-            __all__.target_energy_hauler_mine = target_energy_hauler_mine;
-            __all__.target_energy_miner_mine = target_energy_miner_mine;
-            __all__.target_home_flag = target_home_flag;
-            __all__.target_rampart_defense = target_rampart_defense;
-            __all__.target_refill = target_refill;
-            __all__.target_repair = target_repair;
-            __all__.target_reserve_now = target_reserve_now;
-            __all__.target_single_flag = target_single_flag;
-            __all__.target_single_flag2 = target_single_flag2;
-            __all__.target_source = target_source;
-            __all__.target_spawn_deposit = target_spawn_deposit;
-            __all__.target_tower_fill = target_tower_fill;
             __all__.volatile_cache = volatile_cache;
             __all__.walkby_move = walkby_move;
             __all__.wrap_creep = wrap_creep;
