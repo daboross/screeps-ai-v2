@@ -111,6 +111,18 @@ class MineralMind:
     def fully_setup(self):
         return not self._has_no_terminal_or_storage
 
+    def storage_terminal_access_pos(self):
+        cached = self.room.get_cached_property('storage_terminal_access_pos')
+        if cached is not None:
+            return cached or None
+        in_between = movement.find_clear_inbetween_spaces(self.room, self.storage, self.terminal)
+        if len(in_between) > 0:
+            self.room.store_cached_property('storage_terminal_access_pos', in_between, 1000)
+            return in_between
+        else:
+            self.room.store_cached_property('storage_terminal_access_pos', False, 1000)
+            return None
+
     def note_mineral_hauler(self, name):
         self.mem.mineral_hauler = name
 

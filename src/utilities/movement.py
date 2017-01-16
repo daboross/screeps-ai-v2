@@ -1,6 +1,7 @@
 import math
 
 from jstools.screeps_constants import *
+from utilities import positions
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -72,6 +73,46 @@ def find_an_open_space(room_name):
         y += dy
     print("[movement] WARNING: Could not find open space in {}".format(room_name))
     return __new__(RoomPosition(25, 25, room_name))
+
+
+def find_clear_inbetween_spaces(room, pos1, pos2):
+    if pos1.pos:
+        pos1 = pos1.pos
+    if pos2.pos:
+        pos2 = pos2.pos
+    distance = chebyshev_distance_room_pos(pos1, pos2)
+    result = []
+    if distance > 2 or pos1.roomName != pos2.roomName:
+        return result
+    for x in range(pos1.x - 1, pos1.x + 2):
+        for y in range(pos1.y - 1, pos1.y + 2):
+            xdiff = abs(x - pos2.x)
+            ydiff = abs(y - pos2.y)
+            if xdiff < 2 and ydiff < 2:
+                if is_block_empty(room, x, y):
+                    result.push(positions.serialize_xy(x, y))
+    return result
+
+
+def room_pos_of_closest_serialized(here_pos, list_of_serialized):
+    if here_pos.pos:
+        here_pos = here_pos.pos
+    length = len(list_of_serialized)
+    room_name = here_pos.roomName
+
+    if length == 1:
+        return positions.deserialize_xy_to_pos(list_of_serialized[0], room_name)
+    here_x = here_pos.x
+    here_y = here_pos.y
+    closest = None
+    closest_length = Infinity
+    for xy in list_of_serialized:
+        x, y = positions.deserialize_xy(xy)
+        distance = max(abs(here_x - x), abs(here_y - y))
+        if distance < closest_length:
+            closest_length = distance
+            closest = xy
+    return positions.deserialize_xy_to_pos(closest, room_name)
 
 
 def distance_squared_room_pos(room_position_1, room_position_2):

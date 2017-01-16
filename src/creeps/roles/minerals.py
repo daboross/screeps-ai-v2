@@ -281,7 +281,11 @@ class MineralHauler(RoleBase):
             del self.memory.state
             return True
         if not self.pos.isNearTo(mind.storage):
-            self.move_to(mind.storage)
+            access = mind.storage_terminal_access_pos()
+            if access:
+                self.move_to(movement.room_pos_of_closest_serialized(self, access))
+            else:
+                self.move_to(mind.storage)
             return False
         for resource, needed_in_terminal in mind.adding_to_terminal() \
                 .concat([(RESOURCE_ENERGY, mind.energy_needed_in_labs()),
@@ -321,7 +325,11 @@ class MineralHauler(RoleBase):
             del self.memory.state
             return True
         if not self.pos.isNearTo(mind.terminal):
-            self.move_to(mind.terminal)
+            access = mind.storage_terminal_access_pos()
+            if access:
+                self.move_to(movement.room_pos_of_closest_serialized(self, access))
+            else:
+                self.move_to(mind.terminal)
             return False
         for resource, remove_from_terminal in mind.removing_from_terminal():
             if resource == RESOURCE_ENERGY and len(mind.removing_from_terminal()) > 1:
