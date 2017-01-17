@@ -1358,7 +1358,7 @@ class RoomMind:
                     wm += math.floor(extra / 2000)
                     if extra >= STORAGE_CAPACITY / 5:
                         wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
-            elif spending == room_spending_state_rcl8_building or spending == room_spending_state_supporting:
+            elif spending == room_spending_state_rcl8_building:
                 extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
                 if extra < 0:
                     wm = 4

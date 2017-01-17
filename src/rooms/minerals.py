@@ -4,7 +4,7 @@ from cache import volatile_cache
 from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, rmem_key_now_supporting, \
     role_mineral_hauler
 from jstools.screeps_constants import *
-from rooms.room_constants import energy_to_keep_always_in_reserve, \
+from rooms.room_constants import energy_balance_point_for_rcl8_supporting, \
     energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, room_spending_state_supporting, \
     room_spending_state_supporting_sieged
 from utilities import movement
@@ -414,7 +414,7 @@ class MineralMind:
             min_via_fulfillment = min(currently_have - 120 * 1000, self.mem['total_energy_needed'])
             spending_state = self.room.main_spending_expenditure()
             if spending_state == room_spending_state_supporting:
-                min_via_spending = currently_have - energy_to_keep_always_in_reserve
+                min_via_spending = currently_have - energy_balance_point_for_rcl8_supporting
             elif spending_state == room_spending_state_supporting_sieged:
                 min_via_spending = currently_have - energy_to_keep_always_in_reserve_when_supporting_sieged
             else:
@@ -445,7 +445,7 @@ class MineralMind:
                 return 0
 
     def tick_terminal(self):
-        if Game.time % 5 == 0 and self.room.main_spending_expenditure() == room_spending_state_supporting_sieged:
+        if Game.time % 5 == 0:
             self.run_support()
 
         # 1020, 765 and 595 are all multiples of 85.
@@ -456,8 +456,6 @@ class MineralMind:
         split = Game.time % 85
         if split == 8 and not _.isEmpty(self.fulfilling):
             self.run_fulfillment()
-            if self.room.main_spending_expenditure() == room_spending_state_supporting:
-                self.run_support()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
             self.check_orders()
         elif split == 15 and rmem_key_empty_all_resources_into_room in self.room.mem:
@@ -522,7 +520,7 @@ class MineralMind:
             return
         spending_state = self.room.main_spending_expenditure()
         if spending_state == room_spending_state_supporting:
-            min_via_spending = self.get_estimate_total_energy() - energy_to_keep_always_in_reserve
+            min_via_spending = self.get_estimate_total_energy() - energy_balance_point_for_rcl8_supporting
         elif spending_state == room_spending_state_supporting_sieged:
             min_via_spending = self.get_estimate_total_energy() - energy_to_keep_always_in_reserve_when_supporting_sieged
         else:

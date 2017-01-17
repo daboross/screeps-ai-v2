@@ -50,6 +50,7 @@ energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_
 energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1
 energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1
 energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.1
+energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_upgrading * 1.1
 max_minerals_to_keep = STORAGE_CAPACITY / 4
 
 room_spending_state_building = 'b'
