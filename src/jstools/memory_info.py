@@ -37,7 +37,7 @@ def cache_stats():
     total_other = 0
     for key in Object.keys(Memory.cache):
         if key.startswith('path_'):
-            value = Memory.cache[key]
+            value = Memory.cache[key].v
             if _path_cached_data_key_full_path in value:
                 total_path_v1 += 1
             elif _path_cached_data_key_length in value:
@@ -56,7 +56,7 @@ def cache_stats():
     if total_path_v2 > 0:
         result.append('Version 2 Paths: {}'.format(total_path_v2))
     if total_path_v3 > 0:
-        result.append('Version 2 Paths: {}'.format(total_path_v3))
+        result.append('Version 3 Paths: {}'.format(total_path_v3))
     if total_path_other > 0:
         result.append('Other Paths: {}'.format(total_path_other))
     if total_cost_matrix > 0:
