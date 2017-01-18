@@ -1002,23 +1002,25 @@ class RoomMind:
                 state = room_spending_state_supporting_sieged
             else:
                 energy = self.minerals.get_estimate_total_energy()
-                if energy < energy_to_keep_always_in_reserve:
+                if energy < energy_to_keep_always_in_reserve / 2:
+                    state = room_spending_state_saving
+                elif self.room.terminal and self.minerals.get_estimate_total_non_energy() > max_minerals_to_keep / 2:
+                    state = room_spending_state_selling
+                elif energy < energy_to_keep_always_in_reserve:
                     state = room_spending_state_saving
                 else:
                     state = room_spending_state_supporting
         else:
             energy = self.minerals.get_estimate_total_energy()
             non_energy = self.room.terminal and self.minerals.get_estimate_total_non_energy()
-            # TODO: implement selling in MineralMind, and then enable this state.
-            # if energy < energy_to_keep_always_in_reserve / 2:
-            #     state = room_spending_state_saving
-            # elif self.room.terminal and non_energy > max_minerals_to_keep:
-            #     state = room_spending_state_selling
-            # el
-            if energy < energy_to_keep_always_in_reserve:
+            if energy < energy_to_keep_always_in_reserve / 2:
                 state = room_spending_state_saving
-            # elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
-            #     state = room_spending_state_selling
+            elif self.room.terminal and non_energy > max_minerals_to_keep:
+                state = room_spending_state_selling
+            elif energy < energy_to_keep_always_in_reserve:
+                state = room_spending_state_saving
+            elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
+                state = room_spending_state_selling
             elif self.rcl >= 8:
                 state = room_spending_state_rcl8_building
             else:

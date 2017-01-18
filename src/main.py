@@ -12,7 +12,7 @@ from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
 from jstools.screeps_constants import *
 from position_management import flags, locations
-from rooms import building, defense
+from rooms import building, defense, minerals
 from utilities import hostile_utils, movement
 
 __pragma__('noalias', 'name')
@@ -358,6 +358,7 @@ __pragma__('js', 'global').py = {
     "building": building,
     "mining_paths": mining_paths,
     "meminfo": memory_info,
+    "minerals": minerals,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,

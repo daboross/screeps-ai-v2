@@ -4,9 +4,9 @@ from cache import volatile_cache
 from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, rmem_key_now_supporting, \
     role_mineral_hauler
 from jstools.screeps_constants import *
-from rooms.room_constants import energy_balance_point_for_rcl8_supporting, \
-    energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, room_spending_state_supporting, \
-    room_spending_state_supporting_sieged
+from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
+    energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, room_spending_state_selling, \
+    room_spending_state_supporting, room_spending_state_supporting_sieged
 from utilities import movement
 
 __pragma__('noalias', 'name')
@@ -364,7 +364,7 @@ class MineralMind:
         if self._total_resource_counts is not undefined:
             amounts = self._total_resource_counts
             result = 0
-            for key in amounts:
+            for key in Object.keys(amounts):
                 if key != RESOURCE_ENERGY:
                     result += amounts[key]
             self._estimate_non_energy = result
@@ -417,6 +417,9 @@ class MineralMind:
                 min_via_spending = currently_have - energy_balance_point_for_rcl8_supporting
             elif spending_state == room_spending_state_supporting_sieged:
                 min_via_spending = currently_have - energy_to_keep_always_in_reserve_when_supporting_sieged
+            elif spending_state == room_spending_state_selling:
+                min_via_spending = min(_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING,
+                                       currently_have - energy_balance_point_for_rcl8_selling)
             else:
                 min_via_spending = 0
             return min(currently_have - 50 * 1000, max(0, min_via_empty_to, min_via_fulfillment, min_via_spending))
@@ -438,22 +441,24 @@ class MineralMind:
                         biggest_order = order.amountRemaining
                 return biggest_order
 
-            if currently_have >= 1000 and (mineral != RESOURCE_POWER
-                                           or self.room.mem[rmem_key_empty_all_resources_into_room]):
+            if self.room.main_spending_expenditure() != room_spending_state_selling and \
+                            currently_have >= 1000 and \
+                    (mineral != RESOURCE_POWER or self.room.mem[rmem_key_empty_all_resources_into_room]):
                 return 1000 * min(math.floor(currently_have / 1000), 20)
             else:
                 return 0
 
     def tick_terminal(self):
-        if Game.time % 5 == 0:
-            self.run_support()
+        time = Game.time + self.room.get_unique_owned_index()
+        if time % 5 == 0:
+            self.run_spending_state_tick()
 
         # 1020, 765 and 595 are all multiples of 85.
-        if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (Game.time % 1020 == 3
-                                                                                 or Game.time % 765 == 8
-                                                                                 or Game.time % 595 == 15)):
+        if self.has_no_terminal_or_storage() or (Game.cpu.bucket < 4300 and not (time % 1020 == 3
+                                                                                 or time % 765 == 8
+                                                                                 or time % 595 == 15)):
             return
-        split = Game.time % 85
+        split = time % 85
         if split == 8 and not _.isEmpty(self.fulfilling):
             self.run_fulfillment()
         elif split == 3 and len(self.my_mineral_deposit_minerals()):
@@ -515,16 +520,32 @@ class MineralMind:
                         mineral, len(self.fulfilling[mineral])))
                 del self.fulfilling[mineral]
 
-    def run_support(self):
+    def run_spending_state_tick(self):
         if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] or self.terminal.store[RESOURCE_ENERGY] < 5000:
             return
         spending_state = self.room.main_spending_expenditure()
+        if spending_state == room_spending_state_supporting or spending_state == room_spending_state_supporting_sieged:
+            self.run_support(spending_state)
+        elif spending_state == room_spending_state_selling:
+            return self.run_execute_buy()
+        else:
+            return
+
+    def run_support(self, spending_state):
+        """
+        Run spending state. Don't call if we don't have a terminal or there isn't energy in it.
+        :param spending_state:
+        :return:
+        """
         if spending_state == room_spending_state_supporting:
             min_via_spending = self.get_estimate_total_energy() - energy_balance_point_for_rcl8_supporting
         elif spending_state == room_spending_state_supporting_sieged:
-            min_via_spending = self.get_estimate_total_energy() - energy_to_keep_always_in_reserve_when_supporting_sieged
+            min_via_spending = self.get_estimate_total_energy() \
+                               - energy_to_keep_always_in_reserve_when_supporting_sieged
         else:
             return
+
+        print("[{}][minerals] Running support!".format(self.room.name))
 
         sending_to = self.room.mem[rmem_key_now_supporting]
 
@@ -537,6 +558,64 @@ class MineralMind:
             if result != OK:
                 self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}"
                          .format(amount, sending_to, result))
+
+    def run_execute_buy(self):
+        """
+        Execute buy orders. Don't call if we don't have a terminal or there isn't energy in it (this assumes both).
+        """
+        print("[{}][minerals] Executing potential buy orders.".format(self.room.name))
+        minerals = self.my_mineral_deposit_minerals()
+        cache = volatile_cache.mem('market_orders')
+        for mineral in minerals:
+            we_have = self.terminal.store[mineral]
+            if not we_have or we_have < 1000:
+                continue
+            if cache.has(mineral):
+                orders = cache.get(mineral)
+            else:
+                orders = Game.market.getAllOrders({'resourceType': mineral})
+                cache.set(mineral, orders)
+            if len(orders):
+                best_order = None
+                best_order_energy_cost = None
+                best_gain = -Infinity  # TODO: this should be set to min value, but is lower for debug purposes.
+                energy_price = find_credits_one_energy_is_worth()  # << cached per tick
+                for order in orders:
+                    if order.amount < 50 or order.type != ORDER_BUY:
+                        continue
+                    distance = Game.map.getRoomLinearDistance(self.room.name, order.roomName, True)
+                    energy_cost_of_1_resource = 1 * (math.log((distance + 9) * 0.1) + 0.1)
+                    gain = order.price - energy_cost_of_1_resource * energy_price
+                    if gain > best_gain:
+                        best_gain = gain
+                        best_order = order
+                        best_order_energy_cost = energy_cost_of_1_resource
+                if best_order is not None:
+                    if best_gain < 0.1:
+                        print("[{}][minerals] Best buy order for {} is at price {}."
+                              " Not selling because gain is {} ({} - {} * {}) lower than the minimum {}."
+                              .format(self.room.name, mineral, best_order.price, best_gain.toFixed(5),
+                                      best_order.price, best_order_energy_cost.toFixed(5),
+                                      energy_price, 0.1))
+                        continue
+                    amount = min(
+                        self.terminal.store[RESOURCE_ENERGY] / best_order_energy_cost,
+                        self.terminal.store[mineral],
+                        best_order.amount,
+                    )
+                    if js_isNaN(amount):
+                        print("[{}][minerals] Wrong calculation for amount of transaction! we have {} energy, {} {},"
+                              " order amount is {}: result: {}.".format(self.room.name,
+                                                                        self.terminal.store[RESOURCE_ENERGY],
+                                                                        self.terminal.store[mineral], mineral,
+                                                                        best_order.amount, amount))
+                    print("[{}][minerals] Selling {} {} to {} for the price of {} (gain: {}, left: {}).".format(
+                        self.room.name, amount, mineral, best_order.roomName, best_order.price, best_gain.toFixed(5),
+                        best_order.amount - amount))
+                    result = Game.market.deal(best_order.id, amount, self.room.name)
+                    if result != OK:
+                        print("[{}][minerals] Unknown result from Game.market.deal('{}', {}, '{}'): {}!"
+                              .format(self.room.name, best_order.id, amount, self.room.name, result))
 
     def fulfill_now(self, mineral, target_obj):
         if self.terminal.store[mineral] < 1000 <= target_obj.amount:
@@ -756,6 +835,28 @@ class MineralMind:
             return "{} is empty, and is fulfilling {}".format(self.room.name, ', '.join(orderstrings))
         else:
             return "{} is empty.".format(self.room.name)
+
+
+def find_credits_one_energy_is_worth():
+    cache = volatile_cache.mem('market_orders')
+    if cache.has('energy_price'):
+        return cache.get('energy_price')
+    if cache.has(RESOURCE_ENERGY):
+        orders = cache.get(RESOURCE_ENERGY)
+    else:
+        orders = Game.market.getAllOrders({'resourceType': RESOURCE_ENERGY})
+        cache.set(RESOURCE_ENERGY, orders)
+    value = -Infinity
+    for order in orders:
+        if order.type == ORDER_BUY and order.amount >= 1000 and order.price > value:
+            value = order.price
+    if value is -Infinity:
+        value = 1.0
+        for order in orders:
+            if order.price > value:
+                value = order.price
+    cache.set('energy_price', value)
+    return value
 
 
 __pragma__('nofcall')
