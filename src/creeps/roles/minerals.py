@@ -283,7 +283,11 @@ class MineralHauler(RoleBase):
         if not self.pos.isNearTo(mind.storage):
             access = mind.storage_terminal_access_pos()
             if access:
-                self.move_to(movement.room_pos_of_closest_serialized(self, access))
+                closest = movement.room_pos_of_closest_serialized(self.home, self, access)
+                if closest:
+                    self.move_to(closest)
+                else:
+                    self.move_to(mind.storage)
             else:
                 self.move_to(mind.storage)
             return False
@@ -327,7 +331,11 @@ class MineralHauler(RoleBase):
         if not self.pos.isNearTo(mind.terminal):
             access = mind.storage_terminal_access_pos()
             if access:
-                self.move_to(movement.room_pos_of_closest_serialized(self, access))
+                closest = movement.room_pos_of_closest_serialized(self.home, self, access)
+                if closest:
+                    self.move_to(closest)
+                else:
+                    self.move_to(mind.terminal)
             else:
                 self.move_to(mind.terminal)
             return False

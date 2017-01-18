@@ -94,7 +94,7 @@ def find_clear_inbetween_spaces(room, pos1, pos2):
     return result
 
 
-def room_pos_of_closest_serialized(here_pos, list_of_serialized):
+def room_pos_of_closest_serialized(room, here_pos, list_of_serialized):
     if here_pos.pos:
         here_pos = here_pos.pos
     length = len(list_of_serialized)
@@ -109,11 +109,13 @@ def room_pos_of_closest_serialized(here_pos, list_of_serialized):
     for xy in list_of_serialized:
         x, y = positions.deserialize_xy(xy)
         distance = max(abs(here_x - x), abs(here_y - y))
-        if distance < closest_length:
+        if distance < closest_length and is_block_clear(room, x, y):
             closest_length = distance
             closest = xy
-    return positions.deserialize_xy_to_pos(closest, room_name)
-
+    if closest is not None:
+        return positions.deserialize_xy_to_pos(closest, room_name)
+    else:
+        return None
 
 def distance_squared_room_pos(room_position_1, room_position_2):
     """
