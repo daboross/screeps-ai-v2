@@ -263,12 +263,15 @@ def main():
     records.finish_record('hive.poll-creeps')
     if Game.time % 5 == 1 or not _.isEmpty(Memory.hostiles):
         records.start_record()
-        deathwatch.start_of_tick_check()
-        records.finish_record('deathwatch.check')
-        records.start_record()
         # NOTE: this also runs running-away checks and deathwatch checks!
         defense.poll_hostiles(hive, autoactions.running_check_room)
         records.finish_record('defense.poll-hostiles')
+    records.start_record()
+    deathwatch.start_of_tick_check()
+    for room in hive.visible_rooms:
+        deathwatch.mark_creeps(room)
+    records.finish_record('deathwatch.check')
+
     if Game.time % 25 == 7:
         records.start_record()
         defense.cleanup_stored_hostiles()

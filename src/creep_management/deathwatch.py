@@ -37,7 +37,11 @@ def mark_creeps(room):
     """
     :type room: rooms.room_mind.RoomMind
     """
-    hostiles = room.defense.dangerous_hostiles()
+    all_hostiles = room.room.find(FIND_HOSTILE_CREEPS)
+    hostiles = []
+    for creep in all_hostiles:
+        if creep.hasActiveOffenseBodyparts():
+            hostiles.append(creep)
     count = len(hostiles)
     if count > 3:
         for creep in room.find(FIND_MY_CREEPS):
@@ -45,11 +49,11 @@ def mark_creeps(room):
                 creep.name, creep.memory.home,
                 _(hostiles).map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value()
             ])
-    else:
+    elif count > 0:
         for creep in room.find(FIND_MY_CREEPS):
             if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4):
                 Memory.deathwatch.append([
                     creep.name, creep.memory.home,
                     _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4)
-                        .map(lambda h: _.get(h, ['owner, username'], 'unknown')).uniq().value()
+                        .map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value()
                 ])

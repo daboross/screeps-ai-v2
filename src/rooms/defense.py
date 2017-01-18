@@ -90,15 +90,7 @@ def poll_hostiles(hive, run_away_checks):
                         if sponsor:
                             sponsor.reset_planned_role()
             room.mem[rmem_key_stored_hostiles] = danger
-            try:
-                run_away_checks(room)
-                deathwatch.mark_creeps(room)
-            except:
-                errorlog.report_error(
-                    'defense.poll-hostiles',
-                    __except0__,
-                    "Error running run-away-checks in {}.".format(room.name),
-                )
+            run_away_checks(room)
         elif room.name in Memory.rooms:
             del room.mem[rmem_key_stored_hostiles]
             if not len(room.mem):
