@@ -9,7 +9,6 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
-
 no_spawn_name_name = 'none'
 
 
@@ -194,12 +193,27 @@ def set_decreasing_cost_matrix_costs(room_name, mine_path_data, cost_matrix, bas
     gmem = _get_mem()
     if room_name not in gmem:
         return
+    avoid_points = new_set()
+    already_set_once = new_set()
+
+    for data_string in gmem[room_name]:
+        if data_string.startsWith(key_to_avoid):
+            points = data_string[data_string.codePointAt(0):]
+            for i in range(0, len(points)):
+                xy = points.codePointAt(i)
+                avoid_points.add(xy)
+
     for data_string in gmem[room_name]:
         if data_string.startsWith(key_to_avoid):
             continue
         points = data_string[data_string.codePointAt(0):]
         for i in range(0, len(points)):
             xy = points.codePointAt(i)
+            if already_set_once.has(xy):
+                continue
+            elif avoid_points.has(xy):
+                # Only decrease roads where we're already doing it by a maximum of 1 point
+                already_set_once.add(xy)
             x = xy & 0x3F
             y = xy >> 6 & 0x3F
             existing = cost_matrix.get(x, y)
