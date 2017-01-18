@@ -55,7 +55,8 @@ class Builder(upgrading.Upgrader):
         if Game.time % 5 == 0 and not (self.creep.hasActiveBodyparts(WORK) & self.creep.hasActiveBodyparts(CARRY)) and \
                 not self.home.defense.healing_capable():
             if self.home.spawn:
-                return self.recycle_me()
+                self.memory.last_role = self.memory.role
+                self.memory.role = role_recycling
             else:
                 self.creep.suicide()
                 return

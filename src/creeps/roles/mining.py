@@ -219,7 +219,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             else:
                 self.memory.last_role = self.memory.role
                 self.memory.role = role_recycling
-                return self.recycle_me()
+                return False
 
     def run(self):
         pickup = self.targets.get_existing_target(self, target_energy_hauler_mine)

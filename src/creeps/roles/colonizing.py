@@ -81,9 +81,49 @@ class Colonist(MilitaryBase):
 
 class Claim(MilitaryBase):
     def run(self):
+        if self.home.name == 'W47S45':
+            if not self.memory.followed:
+                escort = _.find(self.room.creeps, lambda s: s.memory.role == role_escort and not s.memory.following)
+                if escort:
+                    escort.memory.following = self.creep.id
+                    self.memory.followed = escort.name
+                elif self.pos.roomName != self.home.name:
+                    self.memory.followed = 'none'
+                else:
+                    self.log("Can't find escort!")
+            elif self.memory.followed != 'none':
+                creep = Game.creeps[self.memory.followed]
+                if creep:
+                    if self.creep.hits < self.creep.hitsMax and not self.pos.isNearTo(creep.pos) and self.pos.x != 0 \
+                            and self.pos.x != 49 and self.pos.y != 0 and self.pos.y != 49:
+                        return
+                    elif movement.chebyshev_distance_room_pos(creep, self) > 2 and self.pos.x != 0 \
+                            and self.pos.x != 49 and self.pos.y != 0 and self.pos.y != 49:
+                        return
+
+            if not self.memory.followed2:
+                escort = _.find(self.room.creeps, lambda s: s.memory.role == role_escort and not s.memory.following)
+                if escort:
+                    escort.memory.following = self.creep.id
+                    self.memory.followed2 = escort.name
+                elif self.pos.roomName != self.home.name:
+                    self.memory.followed2 = 'none'
+                else:
+                    self.log("Can't find escort!")
+            elif self.memory.followed2 != 'none':
+                creep = Game.creeps[self.memory.followed2]
+                if creep:
+                    if self.creep.hits < self.creep.hitsMax and not self.pos.isNearTo(creep.pos) and self.pos.x != 0 \
+                            and self.pos.x != 49 and self.pos.y != 0 and self.pos.y != 49:
+                        return
+                    elif movement.chebyshev_distance_room_pos(creep, self) > 2 and self.pos.x != 0 \
+                            and self.pos.x != 49 and self.pos.y != 0 and self.pos.y != 49:
+                        return
+
         claim_flag = self.targets.get_new_target(self, target_single_flag, CLAIM_LATER)
         if not claim_flag:
-            self.recycle_me()
+            self.memory.last_role = self.memory.role
+            self.memory.role = role_recycling
             return
         if self.pos.roomName != claim_flag.pos.roomName:
             target = claim_flag.pos

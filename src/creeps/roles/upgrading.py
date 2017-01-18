@@ -35,9 +35,15 @@ class Upgrader(RoleBase):
         controller = self.home.room.controller
 
         if self.memory.set_till > Game.time:
-            self.upgrade(controller)
-            self.harvest_from(link)
-            return
+            result = self.upgrade(controller)
+            if result == ERR_NOT_IN_RANGE:
+                del self.memory.set_till
+            else:
+                result = self.harvest_from(link)
+                if result == ERR_NOT_IN_RANGE:
+                    del self.memory.set_till
+                else:
+                    return
 
         if not self.home.upgrading_deprioritized() or self.creep.room.controller.ticksToDowngrade <= 5000:
             self.upgrade(controller)
@@ -147,16 +153,18 @@ class Upgrader(RoleBase):
         result = self.creep.upgradeController(controller)
         if result != OK and result != ERR_NOT_IN_RANGE and result != ERR_NOT_ENOUGH_RESOURCES:
             self.log("Unknown result from creep.upgradeController({}): {}", self.creep.room.controller, result)
+        return result
 
     def harvest_from(self, link):
         if self.creep.ticksToLive < 20 or self.creep.carry.energy >= self.creep.getActiveBodyparts(WORK) * 3:
-            return
+            return OK
         if link.structureType == STRUCTURE_LINK:
             self.home.links.register_target_withdraw(link, self, self.creep.carryCapacity - self.creep.carry.energy,
                                                      self.pos.getRangeTo(link))
         result = self.creep.withdraw(link, RESOURCE_ENERGY)
         if result != OK and result != ERR_NOT_IN_RANGE and result != ERR_NOT_ENOUGH_RESOURCES:
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
+        return result
 
     def should_pickup(self, resource_type=None):
         return RoleBase.should_pickup(self, resource_type) and not self.home.upgrading_paused()
@@ -180,11 +188,9 @@ class Upgrader(RoleBase):
 
         if Game.time % 5 == 0 and not (self.creep.hasActiveBodyparts(WORK) & self.creep.hasActiveBodyparts(CARRY)) and \
                 not self.home.defense.healing_capable():
-            if self.home.spawn:
-                return self.recycle_me()
-            else:
-                self.creep.suicide()
-                return
+            self.memory.last_role = self.memory.role
+            self.memory.role = role_recycling
+            return
 
         if self.home.upgrading_deprioritized() and self.creep.room.controller.ticksToDowngrade > 5000:
             if self.home.room.storage and self.empty_to_storage():

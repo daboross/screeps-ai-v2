@@ -23,7 +23,8 @@ class TowerDrainHealer(MilitaryBase):
         target = self.targets.get_new_target(self, target_single_flag, TD_H_H_STOP)
         if not target:
             if len(flags.find_flags(self.home, RAID_OVER)):
-                self.recycle_me()
+                self.memory.last_role = self.memory.role
+                self.memory.role = role_recycling
             else:
                 self.log("TowerDrainHealer has no target!")
                 self.go_to_depot()
@@ -62,7 +63,8 @@ class TowerDrainer(MilitaryBase):
                 self.recycle_me()
             else:
                 self.log("TowerDrainer has no target!")
-                self.recycle_me()
+                self.memory.last_role = self.memory.role
+                self.memory.role = role_recycling
             return
         if self.memory.goading:
             if self.pos.isEqualTo(goad_target):
@@ -122,7 +124,8 @@ class Dismantler(MilitaryBase):
                     if self.creep.ticksToLive < 300:
                         self.creep.suicide()
                     else:
-                        self.recycle_me()
+                        self.memory.last_role = self.memory.role
+                        self.memory.role = role_recycling
                 else:
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
@@ -215,7 +218,9 @@ class EnergyGrab(TransportPickup, EnergyHauler):
             if not self.pos.isNearTo(self.home.spawn):
                 return self.follow_energy_path(target, self.home.spawn)
             else:
-                return self.recycle_me()
+                self.memory.last_role = self.memory.role
+                self.memory.role = role_recycling
+                return
 
         fill = self.home.room.storage or self.home.spawn
 
@@ -281,7 +286,8 @@ class PowerAttack(MilitaryBase):
                     if self.creep.ticksToLive < 300:
                         self.creep.suicide()
                     else:
-                        self.recycle_me()
+                        self.memory.last_role = self.memory.role
+                        self.memory.role = role_recycling
                 else:
                     self.log("PowerAttack has no healer target!")
                     self.go_to_depot()

@@ -94,7 +94,6 @@ class WallDefender(RoleBase):
         if not target:
             self.go_to_depot()
             self.log('no new target! target: {}'.format(target))
-            #self.recycle_me()
             return
 
         nearby_enemies = self.room.look_for_in_area_around(LOOK_CREEPS, self, 1)
@@ -113,7 +112,4 @@ class WallDefender(RoleBase):
                     self.targets.untarget(self, target_rampart_defense)
 
         if not self.pos.isEqualTo(target):
-            try:
-                self.move_to(target)
-            except:
-                self.log("Error moving to {}".format(target))
+            self.move_to(target)
