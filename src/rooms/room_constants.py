@@ -54,6 +54,8 @@ energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_upgradi
 energy_balance_point_for_rcl8_selling = energy_to_keep_always_in_reserve * 0.6
 max_minerals_to_keep = STORAGE_CAPACITY / 4
 
+energy_for_terminal_when_selling = TERMINAL_CAPACITY / 2
+
 room_spending_state_building = 'b'
 room_spending_state_upgrading = 'u'
 room_spending_state_rcl8_building = '8'
@@ -62,6 +64,10 @@ room_spending_state_supporting = 'p'
 room_spending_state_supporting_sieged = 'r'
 room_spending_state_under_siege = 'n'
 room_spending_state_selling = 'l'
+room_spending_state_selling_and_rcl8building = 'a'
+room_spending_state_selling_and_building = 'c'
+room_spending_state_selling_and_upgrading = 'd'
+room_spending_state_selling_and_supporting = 'e'
 
 # s/room_spending_state_([^ \n]+) = '([^'\n]+)'\n/'$2': "$1",\n/
 room_spending_state_visual = {
@@ -73,4 +79,8 @@ room_spending_state_visual = {
     'r': "supporting_sieged",
     'n': "under_siege",
     'l': "selling",
+    'a': "selling_and_rcl8building",
+    'c': "selling_and_building",
+    'd': "selling_and_upgrading",
+    'e': "selling_and_supporting"
 }

@@ -1005,7 +1005,10 @@ class RoomMind:
                 if energy < energy_to_keep_always_in_reserve / 2:
                     state = room_spending_state_saving
                 elif self.room.terminal and self.minerals.get_estimate_total_non_energy() > max_minerals_to_keep / 2:
-                    state = room_spending_state_selling
+                    if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                        state = room_spending_state_selling_and_supporting
+                    else:
+                        state = room_spending_state_selling
                 elif energy < energy_to_keep_always_in_reserve:
                     state = room_spending_state_saving
                 else:
@@ -1016,11 +1019,39 @@ class RoomMind:
             if energy < energy_to_keep_always_in_reserve / 2:
                 state = room_spending_state_saving
             elif self.room.terminal and non_energy > max_minerals_to_keep:
-                state = room_spending_state_selling
+                if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                    if self.rcl >= 8:
+                        state = room_spending_state_selling_and_rcl8building
+                    else:
+                        if self.building.get_target_num_builders() > 1 \
+                                and self.building.get_max_builder_work_parts() > 5:
+                            state = room_spending_state_selling_and_building
+                        else:
+                            least_hits = self.calculate_smallest_wall()
+                            if least_hits < self.min_sane_wall_hits:
+                                state = room_spending_state_selling_and_building
+                            else:
+                                state = room_spending_state_selling_and_upgrading
+                else:
+                    state = room_spending_state_selling
             elif energy < energy_to_keep_always_in_reserve:
                 state = room_spending_state_saving
             elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
-                state = room_spending_state_selling
+                if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                    if self.rcl >= 8:
+                        state = room_spending_state_selling_and_rcl8building
+                    else:
+                        if self.building.get_target_num_builders() > 1 \
+                                and self.building.get_max_builder_work_parts() > 5:
+                            state = room_spending_state_selling_and_building
+                        else:
+                            least_hits = self.calculate_smallest_wall()
+                            if least_hits < self.min_sane_wall_hits:
+                                state = room_spending_state_selling_and_building
+                            else:
+                                state = room_spending_state_selling_and_upgrading
+                else:
+                    state = room_spending_state_selling
             elif self.rcl >= 8:
                 state = room_spending_state_rcl8_building
             else:
@@ -1268,8 +1299,22 @@ class RoomMind:
                 if extra > 0:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
+            elif spending == room_spending_state_selling_and_building:
+                extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point \
+                        - energy_for_terminal_when_selling
+                wm = spawning.max_sections_of(self, creep_base_worker)
+                if extra > 0:
+                    wm += math.floor(extra / 2500)
+                wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_rcl8_building:
                 extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
+                wm = min(4, spawning.max_sections_of(self, creep_base_worker))
+                if extra > 0:
+                    wm += math.floor(extra / 2500)
+                wm = min(wm, self.building.get_max_builder_work_parts())
+            elif spending == room_spending_state_selling_and_rcl8building:
+                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building \
+                        - energy_for_terminal_when_selling
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
                     wm += math.floor(extra / 2500)
@@ -1360,8 +1405,23 @@ class RoomMind:
                     wm += math.floor(extra / 2000)
                     if extra >= STORAGE_CAPACITY / 5:
                         wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
+            elif spending == room_spending_state_selling_and_upgrading:
+                wm = 4
+                extra = self.minerals.get_estimate_total_energy() - energy_to_keep_always_in_reserve \
+                        - energy_for_terminal_when_selling
+                if extra > 0:
+                    wm += math.floor(extra / 2000)
+                    if extra >= STORAGE_CAPACITY / 5:
+                        wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
             elif spending == room_spending_state_rcl8_building:
                 extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
+                if extra < 0:
+                    wm = 4
+                else:
+                    wm = 15
+            elif spending == room_spending_state_selling_and_rcl8building:
+                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading \
+                        - energy_for_terminal_when_selling
                 if extra < 0:
                     wm = 4
                 else:

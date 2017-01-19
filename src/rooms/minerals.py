@@ -5,8 +5,9 @@ from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_m
     role_mineral_hauler
 from jstools.screeps_constants import *
 from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
-    energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, room_spending_state_selling, \
-    room_spending_state_supporting, room_spending_state_supporting_sieged
+    energy_for_terminal_when_selling, energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, \
+    room_spending_state_selling, room_spending_state_selling_and_supporting, room_spending_state_supporting, \
+    room_spending_state_supporting_sieged
 from utilities import movement
 
 __pragma__('noalias', 'name')
@@ -20,7 +21,7 @@ __pragma__('noalias', 'type')
 _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
 _SELL_ORDER_SIZE = 10 * 1000
 _KEEP_IN_TERMINAL_MY_MINERAL = TERMINAL_CAPACITY * 0.4
-_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = TERMINAL_CAPACITY * 0.5
+_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = energy_for_terminal_when_selling
 _KEEP_IN_TERMINAL_ENERGY = 0
 
 sell_at_prices = {
@@ -526,10 +527,11 @@ class MineralMind:
         spending_state = self.room.main_spending_expenditure()
         if spending_state == room_spending_state_supporting or spending_state == room_spending_state_supporting_sieged:
             self.run_support(spending_state)
+        elif spending_state == room_spending_state_selling_and_supporting:
+            self.run_support(spending_state)
+            self.run_execute_buy()
         elif spending_state == room_spending_state_selling:
-            return self.run_execute_buy()
-        else:
-            return
+            self.run_execute_buy()
 
     def run_support(self, spending_state):
         """
@@ -542,6 +544,10 @@ class MineralMind:
         elif spending_state == room_spending_state_supporting_sieged:
             min_via_spending = self.get_estimate_total_energy() \
                                - energy_to_keep_always_in_reserve_when_supporting_sieged
+        elif spending_state == room_spending_state_selling_and_supporting:
+            min_via_spending = self.get_estimate_total_energy() \
+                               - energy_balance_point_for_rcl8_supporting \
+                               - energy_for_terminal_when_selling
         else:
             return
 
@@ -563,7 +569,7 @@ class MineralMind:
         """
         Execute buy orders. Don't call if we don't have a terminal or there isn't energy in it (this assumes both).
         """
-        print("[{}][minerals] Executing potential buy orders.".format(self.room.name))
+        # print("[{}][minerals] Executing potential buy orders.".format(self.room.name))
         minerals = self.my_mineral_deposit_minerals()
         cache = volatile_cache.mem('market_orders')
         for mineral in minerals:
@@ -592,11 +598,12 @@ class MineralMind:
                         best_order_energy_cost = energy_cost_of_1_resource
                 if best_order is not None:
                     if best_gain < 0.1:
-                        print("[{}][minerals] Best buy order for {} is at price {}."
-                              " Not selling because gain is {} ({} - {} * {}) lower than the minimum {}."
-                              .format(self.room.name, mineral, best_order.price, best_gain.toFixed(5),
-                                      best_order.price, best_order_energy_cost.toFixed(5),
-                                      energy_price, 0.1))
+                        if best_order.price > 0.2:
+                            print("[{}][minerals] Best buy order for {} is at price {}."
+                                  " Not selling because gain is {} ({} - {} * {}) lower than the minimum {}."
+                                  .format(self.room.name, mineral, best_order.price, best_gain.toFixed(5),
+                                          best_order.price, best_order_energy_cost.toFixed(5),
+                                          energy_price, 0.1))
                         continue
                     amount = min(
                         self.terminal.store[RESOURCE_ENERGY] / best_order_energy_cost,
