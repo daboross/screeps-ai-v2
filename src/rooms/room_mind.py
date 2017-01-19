@@ -1734,7 +1734,8 @@ class RoomMind:
             flag_list = self.flags_without_target(CLAIM_LATER)
 
             def _needs_claim(flag):
-                if Memory.enemy_rooms.includes(flag.pos.roomName) and self.room.energyCapacityAvailable < 650 * 5:
+                c_m_cost = BODYPART_COST[MOVE] + BODYPART_COST[CLAIM]
+                if Memory.enemy_rooms.includes(flag.pos.roomName) and self.room.energyCapacityAvailable < c_m_cost * 5:
                     return False
                 elif flag.pos.roomName not in Game.rooms:
                     return True
@@ -1742,7 +1743,7 @@ class RoomMind:
                     room = Game.rooms[flag.pos.roomName]
                     if not room.controller or room.controller.my:
                         return False
-                    elif room.controller.owner and self.room.energyCapacityAvailable < 650 * 5:
+                    elif room.controller.owner and self.room.energyCapacityAvailable < c_m_cost * 5:
                         return False
                     else:
                         return True
