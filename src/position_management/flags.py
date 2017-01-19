@@ -38,23 +38,23 @@ Cyan:
     Red: TD_H_H_STOP        - TowerDrain Healing Healer Stop
     Purple: TD_H_D_STOP     - Tower Drain Healing Damaged Stop
     Blue: TD_D_GOAD         - Tower Drain Goading Stop
-    Cyan: RANGED_DEFENSE    - Kiting defender spot
-    Green: ATTACK_DISMANTLE - Dismantler Spot
-    Yellow: RAID_OVER       - Raid Over Notice
-    Orange: ENERGY_GRAB     - Energy grab spot
+    Cyan: RANGED_DEFENSE    - Kiting defender spot (optional memory: { size: numRangedAttackParts })
+    Green: ATTACK_DISMANTLE - Dismantler Spot (optional memory: { size: numWorkParts })
+    Yellow: RAID_OVER       - Raid Over Notice (unused)
+    Orange: ENERGY_GRAB     - Energy grab spot (optional memory: { size: numCarryParts })
     Brown: SCOUT            - Scout Here
     Grey: ATTACK_POWER_BANK - Power bank attacker spot
     White: REAP_POWER_BANK  - Power bank carrier spot
 Green:
-    Red: WALL_DEFENSE_MID   - Lower priority rampart defender
+    Red:
     Purple: CLAIM_LATER     - Controller to claim
     Blue:
-    Cyan: REMOTE_MINE       - Remote mine source
-    Green: WALL_DEFENSE_HIGH- High priority rampart defender
+    Cyan: REMOTE_MINE       - Remote mine source (set memory: { active: true })
+    Green:
     Yellow:
     Orange:
     Brown:
-    Grey: RESERVE_NOW       - Controller to reserve
+    Grey: RESERVE_NOW       - Controller to reserve (not that optimized at the moment)
     White:
 Yellow:
     Red:
