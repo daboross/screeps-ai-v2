@@ -1,5 +1,5 @@
 from constants import rmem_key_currently_under_siege
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

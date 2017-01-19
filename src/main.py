@@ -10,7 +10,7 @@ from creeps.base import RoleBase
 from empire.hive import HiveMind
 from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
-from jstools.screeps_constants import *
+from jstools.screeps  import *
 from position_management import flags, locations
 from rooms import building, defense, minerals
 from utilities import hostile_utils, movement

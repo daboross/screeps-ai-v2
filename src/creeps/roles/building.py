@@ -5,7 +5,7 @@ from constants import recycle_time, rmem_key_building_priority_spawn, rmem_key_t
     target_destruction_site, target_repair
 from creeps.base import RoleBase
 from creeps.roles import upgrading
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 
 __pragma__('noalias', 'name')

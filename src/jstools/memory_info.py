@@ -1,5 +1,5 @@
 from empire.honey import _path_cached_data_key_full_path, _path_cached_data_key_length, _path_cached_data_key_metadata
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

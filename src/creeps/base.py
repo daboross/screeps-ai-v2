@@ -3,7 +3,7 @@ import math
 from constants import DEPOT, recycle_time, role_miner, role_recycling, role_spawn_fill, role_tower_fill, \
     target_closest_energy_site, target_source
 from creep_management import walkby_move
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import movement
 

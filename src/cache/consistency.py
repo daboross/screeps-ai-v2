@@ -1,7 +1,7 @@
 from cache import global_cache
 from constants import *
 from creep_management import spawning
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

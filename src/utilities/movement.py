@@ -1,6 +1,6 @@
 import math
 
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import positions
 
 __pragma__('noalias', 'name')

@@ -1,7 +1,7 @@
 import math
 
 from creeps.base import RoleBase
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import movement
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
     get_entrance_for_exit_pos, is_block_clear, parse_room_to_xy, room_xy_to_name

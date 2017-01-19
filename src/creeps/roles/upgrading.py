@@ -4,7 +4,7 @@ from constants import UPGRADER_SPOT, creep_base_worker, recycle_time, role_build
     role_upgrade_fill, role_upgrader, target_home_flag
 from creep_management import spawning
 from creeps.base import RoleBase
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 
 __pragma__('noalias', 'name')

@@ -2,7 +2,7 @@ from cache import global_cache
 from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
     global_cache_mining_roads_suffix
 from creep_management import mining_paths
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import hostile_utils, movement
 from utilities.movement import dxdy_to_direction

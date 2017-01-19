@@ -2,7 +2,7 @@ from constants import *
 from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
     smart_offensive, \
     spawn_fill, tower_fill, upgrading, utility
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

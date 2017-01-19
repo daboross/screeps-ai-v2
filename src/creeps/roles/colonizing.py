@@ -2,7 +2,7 @@ from constants import CLAIM_LATER, rmem_key_sponsor, role_builder, role_mineral_
     role_tower_fill_once, role_upgrader, target_reserve_now, target_single_flag
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.transport import TransportPickup
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import movement
 

@@ -1,6 +1,6 @@
 from cache import volatile_cache
 from constants import *
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import hostile_utils
 

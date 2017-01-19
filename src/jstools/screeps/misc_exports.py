@@ -1,0 +1,28 @@
+__all__ = [
+    # Classes
+    "Creep",
+    "Game",
+    "Memory",
+    "Room",
+    "RoomPosition",
+    "PathFinder",
+    "Object",
+    "Math",
+    # JavaScript things
+    "typeof",
+    "require",
+    "module",
+    "JSON",
+    "this",
+    "RegExp",
+    "Array",
+    "Error",
+    "Infinity",
+    "console",
+    "undefined",
+    "Map",
+    "Set",
+    "String",
+    "isFinite",
+    "_",
+]

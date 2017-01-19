@@ -1,5 +1,5 @@
 from constants import global_cache_mining_roads_suffix, max_repath_mine_roads_every
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

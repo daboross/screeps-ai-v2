@@ -6,7 +6,8 @@ from cache import context, volatile_cache
 from constants import DEPOT, max_repath_mine_roads_every, max_repave_mine_roads_every, min_repath_mine_roads_every, \
     min_repave_mine_roads_every, rmem_key_building_priority_spawn, rmem_key_building_priority_walls
 from creep_management import mining_paths
-from jstools.screeps_constants import *
+from jstools.js_set_map import new_set, new_map
+from jstools.screeps  import *
 from position_management import flags
 from utilities import movement, positions
 

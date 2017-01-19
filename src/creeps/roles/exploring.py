@@ -1,7 +1,7 @@
 from constants import INVADER_USERNAME, SCOUT, SK_LAIR_SOURCE_NOTED, target_single_flag
 from creeps.behaviors.military import MilitaryBase
 from empire import honey
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
 

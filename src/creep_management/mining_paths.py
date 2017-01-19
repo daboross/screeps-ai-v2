@@ -1,5 +1,6 @@
 from constants import gmem_key_room_mining_paths
-from jstools.screeps_constants import *
+from jstools.js_set_map import new_map, new_set
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -124,7 +125,7 @@ def get_set_of_all_serialized_positions_in(room_name):
     :param room_name: The room name
     :return: The set
     :type room_name: str
-    :rtype: jstools.screeps_constants.JSSet
+    :rtype: jstools.js_set_map.JSSet
     """
     the_set = new_set()
 

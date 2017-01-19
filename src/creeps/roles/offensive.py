@@ -5,7 +5,7 @@ from creep_management import autoactions
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.transport import TransportPickup
 from creeps.roles.mining import EnergyHauler
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import hostile_utils, movement
 

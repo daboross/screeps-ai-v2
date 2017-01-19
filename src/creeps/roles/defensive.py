@@ -1,7 +1,7 @@
 from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_recycling, target_rampart_defense
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import hostile_utils, movement, positions
 
 __pragma__('noalias', 'name')

@@ -3,7 +3,7 @@ import math
 from cache import volatile_cache
 from constants import *
 from creep_management import spawning
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags, locations
 from utilities import movement
 

@@ -2,7 +2,7 @@ from cache import context, volatile_cache
 from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, SK_LAIR_SOURCE_NOTED, target_single_flag
 from creeps.behaviors.military import MilitaryBase
 from jstools import errorlog
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from rooms import defense
 from utilities import hostile_utils, movement, positions

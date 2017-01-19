@@ -3,7 +3,7 @@ import random
 from cache import context, volatile_cache
 from constants import INVADER_USERNAME, role_miner, role_simple_dismantle
 from creep_management import walkby_move
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from rooms import defense
 from utilities import hostile_utils, movement
 

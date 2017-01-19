@@ -3,7 +3,7 @@ from constants import creep_base_full_upgrader, rmem_key_planned_role_to_spawn, 
     role_spawn_fill, role_upgrader, target_big_repair, target_construction, target_refill, target_repair
 from creep_management import spawning
 from creeps.base import RoleBase
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__("noalias", "name")
 __pragma__('noalias', 'undefined')

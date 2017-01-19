@@ -1,4 +1,5 @@
-from jstools.screeps_constants import *
+from jstools.js_set_map import new_map, new_set
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -23,7 +24,7 @@ def volatile():
 
 def mem(key):
     """
-    :rtype: jstools.screeps_constants.JSMap
+    :rtype: jstools.js_set_map.JSMap
     """
     v = volatile()
     if not v.has(key):
@@ -33,7 +34,7 @@ def mem(key):
 
 def setmem(key):
     """
-    :rtype: jstools.screeps_constants.JSSet
+    :rtype: jstools.js_set_map.JSSet
     """
     v = volatile()
     if not v.has(key):
@@ -43,7 +44,7 @@ def setmem(key):
 
 def submem(key1, key2):
     """
-    :rtype: jstools.screeps_constants.JSMap
+    :rtype: jstools.js_set_map.JSMap
     """
     v = volatile()
     if not v.has(key1):

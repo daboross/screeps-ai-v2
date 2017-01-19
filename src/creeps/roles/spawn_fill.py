@@ -4,7 +4,7 @@ from constants import recycle_time, role_builder, role_recycling, role_spawn_fil
 from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.roles import building, upgrading
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import movement
 
 __pragma__('noalias', 'name')

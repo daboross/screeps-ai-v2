@@ -1,7 +1,7 @@
 from constants import recycle_time, role_builder, role_recycling, role_spawn_fill, role_tower_fill, target_tower_fill
 from creeps.base import RoleBase
 from creeps.roles import spawn_fill
-from jstools.screeps_constants import *
+from jstools.screeps import *
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

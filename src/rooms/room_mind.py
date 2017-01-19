@@ -6,7 +6,8 @@ from constants.memkeys.room import *
 from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
 from creeps.base import RoleBase
-from jstools.screeps_constants import *
+from jstools.js_set_map import new_map
+from jstools.screeps import *
 from position_management import flags
 from rooms.building import ConstructionMind
 from rooms.defense import RoomDefense

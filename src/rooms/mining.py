@@ -7,7 +7,7 @@ from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_
     role_hauler, role_miner, role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
 from creep_management import spawning
 from creep_management.spawning import fit_num_sections
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from rooms import defense
 from utilities import movement

@@ -3,7 +3,7 @@ from math import floor
 
 from cache import volatile_cache
 from constants import *
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import naming
 
 __pragma__('noalias', 'name')

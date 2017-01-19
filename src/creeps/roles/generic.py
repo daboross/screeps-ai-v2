@@ -2,7 +2,7 @@ from constants import *
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.refill import Refill
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import movement
 
 __pragma__('noalias', 'name')

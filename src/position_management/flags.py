@@ -116,7 +116,8 @@ White:
 from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
     RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
     SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, TD_D_GOAD, TD_H_D_STOP, TD_H_H_STOP, UPGRADER_SPOT
-from jstools.screeps_constants import *
+from jstools.js_set_map import new_map
+from jstools.screeps import *
 from utilities import naming
 
 __pragma__('noalias', 'name')

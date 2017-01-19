@@ -1,7 +1,7 @@
 from constants import recycle_time, role_cleanup, role_link_manager, role_recycling, target_closest_energy_site
 from creeps.base import RoleBase
 from creeps.roles.spawn_fill import SpawnFill
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import movement
 
 __pragma__('noalias', 'name')

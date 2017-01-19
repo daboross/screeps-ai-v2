@@ -3,10 +3,8 @@ import math
 from cache import volatile_cache
 from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, rmem_key_building_priority_walls, \
     rmem_key_currently_under_siege, rmem_key_defense_mind_storage, rmem_key_stored_hostiles, role_wall_defender
-from creep_management import deathwatch
-from jstools import errorlog
-from jstools.screeps_constants import *
-from jstools.screeps_constants import new_set
+from jstools.js_set_map import new_map, new_set
+from jstools.screeps import *
 from position_management import flags, locations
 from utilities import hostile_utils, movement, positions
 
@@ -217,7 +215,7 @@ class RoomDefense:
 
     :type room: rooms.room_mind.RoomMind
     :type hive: empire.hive.HiveMind
-    :type _cache: jstools.screeps_constants.JSMap
+    :type _cache: jstools.js_set_map.JSMap
     """
 
     def __init__(self, room):

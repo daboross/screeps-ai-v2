@@ -1,6 +1,6 @@
 from constants import role_mineral_hauler, role_mineral_miner, role_recycling
 from creeps.base import RoleBase
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from utilities import movement
 
 __pragma__('noalias', 'name')

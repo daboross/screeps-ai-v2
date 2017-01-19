@@ -6,7 +6,7 @@ from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.behaviors.transport import TransportPickup
 from creeps.roles.spawn_fill import SpawnFill
-from jstools.screeps_constants import *
+from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
 
