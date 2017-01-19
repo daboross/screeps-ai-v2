@@ -2,6 +2,7 @@ import math
 
 from creeps.base import RoleBase
 from jstools.screeps_constants import *
+from utilities import movement
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
     get_entrance_for_exit_pos, is_block_clear, parse_room_to_xy, room_xy_to_name
 
@@ -201,7 +202,8 @@ class MilitaryBase(RoleBase):
         if result == ERR_NOT_FOUND:
             if self.memory.manual:
                 self.move_to(target)
-            elif not self.memory.next_ppos:
+            elif not self.memory.next_ppos or movement.chebyshev_distance_room_pos(
+                    self, self.memory.next_ppos) > CREEP_LIFE_TIME:
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, path_opts)
                 closest = None
                 closest_distance = Infinity
@@ -210,7 +212,7 @@ class MilitaryBase(RoleBase):
                     if distance < closest_distance:
                         closest_distance = distance
                         closest = pos
-                if closest:
+                if closest and closest_distance < CREEP_LIFE_TIME:
                     self.memory.next_ppos = closest
                     if closest.isEqualTo(self.pos):
                         self.log("WARNING: ERR_NOT_FOUND when actually still on military path! Path retrieved:\n{}"
@@ -220,10 +222,17 @@ class MilitaryBase(RoleBase):
                             self.move_to(target)
                             return
                 else:
-                    self.log("WARNING: Couldn't find closest position on path from {} to {} near {}!"
-                             "\nMoving manually... (all pos: {})"
-                             .format(origin, target, self.pos, all_positions))
-                    self.memory.next_ppos = target
+                    portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
+                    if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
+                            + movement.chebyshev_distance_room_pos(movement.center_pos(portals[0].destination),
+                                                                   target) \
+                            < movement.chebyshev_distance_room_pos(self.pos, target):
+                        self.memory.next_ppos = self.pos.findClosestByRange(portals).pos
+                    else:
+                        self.log("WARNING: Couldn't find closest position on path from {} to {} near {}!"
+                                 "\nMoving manually... (all pos: {})"
+                                 .format(origin, target, self.pos, all_positions))
+                        self.memory.next_ppos = target
             mtarget = self.memory.next_ppos
             if mtarget:
                 new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))

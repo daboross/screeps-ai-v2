@@ -199,7 +199,8 @@ class TransportPickup(RoleBase):
             if self.pos.isNearTo(target):
                 self.basic_move_to(target)
                 return
-            if not self.memory.next_ppos or self.memory.off_path_for > 10:
+            if not self.memory.next_ppos or self.memory.off_path_for > 10 or movement.chebyshev_distance_room_pos(
+                    self, self.memory.next_ppos) > CREEP_LIFE_TIME:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, opts)
                 closest = None
@@ -218,14 +219,21 @@ class TransportPickup(RoleBase):
                     if distance < closest_distance:
                         closest_distance = distance
                         closest = pos
-                if not closest:
-                    self.log("WARNING: Transport creep off path, with no positions to return to. I'm at {}, going from "
-                             "{} to {}. All positions: {}!"
-                             .format(self.pos, origin, target, all_positions))
-                    if not len(all_positions):
-                        if Game.time % 20 == 10:
-                            self.hive.honey.clear_cached_path(origin, target)
-                    return
+                if not closest or closest_distance >= CREEP_LIFE_TIME:
+                    portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
+                    if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
+                            + movement.chebyshev_distance_room_pos(movement.center_pos(portals[0].destination),
+                                                                   target) \
+                            < movement.chebyshev_distance_room_pos(self.pos, target):
+                        self.memory.next_ppos = self.pos.findClosestByRange(portals).pos
+                    else:
+                        self.log("WARNING: Transport creep off path, with no positions to return to. I'm at {}, going"
+                                 " from {} to {}. All positions: {}!"
+                                 .format(self.pos, origin, target, all_positions))
+                        if not len(all_positions):
+                            if Game.time % 20 == 10:
+                                self.hive.honey.clear_cached_path(origin, target)
+                        return
                 self.memory.next_ppos = closest
             mtarget = self.memory.next_ppos
             new_target = __new__(RoomPosition(mtarget.x, mtarget.y, mtarget.roomName))
