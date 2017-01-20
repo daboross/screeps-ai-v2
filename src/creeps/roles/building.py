@@ -317,6 +317,7 @@ class Builder(upgrading.Upgrader):
                     self.targets.manually_register(self, target_construction, site.id)
                     target = site
                 else:
+                    site.remove()
                     self.move_to(site)
             else:
                 creeps = target.pos.lookFor(LOOK_CREEPS)
