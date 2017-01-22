@@ -1,13 +1,12 @@
-from cache import global_cache
 from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, ENERGY_GRAB, RAID_OVER, REAP_POWER_BANK, TD_D_GOAD, \
-    TD_H_D_STOP, TD_H_H_STOP, role_td_healer, target_single_flag, target_single_flag2
+    TD_H_D_STOP, TD_H_H_STOP, role_recycling, role_td_healer, target_single_flag, target_single_flag2
 from creep_management import autoactions
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.transport import TransportPickup
 from creeps.roles.mining import EnergyHauler
 from jstools.screeps import *
 from position_management import flags
-from utilities import hostile_utils, movement
+from utilities import hostile_utils, movement, positions
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -109,6 +108,40 @@ class TowerDrainer(MilitaryBase):
 
 
 class Dismantler(MilitaryBase):
+    def move_to_can_reach(self, target):
+        self.move_to(target)
+        path = Room.deserializePath(self.memory['_move']['path'])
+        # If we can't reach the target, let's find a new one
+        return len(path) and movement.chebyshev_distance_room_pos(path[len(path) - 1], target) <= 1
+
+    def do_dismantle(self, structure):
+        if structure.my:
+            self.log("WARNING: Dismantling our own {} ({}).".format(structure.structureType, structure))
+            Game.notify("WARNING: Creep {} in {} at time {} is dismantling our own {} at {} ({}).".format(
+                self.name, self.pos.roomName, Game.time, structure.structureType, structure.pos, structure))
+        dismantled = False
+        new_target = False
+        if self.pos.isNearTo(structure):
+            result = self.creep.dismantle(structure)
+            if result == OK:
+                dismantled = True
+                damage = self.creep.getActiveBodyparts(WORK) * DISMANTLE_POWER
+                other = self.room.find(FIND_HOSTILE_CREEPS)
+                if len(other):
+                    heal = _.sum(other, lambda c: c.pos.inRangeTo(structure, 3)
+                                                  and c.getActiveBodyparts(WORK) * REPAIR_POWER)
+                else:
+                    heal = 0
+                if damage >= heal + structure.hits:
+                    new_target = True
+            else:
+                self.log("Unknown result from dismantler.dismantle({}): {}".format(structure, result))
+        else:
+            # If we can't reach the target, let's find a new one
+            #new_target = not self.move_to_can_reach(structure) # TODO: this
+            self.move_to(structure)
+        return new_target, dismantled
+
     def run(self):
         if self.memory.dismantling and self.creep.hits < self.creep.hitsMax / 2:
             self.memory.dismantling = False
@@ -119,6 +152,8 @@ class Dismantler(MilitaryBase):
 
         if self.memory.dismantling:
             target = self.targets.get_new_target(self, target_single_flag, ATTACK_DISMANTLE)
+            if target.memory.civilian:
+                self.memory.running = 'idle'
             if not target:
                 if len(flags.find_flags(self.home, RAID_OVER)):
                     if self.creep.ticksToLive < 300:
@@ -130,50 +165,70 @@ class Dismantler(MilitaryBase):
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
                 return
-            if self.pos.isNearTo(target):
-                struct = self.room.look_at(LOOK_STRUCTURES, target.pos)[0]
-                if struct:
-                    self.creep.dismantle(struct)
+            if self.pos.roomName == target.pos.roomName:
+                new_target = False
+                dismantled = False
+                structure = self.room.look_at(LOOK_STRUCTURES, target)[0]
+                if structure:
+                    new_target, dismantled = self.do_dismantle(structure)
                 else:
-                    site = self.room.look_at(LOOK_CONSTRUCTION_SITES, target.pos)[0]
-                    if site:
-                        self.basic_move_to(site)
-                    else:
-                        global_cache.clear_values_matching(target.pos.roomName + '_cost_matrix_')
-                        if 'dismantle_all' not in target.memory or target.memory.dismantle_all:
-                            new_target_site = self.room.find_closest_by_range(FIND_HOSTILE_CONSTRUCTION_SITES,
-                                                                              target.pos)
-                            new_structure = self.room.find_closest_by_range(
-                                FIND_STRUCTURES, target.pos, lambda s: s.structureType != STRUCTURE_ROAD
-                                                                       and s.structureType != STRUCTURE_CONTAINER
-                                                                       and s.structureType != STRUCTURE_CONTROLLER
-                                                                       and s.structureType != STRUCTURE_EXTRACTOR
-                                                                       and s.structureType != STRUCTURE_STORAGE
-                                                                       and s.structureType != STRUCTURE_TERMINAL)
-                            if new_structure and (not new_target_site or
-                                                          movement.distance_squared_room_pos(target, new_target_site)
-                                                          > movement.distance_squared_room_pos(target, new_structure)):
-                                new_pos = new_structure.pos
-                            elif new_target_site:
-                                new_pos = new_target_site.pos
-                            else:
-                                target.remove()
-                                return
-                            target.setPosition(new_pos)
-                            self.move_to(new_pos)
+                    site = self.room.look_at(LOOK_CONSTRUCTION_SITES, target)[0]
+                    if site and not site.my:
+                        self.move_to(site)
+                    elif self.memory.dt:  # dismantler target
+                        mem_pos = positions.deserialize_xy_to_pos(self.memory.dt, target.pos.roomName)
+                        structure = self.room.look_at(LOOK_STRUCTURES, mem_pos)[0]
+                        if structure:
+                            new_target, dismantled = self.do_dismantle(structure)
                         else:
-                            target.remove()
-            else:
-                if self.pos.roomName == target.pos.roomName:
-                    self.move_to(target)
-                else:
-                    if 'checkpoint' not in self.memory or \
-                                    movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
-                        self.memory.checkpoint = self.pos
-                    if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
-                        self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
+                            site = self.room.look_at(LOOK_CONSTRUCTION_SITES, mem_pos)[0]
+                            if site:
+                                self.move_to(site)
+                            else:
+                                new_target = True
+                    else:
+                        new_target = True
 
-                    self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target)
+                if new_target:
+                    structures = self.room.find(FIND_STRUCTURES)
+                    sites = self.room.find(FIND_CONSTRUCTION_SITES)
+                    best_priority = -Infinity
+                    best = None
+                    for structure in structures.concat(sites):
+                        stype = structure.structureType
+                        if structure.my or stype == STRUCTURE_CONTROLLER or stype == STRUCTURE_EXTRACTOR \
+                                or stype == STRUCTURE_PORTAL or (structure.store and _.sum(structure.store) > 50):
+                            continue
+                        distance = movement.chebyshev_distance_room_pos(self, structure)
+
+                        priority = -distance
+                        if stype == STRUCTURE_WALL or stype == STRUCTURE_RAMPART:
+                            if structure.hits:
+                                priority -= structure.hits
+                        if structure.progressTotal:  # a construction site
+                            priority -= 50
+                        if stype == STRUCTURE_ROAD and distance > 1:
+                            priority -= 500 * distance
+                        if priority > best_priority:
+                            best_priority = priority
+                            best = structure
+                    if best:
+                        self.memory.dt = positions.serialize_pos_xy(best)  # dismantler target
+                        if __pragma__('js', '(best instanceof ConstructionSite)'):
+                            self.move_to(best)
+                        elif not dismantled:
+                            self.do_dismantle(best)
+                    else:
+                        target.remove()
+            else:
+                if 'checkpoint' not in self.memory or \
+                                movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
+                    self.memory.checkpoint = self.pos
+                if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
+                    self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
+
+                self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target)
+
         else:
             target = self.targets.get_new_target(self, target_single_flag2, TD_H_D_STOP)
             if not target:
