@@ -32,17 +32,20 @@ class Scout(MilitaryBase):
                           or (positions.serialize_pos_xy(destination)
                               + destination.pos.roomName) != destination.memory.explored_at
 
+        recalc = False
+
         if still_exploring:
             # recalculate_path
             if self.memory.rp:
                 honey.clear_serialized_cost_matrix(self.memory.rp)
                 if self.memory.rp == self.pos.roomName:
                     self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
+                    del self.memory.rp
+                self.log("Recalculating path due to circumstances in {}.".format(self.memory.rp))
                 self.recalc_military_path(self.home.spawn, destination, {
                     "ignore_swamp": True,
                     "use_roads": False
                 })
-                del self.memory.rp
 
             if self.memory.last_room != self.pos.roomName:
                 self.memory.last_room = self.pos.roomName
@@ -75,6 +78,7 @@ class Scout(MilitaryBase):
                 if lair_count > 0:
                     # recalculate_path_next
                     self.memory.rp = self.pos.roomName
+                    recalc = True
                 self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
                 self.log("Scouted room {}, {}.".format(rx, ry))
 
@@ -93,6 +97,12 @@ class Scout(MilitaryBase):
                 "ignore_swamp": True,
                 "use_roads": False
             })
+            if recalc:
+                self.log("Recalculating path due.")
+                self.recalc_military_path(self.home.spawn, destination, {
+                    "ignore_swamp": True,
+                    "use_roads": False
+                })
         if self.pos.roomName == destination.pos.roomName and destination.memory.activate_attack_in:
             if len(self.room.defense.dangerous_hostiles()) and _.sum(self.room.defense.dangerous_hostiles(),
                                                                      lambda h: h.owner.username != INVADER_USERNAME
@@ -135,6 +145,7 @@ class Scout(MilitaryBase):
                     )
                     console.log(message)
                     Game.notify(message)
+
 
     def _calculate_time_to_replace(self):
         target = self.targets.get_new_target(self, target_single_flag, SCOUT)
