@@ -135,6 +135,7 @@ def clear_serialized_cost_matrix(room_name):
     for i in range(0, 10):
         key = "{}_cost_matrix_{}".format(room_name, i)
         if global_cache.has(key):
+            print("[honey][clear_serialized_cost_matrix] Clearing {}.".format(key))
             global_cache.rem(key)
 
 
@@ -269,8 +270,8 @@ class HoneyTrails:
         :param opts: {'roads': True|False}
         :return: A cost matrix
         """
-        plain_cost = opts['plain_cost']
-        swamp_cost = opts['swamp_cost']
+        plain_cost = opts['plain_cost'] or 1
+        swamp_cost = opts['swamp_cost'] or 5
 
         serialization_key = "{}_cost_matrix_{}".format(room_name, plain_cost)
         serialized = global_cache.get(serialization_key)
@@ -420,13 +421,12 @@ class HoneyTrails:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
                       .format(origin, destination, room_name))
 
-        if_roads_multiplier = opts['plain_cost']
-        plain_cost = opts['plain_cost']
-        swamp_cost = opts['swamp_cost']
+        plain_cost = opts['plain_cost'] or 1
+        swamp_cost = opts['swamp_cost'] or 5
         room = self.hive.get_room(room_name)
         if (room_name != origin.roomName and room_name != destination.roomName and not paved_for) or not room:
             if paved_for:
-                serialized = global_cache.get("{}_cost_matrix_{}".format(room_name, if_roads_multiplier))
+                serialized = global_cache.get("{}_cost_matrix_{}".format(room_name, plain_cost))
                 if serialized:
                     matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
                     self.set_max_avoid(room_name, matrix, opts)
@@ -434,8 +434,8 @@ class HoneyTrails:
                         room_name,
                         paved_for,
                         matrix,
-                        opts['plain_cost'],
-                        opts['swamp_cost'],
+                        plain_cost,
+                        swamp_cost,
                         3,
                     )
             else:
@@ -931,7 +931,7 @@ class HoneyTrails:
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
         # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
 
-        if _path_cached_data_key_metadata in serialized_path_obj: # Version 3 stored path
+        if _path_cached_data_key_metadata in serialized_path_obj:  # Version 3 stored path
             return int(serialized_path_obj[_path_cached_data_key_metadata].js_split(',')[0])
         if _path_cached_data_key_full_path in serialized_path_obj:  # Version 1 stored path
             # return len(serialized_path_obj['full'])   # The length of the path
