@@ -186,7 +186,11 @@ class TransportPickup(RoleBase):
         if self.creep.fatigue > 0:
             return
         if origin.isNearTo(target):
-            origin = self.home.spawn.pos
+            if self.pos.roomName == target.roomName:
+                self.move_to(target)
+                return
+            else:
+                origin = self.home.spawn.pos
 
         opts = {
             'current_room': self.pos.roomName,
