@@ -376,7 +376,7 @@ class MiningMind:
             and (self.room.rcl < 4 or not self.room.room.storage)
         )
 
-        if len(defense.stored_hostiles_in(flag.pos.roomName)):
+        if flag.pos.roomName != self.room.name and len(defense.stored_hostiles_in(flag.pos.roomName)):
             return None
 
         miners = self.targets.creeps_now_targeting(target_energy_miner_mine, flag_id)
