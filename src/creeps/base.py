@@ -604,6 +604,12 @@ class RoleBase:
             self.creep._carry_sum = _.sum(self.creep.carry)
         return self.creep._carry_sum
 
+    def new_target(self, type):
+        return self.hive.targets.get_new_target(self, type)
+
+    def target(self, type):
+        return self.hive.targets.get_existing_target(self, type)
+
     def toString(self):
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.name)
 
