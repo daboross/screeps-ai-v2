@@ -188,7 +188,8 @@ class MineralMind:
         print("[{}][market] {}".format(self.room.name, message))
 
     def get_mineral_hauler(self):
-        return Game.creeps[self.mem.mineral_hauler]
+        if self.mem:
+            return Game.creeps[self.mem.mineral_hauler]
 
     def mineral_hauler_carry(self):
         hauler = self.get_mineral_hauler()
@@ -356,6 +357,9 @@ class MineralMind:
             energy += self.storage.store[RESOURCE_ENERGY]
         if self.terminal and RESOURCE_ENERGY in self.terminal.store:
             energy += self.terminal.store[RESOURCE_ENERGY]
+        hauler = self.get_mineral_hauler()
+        if hauler and RESOURCE_ENERGY in hauler.carry:
+            energy += hauler[RESOURCE_ENERGY]
         self._estimate_energy = energy
         return energy
 
@@ -378,6 +382,11 @@ class MineralMind:
             for resource in self.terminal.store:
                 if resource != RESOURCE_ENERGY:
                     result += self.terminal.store[resource]
+        hauler = self.get_mineral_hauler()
+        if hauler:
+            for resource in hauler.carry:
+                if resource != RESOURCE_ENERGY:
+                    result += hauler.carry[resource]
         self._estimate_non_energy = result
         return result
 
