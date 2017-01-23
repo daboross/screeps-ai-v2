@@ -17,6 +17,7 @@ mem_key_planned_role_to_spawn = 'next_role'
 mem_key_flag_for_testing_spawning_in_simulation = 'completely_sim_testing'
 mem_key_pause_all_room_operations = 'pause'
 mem_key_empty_all_resources_into_room = 'empty_to'
+mem_key_sell_all_but_empty_resources_to = 'sabet'
 mem_key_room_reserved_up_until_tick = 'rea'
 
 mem_key_currently_under_siege = 'attack'

@@ -215,6 +215,7 @@ from constants.memkeys.room import mem_key_building_paused as rmem_key_building_
     mem_key_remotes_explicitly_marked_under_attack as rmem_key_remotes_explicitly_marked_under_attack, \
     mem_key_remotes_safe_when_under_siege as rmem_key_remotes_safe_when_under_siege, \
     mem_key_room_reserved_up_until_tick as rmem_key_room_reserved_up_until_tick, \
+    mem_key_sell_all_but_empty_resources_to as rmem_key_sell_all_but_empty_resources_to, \
     mem_key_spawn_requests as rmem_key_spawn_requests, \
     mem_key_sponsor as rmem_key_sponsor, \
     mem_key_storage_use_enabled as rmem_key_storage_use_enabled, \

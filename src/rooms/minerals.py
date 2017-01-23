@@ -2,7 +2,7 @@ import math
 
 from cache import volatile_cache
 from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, rmem_key_now_supporting, \
-    role_mineral_hauler
+    rmem_key_sell_all_but_empty_resources_to, role_mineral_hauler
 from jstools.screeps import *
 from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
     energy_for_terminal_when_selling, energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, \
@@ -413,6 +413,8 @@ class MineralMind:
         if mineral == RESOURCE_ENERGY:
             if currently_have < 50 * 1000:
                 return 0
+            if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+                return min(_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000)
             if self.room.mem[rmem_key_empty_all_resources_into_room]:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
@@ -473,6 +475,8 @@ class MineralMind:
             self.check_orders()
         elif split == 15 and rmem_key_empty_all_resources_into_room in self.room.mem:
             self.run_emptying_terminal()
+        elif split == 15 and rmem_key_sell_all_but_empty_resources_to in self.room.mem:
+            self.run_empty2()
 
     def find_emptying_mineral_and_cost(self):
         if self._next_mineral_to_empty is None:
@@ -501,6 +505,18 @@ class MineralMind:
         self.terminal.send(mineral, self.terminal.store[mineral],
                            self.room.mem[rmem_key_empty_all_resources_into_room],
                            "Emptying to {}".format(self.room.mem[rmem_key_empty_all_resources_into_room]))
+
+    def run_empty2(self):
+        sending_to = self.room.mem[rmem_key_sell_all_but_empty_resources_to]
+        to_send = self.terminal.store[RESOURCE_ENERGY]
+        distance = Game.map.getRoomLinearDistance(self.room.name, sending_to, True)
+        total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
+        amount = math.floor(to_send / total_cost_of_1_energy)
+        if amount >= 100:
+            result = self.terminal.send(RESOURCE_ENERGY, amount, sending_to, "Emptying!")
+            if result != OK:
+                self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Emptying!'): {}"
+                         .format(amount, sending_to, result))
 
     def run_fulfillment(self):
         vmem = volatile_cache.mem("market")
@@ -557,6 +573,8 @@ class MineralMind:
                                - energy_for_terminal_when_selling
         else:
             return
+        if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+            min_via_spending = self.get_estimate_total_energy()
 
         print("[{}][minerals] Running support!".format(self.room.name))
 
@@ -604,7 +622,9 @@ class MineralMind:
                         best_order = order
                         best_order_energy_cost = energy_cost_of_1_resource
                 if best_order is not None:
-                    if self.mem.last_sold_at[mineral]:
+                    if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+                        minimum = -0.1
+                    elif self.mem.last_sold_at[mineral]:
                         if we_have > max_minerals_to_keep * 1.1:
                             minimum = self.mem.last_sold_at[mineral] * 0.15
                         else:

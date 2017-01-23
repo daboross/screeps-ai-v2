@@ -997,7 +997,9 @@ class RoomMind:
         if not self.full_storage_use:
             self.store_cached_property(cache_key_spending_now, room_spending_state_saving, 500)
             return room_spending_state_saving
-        if self.mem[mem_key_now_supporting]:
+        if self.mem[mem_key_sell_all_but_empty_resources_to]:
+            state = room_spending_state_selling
+        elif self.mem[mem_key_now_supporting]:
             room = self.hive.get_room(self.mem[mem_key_now_supporting])
             if room.mem[mem_key_currently_under_siege]:
                 state = room_spending_state_supporting_sieged
