@@ -105,7 +105,7 @@ class TransportPickup(RoleBase):
                 return
             # No energy, let's just wait
             if not _.find(self.room.look_for_in_area_around(LOOK_CREEPS, target, 1),
-                          lambda o: o.my and o.creep.memory.role == role_miner):
+                          lambda o: o.creep.my and o.creep.memory.role == role_miner):
                 if total_carried_now > self.creep.carryCapacity * 0.5:
                     self.memory.filling = False
                     if paved:
