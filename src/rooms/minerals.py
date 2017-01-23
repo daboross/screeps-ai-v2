@@ -36,7 +36,7 @@ bottom_prices = {
     RESOURCE_OXYGEN: 0.8,
     RESOURCE_HYDROGEN: 0.55,
     RESOURCE_KEANIUM: 0.25,
-    RESOURCE_ZYNTHIUM: 0.15,
+    RESOURCE_ZYNTHIUM: 0.1,
     RESOURCE_UTRIUM: 0.2,
     RESOURCE_LEMERGIUM: 0.2,
 }
@@ -411,10 +411,8 @@ class MineralMind:
 
     def _terminal_target_for_resource(self, mineral, currently_have):
         if mineral == RESOURCE_ENERGY:
-            if currently_have < 20 * 1000:
+            if currently_have < 50 * 1000:
                 return 0
-            elif currently_have <= 30 * 1000:
-                return currently_have - 20 * 1000
             if self.room.mem[rmem_key_empty_all_resources_into_room]:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
@@ -606,13 +604,20 @@ class MineralMind:
                         best_order = order
                         best_order_energy_cost = energy_cost_of_1_resource
                 if best_order is not None:
-                    if best_gain < 0.1:
+                    if self.mem.last_sold_at[mineral]:
+                        if we_have > max_minerals_to_keep * 1.1:
+                            minimum = self.mem.last_sold_at[mineral] * 0.15
+                        else:
+                            minimum = self.mem.last_sold_at[mineral] * 0.3
+                    else:
+                        minimum = 0.1
+                    if best_gain < minimum:
                         if best_order.price > 0.2:
                             print("[{}][minerals] Best buy order for {} is at price {}."
                                   " Not selling because gain is {} ({} - {} * {}) lower than the minimum {}."
                                   .format(self.room.name, mineral, best_order.price, best_gain.toFixed(5),
                                           best_order.price, best_order_energy_cost.toFixed(5),
-                                          energy_price, 0.1))
+                                          energy_price, minimum))
                         continue
                     amount = min(
                         self.terminal.store[RESOURCE_ENERGY] / best_order_energy_cost,
