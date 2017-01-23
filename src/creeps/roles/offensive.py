@@ -196,8 +196,11 @@ class Dismantler(MilitaryBase):
                     best = None
                     for structure in structures.concat(sites):
                         stype = structure.structureType
-                        if structure.my or stype == STRUCTURE_CONTROLLER or stype == STRUCTURE_EXTRACTOR \
-                                or stype == STRUCTURE_PORTAL or (structure.store and _.sum(structure.store) > 50):
+                        if structure.my or stype == STRUCTURE_CONTROLLER or stype == STRUCTURE_PORTAL \
+                                or (stype == STRUCTURE_EXTRACTOR and not structure.hits) \
+                                or (structure.store and _.findKey(structure.store,
+                                                                  lambda amount, key: amount > 100
+                                                                  and (key != RESOURCE_ENERGY or amount > 10 * 1000))):
                             continue
                         distance = movement.chebyshev_distance_room_pos(self, structure)
 
