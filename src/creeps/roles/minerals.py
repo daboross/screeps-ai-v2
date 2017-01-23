@@ -105,7 +105,7 @@ class MineralHauler(RoleBase):
     def should_pickup(self, resource_type=None):
         return True
 
-    def determine_next_state(self):
+    def determine_next_state(self, debug=False):
         mind = self.home.minerals
         now_held = self.carry_sum()
         if now_held < self.creep.carryCapacity:
@@ -129,47 +129,79 @@ class MineralHauler(RoleBase):
                                 if mind.terminal.store[resource] > (mind.get_all_terminal_targets()[resource] or 0):
                                     break
                     else:
+                        if debug:
+                            self.log('Choosing miner_harvest as there\'s a miner with 1000 minerals and we have space.')
                         return _MINER_HARVEST
 
         terminal_can_handle_more = _.sum(mind.terminal.store) <= mind.terminal.storeCapacity - self.creep.carryCapacity
 
         if not terminal_can_handle_more:
             if now_held:
+                if debug:
+                    self.log("Choosing storage_dropoff as we have something held and there is no room in the terminal.")
                 return _STORAGE_DROPOFF
             elif len(mind.removing_from_terminal()):
+                if debug:
+                    self.log("Choosing remove_from_terminal as there is no room in the terminal.")
                 return _TERMINAL_PICKUP
             else:
+                if debug:
+                    self.log("Choosing depot as there is no room in the terminal.")
                 return _DEPOT
 
         for resource in Object.keys(self.creep.carry):
             if self.creep.carry[resource] > 0:
                 if (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
+                    if debug:
+                        self.log("Choosing terminal_dropoff as we have a mineral which we need in the terminal.")
                     return _TERMINAL_DROPOFF
                 elif mind.get_lab_target_mineral() == resource and mind.amount_needed_in_lab1():
+                    if debug:
+                        self.log("Choosing fill_labs as we have a mineral that is needed in lab 1.")
                     return _FILL_LABS
                 elif mind.get_lab2_target_mineral() == resource and mind.amount_needed_in_lab2():
+                    if debug:
+                        self.log("Choosing fill_labs as we have a mineral that is needed in lab 2.")
                     return _FILL_LABS
                 elif resource == RESOURCE_ENERGY and mind.energy_needed_in_labs():
+                    if debug:
+                        self.log("Choosing fill_labs as we have energy that is needed in labs.")
                     return _FILL_LABS
 
         if now_held:
             # We have a store which has no minerals needed by the terminal
+            if debug:
+                self.log("Choosing storage_dropoff as we have no resources which are needed anywhere else.")
             return _STORAGE_DROPOFF
         elif self.creep.ticksToLive < 100:
+            if debug:
+                self.log("Choosing dead because we are near death.")
             return _DEAD
         elif len(mind.removing_from_terminal()) and self.pos.isNearTo(mind.terminal):
+            if debug:
+                self.log("Choosing terminal_pickup as we are close to the terminal, and we have things to remove.")
             return _TERMINAL_PICKUP
         # elif self.pos.isNearTo(mind.storage) and len(mind.adding_to_terminal()):
         #     return _STORAGE_PICKUP
         elif len(mind.adding_to_terminal()):
+            if debug:
+                self.log("Choosing storage_pickup as there are things to add to the terminal.")
             return _STORAGE_PICKUP
         elif len(mind.removing_from_terminal()):
+            if debug:
+                self.log("Choosing terminal_pickup as there are things to remove from the terminal.")
             return _TERMINAL_PICKUP
         elif self.home.role_count(role_mineral_miner):
+            if debug:
+                self.log("Choosing miner_harvest as there is a target miner count.")
             return _MINER_HARVEST
         elif mind.amount_needed_in_lab1() or mind.amount_needed_in_lab2() or mind.energy_needed_in_labs():
+            if debug:
+                self.log("Choosing storage_pickup as there is something needed in labs.")
             return _STORAGE_PICKUP
         else:
+            if debug:
+                self.log("Choosing depot because there is nothing else to do.")
             return _DEPOT
 
     def run(self):
@@ -180,10 +212,21 @@ class MineralHauler(RoleBase):
             return
         mind.note_mineral_hauler(self.name)
         if 'state' not in self.memory:
-            self.memory.state = self.determine_next_state()
+            if 'debug' in self.memory:
+                if self.memory.debug is True:
+                    self.memory.state = self.determine_next_state(True)
+                    self.memory.debug = Game.time + 50
+                if self.memory.debug > Game.time:
+                    self.memory.state = self.determine_next_state(True)
+                else:
+                    self.memory.state = self.determine_next_state()
+                    del self.memory.debug
+            else:
+                self.memory.state = self.determine_next_state()
             if self.memory.last_state == self.memory.state:
                 self.log("State loop on state {}!".format(self.memory.state))
                 del self.memory.last_state
+                self.memory.debug = Game.time + 10
                 return False
             else:
                 self.memory.last_state = self.memory.state
