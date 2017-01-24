@@ -121,7 +121,7 @@ def emergency_conditions(room):
 
 def run(room, spawn):
     """
-    Activates the spawner, spawning what's needed, as determined by the RoomManager.
+    Activates the spawner, spawning what's needed, as determined by the RoomMind.
 
     Manages deciding what parts belong on what creep base as well.
     :type room: rooms.room_mind.RoomMind
@@ -533,14 +533,6 @@ def run(room, spawn):
                                                                              JSON.stringify(role_obj)))
         room.reset_planned_role()
         return
-
-    carry = 0
-    work = 0
-    for part in parts:
-        if part == CARRY:
-            carry += 1
-        if part == WORK:
-            work += 1
 
     name = naming.random_digits()
     if Game.creeps[name]:

@@ -52,6 +52,7 @@ max_priority_for_non_wall_sites = 5
 def get_priority(room, structure_type):
     """
     :type room: rooms.room_mind.RoomMind
+    :type structure_type: str
     """
     if not room.spawn:
         if structure_type == STRUCTURE_SPAWN:
