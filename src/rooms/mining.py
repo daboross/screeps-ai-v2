@@ -100,7 +100,7 @@ class MiningMind:
         priority = self.distance_to_mine(flag)
         if flag.pos.roomName == self.room.name:
             priority -= 50
-        if flag.memory.sk_room:
+        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
             priority -= 40
         elif self.should_reserve(flag.pos.roomName):
             priority -= 30
@@ -123,17 +123,17 @@ class MiningMind:
         if target_mass:
             return target_mass
         # each carry can carry 50 energy.
-        carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 5)
+        carry_per_tick = CARRY_CAPACITY / (self.distance_to_mine(flag) * 2.1 + 5)
         room = Game.rooms[flag.pos.roomName]
         # With 1 added to have some leeway
         if room and room.controller and room.controller.my:
-            mining_per_tick = 10.0
-        elif flag.memory.sk_room or (room and not room.controller):
-            mining_per_tick = 15.0
+            mining_per_tick = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME
+        elif flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+            mining_per_tick = SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME
         elif self.should_reserve(flag.pos.roomName):
-            mining_per_tick = 10.0
+            mining_per_tick = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME
         else:
-            mining_per_tick = 5.0
+            mining_per_tick = SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME
         produce_per_tick = mining_per_tick
         target_mass = math.ceil(produce_per_tick / carry_per_tick) + 1
         self.room.store_cached_property(key, target_mass, 50)
@@ -243,17 +243,19 @@ class MiningMind:
             maximum = spawning.max_sections_of(self.room, creep_base_hauler)
         needed = self.calculate_ideal_mass_for_mine(flag)
         if double:
-            # Each section has twice the carry, -and the initial section has half the carry of one regular section.-
+            # Each section has twice the carry, ~~and the initial section has half the carry of one regular section.~~
             # as of 2016/11/02, we have WWM initial sections, not CWM
             return fit_num_sections(needed / 2, maximum)
         else:
             return fit_num_sections(needed, maximum)
 
     def should_reserve(self, room_name):
-        if self.room.room.energyCapacityAvailable < 1300:
+        if self.room.room.energyCapacityAvailable < (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE]) * 2:
             return False
         flag_list = _.filter(flags.find_flags(room_name, REMOTE_MINE), lambda f: f.memory.active)
         if _.find(flag_list, lambda f: f.memory.sk_room):
+            return False
+        if Memory.no_controller and Memory.no_controller[room_name]:
             return False
         if _.find(flag_list, lambda f: f.memory.do_reserve):
             return True
@@ -283,7 +285,7 @@ class MiningMind:
         """
         room_name = flag.pos.roomName
 
-        if flag.memory.sk_room or Memory.no_controller and Memory.no_controller[room_name] \
+        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[room_name]) \
                 or not self.should_reserve(room_name):
             return None
 
@@ -303,9 +305,9 @@ class MiningMind:
         # Memory key set in the RemoteReserve class
         if room_name in Memory.rooms and rmem_key_room_reserved_up_until_tick in Memory.rooms[room_name]:
             ticks_to_end = Memory.rooms[room_name][rmem_key_room_reserved_up_until_tick] - Game.time
-            if ticks_to_end >= 1000:
+            if ticks_to_end >= CONTROLLER_RESERVE_MAX / 5:
                 max_sections = min(5, spawning.max_sections_of(self.room, creep_base_reserving))
-                if 5000 - ticks_to_end < max_sections * 600:
+                if CONTROLLER_RESERVE_MAX - ticks_to_end < max_sections * CREEP_CLAIM_LIFE_TIME * CONTROLLER_RESERVE:
                     return None
 
         claimer = Game.creeps[Memory.reserving[room_name]]
@@ -328,19 +330,20 @@ class MiningMind:
             return None
 
     def get_ideal_miner_workmass_for(self, flag):
-        if flag.memory.sk_room:
-            return 7
+        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+            return math.ceil((SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
         elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
-            return 5
+            return math.ceil((SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
         else:
-            return 3
+            return math.ceil((SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
 
     def haulers_can_target_mine(self, flag):
         # TODO: duplicated in get_next_needed_mining_role_for
 
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.name
-            and self.room.room.energyCapacityAvailable >= 600
+            and self.room.room.energyCapacityAvailable
+            >= (BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK] * 5)  # 600 on official server
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
         )
         no_haulers = (
@@ -355,7 +358,8 @@ class MiningMind:
             # TODO: duplicated in get_next_needed_mining_role_for, haulers_can_target_mine
             miner_carry_no_haulers = (
                 flag.pos.roomName == self.room.name
-                and self.room.room.energyCapacityAvailable >= 600
+                and self.room.room.energyCapacityAvailable
+                >= (BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK] * 5)  # 600 on official server
                 and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
             )
             return miner_carry_no_haulers
@@ -368,7 +372,8 @@ class MiningMind:
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.name
-            and self.room.room.energyCapacityAvailable >= 600
+            and self.room.room.energyCapacityAvailable
+            >= (BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK] * 5)  # 600 on official server
             and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
         )
         no_haulers = (
@@ -421,7 +426,7 @@ class MiningMind:
             if miner_carry_no_haulers:
                 base = creep_base_carry3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
-            elif flag.memory.sk_room:
+            elif flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
                 base = creep_base_4000miner
                 num_sections = min(7, spawning.max_sections_of(self.room, base))
             elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
