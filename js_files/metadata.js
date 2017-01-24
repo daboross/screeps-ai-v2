@@ -662,80 +662,72 @@ function defineRoomMetadataPrototypes() {
         return Pbf;
     })();
 
-    const stringStorage = {
-        // Important note here!
-        // Since we read/write messages using pbf, it stores within the data the length of the expected data.
-        // Because of this, we're fine with having any arbitrary data added on the end, and that's good, because as an
-        // artifact of storing data in strings, we will probably have extra '0's added in at the end.
+    /**
+     * String storage, encoding and decoding Uint8Array arrays.
+     *
+     * All credit for figuring out the actual implementation goes to dissi (@dissi) and ScreepsDiplomacy
+     * (https://github.com/ButAds/ScreepsDiplomacy).
+     *
+     * This is a copy of the internals of ScreepsDiplomacy's DiplomacyPacket, but optimized for use encoding directly
+     * from and decoding directly to Uint8Arrays.
+     */
+    const stringStorage = global.StringStorage = {
         encode: function (byteArray) {
-            // All credit for figuring all of this out goes to dissi and https://github.com/ButAds/ScreepsDiplomacy/!
-            // This is mostly a pared down version of the object-oriented parsing created there.
-            var data = [];
-            var dataWritten = 0;
-            var BITS_PER_CHARACTER = this.BITS_PER_CHARACTER;
-            for (let i = 0; i < byteArray.length; i++) {
-                var theNumber = byteArray[i];
-                for (let bytes = 0; bytes < 8; bytes++) {
-                    let toWrite = theNumber >> bytes & 0x1;
+            const BITS_PER_CHARACTER = 15,
+                BITS_PER_BYTE = 8;
+            var result = [];
+            var bitNum = 0;
+            var currentCharData = 0;
+            var currentCharDataModified = false;
+            for (var i = 0; i < byteArray.length; i++) {
+                var thisByte = byteArray[i];
+                for (var j = 0; j < BITS_PER_BYTE; j++) {
+                    var thisBit = thisByte >> j & 0x1;
 
-                    let bitNumber = dataWritten % BITS_PER_CHARACTER;
-                    let byteNumber = Math.floor(dataWritten / BITS_PER_CHARACTER);
-                    data[byteNumber] |= toWrite << bitNumber;
-
-                    dataWritten++;
+                    currentCharData |= thisBit << bitNum;
+                    currentCharDataModified = true;
+                    bitNum += 1;
+                    if (bitNum >= BITS_PER_CHARACTER) {
+                        result.push(String.fromCodePoint(currentCharData));
+                        bitNum = 0;
+                        currentCharData = 0;
+                        currentCharDataModified = false;
+                    }
                 }
             }
-            return String.fromCodePoint(...data);
+            if (currentCharDataModified) {
+                result.push(String.fromCodePoint(currentCharData))
+            }
+            return result.join('');
         },
         decode: function (string) {
-            // All credit for figuring all of this out goes to dissi and https://github.com/ButAds/ScreepsDiplomacy/!
-            // This is mostly a pared down version of the object-oriented parsing created there.
-            const BITS_PER_CHARACTER = this.BITS_PER_CHARACTER;
-            const LOOKUP_BYTEPOS = this.LOOKUP_BYTEPOS;
-
-            var data = [];
-            for (let i = 0; i < string.length; i++) {
-                data[i] = string.codePointAt(i);
-            }
-
+            const BITS_PER_CHARACTER = 15,
+                BITS_PER_BYTE = 8;
             var result = [];
-            var readBytes = 0;
 
-            while (readBytes < data.length * BITS_PER_CHARACTER) {
-                var theNumber = 0;
-                for (var bits = 0; bits < 8; bits++) {
-                    var bit;
-                    if (readBytes >= (data.length * BITS_PER_CHARACTER)) {
-                        bit = 0;
-                    } else {
-                        var bitNumber = readBytes % BITS_PER_CHARACTER;
-                        var byteNumber;
-                        if (LOOKUP_BYTEPOS.length > readBytes) {
-                            byteNumber = LOOKUP_BYTEPOS[readBytes];
-                        } else {
-                            byteNumber = Math.floor(readBytes / BITS_PER_CHARACTER);
-                        }
-
-                        bit = (data[byteNumber] >> bitNumber) & 0x1;
-                        readBytes++;
-                    }
-                    if (bit == 0x1) {
-                        theNumber |= bit << bits;
+            var bitNum = 0;
+            var currentByte = 0;
+            var currentByteModified = false;
+            for (var i = 0; i < string.length; i++) {
+                var thisCharData = string.codePointAt(i);
+                for (var j = 0; j < BITS_PER_CHARACTER; j++) {
+                    var bit = thisCharData >> j & 0x1;
+                    currentByte |= bit << bitNum;
+                    currentByteModified = true;
+                    bitNum += 1;
+                    if (bitNum >= BITS_PER_BYTE) {
+                        result.push(currentByte);
+                        bitNum = 0;
+                        currentByte = 0;
+                        currentByteModified = false;
                     }
                 }
-                result.push(theNumber);
+            }
+            if (currentByteModified) {
+                result.push(currentByte);
             }
             return Uint8Array.from(result);
-        },
-        BITS_PER_CHARACTER: 15,
-        get LOOKUP_BYTEPOS() {
-            let LOOKUP_BYTEPOS = [];
-            for (let i = 0; i < this.BITS_PER_CHARACTER * 20; i++) {
-                LOOKUP_BYTEPOS[i] = Math.floor(i / this.BITS_PER_CHARACTER);
-            }
-            Object.defineProperty(this, 'LOOKUP_BYTEPOS', {'value': LOOKUP_BYTEPOS});
-            return LOOKUP_BYTEPOS;
-        },
+        }
     };
 
     var RoomStructureType = global.RoomStructureType = {
