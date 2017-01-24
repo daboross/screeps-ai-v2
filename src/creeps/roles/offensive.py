@@ -142,6 +142,13 @@ class Dismantler(MilitaryBase):
             self.move_to(structure)
         return new_target, dismantled
 
+    def remove_target(self, target):
+        msg = "[dismantle][{}][{}] Dismantle job at {},{} completed! {} untargeting.".format(
+            target.pos.roomName, Game.time, target.pos.x, target.pos.y, self.name)
+        console.log(msg)
+        Game.notify(msg)
+        target.remove()
+
     def run(self):
         if self.memory.dismantling and self.creep.hits < self.creep.hitsMax / 2:
             self.memory.dismantling = False
@@ -152,8 +159,6 @@ class Dismantler(MilitaryBase):
 
         if self.memory.dismantling:
             target = self.targets.get_new_target(self, target_single_flag, ATTACK_DISMANTLE)
-            if target.memory.civilian:
-                self.memory.running = 'idle'
             if not target:
                 if len(flags.find_flags(self.home, RAID_OVER)):
                     if self.creep.ticksToLive < 300:
@@ -165,6 +170,8 @@ class Dismantler(MilitaryBase):
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
                 return
+            if target.memory.civilian:
+                self.memory.running = 'idle'
             if self.pos.roomName == target.pos.roomName:
                 new_target = False
                 dismantled = False
@@ -190,10 +197,14 @@ class Dismantler(MilitaryBase):
                         new_target = True
 
                 if new_target:
+                    if 'dismantle_all' in target.memory and not target.memory['dismantle_all']:
+                        self.remove_target(target)
+                        return
                     structures = self.room.find(FIND_STRUCTURES)
                     sites = self.room.find(FIND_CONSTRUCTION_SITES)
                     best_priority = -Infinity
                     best = None
+                    hits_per_tick = DISMANTLE_POWER * self.creep.getActiveBodypartsBoostEquivalent(WORK, 'dismantle')
                     for structure in structures.concat(sites):
                         stype = structure.structureType
                         if structure.my or stype == STRUCTURE_CONTROLLER or stype == STRUCTURE_PORTAL \
@@ -207,7 +218,7 @@ class Dismantler(MilitaryBase):
                         priority = -distance
                         if stype == STRUCTURE_WALL or stype == STRUCTURE_RAMPART:
                             if structure.hits:
-                                priority -= structure.hits
+                                priority -= structure.hits / hits_per_tick
                         if structure.progressTotal:  # a construction site
                             priority -= 50
                         if stype == STRUCTURE_ROAD and distance > 1:
@@ -221,9 +232,14 @@ class Dismantler(MilitaryBase):
                             self.move_to(best)
                         elif not dismantled:
                             self.do_dismantle(best)
+                        else:
+                            self.move_to(best)
                     else:
-                        target.remove()
+                        self.remove_target(target)
+                        return
             else:
+                if self.memory.dt:  # dismantler target
+                    target = positions.deserialize_xy_to_pos(self.memory.dt, target.pos.roomName)
                 if 'checkpoint' not in self.memory or \
                                 movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
                     self.memory.checkpoint = self.pos
