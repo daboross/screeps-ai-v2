@@ -718,6 +718,7 @@ class ConstructionMind:
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
+            honey.clear_cached_path(deposit_point, mine_flag)
 
         for spawn in self.room.spawns:
             # TODO: this is used in both this method and the one above, and should be a utility.
