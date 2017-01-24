@@ -123,7 +123,7 @@ class MiningMind:
         if target_mass:
             return target_mass
         # each carry can carry 50 energy.
-        carry_per_tick = CARRY_CAPACITY / (self.distance_to_mine(flag) * 2.1 + 5)
+        carry_per_tick = CARRY_CAPACITY / (self.distance_to_mine(flag) * 2.04 + 5)
         room = Game.rooms[flag.pos.roomName]
         # With 1 added to have some leeway
         if room and room.controller and room.controller.my:
