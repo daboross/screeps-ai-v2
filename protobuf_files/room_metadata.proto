@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-enum RoomStructureType {
+enum StoredStructureType {
     OTHER_IMPASSABLE = 0;
     ROAD = 1;
     CONTROLLER = 2;
@@ -8,11 +8,12 @@ enum RoomStructureType {
 }
 
 message StoredStructure {
-    RoomStructureType type = 1;
+    StoredStructureType type = 1;
     uint32 x = 2;
     uint32 y = 3;
 }
 
 message StoredRoom {
     repeated StoredStructure structures = 1;
+    optional uint64 reservationTimeEnd = 2;
 }

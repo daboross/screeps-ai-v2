@@ -730,23 +730,14 @@ function defineRoomMetadataPrototypes() {
         }
     };
 
-    var RoomStructureType = global.RoomStructureType = {
+    var StoredStructureType = global.StoredStructureType = {
         "OTHER_IMPASSABLE": 0,
         "ROAD": 1,
         "CONTROLLER": 2,
         "SOURCE": 3
     };
 
-    var StoredStructure = global.StoredStructure = function StoredStructure(type, x, y) {
-        if (y === undefined) {
-            y = 0;
-            if (x === undefined) {
-                x = 0;
-                if (type === undefined) {
-                    type = 0;
-                }
-            }
-        }
+    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -791,9 +782,11 @@ function defineRoomMetadataPrototypes() {
     };
     StoredRoom._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.structures.push(StoredStructure.read(pbf, pbf.readVarint() + pbf.pos));
+        else if (tag === 2) obj.reservationTimeEnd = pbf.readVarint();
     };
     StoredRoom.write = function (obj, pbf) {
         if (obj.structures) for (var i = 0; i < obj.structures.length; i++) pbf.writeMessage(1, StoredStructure.write, obj.structures[i]);
+        if (obj.reservationTimeEnd) pbf.writeVarintField(2, obj.reservationTimeEnd);
     };
 
     StoredRoom.prototype.encode = function () {
@@ -807,8 +800,8 @@ function defineRoomMetadataPrototypes() {
         return pbf.readMessage(StoredRoom._readField, new StoredRoom());
     };
 
-    global.__stored_types_defined = true;
+    global.__metadata_active = true;
 }
-if (!global.__stored_types_defined) {
+if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }

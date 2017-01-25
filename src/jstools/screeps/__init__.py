@@ -4,6 +4,7 @@ __pragma__('skip')
 from .constants import *
 from .misc_exports import *
 from .transcrypt import *
+from .metadata import *
 
 # Generated manually using regexes on the sub files
 __all__ = [
@@ -381,7 +382,12 @@ __all__ = [
     "__pragma__",
     "__new__",
     "js_isNaN",
-    "__except0__"
+    "__except0__",
+
+    # metadata
+    "StoredStructureType",
+    "StoredStructure",
+    "StoredRoom",
 ]
 
 __pragma__('noskip')

@@ -29,6 +29,10 @@ __pragma__('js', '{}', """
 if (!global.__customizations_active) {
     require("customizations");
 }""")
+__pragma__('js', '{}', """
+if (!global.__metadata_active) {
+    require("metadata");
+}""")
 
 walkby_move.apply_move_prototype()
 
