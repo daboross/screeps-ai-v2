@@ -7,10 +7,11 @@ from constants import default_roles, rmem_key_pause_all_room_operations, role_ha
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
+from empire import stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
-from jstools.screeps  import *
+from jstools.screeps import *
 from position_management import flags, locations
 from rooms import building, defense, minerals
 from utilities import hostile_utils, movement
@@ -328,6 +329,11 @@ def main():
         autoactions.cleanup_running_memory()
         records.finish_record('auto.running-memory-cleanup')
 
+    if Game.time % 30 == 10:
+        records.start_record()
+        stored_data.update_old_structure_data_for_visible_rooms()
+        records.finish_record('stored_data.update-visible-rooms')
+
     if not _.isEmpty(creeps_skipped):
         skipped_count = _.sum(creeps_skipped, 'length')
         if skipped_count:
@@ -366,6 +372,7 @@ __pragma__('js', 'global').py = {
     "mining_paths": mining_paths,
     "meminfo": memory_info,
     "minerals": minerals,
+    "stored_data": stored_data,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,

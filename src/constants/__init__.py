@@ -192,6 +192,7 @@ global_cache_mining_roads_suffix = '_mrd'
 # in room.py, search for: ([^ \n]+) = '[^']+'\n+
 # replace with: $1 as r$1, \\\n
 from constants.memkeys import global_mem_key_last_room_state_refresh as gmem_key_last_room_state_refresh, \
+    global_mem_key_room_data as gmem_key_room_data, \
     global_mem_key_room_mining_paths as gmem_key_room_mining_paths
 from constants.memkeys.room import mem_key_building_paused as rmem_key_building_paused, \
     mem_key_building_priority_spawn as rmem_key_building_priority_spawn, \
