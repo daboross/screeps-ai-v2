@@ -32,4 +32,4 @@ mkdir -p "$DIST_DIR/"
 cp "$SRC_DIR/__javascript__/main.js" "$DIST_DIR/"
 cp "$JS_DIR/"*.js "$DIST_DIR/"
 
-cat "$DIST_DIR/customizations.js" "$DIST_DIR/main.js" | sed  -e 's/[[:space:]]*$//' -e 's/'"$(printf '\t')"'/    /g' > "$BASEDIR/snapshot_main.js"
+cat "$DIST_DIR/customizations.js" "$DIST_DIR/metadata.js" "$DIST_DIR/main.js" | sed  -e 's/[[:space:]]*$//' -e 's/'"$(printf '\t')"'/    /g' > "$BASEDIR/snapshot_main.js"

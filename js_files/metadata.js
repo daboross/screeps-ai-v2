@@ -734,13 +734,26 @@ function defineRoomMetadataPrototypes() {
         "OTHER_IMPASSABLE": 0,
         "ROAD": 1,
         "CONTROLLER": 2,
-        "SOURCE": 3
+        "SOURCE": 3,
+        "MINERAL": 4,
+        "SOURCE_KEEPER_SOURCE": 5,
+        "SOURCE_KEEPER_MINERAL": 6,
+        "SOURCE_KEEPER_LAIR": 7
     };
 
-    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0) {
+    var StoredEnemyRoomState = global.StoredEnemyRoomState = {
+        "FULLY_FUNCTIONAL": 0,
+        "RESERVED": 1,
+        "JUST_MINING": 2
+    };
+
+    // StoredStructure ========================================
+
+    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0, source_capacity = 0) {
         this.type = type;
         this.x = x;
         this.y = y;
+        this.source_capacity = source_capacity;
     };
 
     StoredStructure.read = function (pbf, end) {
@@ -750,31 +763,41 @@ function defineRoomMetadataPrototypes() {
         if (tag === 1) obj.type = pbf.readVarint();
         else if (tag === 2) obj.x = pbf.readVarint();
         else if (tag === 3) obj.y = pbf.readVarint();
+        else if (tag === 4) obj.source_capacity = pbf.readVarint();
     };
     StoredStructure.write = function (obj, pbf) {
         if (obj.type) pbf.writeVarintField(1, obj.type);
         if (obj.x) pbf.writeVarintField(2, obj.x);
         if (obj.y) pbf.writeVarintField(3, obj.y);
+        if (obj.source_capacity) pbf.writeVarintField(4, obj.source_capacity);
     };
 
-    StoredStructure.prototype.encode = function () {
-        let pbf = new Pbf();
-        pbf.writeRawMessage(StoredStructure.write, this);
-        return stringStorage.encode(pbf.finish());
+    // RoomOwner ========================================
+
+    var StoredRoomOwner = global.StoredRoomOwner = function StoredRoomOwner(name = "", state = 0) {
+        this.name = name;
+        this.state = state;
     };
 
-    StoredStructure.decode = function (data) {
-        let pbf = new Pbf(stringStorage.decode(data));
-        return pbf.readMessage(StoredStructure._readField, new StoredStructure());
+    StoredRoomOwner.read = function (pbf, end) {
+        return pbf.readFields(RoomOwner._readField, new RoomOwner(), end);
+    };
+    StoredRoomOwner._readField = function (tag, obj, pbf) {
+        if (tag === 1) obj.name = pbf.readString();
+        else if (tag === 2) obj.state = pbf.readVarint();
+    };
+    StoredRoomOwner.write = function (obj, pbf) {
+        if (obj.name) pbf.writeStringField(1, obj.name);
+        if (obj.state) pbf.writeVarintField(2, obj.state);
     };
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(structures) {
-        if (structures === undefined) {
-            structures = [];
-        }
+    var StoredRoom = global.StoredRoom = function StoredRoom(structures = [], structures_last_updated = 0, reservation_end = 0, owner = null) {
         this.structures = structures;
+        this.reservation_end = reservation_end;
+        this.structures_last_updated = structures_last_updated;
+        this.owner = owner;
     };
 
     StoredRoom.read = function (pbf, end) {
@@ -782,11 +805,15 @@ function defineRoomMetadataPrototypes() {
     };
     StoredRoom._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.structures.push(StoredStructure.read(pbf, pbf.readVarint() + pbf.pos));
-        else if (tag === 2) obj.reservationTimeEnd = pbf.readVarint();
+        else if (tag === 2) obj.structures_last_updated = pbf.readVarint();
+        else if (tag === 3) obj.reservation_end = pbf.readVarint();
+        else if (tag === 4) obj.owner = StoredRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
     };
     StoredRoom.write = function (obj, pbf) {
         if (obj.structures) for (var i = 0; i < obj.structures.length; i++) pbf.writeMessage(1, StoredStructure.write, obj.structures[i]);
-        if (obj.reservationTimeEnd) pbf.writeVarintField(2, obj.reservationTimeEnd);
+        if (obj.structures_last_updated) pbf.writeVarintField(2, obj.structures_last_updated);
+        if (obj.reservation_end) pbf.writeVarintField(3, obj.reservation_end);
+        if (obj.owner) pbf.writeMessage(4, StoredRoomOwner.write, obj.owner);
     };
 
     StoredRoom.prototype.encode = function () {
