@@ -140,8 +140,8 @@ def update_old_structure_data_for_visible_rooms():
     for name in Object.keys(Game.rooms):
         room = Game.rooms[name]
         if not room.my:
-            data = get_stored_room(name)
-            if data.structures_last_updated + 100 < Game.time:
+            data = get_data(name)
+            if not data or data.structures_last_updated + 100 < Game.time:
                 update_data(room)
 
 
@@ -163,7 +163,7 @@ def update_data(room):
     """
     _check_tick()
     room_name = room.name
-    data = get_stored_room(room_name)
+    data = get_data(room_name)
     if not data:
         data = __new__(StoredRoom())
     data.structures = _find_structures(room)
@@ -173,7 +173,7 @@ def update_data(room):
     _cached_mem[room_name] = data.encode()
 
 
-def get_stored_room(room_name):
+def get_data(room_name):
     """
     Gets the full stored information on a room
     :param room_name: The room name
@@ -183,7 +183,7 @@ def get_stored_room(room_name):
     """
     _check_tick()
     data = _cached_data.get(room_name)
-    if data is not None:
+    if data is not undefined:
         return data
 
     serialized = _cached_mem[room_name]
@@ -199,7 +199,7 @@ def get_reservation_time(room_name):
     :param room_name: The room name
     :type room_name: str
     """
-    data = get_stored_room(room_name)
+    data = get_data(room_name)
     if data is not None:
         return data.reservation_end
     else:
@@ -215,7 +215,7 @@ def set_reservation_time(room_name, reservation_time):
     :type reservation_time: int
     """
     _check_tick()
-    data = get_stored_room(room_name)
+    data = get_data(room_name)
     if data is None:
         data = __new__(StoredRoom())
     data.reservation_end = Game.time + reservation_time
@@ -228,7 +228,7 @@ def cpu_test():
     num_rooms = 0
     num_structures = 0
     for name in Object.keys(_cached_mem):
-        data = get_stored_room(name)
+        data = get_data(name)
         num_rooms += 1
         num_structures += len(data.structures)
     end = Game.cpu.getUsed()

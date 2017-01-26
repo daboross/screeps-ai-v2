@@ -749,11 +749,13 @@ function defineRoomMetadataPrototypes() {
 
     // StoredStructure ========================================
 
-    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0, source_capacity = 0) {
+    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0, source_capacity = undefined) {
         this.type = type;
         this.x = x;
         this.y = y;
-        this.source_capacity = source_capacity;
+        if (source_capacity !== undefined) {
+            this.source_capacity = source_capacity;
+        }
     };
 
     StoredStructure.read = function (pbf, end) {
@@ -793,11 +795,13 @@ function defineRoomMetadataPrototypes() {
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(structures = [], structures_last_updated = 0, reservation_end = 0, owner = null) {
+    var StoredRoom = global.StoredRoom = function StoredRoom(structures = [], structures_last_updated = 0, reservation_end = 0, owner = undefined) {
         this.structures = structures;
         this.reservation_end = reservation_end;
         this.structures_last_updated = structures_last_updated;
-        this.owner = owner;
+        if (owner !== undefined) {
+            this.owner = owner;
+        }
     };
 
     StoredRoom.read = function (pbf, end) {

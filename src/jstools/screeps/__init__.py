@@ -386,7 +386,9 @@ __all__ = [
 
     # metadata
     "StoredStructureType",
+    "RoomOwnedState",
     "StoredStructure",
+    "StoredRoomOwner",
     "StoredRoom",
 ]
 

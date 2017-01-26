@@ -26,5 +26,3 @@ __all__ = [
 ]
 
 __except0__ = TypeError()
-
-asdf
