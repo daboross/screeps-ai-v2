@@ -42,6 +42,7 @@ role_classes = {
     role_power_attack: offensive.PowerAttack,
     role_power_cleanup: offensive.PowerCleanup,
     role_energy_grab: offensive.EnergyGrab,
+    role_tower_fill_once: tower_fill.TowerFillOnce,
 }
 
 
