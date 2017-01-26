@@ -121,7 +121,7 @@ class MineralHauler(RoleBase):
                     # If we have a resource in our carry which isn't headed to the same place as the miner's resource,
                     # let's not pick up that miner's resource until we've dealt with what we're already carrying.
                     for resource in Object.keys(self.creep.carry):
-                        if resource != mineral.resourceType:
+                        if resource != mineral.resourceType and self.creep.carry[resource] > 0:
                             if sending_resource_to_storage:
                                 if (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
                                     break
