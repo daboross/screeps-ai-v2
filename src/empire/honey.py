@@ -1,3 +1,5 @@
+import math
+
 from cache import global_cache
 from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
     global_cache_mining_roads_suffix
@@ -344,16 +346,21 @@ class HoneyTrails:
                     for x in range(pos.x - 1, pos.x + 2):
                         for y in range(pos.y - 1, pos.y + 2):
                             increase_by(x, y, 6 * plain_cost)
-                elif avoid_controller and stype == STRUCTURE_CONTROLLER:
-                    for x in range(pos.x - 3, pos.x + 4):
-                        for y in range(pos.y - 3, pos.y + 4):
-                            increase_by(x, y, 4 * plain_cost)
-                    for x in range(pos.x - 2, pos.x + 3):
-                        for y in range(pos.y - 2, pos.y + 3):
-                            increase_by(x, y, 2 * plain_cost)
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 13 * plain_cost)
+                elif stype == STRUCTURE_CONTROLLER:
+                    if avoid_controller:
+                        for x in range(pos.x - 3, pos.x + 4):
+                            for y in range(pos.y - 3, pos.y + 4):
+                                increase_by(x, y, 4 * plain_cost)
+                        for x in range(pos.x - 2, pos.x + 3):
+                            for y in range(pos.y - 2, pos.y + 3):
+                                increase_by(x, y, 2 * plain_cost)
+                        for x in range(pos.x - 1, pos.x + 2):
+                            for y in range(pos.y - 1, pos.y + 2):
+                                increase_by(x, y, 13 * plain_cost)
+                    else:
+                        for x in range(pos.x - 1, pos.x + 2):
+                            for y in range(pos.y - 1, pos.y + 2):
+                                increase_by(x, y, math.ceil(plain_cost / 2))
                 elif stype == '--source':
                     for x in range(pos.x - 3, pos.x + 4):
                         for y in range(pos.y - 3, pos.y + 4):
@@ -535,16 +542,21 @@ class HoneyTrails:
                     for x in range(pos.x - 1, pos.x + 2):
                         for y in range(pos.y - 1, pos.y + 2):
                             increase_by(x, y, 6 * plain_cost)
-                elif avoid_controller and stype == STRUCTURE_CONTROLLER:
-                    for x in range(pos.x - 3, pos.x + 4):
-                        for y in range(pos.y - 3, pos.y + 4):
-                            increase_by(x, y, 4 * plain_cost)
-                    for x in range(pos.x - 2, pos.x + 3):
-                        for y in range(pos.y - 2, pos.y + 3):
-                            increase_by(x, y, 2 * plain_cost)
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 13 * plain_cost)
+                elif stype == STRUCTURE_CONTROLLER:
+                    if avoid_controller:
+                        for x in range(pos.x - 3, pos.x + 4):
+                            for y in range(pos.y - 3, pos.y + 4):
+                                increase_by(x, y, 4 * plain_cost)
+                        for x in range(pos.x - 2, pos.x + 3):
+                            for y in range(pos.y - 2, pos.y + 3):
+                                increase_by(x, y, 2 * plain_cost)
+                        for x in range(pos.x - 1, pos.x + 2):
+                            for y in range(pos.y - 1, pos.y + 2):
+                                increase_by(x, y, 13 * plain_cost)
+                    else:
+                        for x in range(pos.x - 1, pos.x + 2):
+                            for y in range(pos.y - 1, pos.y + 2):
+                                increase_by(x, y, math.ceil(plain_cost / 2))
                 elif stype == '--source':
                     if paved_for:
                         if room.my:
@@ -578,8 +590,7 @@ class HoneyTrails:
             cost_matrix.set(pos.x, pos.y, 255)
 
         for struct in room.find(FIND_STRUCTURES):
-            if struct.structureType != STRUCTURE_CONTROLLER or struct.my:
-                set_matrix(struct.structureType, struct.pos, False, struct.my or (not struct.owner))
+            set_matrix(struct.structureType, struct.pos, False, struct.my or (not struct.owner))
         for site in room.find(FIND_CONSTRUCTION_SITES):
             set_matrix(site.structureType, site.pos, True, site.my)
         for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
