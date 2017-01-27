@@ -46,35 +46,51 @@ class TransportPickup(RoleBase):
             piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
             if len(piles):
                 if len(piles) > 1:
-                    energy = _.max(piles, 'resource.amount').resource
+                    best = None
+                    best_amount = 0
+                    for pile in piles:
+                        amount = pile.resource.amount
+                        if pile.resource.picked_up:
+                            amount -= 500
+                        if amount > best_amount:
+                            best_amount = amount
+                            best = pile.resource
+                    energy = best
                 else:
                     energy = piles[0].resource
                 if self.pos.isNearTo(energy):
-                    result = self.creep.pickup(energy)
+                    ok_to_pick_up = True
+                    if energy.picked_up:
+                        other_creep = energy.picked_up
+                        if other_creep.carryCapacity - other_creep.carry.energy <= self.creep.carryCapacity - self.creep.carry.energy:
+                            ok_to_pick_up = False
+                        else:
+                            other_creep.cancelOrder('pickup')
 
-                    if result == OK:
-                        self.creep.picked_up = True
-                        energy.picked_up = True
-                        if energy.amount > self.creep.carryCapacity - total_carried_now:
-                            # If there is a road needing repairing here, let's not start moving until we have energy to
-                            # repair with (i.e. next tick).
-                            self.memory.filling = False
-                            if paved:
-                                self.follow_energy_path(pickup, fill, pickup)
-                            else:
-                                self.follow_energy_path(pickup, fill)
-                        elif Game.time % 6 == 1 and self.creep.ticksToLive < 10 + self.path_length(fill, pickup):
-                            self.memory.filling = False
-                            self.follow_energy_path(fill, pickup)
+                    if ok_to_pick_up:
+                        result = self.creep.pickup(energy)
+
+                        if result == OK:
+                            self.creep.picked_up = energy
+                            energy.picked_up = self.creep
+                            if energy.amount > self.creep.carryCapacity - total_carried_now:
+                                self.memory.filling = False
+                                if paved:
+                                    self.follow_energy_path(pickup, fill, pickup)
+                                else:
+                                    self.follow_energy_path(pickup, fill)
+                            elif Game.time % 6 == 1 and self.creep.ticksToLive < 10 + self.path_length(fill, pickup):
+                                self.memory.filling = False
+                                self.follow_energy_path(fill, pickup)
                             return
-                    else:
-                        self.log("Unknown result from creep.pickup({}): {}".format(energy, result))
+                        else:
+                            self.log("Unknown result from creep.pickup({}): {}".format(energy, result))
                 else:
                     if self.pos.isNearTo(target):
                         self.basic_move_to(energy)
                     else:
                         self.follow_energy_path(fill, pickup)
-                return
+                    return
 
             containers = self.room.look_for_in_area_around(LOOK_STRUCTURES, target, 1)
             container = _.find(containers, lambda s: s.structure.structureType == STRUCTURE_CONTAINER
