@@ -1,5 +1,6 @@
 import math
 
+from cache import volatile_cache
 from constants import UPGRADER_SPOT, creep_base_worker, recycle_time, role_builder, role_link_manager, role_recycling, \
     role_upgrade_fill, role_upgrader, target_home_flag
 from creep_management import spawning
@@ -87,6 +88,27 @@ class Upgrader(RoleBase):
                 self.home.check_all_creeps_next_tick()
                 return
             self.log("WARNING: Not enough set upgrader spots in {}".format(self.memory.home))
+            if Game.time % 10 == 0 and not volatile_cache.setmem('upgraders_to_suicide_checked').has(self.home.name) \
+                    and len(flags.find_flags(self.home, UPGRADER_SPOT)) >= 3 and \
+                            self.home.work_mass_of(role_upgrader) > self.home.get_target_upgrader_work_mass():
+                upgraders = self.home.rt_map[role_upgrader]
+                if upgraders:
+                    small = None
+                    for name, replacement_time in upgraders:
+                        creep = Game.creep[name]
+                        if creep:
+                            if replacement_time <= Game.time:
+                                creep.suicide()
+                                self.home.check_all_creeps_next_tick()
+                                break
+                            elif name.getBodyparts(WORK) < self.home.get_upgrader_size():
+                                small = creep
+                    else:
+                        if small is not None:
+                            small.suicide()
+                            self.home.check_all_creeps_next_tick()
+                volatile_cache.setmem('upgraders_to_suicide_checked').add(self.home.name)
+
             available_positions = self.memory.controller_positions
             if not available_positions or (Game.time + self.creep.ticksToLive) % 25:
                 available_positions = []
