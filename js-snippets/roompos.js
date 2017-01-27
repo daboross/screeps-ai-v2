@@ -20,9 +20,6 @@ function parse_room_to_xy(room_name) {
     }
     return [x, y];
 }
-function room_xy_to_name(room_x, room_y) {
-    return (room_x > 0 ? 'E' : 'W') + (room_x < 0 ? -(room_x) - 1 : room_x) + (room_y > 0 ? 'S' : 'N') + (room_y < 0 ? -(room_y) - 1 : room_y)
-}
 function chebyshev_distance_room_pos(pos1, pos2) {
     if (pos1.pos) {
         pos1 = pos1.pos;
@@ -31,7 +28,7 @@ function chebyshev_distance_room_pos(pos1, pos2) {
         pos2 = pos2.pos;
     }
     if (pos1.roomName == pos2.roomName) {
-        return max(abs(pos1.x - pos2.x), abs(pos1.y - pos2.y));
+        return Math.max(Math.abs(pos1.x - pos2.x), Math.abs(pos1.y - pos2.y));
     }
     const room_1_pos = parse_room_to_xy(pos1.roomName);
     const room_2_pos = parse_room_to_xy(pos2.roomName);
