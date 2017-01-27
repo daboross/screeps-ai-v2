@@ -673,7 +673,7 @@ function defineRoomMetadataPrototypes() {
      */
     const stringStorage = global.StringStorage = {
         encode: function (byteArray) {
-            const BITS_PER_CHARACTER = 15,
+            var BITS_PER_CHARACTER = 15,
                 BITS_PER_BYTE = 8;
             var result = [];
             var bitNum = 0;
@@ -701,9 +701,10 @@ function defineRoomMetadataPrototypes() {
             return result.join('');
         },
         decode: function (string) {
-            const BITS_PER_CHARACTER = 15,
+            var BITS_PER_CHARACTER = 15,
                 BITS_PER_BYTE = 8;
-            var result = [];
+            var result = new Uint8Array(Math.ceil(string.length * BITS_PER_CHARACTER / BITS_PER_BYTE));
+            var resultPos = 0;
 
             var bitNum = 0;
             var currentByte = 0;
@@ -716,7 +717,7 @@ function defineRoomMetadataPrototypes() {
                     currentByteModified = true;
                     bitNum += 1;
                     if (bitNum >= BITS_PER_BYTE) {
-                        result.push(currentByte);
+                        result[resultPos++] = currentByte;
                         bitNum = 0;
                         currentByte = 0;
                         currentByteModified = false;
@@ -724,9 +725,9 @@ function defineRoomMetadataPrototypes() {
                 }
             }
             if (currentByteModified) {
-                result.push(currentByte);
+                result[resultPos++] = currentByte;
             }
-            return Uint8Array.from(result);
+            return result;
         }
     };
 
@@ -782,7 +783,7 @@ function defineRoomMetadataPrototypes() {
     };
 
     StoredRoomOwner.read = function (pbf, end) {
-        return pbf.readFields(RoomOwner._readField, new RoomOwner(), end);
+        return pbf.readFields(StoredRoomOwner._readField, new StoredRoomOwner(), end);
     };
     StoredRoomOwner._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.name = pbf.readString();
@@ -827,7 +828,10 @@ function defineRoomMetadataPrototypes() {
     };
 
     StoredRoom.decode = function (data) {
-        let pbf = new Pbf(stringStorage.decode(data));
+        if (!ArrayBuffer.isView(data)) {
+            data = stringStorage.decode(data);
+        }
+        let pbf = new Pbf(data);
         return pbf.readMessage(StoredRoom._readField, new StoredRoom());
     };
 
