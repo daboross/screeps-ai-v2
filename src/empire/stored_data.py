@@ -7,7 +7,6 @@ from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data
 from jstools.js_set_map import new_map
 from jstools.screeps import *
-from jstools.screeps.metadata import RoomOwnedState, StoredRoomOwner
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
