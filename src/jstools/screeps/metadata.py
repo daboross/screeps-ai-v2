@@ -9,10 +9,11 @@ class StoredStructureType:
     SOURCE_KEEPER_LAIR = 7
 
 
-class RoomOwnedState:
+class StoredEnemyRoomState:
     FULLY_FUNCTIONAL = 0
     RESERVED = 1
     JUST_MINING = 2
+    OWNED_DEAD = 3
 
 
 class StoredStructure:

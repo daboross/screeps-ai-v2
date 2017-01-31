@@ -5,8 +5,10 @@ Stores data in memory via room name keys, using the metadata module powered by P
 """
 from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data
-from jstools.js_set_map import new_map
+from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
+from utilities import positions
+from position_management import flags
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -16,10 +18,37 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
+_cache_created = Game.time
+_cached_data = new_map()
+
+
+def _mem():
+    mem = Memory[global_mem_key_room_data]
+    if not mem:
+        mem = Memory[global_mem_key_room_data] = {}
+    return mem
+
+
+def _get_serialized_data(room_name):
+    return _mem()[room_name] or None
+
+
+def _deserialize_data(data):
+    # NOTE: this cache is only ever reset as a last resort, in normal operation the server should reset the global
+    # before this is reached.
+    global _cached_data, _cache_created
+    if Game.time - _cache_created > 100:
+        _cached_data = new_map()
+        _cache_created = Game.time
+    deserialized = _cached_data.get(data)
+    if deserialized:
+        return deserialized
+    deserialized = StoredRoom.decode(data)
+    _cached_data.set(data, deserialized)
+    return deserialized
+
+
 _my_username = None
-_cached_data = None
-_cached_mem = None
-_cached_data_reset_tick = 0
 
 
 def _find_my_username():
@@ -40,6 +69,8 @@ def _find_structures(room):
     for structure in room.find(FIND_STRUCTURES):
         orig_type = structure.structureType
         if orig_type == STRUCTURE_PORTAL or orig_type == STRUCTURE_CONTAINER:
+            continue
+        elif orig_type == STRUCTURE_RAMPART and structure.my:
             continue
         elif orig_type == STRUCTURE_ROAD:
             stored_type = StoredStructureType.ROAD
@@ -88,10 +119,10 @@ def _find_room_owner(room):
     if controller:
         if controller.owner and not controller.my:
             name = controller.owner.username
-            state = RoomOwnedState.FULLY_FUNCTIONAL
+            state = StoredEnemyRoomState.FULLY_FUNCTIONAL
         elif controller.reservation and controller.reservation.username != _find_my_username():
             name = controller.reservation.username
-            state = RoomOwnedState.RESERVED
+            state = StoredEnemyRoomState.RESERVED
 
     if state is None:
         enemy_creeps = room.find(FIND_HOSTILE_CREEPS)
@@ -103,23 +134,13 @@ def _find_room_owner(room):
                                                        and c.pos.isNearTo(source)))
                 if near:
                     name = near.owner.username
-                    state = RoomOwnedState.JUST_MINING
+                    state = StoredEnemyRoomState.JUST_MINING
                     break
 
     if state is None:
         return None
     else:
         return __new__(StoredRoomOwner(name, state))
-
-
-def _check_tick():
-    global _cached_data_reset_tick, _cached_data, _cached_mem
-    if _cached_data_reset_tick != Game.time:
-        _cached_data_reset_tick = Game.time
-        _cached_data = new_map()
-        _cached_mem = Memory[global_mem_key_room_data]
-        if not _cached_mem:
-            _cached_mem = Memory[global_mem_key_room_data] = {}
 
 
 def update_data_for_visible_rooms():
@@ -134,13 +155,12 @@ def update_data_for_visible_rooms():
 
 def update_old_structure_data_for_visible_rooms():
     """
-    Updates structure data older than 100 ticks for visible rooms.
+    Updates structure data older than 3000 ticks for visible rooms.
     """
     for name in Object.keys(Game.rooms):
         room = Game.rooms[name]
         if not room.my:
-            data = get_data(name)
-            if not data or data.structures_last_updated + 100 < Game.time:
+            if get_last_updated_tick(name) + 3000 < Game.time:
                 update_data(room)
 
 
@@ -160,16 +180,19 @@ def update_data(room):
     :param room: The raw Screeps Room object
     :type room: Room
     """
-    _check_tick()
     room_name = room.name
-    data = get_data(room_name)
-    if not data:
+    serialized = _get_serialized_data(room_name)
+    if serialized:
+        # don't use decoding cache, since then we would invalidate the cache for the old encoded string
+        data = StoredRoom.decode(serialized)
+    else:
         data = __new__(StoredRoom())
     data.structures = _find_structures(room)
     data.structures_last_updated = Game.time
     data.owner = _find_room_owner(room)
     data.reservation_end = _find_room_reservation_end(room)
-    _cached_mem[room_name] = data.encode()
+    _mem()[room_name] = encoded = data.encode()
+    _cached_data.set(encoded, data)
 
 
 def get_data(room_name):
@@ -180,27 +203,35 @@ def get_data(room_name):
     :type room_name: str
     :rtype: StoredRoom
     """
-    _check_tick()
-    data = _cached_data.get(room_name)
-    if data is not undefined:
-        return data
-
-    serialized = _cached_mem[room_name]
+    serialized = _get_serialized_data(room_name)
     if serialized:
-        return StoredRoom.decode(serialized)
+        return _deserialize_data(serialized)
     else:
         return None
 
 
-def get_reservation_time(room_name):
+def get_reservation_end_time(room_name):
     """
     Returns the end time of our reservation on a room, or 0 if not found.
     :param room_name: The room name
     :type room_name: str
     """
     data = get_data(room_name)
-    if data is not None:
+    if data:
         return data.reservation_end
+    else:
+        return 0
+
+
+def get_last_updated_tick(room_name):
+    """
+    Returns the last time the structure data for a room was updated, or 0 if not found.
+    :param room_name: The room name
+    :type room_name: str
+    """
+    data = get_data(room_name)
+    if data:
+        return data.structures_last_updated
     else:
         return 0
 
@@ -213,22 +244,71 @@ def set_reservation_time(room_name, reservation_time):
     :type room_name: str
     :type reservation_time: int
     """
-    _check_tick()
-    data = get_data(room_name)
-    if data is None:
+    serialized = _get_serialized_data(room_name)
+    if serialized:
+        # don't use decoding cache, since then we would invalidate the cache for the old encoded string
+        data = StoredRoom.decode(serialized)
+    else:
         data = __new__(StoredRoom())
     data.reservation_end = Game.time + reservation_time
-    _cached_mem[room_name] = data.encode()
+    _mem()[room_name] = encoded = data.encode()
+    _cached_data.set(encoded, data)
 
 
-def cpu_test():
-    start = Game.cpu.getUsed()
-    _check_tick()
-    num_rooms = 0
-    num_structures = 0
-    for name in Object.keys(_cached_mem):
-        data = get_data(name)
-        num_rooms += 1
-        num_structures += len(data.structures)
-    end = Game.cpu.getUsed()
-    return "Used {} cpu decoding {} rooms, including {} structures.".format(end - start, num_rooms, num_structures)
+def migrate_old_data():
+    definition = flags.flag_definitions[flags.SK_LAIR_SOURCE_NOTED]
+    if Memory.enemy_rooms:
+        for room_name in Memory.enemy_rooms:
+            set_as_enemy(room_name, 'Unknown / migrated from Memory.enemy_rooms')
+            print('[storage] Removing migrated enemy_rooms.')
+        del Memory.enemy_rooms
+    sk_flags = _(Game.flags).filter(lambda f: f.color == definition[0] and f.secondaryColor == definition[1]) \
+        .groupBy('pos.roomName').value()
+    if not _.isEmpty(sk_flags):
+        for room_name in Object.keys(sk_flags):
+            flags_here = sk_flags[room_name]
+            serialized = _get_serialized_data(room_name)
+            if serialized:
+                # don't use decoding cache, since then we would invalidate the cache for the old encoded string
+                data = StoredRoom.decode(serialized)
+            else:
+                data = __new__(StoredRoom())
+            already_existing = new_set()
+            for structure in data.structures:
+                if structure.type == StoredStructureType.SOURCE_KEEPER_LAIR \
+                        or structure.type == StoredStructureType.SOURCE_KEEPER_MINERAL \
+                        or structure.type == StoredStructureType.SOURCE_KEEPER_SOURCE:
+                    already_existing.add(positions.serialize_pos_xy(structure))
+            new_stored = []
+            for flag in flags_here:
+                serialized = positions.serialize_pos_xy(flag)
+                if not already_existing.has(serialized):
+                    new_stored.append(__new__(StoredStructure(
+                        flag.pos.x, flag.pos.y, StoredStructureType.SOURCE_KEEPER_LAIR)))
+                    already_existing.add(serialized)
+                    print('[storage] Successfully migrated SK flag in {} at {},{} to data storage.'
+                          .format(room_name, flag.pos.x, flag.pos.y))
+            if len(new_stored):
+                _mem()[room_name] = encoded = data.encode()
+                _cached_data.set(encoded, data)
+            for flag in flags_here:
+                print('[storage] Removing migrated SK flag {} in {} at {},{}.'
+                      .format(flag.name, flag.pos.roomName, flag.pos.x, flag.pos.y))
+                flag.remove()
+
+
+def set_as_enemy(room_name, username=None):
+    if username is None:
+        username = "Manually set"
+    stored = get_data(room_name)
+    if stored:
+        if stored.owner and stored.owner.state in [
+                    StoredEnemyRoomState.FULLY_FUNCTIONAL or StoredEnemyRoomState.RESERVED]:
+            return
+        new_data = StoredRoom.decode(_get_serialized_data(room_name))
+    else:
+        new_data = __new__(StoredRoom())
+    new_data.owner = __new__(StoredRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
+    _mem()[room_name] = encoded = new_data.encode()
+    _cached_data.set(encoded, new_data)
+    print("[storage] Successfully added {} as an enemy room.".format(room_name))

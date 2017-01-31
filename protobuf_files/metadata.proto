@@ -22,6 +22,7 @@ enum StoredEnemyRoomState {
     FULLY_FUNCTIONAL = 0;
     RESERVED = 1;
     JUST_MINING = 2;
+    OWNED_DEAD = 3;
 }
 
 message StoredRoomOwner {

@@ -745,8 +745,26 @@ function defineRoomMetadataPrototypes() {
     var StoredEnemyRoomState = global.StoredEnemyRoomState = {
         "FULLY_FUNCTIONAL": 0,
         "RESERVED": 1,
-        "JUST_MINING": 2
+        "JUST_MINING": 2,
+        "OWNED_DEAD": 3,
     };
+    var ReverseStoredStructureType = [
+        "OTHER_IMPASSABLE",
+        "ROAD",
+        "CONTROLLER",
+        "SOURCE",
+        "MINERAL",
+        "SOURCE_KEEPER_SOURCE",
+        "SOURCE_KEEPER_MINERAL",
+        "SOURCE_KEEPER_LAIR"
+    ];
+
+    var ReverseStoredEnemyRoomState = [
+        "FULLY_FUNCTIONAL",
+        "RESERVED",
+        "JUST_MINING",
+        "OWNED_DEAD"
+    ];
 
     // StoredStructure ========================================
 
@@ -757,6 +775,9 @@ function defineRoomMetadataPrototypes() {
         if (source_capacity !== undefined) {
             this.source_capacity = source_capacity;
         }
+    };
+    StoredStructure.prototype.toString = function() {
+        return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}]`;
     };
 
     StoredStructure.read = function (pbf, end) {
@@ -781,6 +802,9 @@ function defineRoomMetadataPrototypes() {
         this.name = name;
         this.state = state;
     };
+    StoredRoomOwner.prototype.toString = function () {
+        return `[${this.name}, ${ReverseStoredEnemyRoomState[this.state] || this.state}]`;
+    };
 
     StoredRoomOwner.read = function (pbf, end) {
         return pbf.readFields(StoredRoomOwner._readField, new StoredRoomOwner(), end);
@@ -803,6 +827,58 @@ function defineRoomMetadataPrototypes() {
         if (owner !== undefined) {
             this.owner = owner;
         }
+    };
+
+    StoredRoom.prototype.toString = function () {
+        let values = [];
+        if (this.owner) {
+            values.push(this.owner);
+        }
+        if (this.reservation_end) {
+            values.push(`[reservation_ends ${this.reservation_end}]`);
+        }
+        if (this.structures_last_updated) {
+            values.push(`[structures_updated ${this.structures_last_updated}]`);
+        }
+        if (this.structures) {
+            values.push(...this.structures);
+        }
+        return `[StoredRoom ${values.join(' ')}]`;
+    };
+    StoredRoom.prototype.visual = function () {
+        let rows = [];
+        for (let y = 0; y < 50; y++) {
+            let row = [];
+            for (let x = 0; x < 50; x++) {
+                row.push(' ');
+            }
+            rows.push(row);
+        }
+        for (let structure of this.structures) {
+            switch (structure.type) {
+                case StoredStructureType.CONTROLLER:
+                    rows[structure.y][structure.x] = 'C';
+                    break;
+                case StoredStructureType.ROAD:
+                    rows[structure.y][structure.x] = 'R';
+                    break;
+                case StoredStructureType.MINERAL:
+                case StoredStructureType.SOURCE_KEEPER_MINERAL:
+                    rows[structure.y][structure.x] = 'M';
+                    break;
+                case StoredStructureType.SOURCE:
+                case StoredStructureType.SOURCE_KEEPER_SOURCE:
+                    rows[structure.y][structure.x] = 'S';
+                    break;
+                case StoredStructureType.SOURCE_KEEPER_LAIR:
+                    rows[structure.y][structure.x] = 'L';
+                    break;
+                default:
+                    rows[structure.y][structure.x] = 'X';
+                    break;
+            }
+        }
+        return 'StoredRoom visual:\n' + rows.map(row => row.join(' ')).join('\n');
     };
 
     StoredRoom.read = function (pbf, end) {
