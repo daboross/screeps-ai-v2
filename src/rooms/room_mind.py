@@ -590,7 +590,7 @@ class RoomMind:
         return creep.get_replacement_time()
 
     def check_all_creeps_next_tick(self):
-        self.mem[mem_key_cache]["clear_next"] = 0
+        self.mem[mem_key_metadata]["clear_next"] = 0
 
     def precreep_tick_actions(self):
         time = Game.time
