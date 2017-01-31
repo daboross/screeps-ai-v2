@@ -131,6 +131,10 @@ def complete_refresh(hive):
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
+    for key in ['enable_profiling', 'auto_enable_profiling']:
+        if key in Memory.meta:
+            print('[consistency] Removing deprecated memory path: meta.{}'.format(key))
+            del Memory.meta[key]
     for name in Object.keys(Memory.rooms):
         mem = Memory.rooms[name]
         if '_ly' in mem:

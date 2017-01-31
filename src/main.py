@@ -198,8 +198,6 @@ def main():
     if bucket_tier != Memory.meta.last_bucket and bucket_tier:  # and bucket_tier to avoid problems in simulation
         if bucket_tier > Memory.meta.last_bucket:
             print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
-            if bucket_tier >= 6:
-                del Memory.meta.auto_enable_profiling
         else:
             print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
             if bucket_tier <= 1:
