@@ -20,7 +20,7 @@ def kiting_cost_matrix(room_name):
     cache = volatile_cache.mem("kiting_cost_matrix")
     if cache.has(room_name):
         return cache.get(room_name)
-    if hostile_utils.enemy_room(room_name):
+    if hostile_utils.enemy_using_room(room_name):
         return False
     # TODO: some of this is duplicated in honey.HoneyTrails
 
@@ -253,14 +253,14 @@ class KitingOffense(MilitaryBase):
                         self.memory.checkpoint = self.pos
                     if self.memory.next_ppos \
                             and movement.chebyshev_distance_room_pos(self.pos, self.memory.next_ppos) > 10 \
-                            and not hostile_utils.enemy_room(self.pos.roomName):
+                            and not hostile_utils.enemy_owns_room(self.pos.roomName):
                         self.memory.checkpoint = self.pos
                         del self.memory.next_ppos
                         del self.memory.off_path_for
                         del self.memory.lost_path_at
                         del self.memory._move
 
-                    if hostile_utils.enemy_room(self.memory.checkpoint.roomName):
+                    if hostile_utils.enemy_owns_room(self.memory.checkpoint.roomName):
                         self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),

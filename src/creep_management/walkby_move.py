@@ -226,7 +226,7 @@ def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
 
 
 def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
-    if hostile_utils.enemy_room(room_name) and room_name != target_room:
+    if hostile_utils.enemy_using_room(room_name) and room_name != target_room:
         return False
     if room_name not in Game.rooms:
         return __new__(PathFinder.CostMatrix())  # TODO: pull cached data here

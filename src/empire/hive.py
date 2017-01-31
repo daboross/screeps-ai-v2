@@ -38,9 +38,6 @@ class HiveMind:
         """
         :rtype: list[RoomMind]
         """
-        # Needed in RoomMind.__init__()
-        if 'enemy_rooms' not in Memory:
-            Memory.enemy_rooms = []
         if not self._my_rooms:
             my_rooms = []
             all_rooms = []

@@ -420,7 +420,7 @@ class HoneyTrails:
     def _new_cost_matrix(self, room_name, origin, destination, opts):
         paved_for = opts['paved_for']
 
-        if hostile_utils.enemy_room(room_name):
+        if hostile_utils.enemy_using_room(room_name):
             if room_name != origin.roomName and room_name != destination.roomName:
                 # print("[honey] Avoiding room {}.".format(room_name))
                 return False

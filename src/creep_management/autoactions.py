@@ -98,7 +98,7 @@ def simple_cost_matrix(room_name):
 
     room = context.hive().get_room(room_name)
     if not room:
-        if room_hostile(room_name) or hostile_utils.enemy_room(room_name):
+        if room_hostile(room_name) or hostile_utils.enemy_using_room(room_name):
             return False
         else:
             return __new__(PathFinder.CostMatrix())

@@ -1,3 +1,4 @@
+from empire import stored_data
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -17,5 +18,18 @@ def not_sk(creep):
     return creep.owner.username != "Source Keeper"
 
 
-def enemy_room(name):
-    return 'enemy_rooms' in Memory and Memory.enemy_rooms.indexOf(name) != -1
+def enemy_using_room(room_name):
+    data = stored_data.get_data(room_name)
+    if not data or not data.owner:
+        return False
+    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
+           or data.owner.state is StoredEnemyRoomState.RESERVED \
+           or data.owner.state is StoredEnemyRoomState.JUST_MINING
+
+
+def enemy_owns_room(room_name):
+    data = stored_data.get_data(room_name)
+    if not data or not data.owner:
+        return False
+    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
+           or data.owner.state is StoredEnemyRoomState.OWNED_DEAD

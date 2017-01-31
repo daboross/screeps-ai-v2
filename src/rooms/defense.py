@@ -60,7 +60,7 @@ def poll_hostiles(hive, run_away_checks):
     if 'hostiles' not in Memory:
         Memory.hostiles = {}
     for room in hive.visible_rooms:
-        if hostile_utils.enemy_room(room.name):
+        if hostile_utils.enemy_using_room(room.name):
             continue
         targets = room.defense.dangerous_hostiles()
         if len(targets):

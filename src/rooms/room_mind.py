@@ -6,6 +6,7 @@ from constants.memkeys.room import *
 from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
 from creeps.base import RoleBase
+from empire import stored_data
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from position_management import flags
@@ -15,7 +16,7 @@ from rooms.links import LinkingMind
 from rooms.minerals import MineralMind
 from rooms.mining import MiningMind
 from rooms.room_constants import *
-from utilities import movement, speech
+from utilities import hostile_utils, movement, speech
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
 __pragma__('noalias', 'name')
@@ -121,10 +122,9 @@ class RoomMind:
                          and not Memory.meta.friends.includes(self.room.controller.owner.username) \
                          and enemy_structures
             if self.enemy:
-                if not Memory.enemy_rooms.includes(self.name):
-                    Memory.enemy_rooms.push(room.name)
-            elif Memory.enemy_rooms.includes(self.name) and not enemy_structures:
-                Memory.enemy_rooms.splice(Memory.enemy_rooms.indexOf(self.name), 1)
+                stored = stored_data.get_data(self.name)
+                if not stored or not stored.owner:
+                    stored_data.update_data(self.room)
         else:
             self.enemy = False
         if mem_key_sponsor in self.mem:
@@ -1798,7 +1798,8 @@ class RoomMind:
 
             def _needs_claim(flag):
                 c_m_cost = BODYPART_COST[MOVE] + BODYPART_COST[CLAIM]
-                if Memory.enemy_rooms.includes(flag.pos.roomName) and self.room.energyCapacityAvailable < c_m_cost * 5:
+                if self.room.energyCapacityAvailable < c_m_cost * 5 \
+                        and hostile_utils.enemy_owns_room(flag.pos.roomName):
                     return False
                 elif flag.pos.roomName not in Game.rooms:
                     return True
@@ -1813,7 +1814,7 @@ class RoomMind:
 
             needed = _.find(flag_list, _needs_claim)
             if needed:
-                if Memory.enemy_rooms.includes(needed.pos.roomName):
+                if hostile_utils.enemy_owns_room(needed.pos.roomName):
                     return self.get_spawn_for_flag(role_simple_claim, creep_base_claim_attack,
                                                    creep_base_claim_attack, needed)
                 else:
