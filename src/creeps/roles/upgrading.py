@@ -95,7 +95,7 @@ class Upgrader(RoleBase):
                 if upgraders:
                     small = None
                     for name, replacement_time in upgraders:
-                        creep = Game.creep[name]
+                        creep = Game.creeps[name]
                         if creep:
                             if replacement_time <= Game.time:
                                 creep.suicide()
