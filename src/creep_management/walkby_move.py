@@ -2,7 +2,6 @@ from cache import volatile_cache
 from constants import *
 from empire import stored_data
 from jstools.screeps import *
-from position_management import flags
 from utilities import hostile_utils
 
 __pragma__('noalias', 'name')
@@ -169,6 +168,7 @@ def _create_basic_room_cost_matrix(room_name):
     matrix = __new__(PathFinder.CostMatrix())
     room = Game.rooms[room_name]
     if room:
+        any_lairs = False
         for structure in room.find(FIND_STRUCTURES):
             if structure.structureType == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
                 continue
@@ -178,6 +178,8 @@ def _create_basic_room_cost_matrix(room_name):
                 continue
             if structure.structureType == STRUCTURE_CONTAINER:
                 continue
+            if structure.structureType == STRUCTURE_KEEPER_LAIR:
+                any_lairs = True
             matrix.set(structure.pos.x, structure.pos.y, 255)
         for site in room.find(FIND_MY_CONSTRUCTION_SITES):
             if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
@@ -189,6 +191,15 @@ def _create_basic_room_cost_matrix(room_name):
         if not room.controller or not room.controller.my or not room.controller.safeMode:
             for creep in room.find(FIND_HOSTILE_CREEPS):
                 matrix.set(creep.pos.x, creep.pos.y, 255)
+        if any_lairs:
+            for source in room.find(FIND_SOURCES):
+                for x in range(source.pos.x - 4, source.pos.x + 5):
+                    for y in range(source.pos.y - 4, source.pos.y + 5):
+                        matrix.set(x, y, 250)
+            for mineral in room.find(FIND_MINERALS):
+                for x in range(mineral.pos.x - 4, mineral.pos.x + 5):
+                    for y in range(mineral.pos.y - 4, mineral.pos.y + 5):
+                        matrix.set(x, y, 250)
     else:
         data = stored_data.get_data(room_name)
         if not data:
@@ -206,11 +217,6 @@ def _create_basic_room_cost_matrix(room_name):
 
 def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
     multiplier = 2 if roads else 1
-    # Add source keeper lairs
-    for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
-        for x in range(flag.pos.x - 4, flag.pos.x + 5):
-            for y in range(flag.pos.y - 4, flag.pos.y + 5):
-                cost_matrix.set(x, y, 255)
     # Add a small avoidance for exits
     for x in [0, 49]:
         for y in range(0, 49):

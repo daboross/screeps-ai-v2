@@ -1,6 +1,7 @@
 from cache import context, volatile_cache
-from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, SK_LAIR_SOURCE_NOTED, target_single_flag
+from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, target_single_flag
 from creeps.behaviors.military import MilitaryBase
+from empire import stored_data
 from jstools import errorlog
 from jstools.screeps import *
 from position_management import flags
@@ -52,22 +53,38 @@ def kiting_cost_matrix(room_name):
     room = context.hive().get_room(room_name)
 
     if room:
+        any_lairs = False
         for struct in room.find(FIND_STRUCTURES):
             if struct.structureType == STRUCTURE_ROAD:
                 cost_matrix.set(struct.pos.x, struct.pos.y, 1)
             elif struct.structureType != STRUCTURE_CONTAINER and (struct.structureType != STRUCTURE_RAMPART
                                                                   or not struct.my):
+                if struct.structureType == STRUCTURE_KEEPER_LAIR:
+                    any_lairs = True
                 cost_matrix.set(struct.pos.x, struct.pos.y, 255)
         for creep in room.find(FIND_MY_CREEPS):
             cost_matrix.set(creep.pos.x, creep.pos.y, 255)
+        if any_lairs:
+            for source in room.find(FIND_SOURCES):
+                set_in_range(source.pos, 4, 255, 0)
+            for mineral in room.find(FIND_MINERALS):
+                set_in_range(mineral.pos, 4, 255, 0)
+    else:
+        data = stored_data.get_data(room_name)
+        for obstacle in data.structures:
+            if obstacle.type == StoredStructureType.ROAD:
+                cost_matrix.set(obstacle.x, obstacle.y, 1)
+            elif obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR \
+                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                set_in_range(obstacle, 4, 255, 0)
+            else:
+                cost_matrix.set(obstacle.x, obstacle.y, 255)
 
     for info in defense.stored_hostiles_in(room_name):
         x, y = positions.deserialize_xy(info.pos)
         set_in_range_xy(x, y, 3, 5, 10)
         cost_matrix.set(x, y, 255)
-
-    for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
-        set_in_range(flag.pos, 4, 255, 0)
 
     for x in [0, 49]:
         for y in range(0, 49):

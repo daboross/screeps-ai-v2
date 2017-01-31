@@ -1,8 +1,7 @@
-from constants import INVADER_USERNAME, SCOUT, SK_LAIR_SOURCE_NOTED, target_single_flag
+from constants import INVADER_USERNAME, SCOUT, target_single_flag
 from creeps.behaviors.military import MilitaryBase
 from empire import stored_data
 from jstools.screeps import *
-from position_management import flags
 from utilities import movement, positions
 
 __pragma__('noalias', 'name')
@@ -58,19 +57,12 @@ class Scout(MilitaryBase):
                 if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
                         and not (rrx == 5 and rry == 5):
                     # should be a source keeper room
-                    if not len(flags.find_flags(self.room, SK_LAIR_SOURCE_NOTED)):
-                        for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
-                            if lair.structureType == STRUCTURE_KEEPER_LAIR:
-                                if not flags.look_for(self.room, lair, SK_LAIR_SOURCE_NOTED):
-                                    flags.create_flag(lair, SK_LAIR_SOURCE_NOTED)
-                                lair_count += 1
-                        if lair_count:
-                            for source in self.room.find(FIND_SOURCES).concat(self.room.find(FIND_MINERALS)):
-                                if not flags.look_for(self.room, source, SK_LAIR_SOURCE_NOTED):
-                                    flags.create_flag(source, SK_LAIR_SOURCE_NOTED)
-                        else:
-                            self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
-                                     .format(self.pos.roomName))
+                    for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
+                        if lair.structureType == STRUCTURE_KEEPER_LAIR:
+                            lair_count += 1
+                    else:
+                        self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
+                                 .format(self.pos.roomName))
                 if lair_count > 0:
                     # recalculate_path_next
                     self.memory.rp = self.pos.roomName

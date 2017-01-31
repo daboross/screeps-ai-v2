@@ -1,7 +1,7 @@
 import math
 
 from cache import global_cache
-from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
+from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
     global_cache_mining_paths_suffix, global_cache_swamp_paths_suffix, role_miner
 from creep_management import mining_paths
 from empire import stored_data
@@ -417,11 +417,6 @@ def mark_flags(matrix):
     """
     :type matrix: CustomCostMatrix
     """
-    for flag in flags.find_flags(matrix.room_name, SK_LAIR_SOURCE_NOTED):
-        for x in range(flag.pos.x - 4, flag.pos.x + 5):
-            for y in range(flag.pos.y - 4, flag.pos.y + 5):
-                matrix.set_impassable(x, y)
-
     slightly_avoid = flags.find_flags(matrix.room_name, SLIGHTLY_AVOID) \
         .concat(flags.find_flags(matrix.room_name, UPGRADER_SPOT))
     if len(slightly_avoid):
@@ -612,8 +607,7 @@ class HoneyTrails:
                         for yy in range(y - 1, y + 1):
                             matrix.increase_at(xx, yy, _COST_TYPE_AVOID_CONTROLLER, 10 * plain_cost)
                 return
-            if stored_type == StoredStructureType.SOURCE or stored_type == StoredStructureType.SOURCE_KEEPER_SOURCE \
-                    or stored_type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+            if stored_type == StoredStructureType.SOURCE:
                 if probably_mining:
                     for xx in range(x - 1, x + 2):
                         for yy in range(y - 1, y + 2):
@@ -627,6 +621,13 @@ class HoneyTrails:
                             for xx in range(x - 3, x + 4):
                                 for yy in range(y - 3, y + 4):
                                     matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 6 * plain_cost)
+                return
+            if stored_type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                    or stored_type == StoredStructureType.SOURCE_KEEPER_MINERAL \
+                    or stored_type == StoredStructureType.SOURCE_KEEPER_LAIR:
+                for xx in range(x - 4, x + 5):
+                    for yy in range(y - 4, y + 5):
+                        matrix.set_impassable(x, y)
                 return
 
             if structure_type:
@@ -642,6 +643,7 @@ class HoneyTrails:
 
         # Use data even if we have vision, to avoid extra find calls
         if room and (room.my or probably_mining or paved_for or not room_data):
+            any_lairs = False
             for struct in room.find(FIND_STRUCTURES):
                 structure_type = struct.structureType
                 if structure_type == STRUCTURE_CONTAINER or (structure_type == STRUCTURE_RAMPART and struct.my):
@@ -652,6 +654,7 @@ class HoneyTrails:
                     sstype = StoredStructureType.CONTROLLER
                 elif structure_type == STRUCTURE_KEEPER_LAIR:
                     sstype = StoredStructureType.SOURCE_KEEPER_LAIR
+                    any_lairs = True
                 else:
                     sstype = StoredStructureType.OTHER_IMPASSABLE
                 set_matrix(struct.pos.x, struct.pos.y, sstype, False, structure_type)
@@ -672,13 +675,17 @@ class HoneyTrails:
                         continue
                     set_matrix(struct.pos.x, struct.pos.y, StoredStructureType.OTHER_IMPASSABLE, True, structure_type)
             for source in room.find(FIND_SOURCES):
-                if room.my and room.mining.is_mine_linked(source):
+                if any_lairs:
+                    set_matrix(source.pos.x, source.pos.y, StoredStructureType.SOURCE_KEEPER_SOURCE, False, None)
+                elif room.my and room.mining.is_mine_linked(source):
                     set_matrix(source.pos.x, source.pos.y, StoredStructureType.SOURCE, False,
                                _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE)
                 else:
                     set_matrix(source.pos.x, source.pos.y, StoredStructureType.SOURCE, False, None)
-            if room.my:
-                for mineral in room.find(FIND_MINERALS):
+            for mineral in room.find(FIND_MINERALS):
+                if any_lairs:
+                    set_matrix(mineral.pos.x, mineral.pos.y, StoredStructureType.SOURCE_KEEPER_MINERAL, False, None)
+                else:
                     set_matrix(mineral.pos.x, mineral.pos.y, StoredStructureType.MINERAL, False, None)
             for flag in spawn_fill_wait_flags:
                 matrix.set_impassable(flag.pos.x, flag.pos.y)
