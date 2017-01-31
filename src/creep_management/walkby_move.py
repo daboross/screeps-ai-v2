@@ -1,5 +1,6 @@
 from cache import volatile_cache
 from constants import *
+from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from utilities import hostile_utils
@@ -166,30 +167,40 @@ def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_rol
 
 def _create_basic_room_cost_matrix(room_name):
     matrix = __new__(PathFinder.CostMatrix())
-    if room_name not in Game.rooms:
-        return matrix  # TODO: pull data from HoneyTrails cache
     room = Game.rooms[room_name]
-
-    for structure in room.find(FIND_STRUCTURES):
-        if structure.structureType == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
-            continue
-        if structure.structureType == STRUCTURE_ROAD:
-            if matrix.get(structure.pos.x, structure.pos.y) <= 2:
-                matrix.set(structure.pos.x, structure.pos.y, 1)
-            continue
-        if structure.structureType == STRUCTURE_CONTAINER:
-            continue
-        matrix.set(structure.pos.x, structure.pos.y, 255)
-    for site in room.find(FIND_MY_CONSTRUCTION_SITES):
-        if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
-                or site.structureType == STRUCTURE_CONTAINER:
-            continue
-        matrix.set(site.pos.x, site.pos.y, 255)
-    # Note: this depends on room being a regular Room, not a RoomMind, since RoomMind.find(FIND_HOSTILE_CREEPS)
-    # excludes allies!
-    if not room.controller or not room.controller.my or not room.controller.safeMode:
-        for creep in room.find(FIND_HOSTILE_CREEPS):
-            matrix.set(creep.pos.x, creep.pos.y, 255)
+    if room:
+        for structure in room.find(FIND_STRUCTURES):
+            if structure.structureType == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
+                continue
+            if structure.structureType == STRUCTURE_ROAD:
+                if matrix.get(structure.pos.x, structure.pos.y) <= 2:
+                    matrix.set(structure.pos.x, structure.pos.y, 1)
+                continue
+            if structure.structureType == STRUCTURE_CONTAINER:
+                continue
+            matrix.set(structure.pos.x, structure.pos.y, 255)
+        for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+            if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
+                    or site.structureType == STRUCTURE_CONTAINER:
+                continue
+            matrix.set(site.pos.x, site.pos.y, 255)
+        # Note: this depends on room being a regular Room, not a RoomMind, since RoomMind.find(FIND_HOSTILE_CREEPS)
+        # excludes allies!
+        if not room.controller or not room.controller.my or not room.controller.safeMode:
+            for creep in room.find(FIND_HOSTILE_CREEPS):
+                matrix.set(creep.pos.x, creep.pos.y, 255)
+    else:
+        data = stored_data.get_data(room_name)
+        if not data:
+            return matrix
+        for obstacle in data.structures:
+            if obstacle.type == StoredStructureType.ROAD:
+                matrix.set(obstacle.x, obstacle.y, 255)
+            elif obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                for x in range(obstacle.x - 4, obstacle.x + 5):
+                    for y in range(obstacle.y - 4, obstacle.y + 5):
+                        matrix.set(x, y, 250)
     return matrix
 
 
