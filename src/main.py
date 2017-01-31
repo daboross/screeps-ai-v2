@@ -7,6 +7,7 @@ from constants import default_roles, rmem_key_pause_all_room_operations, role_ha
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
+from empire import honey
 from empire import stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind
@@ -371,6 +372,7 @@ __pragma__('js', 'global').py = {
     "meminfo": memory_info,
     "minerals": minerals,
     "stored_data": stored_data,
+    "honey": honey,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,

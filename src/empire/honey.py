@@ -2,11 +2,12 @@ import math
 
 from cache import global_cache
 from constants import SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
-    global_cache_mining_roads_suffix
+    global_cache_mining_paths_suffix, global_cache_swamp_paths_suffix, role_miner
 from creep_management import mining_paths
+from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
-from utilities import hostile_utils, movement
+from utilities import movement, positions
 from utilities.movement import dxdy_to_direction
 
 __pragma__('noalias', 'name')
@@ -133,14 +134,6 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
     return result_obj
 
 
-def clear_serialized_cost_matrix(room_name):
-    for i in range(0, 10):
-        key = "{}_cost_matrix_{}".format(room_name, i)
-        if global_cache.has(key):
-            print("[honey][clear_serialized_cost_matrix] Clearing {}.".format(key))
-            global_cache.rem(key)
-
-
 def get_global_cache_key(origin, destination, opts):
     if opts:
         if opts['ignore_swamp']:  # Default false
@@ -152,7 +145,7 @@ def get_global_cache_key(origin, destination, opts):
                 destination.roomName,
                 destination.x,
                 destination.y,
-                'swl'
+                global_cache_swamp_paths_suffix,
             ])
         elif opts['paved_for']:  # Default false
             return '_'.join([
@@ -163,7 +156,18 @@ def get_global_cache_key(origin, destination, opts):
                 destination.roomName,
                 destination.x,
                 destination.y,
-                global_cache_mining_roads_suffix
+                global_cache_mining_paths_suffix
+            ])
+        elif not opts['use_roads']:  # Default true
+            return '_'.join([
+                'path',
+                origin.roomName,
+                origin.x,
+                origin.y,
+                destination.roomName,
+                destination.x,
+                destination.y,
+                global_cache_mining_paths_suffix
             ])
 
     return '_'.join([
@@ -177,7 +181,307 @@ def get_global_cache_key(origin, destination, opts):
     ])
 
 
+__pragma__('skip')  # Real class defined below
+
+
+class CustomCostMatrix:
+    """
+    :type room_name: str
+    :type plain_cost: int
+    :type swamp_cost: int
+    :type cost_matrix: CustomCostMatrix.CostMatrix
+    """
+
+    class CostMatrix:
+        def __init__(self):
+            self.data = []
+
+        def get(self, x, y):
+            return self.data[x * 50 + y]
+
+        def set(self, x, y, value):
+            self.data[x * 50 + y] = value
+
+    def __init__(self, room_name, plain_cost, swamp_cost, debug):
+        """
+        :type room_name: str
+        :type plain_cost: int
+        :type swamp_cost: int
+        """
+        self.room_name = room_name
+        self.plain_cost = plain_cost
+        self.swamp_cost = swamp_cost
+        self.cost_matrix = CustomCostMatrix.CostMatrix()
+        self.debug = not not debug
+        raise NotImplementedError
+
+    def get(self, x, y):
+        """
+        :type x: int
+        :type y: int
+        :rtype: int
+        """
+        raise NotImplementedError
+
+    def get_existing(self, x, y):
+        """
+        :type x: int
+        :type y: int
+        :rtype: int
+        """
+        raise NotImplementedError
+
+    def set(self, x, y, value):
+        """
+        :type x: int
+        :type y: int
+        "type value: int
+        """
+        raise NotImplementedError
+
+    def set_impassable(self, x, y):
+        """
+        :type x: int
+        :type y: int
+        """
+        raise NotImplementedError
+
+    def increase_at(self, x, y, cost_type, added):
+        """
+        :type x: int
+        :type y: int
+        :type cost_type: int
+        :type added: int
+        """
+        raise NotImplementedError
+
+    def visual(self):
+        """
+        :rtype str
+        """
+        raise NotImplementedError
+
+
+__pragma__('noskip')
+
+
+# noinspection PyPep8Naming
+def _create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug):  # actual version of the above
+    this.cost_matrix = __new__(PathFinder.CostMatrix())
+    this.room_name = room_name
+    this.plain_cost = plain_cost
+    this.swamp_cost = swamp_cost
+    this.added_at = {}
+    if debug:
+        this.debug = True
+
+
+def create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug):
+    """
+    :rtype: CustomCostMatrix
+    :param room_name: The room name
+    :param plain_cost: The plain cost
+    :param swamp_cost: The swamp cost
+    :return: The custom cost matrix
+    """
+    return __new__(_create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug))
+
+
+def _cma_get(x, y):
+    return this.cost_matrix.get(x, y)
+
+
+def _cma_set(x, y, value):
+    if this.debug:
+        print('[DEBUG][ccm][{}] Setting {},{} as {}.'.format(this.room_name, x, y, value))
+    return this.cost_matrix.set(x, y, value)
+
+
+def _cma_set_impassable(x, y):
+    if this.debug:
+        print('[DEBUG][ccm][{}] Setting {},{} as impassable.'.format(this.room_name, x, y))
+    return this.cost_matrix.set(x, y, 255)
+
+
+def _cma_get_existing(x, y):
+    existing = this.cost_matrix.get(x, y)
+    if existing == 0:
+        terrain = Game.map.getTerrainAt(x, y, this.room_name)
+        if terrain[0] is 'p':
+            return this.plain_cost
+        elif terrain[0] is 's':
+            return this.swamp_cost
+        else:
+            return 255
+    return existing
+
+
+def _cma_increase_at(x, y, cost_type, added):
+    existing = this.get_existing(x, y)
+    if existing >= 255:
+        return
+
+    ser = positions.serialize_xy(x, y)
+    if cost_type in this.added_at:
+        cost_map = this.added_at[cost_type]
+    else:
+        cost_map = this.added_at[cost_type] = __new__(Set())
+    if cost_map.has(ser):
+        return
+    cost_map.add(ser)
+
+    if this.debug:
+        print('[DEBUG][ccm][{}] Increasing {},{} from {} to {}.'
+              .format(this.room_name, x, y, existing, existing + added))
+
+    this.cost_matrix.set(x, y, existing + added)
+
+
+def _cma_visual():
+    rows = []
+    for y in range(0, 50):
+        row = []
+        for x in range(0, 50):
+            value = this.get(x, y)
+            if value == 0:
+                terrain = Game.map.getTerrainAt(x, y, this.room_name)
+                if terrain[0] is 'p':
+                    row.push('  ')
+                elif terrain[0] is 's':
+                    row.push('SS')
+                else:
+                    row.push('WW')
+            elif value < this.swamp_cost:
+                if this.swamp_cost < 10:
+                    row.push('R' + str(value))
+                else:
+                    row.push('R+')
+            elif value < 255:
+                row.push('X' + str(math.floor(value / 255 * 10)))
+            else:
+                row.push('XX')
+        rows.push(' '.join(row))
+    return '\n'.join(rows)
+
+
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.get = _cma_get
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.set = _cma_set
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.get_existing = _cma_get_existing
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.set_impassable = _cma_set_impassable
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.increase_at = _cma_increase_at
+# noinspection PyUnresolvedReferences
+_create_custom_cost_matrix.prototype.visual = _cma_visual
+
+_COST_TYPE_EXIT_TILES = 0
+_COST_TYPE_SLIGHTLY_AVOID = 1
+_COST_TYPE_MAX_AVOID = 2
+_COST_TYPE_AVOID_SOURCE = 4
+_COST_TYPE_AVOID_CONTROLLER = 5
+_COST_TYPE_AVOID_STORAGE = 6
+_COST_TYPE_AVOID_EXTENSIONS = 7
+_LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE = '--linked--'
+
+
+def mark_exit_tiles(matrix):
+    """
+    :type matrix: CustomCostMatrix
+    """
+    plain_cost = matrix.plain_cost
+    room_name = matrix.room_name
+
+    room_x, room_y = movement.parse_room_to_xy(room_name)
+    rrx = (-room_x - 1 if room_x < 0 else room_x) % 10
+    rry = (-room_y - 1 if room_y < 0 else room_y) % 10
+    if rrx == 0 or rry == 0:
+        for x in [0, 49]:
+            for y in range(0, 50):
+                matrix.increase_at(x, y, _COST_TYPE_EXIT_TILES, 1 * plain_cost)
+        for y in [0, 49]:
+            for x in range(0, 50):
+                matrix.increase_at(x, y, _COST_TYPE_EXIT_TILES, 1 * plain_cost)
+    else:
+        for x in [0, 49]:
+            for y in range(0, 50):
+                matrix.increase_at(x, y, _COST_TYPE_EXIT_TILES, 2 * plain_cost)
+        for y in [0, 49]:
+            for x in range(0, 50):
+                matrix.increase_at(x, y, _COST_TYPE_EXIT_TILES, 2 * plain_cost)
+
+
+def mark_flags(matrix):
+    """
+    :type matrix: CustomCostMatrix
+    """
+    for flag in flags.find_flags(matrix.room_name, SK_LAIR_SOURCE_NOTED):
+        for x in range(flag.pos.x - 4, flag.pos.x + 5):
+            for y in range(flag.pos.y - 4, flag.pos.y + 5):
+                matrix.set_impassable(x, y)
+
+    slightly_avoid = flags.find_flags(matrix.room_name, SLIGHTLY_AVOID) \
+        .concat(flags.find_flags(matrix.room_name, UPGRADER_SPOT))
+    if len(slightly_avoid):
+        for flag in slightly_avoid:
+            matrix.increase_at(flag.pos.x, flag.pos.y, _COST_TYPE_SLIGHTLY_AVOID, 2 * matrix.plain_cost)
+
+
+def set_max_avoid(matrix, opts):
+    """
+    :type matrix: CustomCostMatrix
+    :type opts: dict[str, object]
+    """
+    if opts['max_avoid']:
+        room_name = matrix.room_name
+        plain_cost = matrix.plain_cost
+        if matrix.room_name in opts['max_avoid']:
+            print("Setting max_avoid in room {}".format(room_name))
+            for x in range(0, 49):
+                for y in range(0, 49):
+                    matrix.increase_at(x, y, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
+            return True
+        else:
+            for direction, other_room in _.pairs(Game.map.describeExits(room_name)):
+                if other_room in opts['max_avoid']:
+                    print("Setting max_avoid on the {} of room {}".format(
+                        {TOP: "top", BOTTOM: "bottom", LEFT: "left", RIGHT: "right"}[direction], room_name))
+                    if direction == TOP:
+                        for x in range(0, 49):
+                            matrix.increase_at(x, 0, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
+                    elif direction == BOTTOM:
+                        for x in range(0, 49):
+                            matrix.increase_at(x, 49, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
+                    elif direction == LEFT:
+                        for y in range(0, 49):
+                            matrix.increase_at(0, y, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
+                    elif direction == RIGHT:
+                        for y in range(0, 49):
+                            matrix.increase_at(49, y, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
+
+
 __pragma__('fcall')
+
+
+def get_default_max_ops(origin, destination, opts):
+    linear_distance = movement.chebyshev_distance_room_pos(origin, destination)
+    ops = linear_distance * 200
+    if opts['paved_for']:
+        ops *= 5
+    elif 'use_roads' not in opts or opts['use_roads']:
+        ops *= 2
+    return ops
+
+
+def clear_cached_path(origin, destination, opts=None):
+    if origin.pos:
+        origin = origin.pos
+    if destination.pos:
+        destination = destination.pos
+    key = get_global_cache_key(origin, destination, opts)
+    global_cache.rem(key)
 
 
 class HoneyTrails:
@@ -188,276 +492,52 @@ class HoneyTrails:
     def __init__(self, hive):
         self.hive = hive
 
-    def mark_exit_tiles(self, room_name, matrix, opts):
-        plain_cost = opts['plain_cost']
-
-        room_x, room_y = movement.parse_room_to_xy(room_name)
-        rrx = (-room_x - 1 if room_x < 0 else room_x) % 10
-        rry = (-room_y - 1 if room_y < 0 else room_y) % 10
-        if rrx == 0 or rry == 0:
-            for x in [0, 49]:
-                for y in range(0, 50):
-                    if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 1 * plain_cost)
-            for y in [0, 49]:
-                for x in range(0, 50):
-                    if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 1 * plain_cost)
-        else:
-            for x in [0, 49]:
-                for y in range(0, 50):
-                    if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 2 * plain_cost)
-            for y in [0, 49]:
-                for x in range(0, 50):
-                    if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                        matrix.set(x, y, 2 * plain_cost)
-
-    def mark_flags(self, room_name, matrix, opts):
-        for flag in flags.find_flags(room_name, SK_LAIR_SOURCE_NOTED):
-            for x in range(flag.pos.x - 4, flag.pos.x + 5):
-                for y in range(flag.pos.y - 4, flag.pos.y + 5):
-                    matrix.set(x, y, 255)
-
-        slightly_avoid = flags.find_flags(room_name, SLIGHTLY_AVOID) \
-            .concat(flags.find_flags(room_name, UPGRADER_SPOT))
-        if len(slightly_avoid):
-            cost = 2 * opts['plain_cost']
-            for flag in slightly_avoid:
-                if Game.map.getTerrainAt(flag.pos.x, flag.pos.y, room_name) != 'wall' \
-                        and matrix.get(flag.pos.x, flag.pos.y) < cost:
-                    matrix.set(flag.pos.x, flag.pos.y, cost)
-
-    def set_max_avoid(self, room_name, matrix, opts):
-        if opts['max_avoid']:
-            plain_cost = opts['plain_cost']
-            if room_name in opts['max_avoid']:
-                print("Setting max_avoid in room {}".format(room_name))
-                for x in range(0, 49):
-                    for y in range(0, 49):
-                        if Game.map.getTerrainAt(x, y, room_name) != 'wall':
-                            matrix.set(x, y, plain_cost * 20)
-                return True
-            for direction, other_room in _.pairs(Game.map.describeExits(room_name)):
-                if other_room in opts['max_avoid']:
-                    print("Setting max_avoid on the {} of room {}".format(
-                        {TOP: "top", BOTTOM: "bottom", LEFT: "left", RIGHT: "right"}[direction], room_name))
-                    if direction == TOP:
-                        for x in range(0, 49):
-                            if Game.map.getTerrainAt(x, 0, room_name) != 'wall':
-                                matrix.set(x, 0, 20 * plain_cost)
-                    elif direction == BOTTOM:
-                        for x in range(0, 49):
-                            if Game.map.getTerrainAt(x, 49, room_name) != 'wall':
-                                matrix.set(x, 49, 20 * plain_cost)
-                    elif direction == LEFT:
-                        for y in range(0, 49):
-                            if Game.map.getTerrainAt(0, y, room_name) != 'wall':
-                                matrix.set(0, y, 20 * plain_cost)
-                    elif direction == RIGHT:
-                        for y in range(0, 49):
-                            if Game.map.getTerrainAt(49, y, room_name) != 'wall':
-                                matrix.set(49, y, 20 * plain_cost)
-
-    def generate_serialized_cost_matrix(self, room_name):
-        if not global_cache.has("{}_cost_matrix_{}".format(room_name, 1)):
-            self.get_generic_cost_matrix(room_name, {'roads': False})
-        if not global_cache.has("{}_cost_matrix_{}".format(room_name, 2)):
-            self.get_generic_cost_matrix(room_name, {'roads': True})
-
-    def get_generic_cost_matrix(self, room_name, opts):
-        """
-        Gets a generic cost matrix, accepting slightly different options from find_path() methods
-        :param room_name: Room name to get the cost matrix for
-        :param opts: {'roads': True|False}
-        :return: A cost matrix
-        """
-        plain_cost = opts['plain_cost'] or 1
-        swamp_cost = opts['swamp_cost'] or 5
-
-        serialization_key = "{}_cost_matrix_{}".format(room_name, plain_cost)
-        serialized = global_cache.get(serialization_key)
-        if serialized:
-            cost_matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
-            self.set_max_avoid(room_name, cost_matrix, opts)
-            return cost_matrix
-
-        room = self.hive.get_room(room_name)
-        if not room:
-            return None
-
-        def wall_at(x, y):
-            return Game.map.getTerrainAt(x, y, room_name) == 'wall'
-
-        def increase_by(x, y, added):
-            existing = cost_matrix.get(x, y)
-            if existing == 0:
-                terrain = Game.map.getTerrainAt(x, y, room_name)
-                if terrain[0] is 'p':
-                    existing = plain_cost
-                elif terrain[0] is 's':
-                    existing = swamp_cost
-                else:
-                    return
-            cost_matrix.set(x, y, existing + added)
-
-        if room.my:
-            spawn_fill_wait_flags = flags.find_flags(room, SPAWN_FILL_WAIT)
-            if len(spawn_fill_wait_flags):
-                avoid_extensions = False
-            else:
-                avoid_extensions = True
-        else:
-            avoid_extensions = False
-            spawn_fill_wait_flags = []
-
-        if room.my:
-            upgrader_wait_flags = flags.find_flags(room, UPGRADER_SPOT)
-            if len(upgrader_wait_flags):
-                avoid_controller = False
-            else:
-                avoid_controller = True
-        else:
-            avoid_controller = False
-            upgrader_wait_flags = []
-
-        cost_matrix = __new__(PathFinder.CostMatrix())
-
-        self.mark_exit_tiles(room_name, cost_matrix, opts)
-        self.mark_flags(room_name, cost_matrix, opts)
-
-        def set_matrix(stype, pos, my):
-            if stype == STRUCTURE_ROAD or (stype == STRUCTURE_RAMPART and my) or stype == STRUCTURE_CONTAINER:
-                if stype == STRUCTURE_ROAD:
-                    existing = cost_matrix.get(pos.x, pos.y)
-                    if existing < 255 and not wall_at(pos.x, pos.y):
-                        if existing != 0 and existing > plain_cost:  # manually set
-                            cost_matrix.set(pos.x, pos.y, existing - 2)
-                        else:
-                            cost_matrix.set(pos.x, pos.y, 1)
-                return
-            cost_matrix.set(pos.x, pos.y, 255)
-            if my:
-                if avoid_extensions and (stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION):
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 9 * plain_cost)
-                elif stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK:
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 6 * plain_cost)
-                elif stype == STRUCTURE_CONTROLLER:
-                    if avoid_controller:
-                        for x in range(pos.x - 3, pos.x + 4):
-                            for y in range(pos.y - 3, pos.y + 4):
-                                increase_by(x, y, 4 * plain_cost)
-                        for x in range(pos.x - 2, pos.x + 3):
-                            for y in range(pos.y - 2, pos.y + 3):
-                                increase_by(x, y, 2 * plain_cost)
-                        for x in range(pos.x - 1, pos.x + 2):
-                            for y in range(pos.y - 1, pos.y + 2):
-                                increase_by(x, y, 13 * plain_cost)
-                    else:
-                        for x in range(pos.x - 1, pos.x + 2):
-                            for y in range(pos.y - 1, pos.y + 2):
-                                increase_by(x, y, math.ceil(plain_cost / 2))
-                elif stype == '--source':
-                    for x in range(pos.x - 3, pos.x + 4):
-                        for y in range(pos.y - 3, pos.y + 4):
-                            increase_by(x, y, 4 * plain_cost)
-                    for x in range(pos.x - 2, pos.x + 3):
-                        for y in range(pos.y - 2, pos.y + 3):
-                            increase_by(x, y, 2 * plain_cost)
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 11 * plain_cost)
-                elif stype == '--linked-source':
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 10 * plain_cost)
-            cost_matrix.set(pos.x, pos.y, 255)
-
-        for struct in room.find(FIND_STRUCTURES):
-            set_matrix(struct.structureType, struct.pos, struct.my or (not struct.owner))
-        for site in room.find(FIND_CONSTRUCTION_SITES):
-            set_matrix(site.structureType, site.pos, site.my)
-        for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
-            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True)
-        for source in room.find(FIND_SOURCES):
-            if room.my and room.mining.is_mine_linked(source):
-                set_matrix("--linked-source", source.pos, True)
-            else:
-                set_matrix("--source", source.pos, True)
-        for flag in spawn_fill_wait_flags:
-            cost_matrix.set(flag.pos.x, flag.pos.y, 255)
-        for flag in upgrader_wait_flags:
-            cost_matrix.set(flag.pos.x, flag.pos.y, 255)
-
-        # Make room for the link manager creep! This can cause problems if not included.
-        if room.my and room.room.storage and room.links.main_link:
-            ml = room.links.main_link
-            storage = room.room.storage
-            if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
-                    and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
-                cost_matrix.set(ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255)
-            elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
-                    and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
-                cost_matrix.set((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255)
-            else:
-                for x in range(ml.pos.x - 1, ml.pos.x + 2):
-                    for y in range(ml.pos.y - 1, ml.pos.y + 2):
-                        if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
-                            cost_matrix.set(x, y, 255)
-
-        serialized = JSON.stringify(cost_matrix.serialize())
-        cache_for = 100 if room.my else 10000
-        global_cache.set(serialization_key, serialized, cache_for)
-
-        self.set_max_avoid(room_name, cost_matrix, opts)
-
-        return cost_matrix
-
     def _new_cost_matrix(self, room_name, origin, destination, opts):
         paved_for = opts['paved_for']
 
-        if hostile_utils.enemy_using_room(room_name):
+        room_data = stored_data.get_data(room_name)
+        room = self.hive.get_room(room_name)
+
+        if room_data and room_data.owner:
+            if room_data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL:
+                if room_name != origin.roomName and room_name != destination.roomName:
+                    # print("[honey] Avoiding room {}.".format(room_name))
+                    return False
+                else:
+                    print("[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!"
+                          .format(origin, destination, room_data.owner.name, room_name))
+            elif room_data.owner.state is StoredEnemyRoomState.RESERVED \
+                    and not Memory.meta.friends.includes(room_data.owner.name):
+                if room_name != origin.roomName and room_name != destination.roomName:
+                    # print("[honey] Avoiding room {}.".format(room_name))
+                    return False
+                else:
+                    print("[honey] Warning: path {}-{} ends up in a friendly mining room ({})!"
+                          .format(origin, destination, room_name))
+            elif room_data.owner.state is StoredEnemyRoomState.JUST_MINING:
+                print("[honey] Warning: path {}-{} may pass through {}'s mining room, {}"
+                      .format(origin, destination, room_data.owner.name, room_name))
+        elif room and room.enemy:
+            # TODO: add the granularity we have above down here.
             if room_name != origin.roomName and room_name != destination.roomName:
                 # print("[honey] Avoiding room {}.".format(room_name))
                 return False
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
-                      .format(origin, destination, room_name))
+                      .format(origin, destination, room_data.owner.name, room_name))
 
         plain_cost = opts['plain_cost'] or 1
         swamp_cost = opts['swamp_cost'] or 5
-        room = self.hive.get_room(room_name)
-        if (room_name != origin.roomName and room_name != destination.roomName and not paved_for) or not room:
-            if paved_for:
-                serialized = global_cache.get("{}_cost_matrix_{}".format(room_name, plain_cost))
-                if serialized:
-                    matrix = PathFinder.CostMatrix.deserialize(JSON.parse(serialized))
-                    self.set_max_avoid(room_name, matrix, opts)
-                    mining_paths.set_decreasing_cost_matrix_costs(
-                        room_name,
-                        paved_for,
-                        matrix,
-                        plain_cost,
-                        swamp_cost,
-                        3,
-                    )
-            else:
-                matrix = self.get_generic_cost_matrix(room_name, opts)
-                if matrix:
-                    return matrix
 
-            matrix = __new__(PathFinder.CostMatrix())
-            # Avoid stepping on exit tiles unnecessarily
-            self.mark_exit_tiles(room_name, matrix, opts)
-            self.mark_flags(room_name, matrix, opts)
-            self.set_max_avoid(room_name, matrix, opts)
+        matrix = create_custom_cost_matrix(room_name, plain_cost, swamp_cost, opts.debug_output)
+
+        if not room and not room_data:
+            mark_exit_tiles(matrix)
+            mark_flags(matrix)
+            set_max_avoid(matrix, opts)
             return matrix
 
-        if room.my:
+        if room and room.my:
             spawn_fill_wait_flags = flags.find_flags(room, SPAWN_FILL_WAIT)
             if len(spawn_fill_wait_flags):
                 avoid_extensions = False
@@ -467,182 +547,178 @@ class HoneyTrails:
                     for s in room.look_at(LOOK_STRUCTURES, destination):
                         if s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_EXTENSION:
                             avoid_extensions = False
-        else:
-            avoid_extensions = False
-            spawn_fill_wait_flags = []
-
-        if room.my:
             upgrader_wait_flags = flags.find_flags(room, UPGRADER_SPOT)
             if len(upgrader_wait_flags):
                 avoid_controller = False
             else:
                 avoid_controller = True
+            avoid_controller_slightly = False
+            probably_mining = True
         else:
+            avoid_extensions = False
+            spawn_fill_wait_flags = []
             avoid_controller = False
             upgrader_wait_flags = []
+            if room_data and room_data.reservation_end > Game.time:
+                avoid_controller_slightly = True
+            else:
+                avoid_controller_slightly = False
+            if room and _.some(room.find(FIND_MY_CREEPS), lambda c: c.memory.role == role_miner):
+                probably_mining = True
+            else:
+                probably_mining = False
 
-        cost_matrix = __new__(PathFinder.CostMatrix())
+        mark_exit_tiles(matrix)
+        mark_flags(matrix)
 
-        self.mark_exit_tiles(room_name, cost_matrix, opts)
-        self.mark_flags(room_name, cost_matrix, opts)
+        if set_max_avoid(matrix, opts):
+            return matrix.cost_matrix
 
-        if self.set_max_avoid(room_name, cost_matrix, opts):
-            return cost_matrix
+        is_origin_room = room_name == origin.room_name
+        is_dest_room = room_name == destination.room_name
 
-        def increase_by(x, y, added):
-            existing = cost_matrix.get(x, y)
-            if existing == 0:
-                terrain = Game.map.getTerrainAt(x, y, room_name)
-                if terrain[0] is 'p':
-                    existing = plain_cost
-                elif terrain[0] is 's':
-                    existing = swamp_cost
-                else:
-                    return
-            cost_matrix.set(x, y, existing + added)
-
-        def set_matrix(stype, pos, planned, my):
-            if stype == STRUCTURE_ROAD or (stype == STRUCTURE_RAMPART and my) or stype == STRUCTURE_CONTAINER:
-                if stype == STRUCTURE_ROAD:
-                    # TODO: this should really just be a method on top of this method to do this
-                    if paved_for and not planned:
-                        existing = cost_matrix.get(pos.x, pos.y)
-                        if existing == 0:
-                            terrain = Game.map.getTerrainAt(pos.x, pos.y, room_name)
-                            if terrain[0] is 'p':
-                                existing = plain_cost
-                            elif terrain[0] is 's':
-                                existing = swamp_cost
-                            else:
-                                return  # wall
+        # IGNORE: Rampart that's mine, container
+        def set_matrix(x, y, stored_type, planned, structure_type):
+            if stored_type == StoredStructureType.ROAD:
+                if paved_for:
+                    if not planned:
+                        existing = matrix.get_existing(x, y)
                         if 1 < existing < 255:
-                            cost_matrix.set(pos.x, pos.y, existing - 1)
+                            matrix.set(x, y, existing - 1)
+                else:
+                    existing = matrix.get(x, y)
+                    if existing != 0 and existing > plain_cost:
+                        # manually set
+                        matrix.set(x, y, existing - plain_cost)
                     else:
-                        existing = cost_matrix.get(pos.x, pos.y)
-                        if existing != 0 and existing > plain_cost:  # manually set
-                            cost_matrix.set(pos.x, pos.y, existing - 2)
-                        else:
-                            cost_matrix.set(pos.x, pos.y, 1)
+                        matrix.set(x, y, 1)
                 return
-            if pos.x == destination.x and pos.y == destination.y:
-                return
-            if pos.x == origin.x and pos.y == origin.y:
-                return
-            cost_matrix.set(pos.x, pos.y, 255)
-            if abs(pos.x - origin.x) <= 1 and abs(pos.y - origin.y) <= 1:
-                return
-            if abs(pos.x - destination.x) <= 1 and abs(pos.y - destination.y) <= 1:
-                return
-            if my:
-                if avoid_extensions and (stype == STRUCTURE_SPAWN or stype == STRUCTURE_EXTENSION):
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 9 * plain_cost)
-                elif stype == STRUCTURE_STORAGE or stype == STRUCTURE_LINK:
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 6 * plain_cost)
-                elif stype == STRUCTURE_CONTROLLER:
-                    if avoid_controller:
-                        for x in range(pos.x - 3, pos.x + 4):
-                            for y in range(pos.y - 3, pos.y + 4):
-                                increase_by(x, y, 4 * plain_cost)
-                        for x in range(pos.x - 2, pos.x + 3):
-                            for y in range(pos.y - 2, pos.y + 3):
-                                increase_by(x, y, 2 * plain_cost)
-                        for x in range(pos.x - 1, pos.x + 2):
-                            for y in range(pos.y - 1, pos.y + 2):
-                                increase_by(x, y, 13 * plain_cost)
-                    else:
-                        for x in range(pos.x - 1, pos.x + 2):
-                            for y in range(pos.y - 1, pos.y + 2):
-                                increase_by(x, y, math.ceil(plain_cost / 2))
-                elif stype == '--source':
-                    if paved_for:
-                        if room.my:
-                            for x in range(pos.x - 2, pos.x + 3):
-                                for y in range(pos.y - 2, pos.y + 3):
-                                    increase_by(x, y, 3 * plain_cost)
-                            for x in range(pos.x - 1, pos.x + 2):
-                                for y in range(pos.y - 1, pos.y + 2):
-                                    increase_by(x, y, 11 * plain_cost)
-                        else:
-                            for x in range(pos.x - 3, pos.x + 4):
-                                for y in range(pos.y - 3, pos.y + 4):
-                                    increase_by(x, y, 6 * plain_cost)
-                            for x in range(pos.x - 1, pos.x + 2):
-                                for y in range(pos.y - 1, pos.y + 2):
-                                    increase_by(x, y, 6 * plain_cost)
-                    else:
-                        for x in range(pos.x - 3, pos.x + 4):
-                            for y in range(pos.y - 3, pos.y + 4):
-                                increase_by(x, y, 4 * plain_cost)
-                        for x in range(pos.x - 2, pos.x + 3):
-                            for y in range(pos.y - 2, pos.y + 3):
-                                increase_by(x, y, 2 * plain_cost)
-                        for x in range(pos.x - 1, pos.x + 2):
-                            for y in range(pos.y - 1, pos.y + 2):
-                                increase_by(x, y, 11 * plain_cost)
-                elif stype == '--linked-source':
-                    for x in range(pos.x - 1, pos.x + 2):
-                        for y in range(pos.y - 1, pos.y + 2):
-                            increase_by(x, y, 10 * plain_cost)
-            cost_matrix.set(pos.x, pos.y, 255)
 
-        for struct in room.find(FIND_STRUCTURES):
-            set_matrix(struct.structureType, struct.pos, False, struct.my or (not struct.owner))
-        for site in room.find(FIND_CONSTRUCTION_SITES):
-            set_matrix(site.structureType, site.pos, True, site.my)
-        for flag, stype in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
-            set_matrix(flags.flag_sub_to_structure_type[stype], flag.pos, True, True)
-        for source in room.find(FIND_SOURCES):
-            if room.my and room.mining.is_mine_linked(source):
-                set_matrix("--linked-source", source.pos, False, True)
-            else:
-                set_matrix("--source", source.pos, False, True)
-        for flag in spawn_fill_wait_flags:
-            cost_matrix.set(flag.pos.x, flag.pos.y, 255)
-        for flag in upgrader_wait_flags:
-            cost_matrix.set(flag.pos.x, flag.pos.y, 255)
+            if is_dest_room and x == destination.x and y == destination.y:
+                return
+            if is_origin_room and x == origin.x and y == origin.y:
+                return
+            matrix.set_impassable(x, y)
+            if stored_type == StoredStructureType.CONTROLLER:
+                if avoid_controller:
+                    for xx in range(x - 1, x + 1):
+                        for yy in range(y - 1, y + 1):
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_CONTROLLER, 10 * plain_cost)
+                    for xx in range(x - 3, x + 4):
+                        for yy in range(y - 3, y + 4):
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_CONTROLLER, 8 * plain_cost)
+                elif avoid_controller_slightly:
+                    for xx in range(x - 1, x + 1):
+                        for yy in range(y - 1, y + 1):
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_CONTROLLER, 10 * plain_cost)
+                return
+            if stored_type == StoredStructureType.SOURCE or stored_type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                    or stored_type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                if probably_mining:
+                    for xx in range(x - 1, x + 2):
+                        for yy in range(y - 1, y + 2):
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 10 * plain_cost)
+                    if paved_for and structure_type != _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE:
+                        if room and room.my:
+                            for xx in range(x - 2, x + 3):
+                                for yy in range(y - 2, y + 3):
+                                    matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 6 * plain_cost)
+                        else:
+                            for xx in range(x - 3, x + 4):
+                                for yy in range(y - 3, y + 4):
+                                    matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 6 * plain_cost)
+                return
 
-        # Make room for the link manager creep! This can cause problems if not included.
-        if room.my and room.room.storage and room.links.main_link:
-            ml = room.links.main_link
-            storage = room.room.storage
-            if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
-                    and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
-                cost_matrix.set(ml.pos.x, (ml.pos.y + storage.pos.y) / 2, 255)
-            elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
-                    and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
-                cost_matrix.set((ml.pos.x + storage.pos.x) / 2, ml.pos.y, 255)
-            else:
-                for x in range(ml.pos.x - 1, ml.pos.x + 2):
-                    for y in range(ml.pos.y - 1, ml.pos.y + 2):
-                        if abs(storage.pos.x - x) <= 1 and abs(storage.pos.y - y) <= 1:
-                            cost_matrix.set(x, y, 255)
+            if structure_type:
+                if structure_type == STRUCTURE_STORAGE or structure_type == STRUCTURE_LINK \
+                        or structure_type == STRUCTURE_LAB or structure_type == STRUCTURE_TERMINAL:
+                    for xx in range(x - 1, x + 2):
+                        for yy in range(y - 1, y + 2):
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_STORAGE, 2 * plain_cost)
+                elif avoid_extensions and (stored_type == STRUCTURE_SPAWN or stored_type == STRUCTURE_EXTENSION):
+                    for xx in range(x - 1, x + 2):
+                        for yy in range(y - 1, y + 2):
+                            matrix.increase_at(x, y, _COST_TYPE_AVOID_EXTENSIONS, 6 * plain_cost)
+
+        # Use data even if we have vision, to avoid extra find calls
+        if room and (room.my or probably_mining or paved_for or not room_data):
+            for struct in room.find(FIND_STRUCTURES):
+                structure_type = struct.structureType
+                if structure_type == STRUCTURE_CONTAINER or (structure_type == STRUCTURE_RAMPART and struct.my):
+                    continue
+                elif structure_type == STRUCTURE_ROAD:
+                    sstype = StoredStructureType.ROAD
+                elif structure_type == STRUCTURE_CONTROLLER:
+                    sstype = StoredStructureType.CONTROLLER
+                elif structure_type == STRUCTURE_KEEPER_LAIR:
+                    sstype = StoredStructureType.SOURCE_KEEPER_LAIR
+                else:
+                    sstype = StoredStructureType.OTHER_IMPASSABLE
+                set_matrix(struct.pos.x, struct.pos.y, sstype, False, structure_type)
+            for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+                structure_type = site.structureType
+                if structure_type == STRUCTURE_CONTAINER or structure_type == STRUCTURE_RAMPART:
+                    continue
+                elif structure_type == STRUCTURE_ROAD:
+                    sstype = StoredStructureType.ROAD
+                else:
+                    sstype = StoredStructureType.OTHER_IMPASSABLE
+                set_matrix(struct.pos.x, struct.pos.y, sstype, True, structure_type)
+            if room.my:
+                for flag, flag_type in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
+                    structure_type = flags.flag_sub_to_structure_type[flag_type]
+                    if structure_type == STRUCTURE_CONTAINER or structure_type == STRUCTURE_RAMPART \
+                            or structure_type == STRUCTURE_ROAD:
+                        continue
+                    set_matrix(struct.pos.x, struct.pos.y, StoredStructureType.OTHER_IMPASSABLE, True, structure_type)
+            for source in room.find(FIND_SOURCES):
+                if room.my and room.mining.is_mine_linked(source):
+                    set_matrix(source.pos.x, source.pos.y, StoredStructureType.SOURCE, False,
+                               _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE)
+                else:
+                    set_matrix(source.pos.x, source.pos.y, StoredStructureType.SOURCE, False, None)
+            if room.my:
+                for mineral in room.find(FIND_MINERALS):
+                    set_matrix(mineral.pos.x, mineral.pos.y, StoredStructureType.MINERAL, False, None)
+            for flag in spawn_fill_wait_flags:
+                matrix.set_impassable(flag.pos.x, flag.pos.y)
+            for flag in upgrader_wait_flags:
+                matrix.set_impassable(flag.pos.x, flag.pos.y)
+            # Link manager creep position
+            if room.my and room.room.storage and room.links.main_link:
+                ml = room.links.main_link
+                storage = room.room.storage
+                if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
+                        and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
+                    matrix.set_impassable(ml.pos.x, (ml.pos.y + storage.pos.y) / 2)
+                elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
+                        and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
+                    matrix.set_impassable((ml.pos.x + storage.pos.x) / 2, ml.pos.y)
+                else:
+                    for sxx in range(ml.pos.x - 1, ml.pos.x + 2):
+                        for syy in range(ml.pos.y - 1, ml.pos.y + 2):
+                            if abs(storage.pos.x - sxx) <= 1 and abs(storage.pos.y - syy) <= 1:
+                                matrix.set_impassable(sxx, syy)
+
+        else:
+            for stored_struct in room_data.structures:
+                set_matrix(stored_struct.x, stored_struct.y, stored_struct.type, False, None)
 
         if paved_for:
             mining_paths.set_decreasing_cost_matrix_costs(
                 room_name,
                 paved_for,
-                cost_matrix,
+                matrix.cost_matrix,
                 plain_cost,
                 swamp_cost,
                 2,
             )
-        return cost_matrix
+        if opts.debug_visual:
+            print('visual debug\n\n' + matrix.visual())
+        return matrix.cost_matrix
 
     def _get_callback(self, origin, destination, opts):
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
-
-    def get_default_max_ops(self, origin, destination, opts):
-        linear_distance = movement.chebyshev_distance_room_pos(origin, destination)
-        ops = linear_distance * 200
-        if opts['paved_for']:
-            ops *= 5
-        elif 'use_roads' not in opts or opts['use_roads']:
-            ops *= 2
-        return ops
 
     def _get_raw_path(self, origin, destination, opts=None):
         if origin.pos:
@@ -655,7 +731,7 @@ class HoneyTrails:
             ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
             pf_range = opts["range"] if "range" in opts else 1
             paved_for = opts['paved_for'] if 'paved_for' in opts else None
-            max_ops = opts["max_ops"] if "max_ops" in opts else self.get_default_max_ops(origin, destination, opts)
+            max_ops = opts["max_ops"] if "max_ops" in opts else get_default_max_ops(origin, destination, opts)
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
             max_avoid = opts["avoid_rooms"] if "avoid_rooms" in opts else None
         else:
@@ -664,7 +740,7 @@ class HoneyTrails:
             pf_range = 1
             max_rooms = 16
             paved_for = None
-            max_ops = self.get_default_max_ops(origin, destination, {'use_roads': roads_better})
+            max_ops = get_default_max_ops(origin, destination, {'use_roads': roads_better})
             max_avoid = None
 
         if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
@@ -880,7 +956,7 @@ class HoneyTrails:
         except:
             print("[honey] Serialized path from {} to {} with current-room {} was invalid.".format(
                 origin, destination, current_room))
-            self.clear_cached_path(origin, destination, opts)
+            clear_cached_path(origin, destination, opts)
             new_path_obj = self.get_serialized_path_obj(origin, destination, opts)
             if current_room in new_path_obj:
                 path = Room.deserializePath(new_path_obj[current_room])
@@ -888,24 +964,6 @@ class HoneyTrails:
                 return []
 
         return path
-
-    def clear_cached_path(self, origin, destination, opts=None):
-        if opts:
-            ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
-        else:
-            ignore_swamp = False
-
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
-        if ignore_swamp:
-            key = "path_{}_{}_{}_{}_{}_{}_swl".format(origin.roomName, origin.x, origin.y,
-                                                      destination.roomName, destination.x, destination.y)
-        else:
-            key = "path_{}_{}_{}_{}_{}_{}".format(origin.roomName, origin.x, origin.y,
-                                                  destination.roomName, destination.x, destination.y)
-        global_cache.rem(key)
 
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
         """

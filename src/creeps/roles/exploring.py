@@ -1,6 +1,6 @@
 from constants import INVADER_USERNAME, SCOUT, SK_LAIR_SOURCE_NOTED, target_single_flag
 from creeps.behaviors.military import MilitaryBase
-from empire import honey
+from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
@@ -37,10 +37,6 @@ class Scout(MilitaryBase):
         if still_exploring:
             # recalculate_path
             if self.memory.rp:
-                honey.clear_serialized_cost_matrix(self.memory.rp)
-                if self.memory.rp == self.pos.roomName:
-                    self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
-                    del self.memory.rp
                 self.log("Recalculating path due to circumstances in {}.".format(self.memory.rp))
                 self.recalc_military_path(self.home.spawn, destination, {
                     "ignore_swamp": True,
@@ -79,7 +75,7 @@ class Scout(MilitaryBase):
                     # recalculate_path_next
                     self.memory.rp = self.pos.roomName
                     recalc = True
-                self.hive.honey.generate_serialized_cost_matrix(self.pos.roomName)
+                stored_data.update_data(self.room.room)
                 self.log("Scouted room {}, {}.".format(rx, ry))
 
         if self.pos.isEqualTo(destination) or \
@@ -145,7 +141,6 @@ class Scout(MilitaryBase):
                     )
                     console.log(message)
                     Game.notify(message)
-
 
     def _calculate_time_to_replace(self):
         target = self.targets.get_new_target(self, target_single_flag, SCOUT)

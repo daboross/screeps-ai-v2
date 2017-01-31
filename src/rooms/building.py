@@ -6,6 +6,7 @@ from cache import context, volatile_cache
 from constants import DEPOT, max_repath_mine_roads_every, max_repave_mine_roads_every, min_repath_mine_roads_every, \
     min_repave_mine_roads_every, rmem_key_building_priority_spawn, rmem_key_building_priority_walls
 from creep_management import mining_paths
+from empire import honey
 from jstools.js_set_map import new_set, new_map
 from jstools.screeps  import *
 from position_management import flags
@@ -706,7 +707,7 @@ class ConstructionMind:
         return True
 
     def _repath_roads_for(self, mine_flag, deposit_point):
-        honey = self.hive.honey
+        hive_honey = self.hive.honey
 
         if deposit_point.pos.isNearTo(mine_flag):
             mine_path = []
@@ -714,7 +715,7 @@ class ConstructionMind:
         else:
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            mine_path = honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
+            mine_path = hive_honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -740,7 +741,7 @@ class ConstructionMind:
                 continue
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            honey.completely_repath_and_get_raw_path(spawn, closest, {
+            hive_honey.completely_repath_and_get_raw_path(spawn, closest, {
                 'paved_for': [mine_flag, spawn],
                 # NOTE: We really aren't going to be using this path for anything besides paving,
                 #  but it should be small.

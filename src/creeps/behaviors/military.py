@@ -1,6 +1,7 @@
 import math
 
 from creeps.base import RoleBase
+from empire import honey
 from jstools.screeps import *
 from utilities import movement
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
@@ -142,7 +143,7 @@ class MilitaryBase(RoleBase):
                     else:
                         target = dest_midpoint
                         path_opts.range = 10
-        self.hive.honey.clear_cached_path(origin, target, path_opts)
+        honey.clear_cached_path(origin, target, path_opts)
 
     # TODO: A lot of this is copied directly (and shared with) transport.TransportPickup
     def follow_military_path(self, origin, target, opts=None):
@@ -255,7 +256,7 @@ class MilitaryBase(RoleBase):
                         if chebyshev_distance_room_pos(self.memory.lost_path_at, self.pos) < 5 \
                                 and not self.pos.isEqualTo(new_target) \
                                 and not self.pos.isEqualTo(get_entrance_for_exit_pos(new_target)):
-                            self.hive.honey.clear_cached_path(origin, target, path_opts)
+                            honey.clear_cached_path(origin, target, path_opts)
                             del self.memory.off_path_for
                             del self.memory.lost_path_at
                             del self.memory.next_ppos
@@ -293,7 +294,7 @@ class MilitaryBase(RoleBase):
                 del self.memory.last_position
                 del self.memory.standstill_for
                 del self.memory.next_ppos
-                self.hive.honey.clear_cached_path(origin, target, path_opts)
+                honey.clear_cached_path(origin, target, path_opts)
                 self.move_to(target)
         else:
             self.memory.last_pos = serialized_pos

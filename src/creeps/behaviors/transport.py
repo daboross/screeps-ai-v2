@@ -1,5 +1,6 @@
 from constants import role_hauler, role_miner
 from creeps.base import RoleBase
+from empire import honey
 from jstools.screeps import *
 from utilities import movement
 
@@ -252,7 +253,7 @@ class TransportPickup(RoleBase):
                                  .format(self.pos, origin, target, all_positions))
                         if not len(all_positions):
                             if Game.time % 20 == 10:
-                                self.hive.honey.clear_cached_path(origin, target)
+                                honey.clear_cached_path(origin, target)
                         return
                 self.memory.next_ppos = closest
             mtarget = self.memory.next_ppos
@@ -268,7 +269,7 @@ class TransportPickup(RoleBase):
                              " it doesn't.".format(origin, target, new_target))
                     self.log("Path (tbd) retrieved from HoneyTrails with options ({}):\n{}".format(
                         opts, JSON.stringify(path, 0, 4)))
-                    self.hive.honey.clear_cached_path(origin, target, opts)
+                    honey.clear_cached_path(origin, target, opts)
             elif self.pos.isNearTo(new_target):
                 self.basic_move_to(new_target)
                 return
