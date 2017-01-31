@@ -25,18 +25,18 @@ _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = energy_for_terminal_when_selling
 _KEEP_IN_TERMINAL_ENERGY = 0
 
 sell_at_prices = {
-    RESOURCE_OXYGEN: 2.0,
-    RESOURCE_HYDROGEN: 2.0,
-    RESOURCE_ZYNTHIUM: 2.0,
-    RESOURCE_UTRIUM: 2.0,
-    RESOURCE_LEMERGIUM: 2.0,
-    RESOURCE_KEANIUM: 2.0,
+    RESOURCE_OXYGEN: 1.0,
+    RESOURCE_HYDROGEN: 1.0,
+    RESOURCE_ZYNTHIUM: 0.7,
+    RESOURCE_UTRIUM: 0.7,
+    RESOURCE_LEMERGIUM: 0.7,
+    RESOURCE_KEANIUM: 0.7,
 }
 bottom_prices = {
-    RESOURCE_OXYGEN: 0.8,
-    RESOURCE_HYDROGEN: 0.55,
-    RESOURCE_KEANIUM: 0.25,
-    RESOURCE_ZYNTHIUM: 0.1,
+    RESOURCE_OXYGEN: 0.4,
+    RESOURCE_HYDROGEN: 0.4,
+    RESOURCE_KEANIUM: 0.2,
+    RESOURCE_ZYNTHIUM: 0.2,
     RESOURCE_UTRIUM: 0.2,
     RESOURCE_LEMERGIUM: 0.2,
 }
@@ -746,21 +746,16 @@ class MineralMind:
                 current_sell_orders = _.filter(current_sell_orders, {"roomName": self.room.name})
             if current_sell_orders and len(current_sell_orders):
                 to_check = _.min(current_sell_orders, 'price')
-                self.mem.last_sold_at[mineral] = to_check.price
                 if to_check.remainingAmount < _SELL_ORDER_SIZE:
                     if to_check.remainingAmount <= _SELL_ORDER_SIZE * 0.2:
                         # TODO: duplicated when creating a new order.
-                        if mineral in self.mem.last_sold_at:
-                            price = min(
-                                max(
-                                    1.0,
-                                    sell_at_prices[mineral] - 1.5,
-                                    self.mem.last_sold_at[mineral] + 0.1
-                                ),
-                                sell_at_prices[mineral]
-                            )
-                        else:
-                            price = sell_at_prices[mineral]
+                        price = min(
+                            max(
+                                bottom_prices[mineral] + (sell_at_prices[mineral] - bottom_prices[mineral]) / 4,
+                                self.mem.last_sold_at[mineral] + 0.1
+                            ),
+                            sell_at_prices[mineral]
+                        )
                         self.log("Increasing price on sell order for {} from {} to {}.".format(
                             mineral, to_check.price, price))
                         Game.market.changeOrderPrice(to_check.id, price)
@@ -770,6 +765,7 @@ class MineralMind:
                                  .format(mineral, to_check.price, to_check.remainingAmount, _SELL_ORDER_SIZE))
                         Game.market.extendOrder(to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount)
                     self.mem.last_sold[mineral] = Game.time
+                    self.mem.last_sold_at[mineral] = to_check.price
                 elif self.mem.last_sold[mineral] < Game.time - 8000 and to_check.price \
                         > bottom_prices[mineral] + 0.01:  # market prices can't always be changed to an exact precision
                     new_price = max(bottom_prices[mineral], to_check.price - 0.1)
@@ -784,7 +780,8 @@ class MineralMind:
             elif mineral in sell_at_prices and Game.market.credits >= MARKET_FEE * _SELL_ORDER_SIZE \
                     * sell_at_prices[mineral] and len(Game.market.orders) < 50:
                 if mineral in self.mem.last_sold_at:
-                    price = min(max(1.0, sell_at_prices[mineral] - 1.5, self.mem.last_sold_at[mineral] + 0.1),
+                    price = min(max(bottom_prices[mineral] + (sell_at_prices[mineral] - bottom_prices[mineral]) / 4,
+                                    self.mem.last_sold_at[mineral] + 0.1),
                                 sell_at_prices[mineral])
                 else:
                     price = sell_at_prices[mineral]
@@ -823,21 +820,43 @@ class MineralMind:
         if self.has_no_terminal_or_storage() or self.room.mem[rmem_key_empty_all_resources_into_room]:
             return 0
         # TODO: cache this
-        mineral = self.room.find(FIND_MINERALS)[0]
-        if mineral and mineral.mineralAmount > 0 and _.find(self.room.look_at(LOOK_STRUCTURES, mineral),
-                                                            {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
-            have_now = self.get_total_room_resource_counts()
-            if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= max_minerals_to_keep:
-                return 0
-            container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
-                               lambda s: s.structureType == STRUCTURE_CONTAINER)
-            if container:
-                return 1
-            else:
-                container_site = _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
-                                        lambda s: s.structureType == STRUCTURE_CONTAINER)
-                if not container_site:
-                    self.place_container_construction_site(mineral)
+        for mineral in self.room.find(FIND_MINERALS):
+            if mineral and mineral.mineralAmount > 0:
+                structures = self.room.look_at(LOOK_STRUCTURES, mineral)
+                if _.some(structures, {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
+                    have_now = self.get_total_room_resource_counts()
+                    if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= max_minerals_to_keep:
+                        return 0
+                    container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
+                                       lambda s: s.structureType == STRUCTURE_CONTAINER)
+                    if container:
+                        return 1
+                    else:
+                        container_site = _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
+                                                lambda s: s.structureType == STRUCTURE_CONTAINER)
+                        if not container_site:
+                            self.place_container_construction_site(mineral)
+                elif len(structures):
+                    if structures[0].owner and not structures[0].my:
+                        structures[0].destroy()
+                    else:
+                        msg = "[minerals] WARNING: Non-extractor {} located at {}'s mineral, {}!".format(
+                            structures[0], self.room.name, mineral)
+                        Game.notify(msg)
+                        console.log(msg)
+                elif self.room.rcl >= 7:
+                    sites = self.room.look_at(LOOK_CONSTRUCTION_SITES, mineral)
+                    if len(sites):
+                        if not sites[0].my:
+                            sites[0].destroy()
+                    else:
+                        result = mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
+                        if result != OK:
+                            msg = ("[minerals] WARNING: Unknown result from"
+                                   " {}.createConstructionSite(STRUCTURE_EXTRACTOR): {}"
+                                   .format(mineral.pos, result))
+                            Game.notify(msg)
+                            console.log(msg)
         return 0
 
     def get_target_mineral_hauler_count(self):
