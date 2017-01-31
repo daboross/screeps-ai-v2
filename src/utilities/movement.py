@@ -294,7 +294,7 @@ def dxdy_to_direction(dx, dy):
         elif dy > 0:
             direction = BOTTOM_RIGHT
     if direction is None:
-        print("[honey][direction] ERROR: Unknown dx/dy: {},{}!".format(dx, dy))
+        print("[movement][direction] ERROR: Unknown dx/dy: {},{}!".format(dx, dy))
         return None
     else:
         return direction
