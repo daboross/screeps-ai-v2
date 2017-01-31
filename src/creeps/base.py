@@ -115,47 +115,58 @@ class RoleBase:
         """
         pass
 
-    def _move_options(self, target_room):
+    def _move_options(self, target_room, opts):
         roads = self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2
         if roads:
             options = _WITH_ROAD_PF_OPTIONS
         else:
             options = _NO_ROAD_PF_OPTIONS
+        callback = walkby_move.create_cost_callback(self, roads, target_room)
+        if opts:
+            if opts['costCallback']:
+                room_callback = callback
+                cost_callback = opts['costCallback']
+
+                def callback(room_name):
+                    matrix = room_callback(room_name)
+                    if matrix:
+                        result = cost_callback(room_name, matrix)
+                        if result:
+                            matrix = result
+                    return matrix
+            if opts['reusePath']:
+                options = Object.create(options)
+                options['reusePath'] = opts['reusePath']
         # Since this is overridden every _move_options call, we should be fine with modifying the constants.
-        options['roomCallback'] = walkby_move.create_cost_callback(self, roads, target_room)
+        options['roomCallback'] = callback
         return options
 
     __pragma__('nofcall')
 
-    def _try_move_to(self, pos):
+    def _try_move_to(self, pos, opts):
         here = self.creep.pos
 
         if here == pos:
             return OK
         elif here.isNearTo(pos):
-            self.basic_move_to(pos)
+            self.creep.move(movement.diff_as_direction(here, pos))
             return OK
-        move_opts = self._move_options(pos.roomName)
+        move_opts = self._move_options(pos.roomName, opts)
         result = self.creep.moveTo(pos, move_opts)
         if result == -2:
             self.basic_move_to(pos)
         return result
 
-    def move_to(self, target):
+    def move_to(self, target, opts=None):
         if self.creep.fatigue <= 0:
             if target.pos:
                 target = target.pos
-            result = self._try_move_to(target)
+            result = self._try_move_to(target, opts)
 
             if result == ERR_NO_BODYPART:
-                # TODO: check for towers here, or use RoomMind to do that.
                 self.log("Couldn't move, all move parts dead!")
-                tower_here = False
-                for struct in self.room.find(FIND_STRUCTURES):
-                    if struct.structureType == STRUCTURE_TOWER:
-                        tower_here = True
-                        break
-                if not tower_here:
+                if not (self.room.my and self.room.defense.healing_capable()) and \
+                        not _.some(self.room.find(FIND_MY_CREEPS), lambda c: c.hasActiveBodyparts(HEAL)):
                     self.creep.suicide()
                     self.home.check_all_creeps_next_tick()
             elif result != OK:
@@ -501,6 +512,8 @@ class RoleBase:
             elif movement.is_block_clear(self.room, self.pos.x - 1, self.pos.y + dy):
                 self.creep.move(movement.dxdy_to_direction(-1, dy))
                 return True
+        if dx or dy:
+            self.creep.move(movement.dxdy_to_direction(dx, dy))
         return False
 
     __pragma__('fcall')

@@ -108,6 +108,9 @@ def kiting_away_raw_path(origin, targets):
     }).path
 
 
+_MOVE_TO_OPTIONS = {'reusePath': 2}
+
+
 class KitingOffense(MilitaryBase):
     def boost(self):
         labs = _(self.home.minerals.labs()).filter(lambda l: l.mineralAmount and l.energy)
@@ -148,11 +151,6 @@ class KitingOffense(MilitaryBase):
                 self.memory.boosted = 2
 
         return False
-
-    def get_def_move_opts(self, target_room):
-        return _.create(self._move_options(target_room), {
-            'reusePath': 2,
-        })
 
     def run(self):
         if self.creep.ticksToLive > 1450 and not (self.memory.boosted >= 2):
@@ -244,7 +242,7 @@ class KitingOffense(MilitaryBase):
                     if self.pos.isNearTo(damaged):
                         self.creep.heal(damaged)
                     else:
-                        self.creep.moveTo(damaged, self.get_def_move_opts(damaged.pos.roomName))
+                        self.move_to(damaged, _MOVE_TO_OPTIONS)
                     return False
             # TODO: turn this into part of a large generic cross-room movement module
             if not self.pos.isEqualTo(marker_flag.pos):
@@ -269,7 +267,7 @@ class KitingOffense(MilitaryBase):
                                               marker_flag, {'range': 1})
                     self.creep.say("G1")
                 elif distance >= 1:
-                    self.creep.moveTo(marker_flag, self.get_def_move_opts(marker_flag.pos.roomName))
+                    self.move_to(marker_flag, _MOVE_TO_OPTIONS)
                     self.creep.say("G2")
                 else:
                     self.basic_move_to(marker_flag)
@@ -304,7 +302,7 @@ class KitingOffense(MilitaryBase):
                     self.memory.countdown -= 1
                 if self.memory.countdown <= 5:
                     del self.memory.countdown
-                self.creep.moveTo(marker_flag, self.get_def_move_opts(marker_flag.pos.roomName))
+                self.move_to(marker_flag, _MOVE_TO_OPTIONS)
             return
         if ranged and self_damaged:
             safe_distance = 5
@@ -318,8 +316,8 @@ class KitingOffense(MilitaryBase):
 
         should_approach = not should_run and (harmless or min_distance > safe_distance)
         if should_approach:
-            self.creep.moveTo(_.create(RoomPosition.prototype, closest_pos),
-                              self.get_def_move_opts(closest_pos.roomName))
+            # NOTE: this depends on our custom moveTo function not checking for instanceof RoomPosition
+            self.move_to(closest_pos, _MOVE_TO_OPTIONS)
         elif should_run:
             away_path = None
             start = Game.cpu.getUsed()

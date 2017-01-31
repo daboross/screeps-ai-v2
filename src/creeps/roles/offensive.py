@@ -58,22 +58,31 @@ class TowerDrainer(MilitaryBase):
             self.targets.untarget_all(self)
         goad_target = self.targets.get_new_target(self, target_single_flag, TD_D_GOAD)
         if not goad_target:
-            if len(flags.find_flags(self.home, RAID_OVER)):
-                self.recycle_me()
-            else:
-                self.log("TowerDrainer has no target!")
-                self.memory.last_role = self.memory.role
-                self.memory.role = role_recycling
+            self.log("TowerDrainer has no target!")
+            self.memory.last_role = self.memory.role
+            self.memory.role = role_recycling
             return
+
+        def set_max_avoid_regular_matrix(room_name, cost_matrix):
+            if room_name == goad_target.pos.roomName:
+                for x in range(0, 50):
+                    for y in range(0, 50):
+                        existing = cost_matrix.get(x, y)
+                        if existing == 0:
+                            terrain = Game.map.getTerrainAt(x, y, room_name)
+                            if terrain[0] == 'p':
+                                existing = 2
+                            elif terrain[0] == 's':
+                                existing = 10
+                            else:
+                                continue
+                        cost_matrix.set(x, y, existing + 20)
+
         if self.memory.goading:
             if self.pos.isEqualTo(goad_target):
                 pass
             elif movement.chebyshev_distance_room_pos(self.pos, goad_target) < 50:
-                self.creep.moveTo(goad_target, {
-                    "costCallback": lambda room_name, matrix: self.hive.honey.set_max_avoid(
-                        room_name, matrix, {'max_avoid': [goad_target.pos.roomName]}
-                    )
-                })
+                self.move_to(goad_target, {'costCallback': set_max_avoid_regular_matrix})
             else:
                 self.follow_military_path(self.home.spawn, goad_target, {'avoid_rooms': [goad_target.pos.roomName]})
         else:
@@ -87,11 +96,8 @@ class TowerDrainer(MilitaryBase):
             if self.pos.isEqualTo(heal_target):
                 pass
             elif movement.chebyshev_distance_room_pos(self.pos, heal_target) < 50:
-                self.creep.moveTo(heal_target, {  # TODO: make a military moveTo method like this
-                    "costCallback": lambda room_name, matrix: self.hive.honey.set_max_avoid(
-                        room_name, matrix, {'max_avoid': [goad_target.pos.roomName]}
-                    )
-                })
+                # TODO: make a military moveTo method like this
+                self.move_to(heal_target, {'costCallback': set_max_avoid_regular_matrix})
             else:
                 self.follow_military_path(self.home.spawn, heal_target, {'avoid_rooms': [goad_target.pos.roomName]})
 
