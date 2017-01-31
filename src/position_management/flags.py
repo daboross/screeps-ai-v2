@@ -49,7 +49,7 @@ Green:
     Red:
     Purple: CLAIM_LATER     - Controller to claim
     Blue:
-    Cyan: REMOTE_MINE       - Remote mine source (set memory: { active: true })
+    Cyan: REMOTE_MINE       - Remote mine source (set memory: { active: true }, optional: { do_reserve: true } )
     Green:
     Yellow:
     Orange:
