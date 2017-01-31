@@ -3,10 +3,11 @@ import math
 from cache import volatile_cache
 from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_3000miner, creep_base_4000miner, \
     creep_base_carry3000miner, creep_base_half_move_hauler, creep_base_hauler, creep_base_reserving, \
-    creep_base_work_full_move_hauler, creep_base_work_half_move_hauler, rmem_key_room_reserved_up_until_tick, \
-    role_hauler, role_miner, role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
+    creep_base_work_full_move_hauler, creep_base_work_half_move_hauler, role_hauler, role_miner, \
+    role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
 from creep_management import spawning
 from creep_management.spawning import fit_num_sections
+from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from rooms import defense
@@ -302,9 +303,10 @@ class MiningMind:
         if not Memory.reserving:
             Memory.reserving = {}
 
-        # Memory key set in the RemoteReserve class
-        if room_name in Memory.rooms and rmem_key_room_reserved_up_until_tick in Memory.rooms[room_name]:
-            ticks_to_end = Memory.rooms[room_name][rmem_key_room_reserved_up_until_tick] - Game.time
+        # Set in the RemoteReserve class
+        reservation_end_at = stored_data.get_reservation_end_time(room_name)
+        if reservation_end_at > 0:
+            ticks_to_end = reservation_end_at - Game.time
             if ticks_to_end >= CONTROLLER_RESERVE_MAX / 5:
                 max_sections = min(5, spawning.max_sections_of(self.room, creep_base_reserving))
                 if CONTROLLER_RESERVE_MAX - ticks_to_end < max_sections * CREEP_CLAIM_LIFE_TIME * CONTROLLER_RESERVE:

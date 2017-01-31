@@ -1,11 +1,12 @@
 import math
 
-from constants import RANGED_DEFENSE, UPGRADER_SPOT, rmem_key_room_reserved_up_until_tick, role_hauler, role_miner, \
+from constants import RANGED_DEFENSE, UPGRADER_SPOT, role_hauler, role_miner, \
     role_recycling, role_spawn_fill, target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
 from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.behaviors.transport import TransportPickup
 from creeps.roles.spawn_fill import SpawnFill
+from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
@@ -347,9 +348,8 @@ class RemoteReserve(TransportPickup):
                      controller.reservation.username)
         else:
             self.creep.reserveController(controller)
-            if controller.reservation:
-                controller.room.memory[rmem_key_room_reserved_up_until_tick] \
-                    = Game.time + controller.reservation.ticksToEnd
+            if Game.time % 5 and controller.reservation:
+                stored_data.set_reservation_time(self.pos.roomName, controller.reservation.ticksToEnd)
 
     def _calculate_time_to_replace(self):
         room = self.find_claim_room()

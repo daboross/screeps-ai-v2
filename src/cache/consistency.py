@@ -90,8 +90,8 @@ def clear_cache():
                     del mem.cache[key]
             if len(Object.keys(mem.cache)) <= 0:
                 del mem.cache
-        if rmem_key_room_reserved_up_until_tick in mem and mem.rea <= Game.time:
-            del mem.rea
+        if rmem_key_room_reserved_up_until_tick in mem and mem[rmem_key_room_reserved_up_until_tick] <= Game.time:
+            del mem[rmem_key_room_reserved_up_until_tick]
         if _.isEmpty(mem):
             del Memory.rooms[name]
     for name, mem in _.pairs(Memory.flags):
