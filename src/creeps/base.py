@@ -149,7 +149,8 @@ class RoleBase:
         if here == pos:
             return OK
         elif here.isNearTo(pos):
-            self.creep.move(movement.diff_as_direction(here, pos))
+            if not here.isEqualTo(pos):
+                self.creep.move(movement.diff_as_direction(here, pos))
             return OK
         move_opts = self._move_options(pos.roomName, opts)
         result = self.creep.moveTo(pos, move_opts)
