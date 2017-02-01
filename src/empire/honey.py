@@ -633,9 +633,11 @@ class HoneyTrails:
             if structure_type:
                 if structure_type == STRUCTURE_STORAGE or structure_type == STRUCTURE_LINK \
                         or structure_type == STRUCTURE_LAB or structure_type == STRUCTURE_TERMINAL:
-                    for xx in range(x - 1, x + 2):
-                        for yy in range(y - 1, y + 2):
-                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_STORAGE, 2 * plain_cost)
+                    if (not is_dest_room or abs(x - destination.x) > 3 or abs(y - destination.y) > 3) \
+                            and (not is_origin_room or abs(x - origin.x) > 3 or abs(y - origin.y) > 3):
+                        for xx in range(x - 1, x + 2):
+                            for yy in range(y - 1, y + 2):
+                                matrix.increase_at(xx, yy, _COST_TYPE_AVOID_STORAGE, 2 * plain_cost)
                 elif avoid_extensions and (stored_type == STRUCTURE_SPAWN or stored_type == STRUCTURE_EXTENSION):
                     for xx in range(x - 1, x + 2):
                         for yy in range(y - 1, y + 2):
