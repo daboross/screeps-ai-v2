@@ -718,7 +718,7 @@ class RoomMind:
                     if self.mem[mem_key_storage_use_enabled] and self.room.storage.store[RESOURCE_ENERGY] \
                             <= max_energy_disable_full_storage_use:
                         print("[{}] Disabling full storage use.".format(self.name))
-                        self.mem[mem_key_storage_use_enabled] = False
+                        del self.mem[mem_key_storage_use_enabled]
                     if not self.mem[mem_key_storage_use_enabled] and self.room.storage.store[RESOURCE_ENERGY] \
                             > min_energy_enable_full_storage_use:
                         print("[{}] Enabling full storage use.".format(self.name))
@@ -741,7 +741,7 @@ class RoomMind:
             return False
         if self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) < max_total_resume_remote_mining \
                 or self.room.storage.store.energy < max_energy_resume_remote_mining:
-            self.mem[mem_key_focusing_home] = False
+            del self.mem[mem_key_focusing_home]
         if not self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) > min_total_pause_remote_mining \
                 and self.room.storage.store.energy > min_energy_pause_remote_mining:
             self.mem[mem_key_focusing_home] = True
@@ -759,14 +759,14 @@ class RoomMind:
                 if self.rcl >= 8:
                     if self.mem[mem_key_upgrading_paused] \
                             and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
-                        self.mem[mem_key_upgrading_paused] = False
+                        del self.mem[mem_key_upgrading_paused]
                     if not self.mem[mem_key_upgrading_paused] \
                             and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
                 else:
                     if self.mem[mem_key_upgrading_paused] \
                             and self.room.storage.store.energy > energy_to_resume_upgrading:
-                        self.mem[mem_key_upgrading_paused] = False
+                        del self.mem[mem_key_upgrading_paused]
                     if not self.mem[mem_key_upgrading_paused] \
                             and self.room.storage.store.energy < energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
@@ -781,7 +781,7 @@ class RoomMind:
                 self._building_paused = True  # Don't build while we're taking someone down.
             else:
                 if self.mem[mem_key_building_paused] and self.room.storage.store.energy > energy_to_resume_building:
-                    self.mem[mem_key_building_paused] = False
+                    del self.mem[mem_key_building_paused]
                 if not self.mem[mem_key_building_paused] and self.room.storage.store.energy < energy_to_pause_building:
                     self.mem[mem_key_building_paused] = True
                 if self.mem[mem_key_building_paused]:
