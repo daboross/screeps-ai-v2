@@ -627,7 +627,7 @@ class HoneyTrails:
                     or stored_type == StoredStructureType.SOURCE_KEEPER_LAIR:
                 for xx in range(x - 4, x + 5):
                     for yy in range(y - 4, y + 5):
-                        matrix.set_impassable(x, y)
+                        matrix.set_impassable(xx, yy)
                 return
 
             if structure_type:
@@ -641,7 +641,7 @@ class HoneyTrails:
                 elif avoid_extensions and (stored_type == STRUCTURE_SPAWN or stored_type == STRUCTURE_EXTENSION):
                     for xx in range(x - 1, x + 2):
                         for yy in range(y - 1, y + 2):
-                            matrix.increase_at(x, y, _COST_TYPE_AVOID_EXTENSIONS, 6 * plain_cost)
+                            matrix.increase_at(xx, yy, _COST_TYPE_AVOID_EXTENSIONS, 6 * plain_cost)
 
         # Use data even if we have vision, to avoid extra find calls
         if room and (room.my or probably_mining or paved_for or not room_data):
