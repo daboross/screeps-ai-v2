@@ -576,8 +576,6 @@ class MineralMind:
         if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
             min_via_spending = self.get_estimate_total_energy()
 
-        print("[{}][minerals] Running support!".format(self.room.name))
-
         sending_to = self.room.mem[rmem_key_now_supporting]
 
         to_send = min(self.terminal.store[RESOURCE_ENERGY], min_via_spending)
@@ -585,6 +583,8 @@ class MineralMind:
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
         amount = math.floor(to_send / total_cost_of_1_energy)
         if amount >= 100:
+            print("[{}][minerals] Support! Sending {}, {} will get {} energy!"
+                  .format(self.room.name, to_send, sending_to, amount))
             result = self.terminal.send(RESOURCE_ENERGY, amount, sending_to, "Sending support!")
             if result != OK:
                 self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}"
