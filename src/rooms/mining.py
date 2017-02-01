@@ -253,7 +253,8 @@ class MiningMind:
     def should_reserve(self, room_name):
         if self.room.room.energyCapacityAvailable < (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE]) * 2:
             return False
-        flag_list = _.filter(flags.find_flags(room_name, REMOTE_MINE), lambda f: f.memory.active)
+        flag_list = _.filter(flags.find_flags(room_name, REMOTE_MINE),
+                             lambda f: f.name in Memory.flags and f.memory.active)
         if _.find(flag_list, lambda f: f.memory.sk_room):
             return False
         if Memory.no_controller and Memory.no_controller[room_name]:

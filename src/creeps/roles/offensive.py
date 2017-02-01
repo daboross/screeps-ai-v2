@@ -176,7 +176,7 @@ class Dismantler(MilitaryBase):
                     self.log("Dismantler has no target!")
                     self.go_to_depot()
                 return
-            if target.memory.civilian:
+            if target.name in Memory.flags and target.memory.civilian:
                 self.memory.running = 'idle'
             if self.pos.roomName == target.pos.roomName:
                 new_target = False
@@ -203,7 +203,8 @@ class Dismantler(MilitaryBase):
                         new_target = True
 
                 if new_target:
-                    if 'dismantle_all' in target.memory and not target.memory['dismantle_all']:
+                    if target.name in Memory.flags and 'dismantle_all' in target.memory and \
+                            not target.memory['dismantle_all']:
                         self.remove_target(target)
                         return
                     structures = self.room.find(FIND_STRUCTURES)
