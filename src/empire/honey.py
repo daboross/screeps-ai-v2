@@ -2,7 +2,7 @@ import math
 
 from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, \
-    global_cache_mining_paths_suffix, global_cache_swamp_paths_suffix, role_miner
+    global_cache_mining_paths_suffix, global_cache_swamp_paths_suffix, role_miner, global_cache_roadless_paths_suffix
 from creep_management import mining_paths
 from empire import stored_data
 from jstools.screeps import *
@@ -167,7 +167,7 @@ def get_global_cache_key(origin, destination, opts):
                 destination.roomName,
                 destination.x,
                 destination.y,
-                global_cache_mining_paths_suffix
+                global_cache_roadless_paths_suffix,
             ])
 
     return '_'.join([
