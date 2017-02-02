@@ -944,26 +944,30 @@ class RoomMind:
         return self._extra_fill_targets
 
     def get_open_source_spaces(self):
-        if 'oss' not in self.mem:
-            oss = 0
-            for source in self.sources:
-                for x in range(source.pos.x - 1, source.pos.x + 2):
-                    for y in range(source.pos.y - 1, source.pos.y + 2):
-                        if movement.is_block_empty(self, x, y):
-                            oss += 1
-            self.mem[mem_key_total_open_source_spaces] = oss
-        return self.mem[mem_key_total_open_source_spaces]
-
-    def get_open_source_spaces_around(self, source):
-        key = 'oss-{}'.format(source.id)
-        if key not in self.mem:
-            oss = 0
+        cached = self.get_cached_property('oss')
+        if cached:
+            return cached
+        oss = 0
+        for source in self.sources:
             for x in range(source.pos.x - 1, source.pos.x + 2):
                 for y in range(source.pos.y - 1, source.pos.y + 2):
                     if movement.is_block_empty(self, x, y):
                         oss += 1
-            self.mem[key] = oss
-        return self.mem[key]
+        self.store_cached_property('oss', oss, 1000 * 1000)
+        return oss
+
+    def get_open_source_spaces_around(self, source):
+        key = 'oss-{}'.format(source.id)
+        cached = self.get_cached_property(key)
+        if cached:
+            return cached
+        oss = 0
+        for x in range(source.pos.x - 1, source.pos.x + 2):
+            for y in range(source.pos.y - 1, source.pos.y + 2):
+                if movement.is_block_empty(self, x, y):
+                    oss += 1
+        self.store_cached_property(key, oss, 1000 * 1000)
+        return oss
 
     def calculate_smallest_wall(self):
         if self._smallest_wall_hits is undefined:

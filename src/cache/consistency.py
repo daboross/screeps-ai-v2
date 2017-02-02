@@ -147,11 +147,11 @@ def complete_refresh(hive):
                               rmem_key_storage_use_enabled]:
             if true_only_key in mem and not mem[true_only_key]:
                 del mem[true_only_key]
-        if _.get(Game.rooms, [name, 'controller', 'my'], False) and Game.rooms[name].controller.level >= 4 \
-                and mem[rmem_key_storage_use_enabled]:
-            for key in Object.keys(mem):
-                if key.startsWith('oss-'):
-                    del mem[key]
+        if 'oss' in mem:
+            del mem['oss']
+        for key in Object.keys(mem):
+            if key.startsWith('oss-'):
+                del mem[key]
         if _.isEmpty(mem):
             del Memory.rooms[name]
     for name in Object.keys(Memory.reserving):
