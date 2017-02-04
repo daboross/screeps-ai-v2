@@ -7,8 +7,8 @@ from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
-from utilities import positions
 from position_management import flags
+from utilities import positions
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')

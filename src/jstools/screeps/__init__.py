@@ -1,10 +1,10 @@
-# noinspection PyUnboundLocalVariable
+# noinspection PyUnboundLocalVariable,PyUnresolvedReferences
 __pragma__('skip')
 
 from .constants import *
+from .metadata import *
 from .misc_exports import *
 from .transcrypt import *
-from .metadata import *
 
 # Generated manually using regexes on the sub files
 __all__ = [

@@ -725,7 +725,7 @@ function defineRoomMetadataPrototypes() {
                 }
             }
             if (currentByteModified) {
-                result[resultPos++] = currentByte;
+                result[resultPos] = currentByte;
             }
             return result;
         }
@@ -776,7 +776,7 @@ function defineRoomMetadataPrototypes() {
             this.source_capacity = source_capacity;
         }
     };
-    StoredStructure.prototype.toString = function() {
+    StoredStructure.prototype.toString = function () {
         return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}]`;
     };
 

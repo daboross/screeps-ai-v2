@@ -18,6 +18,7 @@ def js_isNaN(num):
     :rtype: bool
     """
 
+
 js_global = {}
 
 __all__ = [

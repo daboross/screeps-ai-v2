@@ -8,8 +8,7 @@ from constants import default_roles, rmem_key_pause_all_room_operations, role_ha
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
-from empire import honey
-from empire import stored_data
+from empire import honey, stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
@@ -28,14 +27,10 @@ __pragma__('noalias', 'type')
 
 # Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
 # code works correctly.
-__pragma__('js', '{}', """
-if (!global.__customizations_active) {
-    require("customizations");
-}""")
-__pragma__('js', '{}', """
-if (!global.__metadata_active) {
-    require("metadata");
-}""")
+if not js_global.__customizations_active:
+    require("customizations")
+if not js_global.__metadata_active:
+    require("metadata")
 
 walkby_move.apply_move_prototype()
 

@@ -117,6 +117,7 @@ def room_pos_of_closest_serialized(room, here_pos, list_of_serialized):
     else:
         return None
 
+
 def distance_squared_room_pos(room_position_1, room_position_2):
     """
     Gets the squared distance between two RoomPositions, taking into account room difference by parsing room names to

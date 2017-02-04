@@ -89,7 +89,7 @@ function activateCustomizations() {
             }
         }
         return false;
-    }
+    };
 
     // Custom addition
     Creep.prototype.getBodyparts = function (type) {
@@ -127,7 +127,7 @@ function activateCustomizations() {
             }
             if (x.type == type) {
                 if (x.boost !== undefined && typeBoosts !== undefined) {
-                    boostPowers = typeBoosts[x.boost]
+                    boostPowers = typeBoosts[x.boost];
                     if (boostPowers !== undefined) {
                         actionPower = boostPowers[action];
                         if (actionPower !== undefined) {
@@ -156,7 +156,7 @@ function activateCustomizations() {
             var x = this.body[i];
             if (x.type == type) {
                 if (x.boost !== undefined && typeBoosts !== undefined) {
-                    boostPowers = typeBoosts[x.boost]
+                    boostPowers = typeBoosts[x.boost];
                     if (boostPowers !== undefined) {
                         actionPower = boostPowers[action];
                         if (actionPower !== undefined) {
@@ -380,7 +380,7 @@ function activateCustomizations() {
 
         var last_x = originPos.x;
         var last_y = originPos.y;
-        var pos, dx, dy, dir;
+        var pos, dx, dy;
         for (var i = 0; i < path.length; i++) {
             pos = path[i];
             dx = pos.x - last_x;

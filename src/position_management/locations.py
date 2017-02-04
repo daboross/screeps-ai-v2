@@ -1,4 +1,4 @@
-from jstools.screeps  import *
+from jstools.screeps import *
 from utilities import naming
 
 __pragma__('noalias', 'name')
