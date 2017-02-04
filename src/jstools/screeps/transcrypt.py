@@ -18,11 +18,13 @@ def js_isNaN(num):
     :rtype: bool
     """
 
+js_global = {}
 
 __all__ = [
     '__pragma__',
     '__new__',
     'js_isNaN',
+    'js_global',
 ]
 
 __except0__ = TypeError()

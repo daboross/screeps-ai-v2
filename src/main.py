@@ -2,6 +2,7 @@ import math
 
 import constants
 from cache import consistency, context, global_cache, volatile_cache
+from consoletools import client_scripts
 from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
     role_ranged_offense, role_spawn_fill, role_temporary_replacing, role_tower_fill, role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
@@ -221,6 +222,10 @@ def main():
             Memory.meta.waiting_for_bucket = True
         return
     records.finish_record('bucket.check')
+
+    records.start_record()
+    client_scripts.check_output_to_console()
+    records.finish_record('client-scripts.check')
 
     records.start_record()
     flags.move_flags()

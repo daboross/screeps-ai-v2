@@ -382,6 +382,7 @@ __all__ = [
     "__pragma__",
     "__new__",
     "js_isNaN",
+    'js_global',
     "__except0__",
 
     # metadata
