@@ -1461,15 +1461,30 @@ class RoomMind:
         else:
             wm = len(self.sources) * 2 * worker_size
 
-        if base is creep_base_full_upgrader:
-            max_upgraders = max(4, len(flags.find_flags(self, UPGRADER_SPOT)))
-            self._target_upgrader_work_mass = min(wm, worker_size * max_upgraders)
-        elif self.room.storage and not self.room.storage.storeCapacity:
-            self._target_upgrader_work_mass = min(wm, worker_size * 15)
-        else:
-            max_upgraders = max(8, len(flags.find_flags(self, UPGRADER_SPOT)))
-            self._target_upgrader_work_mass = min(wm, worker_size * max_upgraders)
-        return self._target_upgrader_work_mass
+        if wm > 0:
+            if base is creep_base_full_upgrader:
+                if len(flags.find_flags(self, UPGRADER_SPOT)):
+                    max_upgraders = len(flags.find_flags(self, UPGRADER_SPOT))
+                else:
+                    max_upgraders = 4
+                wm = min(wm, worker_size * max_upgraders)
+            elif self.room.storage and not self.room.storage.storeCapacity:
+                wm = min(wm, worker_size * 15)
+            else:
+                max_upgraders = max(8, len(flags.find_flags(self, UPGRADER_SPOT)))
+                wm = min(wm, worker_size * max_upgraders)
+
+            energy_struct = self.get_upgrader_energy_struct()
+            if energy_struct.structureType == STRUCTURE_LINK:
+                distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct)
+                # TODO: enable or remove this after we've tested the effectiveness of using exact parts
+                # if distance > 3:
+                #     distance -= 3
+                # Max energy per tick transferred via link, with a little leeway towards allowing more upgrader parts
+                # (since our logic isn't 100% great in terms of sending energy exactly on schedule)
+                wm = min(wm, math.ceil(LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / distance))
+        self._target_upgrader_work_mass = wm
+        return wm
 
     def get_target_tower_fill_mass(self):
         if not self.get_target_spawn_fill_mass():
@@ -1509,16 +1524,15 @@ class RoomMind:
 
     def get_upgrader_size(self):
         base = self.get_variable_base(role_upgrader)
-        sections = self.get_target_upgrader_work_mass()
+        sections = spawning.max_sections_of(self, base)
         target = self.get_target_upgrader_work_mass()
         if base == creep_base_full_upgrader and target > 1:
-            return spawning.ceil_sections(min(sections, target / 2), base)
-        else:
-            return spawning.ceil_sections(min(sections, target), base)
+            target = spawning.ceil_sections(target / 2)
+        return fit_num_sections(target, sections)
 
     def get_builder_size(self):
         base = self.get_variable_base(role_builder)
-        return min(spawning.max_sections_of(self, base), self.building.get_max_builder_work_parts())
+        return fit_num_sections(self.get_target_builder_work_mass(), spawning.max_sections_of(self, base))
 
     def get_upgrade_fill_size(self):
         mass = self.get_target_upgrade_fill_mass()
