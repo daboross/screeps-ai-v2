@@ -52,6 +52,7 @@ energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1
 energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.1
 energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_upgrading * 1.1
 energy_balance_point_for_rcl8_selling = energy_to_keep_always_in_reserve * 0.6
+energy_at_which_to_stop_supporting = energy_to_keep_always_in_reserve * 1.5
 max_minerals_to_keep = STORAGE_CAPACITY / 4
 
 energy_for_terminal_when_selling = TERMINAL_CAPACITY / 2

@@ -1001,26 +1001,30 @@ class RoomMind:
         if not self.full_storage_use:
             self.store_cached_property(cache_key_spending_now, room_spending_state_saving, 500)
             return room_spending_state_saving
+        state = None
         if self.mem[mem_key_sell_all_but_empty_resources_to]:
             state = room_spending_state_selling
         elif self.mem[mem_key_now_supporting]:
             room = self.hive.get_room(self.mem[mem_key_now_supporting])
-            if room.mem[mem_key_currently_under_siege]:
-                state = room_spending_state_supporting_sieged
-            else:
-                energy = self.minerals.get_estimate_total_energy()
-                if energy < energy_to_keep_always_in_reserve / 2:
-                    state = room_spending_state_saving
-                elif self.room.terminal and self.minerals.get_estimate_total_non_energy() > max_minerals_to_keep / 2:
-                    if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
-                        state = room_spending_state_selling_and_supporting
-                    else:
-                        state = room_spending_state_selling
-                elif energy < energy_to_keep_always_in_reserve:
-                    state = room_spending_state_saving
+            if room and room.minerals.get_estimate_total_energy() < energy_at_which_to_stop_supporting:
+                if room.mem[mem_key_currently_under_siege]:
+                    state = room_spending_state_supporting_sieged
                 else:
-                    state = room_spending_state_supporting
-        else:
+                    energy = self.minerals.get_estimate_total_energy()
+                    if energy < energy_to_keep_always_in_reserve / 2:
+                        state = room_spending_state_saving
+                    elif self.room.terminal \
+                            and self.minerals.get_estimate_total_non_energy() > max_minerals_to_keep / 2:
+                        if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                            state = room_spending_state_selling_and_supporting
+                        else:
+                            state = room_spending_state_selling
+                    elif energy < energy_to_keep_always_in_reserve:
+                        state = room_spending_state_saving
+                    else:
+                        state = room_spending_state_supporting
+
+        if state is None:
             energy = self.minerals.get_estimate_total_energy()
             non_energy = self.room.terminal and self.minerals.get_estimate_total_non_energy()
             if energy < energy_to_keep_always_in_reserve / 2:
