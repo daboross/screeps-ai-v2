@@ -49,6 +49,23 @@ def report_error(err, description):
     return errorlog.report_error('main', err, description)
 
 
+def try_thing(thing, *args):
+    """
+    :type thing: callable()
+    :type args: list[any]
+    """
+    return errorlog.try_exec('main', thing, thing.err_desc, *args)
+
+
+def try_thing2(thing, err_desc, *args):
+    """
+    :type thing: callable
+    :type err_desc: callable
+    :type args: list[any]
+    """
+    return errorlog.try_exec('main', thing, err_desc, *args)
+
+
 def run_creep(hive, targets, creeps_skipped, room, creep):
     """
     :type hive: empire.hive.HiveMind
@@ -68,48 +85,47 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
             else:
                 creeps_skipped[room.name] = [creep.name]
             return
-    try:
-        if creep.spawning and creep.memory.role != role_temporary_replacing:
-            return
-        if creep.defense_override:
-            return
-        records.start_record()
-        instance = wrap_creep(hive, targets, room, creep)
-        if not instance:
-            if creep.memory.role:
-                print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
-                    creep.memory.home, creep.name, creep.memory.role))
-            else:
-                print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
-            role = default_roles[spawning.find_base_type(creep)]
-            if role:
-                creep.memory.role = role
-                instance = wrap_creep(hive, targets, room, creep)
-                room.register_to_role(instance)
-            else:
-                instance = RoleBase(hive, targets, room, creep)
-                instance.go_to_depot()
-        records.finish_record('hive.wrap-creep')
-        creep.wrapped = instance
-        records.start_record()
-        bef = Game.cpu.getUsed()
-        rerun = instance.run()
-        if Game.cpu.bucket >= 7000 or Game.cpu.getUsed() - bef < 0.3:
-            if rerun:
-                rerun = instance.run()
-            if rerun:
-                rerun = instance.run()
-            if rerun:
-                print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.name, creep.name,
-                                                                        creep.memory.role))
-        records.finish_record(creep.memory.role)
-    except:
-        report_error(
-            __except0__,
-            "Error running role {}, creep {} at {} from room {} not run this tick.".format(
-                creep.memory.role, creep.name, creep.pos, creep.memory.home
-            )
-        )
+
+    if creep.spawning and creep.memory.role != role_temporary_replacing:
+        return
+    if creep.defense_override:
+        return
+    records.start_record()
+    instance = wrap_creep(hive, targets, room, creep)
+    if not instance:
+        if creep.memory.role:
+            print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
+                creep.memory.home, creep.name, creep.memory.role))
+        else:
+            print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
+        role = default_roles[spawning.find_base_type(creep)]
+        if role:
+            creep.memory.role = role
+            instance = wrap_creep(hive, targets, room, creep)
+            room.register_to_role(instance)
+        else:
+            instance = RoleBase(hive, targets, room, creep)
+            instance.go_to_depot()
+    records.finish_record('hive.wrap-creep')
+    creep.wrapped = instance
+    records.start_record()
+    bef = Game.cpu.getUsed()
+    rerun = instance.run()
+    if Game.cpu.bucket >= 7000 or Game.cpu.getUsed() - bef < 0.3:
+        if rerun:
+            rerun = instance.run()
+        if rerun:
+            rerun = instance.run()
+        if rerun:
+            print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.name, creep.name,
+                                                                    creep.memory.role))
+    records.finish_record(creep.memory.role)
+
+
+run_creep.err_desc = lambda hive, targets, creeps_skipped, room, creep: (
+    "Error running role {}, creep {} at {} from room {} not run this tick.".format(
+        creep.memory.role, creep.name, creep.pos, creep.memory.home
+    ))
 
 
 def run_room(targets, creeps_skipped, room):
@@ -118,61 +134,58 @@ def run_room(targets, creeps_skipped, room):
     :type creeps_skipped: dict
     :type room: rooms.room_mind.RoomMind
     """
-    try:
-        if room.mem[rmem_key_pause_all_room_operations]:
-            return
-        records.start_record()
-        room.defense.tick()
-        records.finish_record('defense.tick')
-        if 'skipped_last_turn' in Memory and room.name in Memory.skipped_last_turn:
-            for creep in room.creeps:
-                role = creep.memory.role
-                if role == role_spawn_fill or role == role_tower_fill \
-                        or role == role_link_manager or role == role_hauler or role == role_miner \
-                        or role == role_ranged_offense or role == role_wall_defender:
-                    run_creep(room.hive, targets, creeps_skipped, room, creep)
-            for name in Memory.skipped_last_turn[room.name]:
-                creep = Game.creeps[name]
-                if creep:
-                    run_creep(room.hive, targets, creeps_skipped, room, creep)
+    if room.mem[rmem_key_pause_all_room_operations]:
+        return
+    records.start_record()
+    room.defense.tick()
+    records.finish_record('defense.tick')
+    if 'skipped_last_turn' in Memory and room.name in Memory.skipped_last_turn:
+        for creep in room.creeps:
+            role = creep.memory.role
+            if role == role_spawn_fill or role == role_tower_fill \
+                    or role == role_link_manager or role == role_hauler or role == role_miner \
+                    or role == role_ranged_offense or role == role_wall_defender:
+                try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
+        for name in Memory.skipped_last_turn[room.name]:
+            creep = Game.creeps[name]
+            if creep:
+                try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
 
-        else:
+    else:
+        records.start_record()
+        room.precreep_tick_actions()
+        records.finish_record('room.tick')
+        for creep in room.creeps:
+            try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
+        if Game.cpu.bucket >= 4500 and (Game.time + room.get_unique_owned_index()) % 50 == 0:
             records.start_record()
-            room.precreep_tick_actions()
-            records.finish_record('room.tick')
-            for creep in room.creeps:
-                run_creep(room.hive, targets, creeps_skipped, room, creep)
-            if Game.cpu.bucket >= 4500 and (Game.time + room.get_unique_owned_index()) % 50 == 0:
-                try:
-                    records.start_record()
-                    actually_did_anything = room.building.build_most_needed_road()
-                    if actually_did_anything:
-                        records.finish_record('building.roads.check-pavement')
-                    else:
-                        records.finish_record('building.roads.cache-checks-only')
-                except:
-                    records.finish_record('building.roads.errored')
-                    report_error(__except0__, "Error running road building in {}.".format(room.name))
+            actually_did_anything = try_thing2(room.building.build_most_needed_road,
+                                               lambda: "Error running road building in {}.".format(room.name))
+            if actually_did_anything:
+                records.finish_record('building.roads.check-pavement')
+            else:
+                records.finish_record('building.roads.cache-checks-only')
 
-            records.start_record()
-            room.building.place_home_ramparts()
-            records.finish_record('building.ramparts')
-            for spawn in room.spawns:
-                records.start_record()
-                spawning.run(room, spawn)
-                records.finish_record('spawn.tick')
         records.start_record()
-        room.links.tick_links()
-        records.finish_record('links.tick')
-        if Game.time % 525 == 17:
+        room.building.place_home_ramparts()
+        records.finish_record('building.ramparts')
+        for spawn in room.spawns:
             records.start_record()
-            room.mining.cleanup_old_flag_sitting_values()
-            records.finish_record('mining.cleanup_flags')
+            spawning.run(room, spawn)
+            records.finish_record('spawn.tick')
+    records.start_record()
+    room.links.tick_links()
+    records.finish_record('links.tick')
+    if Game.time % 525 == 17:
         records.start_record()
-        room.minerals.tick_terminal()
-        records.finish_record('terminal.tick')
-    except:
-        report_error(__except0__, "Error running room {}".format(room.name))
+        room.mining.cleanup_old_flag_sitting_values()
+        records.finish_record('mining.cleanup_flags')
+    records.start_record()
+    room.minerals.tick_terminal()
+    records.finish_record('terminal.tick')
+
+
+run_room.err_desc = lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
 
 
 def main():

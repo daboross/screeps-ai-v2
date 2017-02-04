@@ -28,3 +28,18 @@ def report_error(place, err, description):
     Game.notify(msg)
     if err == undefined:
         __pragma__('js', 'throw err;')
+
+
+def try_exec(place, thing, error_description, *args):
+    """
+    :type place: str
+    :type thing: callable
+    :type error_description: callable
+    :type args: list[any]
+    """
+    result = True
+    try:
+        result = thing(*args)
+    except:
+        report_error(place, __except0__, error_description(*args))
+    return result

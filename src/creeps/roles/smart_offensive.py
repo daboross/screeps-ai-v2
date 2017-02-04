@@ -336,25 +336,24 @@ class KitingOffense(MilitaryBase):
             # NOTE: this depends on our custom moveTo function not checking for instanceof RoomPosition
             self.move_to(closest_pos, _MOVE_TO_OPTIONS)
         elif should_run:
-            away_path = None
-            start = Game.cpu.getUsed()
-            try:
-                away_path = kiting_away_raw_path(self.pos, [
-                    {
-                        'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
-                        'range': 10,
-                    } for h in hostiles_nearby])
-                if len(away_path):
-                    self.creep.move(self.pos.getDirectionTo(away_path[0]))
-            except:
-                self.creep.say("ERROR")
+            kiting_path = errorlog.try_exec(
+                'kiting-offense',
+                kiting_away_raw_path,
+                lambda pos: "Error calculating or moving by kiting path at pos {}.".format(pos),
+                self.pos,
+                [{
+                     'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
+                     'range': 10,
+                 } for h in hostiles_nearby]
+            )
+            if kiting_path is True:
+                # errored
+                self.creep.say("Err")
                 self.go_to_depot()
-                errorlog.report_error(
-                    'kiting-offense',
-                    __except0__,
-                    "Error calculating or moving by kiting path at pos {} (cpu used here: {}):\npath: {}\n"
-                        .format(self.pos, Game.cpu.getUsed() - start, away_path),
-                )
+            elif len(kiting_path):
+                self.creep.move(self.pos.getDirectionTo(kiting_path[0]))
+            else:
+                self.log("WARNING: kiting offense has no path at position {}!".format(self.pos))
 
     def _calculate_time_to_replace(self):
         marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)
