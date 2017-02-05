@@ -145,7 +145,7 @@ def debug_str(room_name):
 
     gmem = _get_mem()
     if room_name not in gmem:
-        return map_of_values
+        return 'no paths through {}'.format(room_name)
     for data_string in gmem[room_name]:
         points = data_string[data_string.codePointAt(0):]
         for i in range(0, len(points)):
