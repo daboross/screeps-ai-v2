@@ -266,25 +266,27 @@ __pragma__('noskip')
 
 
 # noinspection PyPep8Naming
-def _create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug):  # actual version of the above
+def _create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debug):  # actual version of the above
     this.cost_matrix = __new__(PathFinder.CostMatrix())
     this.room_name = room_name
     this.plain_cost = plain_cost
     this.swamp_cost = swamp_cost
+    this.min_cost = min_cost
     this.added_at = {}
     if debug:
         this.debug = True
 
 
-def create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug):
+def create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debug):
     """
     :rtype: CustomCostMatrix
     :param room_name: The room name
     :param plain_cost: The plain cost
     :param swamp_cost: The swamp cost
+    :param min_cost: The minimum cost
     :return: The custom cost matrix
     """
-    return __new__(_create_custom_cost_matrix(room_name, plain_cost, swamp_cost, debug))
+    return __new__(_create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debug))
 
 
 def _cma_get(x, y):
@@ -292,6 +294,8 @@ def _cma_get(x, y):
 
 
 def _cma_set(x, y, value):
+    if value < this.min_cost:
+        value = this.min_cost
     if this.debug:
         print('[DEBUG][ccm][{}] Setting {},{} as {}.'.format(this.room_name, x, y, value))
     return this.cost_matrix.set(x, y, value)
@@ -523,8 +527,9 @@ class HoneyTrails:
 
         plain_cost = opts['plain_cost'] or 1
         swamp_cost = opts['swamp_cost'] or 5
+        min_cost = opts['min_cost'] or 1
 
-        matrix = create_custom_cost_matrix(room_name, plain_cost, swamp_cost, opts.debug_output)
+        matrix = create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, opts.debug_output)
 
         if not room and not room_data:
             mark_exit_tiles(matrix)
@@ -720,7 +725,7 @@ class HoneyTrails:
                 matrix.cost_matrix,
                 plain_cost,
                 swamp_cost,
-                2,
+                min_cost,
             )
         if opts.debug_visual:
             print('visual debug\n\n' + matrix.visual())
@@ -769,17 +774,25 @@ class HoneyTrails:
                 return path1.concat(path2)
 
         if paved_for:
-            plain_cost = 5
-            swamp_cost = 10
+            plain_cost = 20
+            swamp_cost = 40
+            heuristic = 18
+            min_cost = 15
         elif ignore_swamp:
             plain_cost = 1
             swamp_cost = 1
+            heuristic = 1.2
+            min_cost = 1
         elif roads_better:
             plain_cost = 2
             swamp_cost = 10
+            heuristic = 1.2
+            min_cost = 1
         else:
             plain_cost = 1
             swamp_cost = 5
+            heuristic = 1.2
+            min_cost = 1
 
         result = PathFinder.search(origin, {"pos": destination, "range": pf_range}, {
             "plainCost": plain_cost,
@@ -790,9 +803,11 @@ class HoneyTrails:
                 "max_avoid": max_avoid,
                 "plain_cost": plain_cost,
                 "swamp_cost": swamp_cost,
+                "min_cost": min_cost,
             }),
             "maxRooms": max_rooms,
             "maxOps": max_ops,
+            "heuristicWeight": heuristic,
         })
 
         print("[honey] Calculated new path from {} to {} in {} ops.".format(
