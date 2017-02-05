@@ -1,4 +1,5 @@
-from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_recycling, target_rampart_defense
+from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_recycling, target_rampart_defense, \
+    role_miner
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from jstools.screeps import *
@@ -113,3 +114,8 @@ class WallDefender(RoleBase):
 
         if not self.pos.isEqualTo(target):
             self.move_to(target)
+        else:
+            at_target = self.room.look_at(LOOK_CREEPS, target)
+            if _.some(at_target, lambda c: c.memory.role == role_miner):
+                self.log("Hot spot has miner: untargeting.")
+                self.targets.untarget(self, target_rampart_defense)

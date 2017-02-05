@@ -2,7 +2,8 @@ import math
 
 from cache import volatile_cache
 from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, rmem_key_building_priority_walls, \
-    rmem_key_currently_under_siege, rmem_key_defense_mind_storage, rmem_key_stored_hostiles, role_wall_defender
+    rmem_key_currently_under_siege, rmem_key_defense_mind_storage, rmem_key_stored_hostiles, role_miner, \
+    role_wall_defender
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags, locations
@@ -589,7 +590,12 @@ class RoomDefense:
                     elif struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER:
                         is_other = True  # Don't assign defender creeps to say, ramparts over spawns.
                 if is_rampart and not is_other:
-                    protect.set(positions.serialize_pos_xy(position), 0)
+                    for creep in self.room.look_at(LOOK_CREEPS, position.x, position.y):
+                        if creep.memory.role == role_miner:
+                            is_other = True
+                            break
+                    if not is_other:
+                        protect.set(positions.serialize_pos_xy(position), 0)
         current_iteration = Array.js_from(protect.entries())
         print("[defense] Found inital walls: {} from {} paths".format(len(current_iteration), len(already_checked)))
         while True:
@@ -976,6 +982,15 @@ class RoomDefense:
             if rampart.setPublic:  # method only accessible for STRUCTURE_RAMPART, faster than checking structureType
                 serialized = positions.serialize_pos_xy(rampart)
                 if not hot_found.has(serialized):
+                    is_other = False
+                    for structure in self.room.look_at(LOOK_STRUCTURES, rampart):
+                        if not structure.setPublic:
+                            is_other = True
+                    for creep in self.room.look_at(LOOK_CREEPS, rampart):
+                        if creep.memory.role == role_miner:
+                            is_other = True
+                    if is_other:
+                        continue
                     nearby = self.room.look_for_in_area_around(LOOK_CREEPS, rampart, 1)
                     total_offense = 0
                     for obj in nearby:
