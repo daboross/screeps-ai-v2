@@ -1,8 +1,9 @@
 import math
 
 from cache import volatile_cache
-from constants import rmem_key_empty_all_resources_into_room, rmem_key_mineral_mind_storage, rmem_key_now_supporting, \
-    rmem_key_sell_all_but_empty_resources_to, role_mineral_hauler
+from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
+    rmem_key_mineral_mind_storage, rmem_key_now_supporting, rmem_key_sell_all_but_empty_resources_to, \
+    role_mineral_hauler
 from jstools.screeps import *
 from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
     energy_for_terminal_when_selling, energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, \
@@ -577,8 +578,18 @@ class MineralMind:
             min_via_spending = self.get_estimate_total_energy()
 
         sending_to = self.room.mem[rmem_key_now_supporting]
+        destination_room = Game.rooms[sending_to]
+        if destination_room:
+            if destination_room.terminal:
+                capacity = destination_room.terminal.storeCapacity - _.sum(destination_room.terminal.store)
+            else:
+                capacity = 0
+        else:
+            capacity = TERMINAL_CAPACITY
 
-        to_send = min(self.terminal.store[RESOURCE_ENERGY], min_via_spending)
+        to_send = min(self.terminal.store[RESOURCE_ENERGY], capacity, min_via_spending)
+        if to_send < 100:
+            return
         distance = Game.map.getRoomLinearDistance(self.room.name, sending_to, True)
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
         amount = math.floor(to_send / total_cost_of_1_energy)
