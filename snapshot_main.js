@@ -1613,7 +1613,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-03 21:52:14
+// Transcrypt'ed from Python, 2017-02-05 02:09:09
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -1746,7 +1746,7 @@ function main () {
         __name__: 'object',
         __bases__: [],
 
-        // Object creator function is inherited by all classes (so in principle it could be made global)
+        // Object creator function, is inherited by all classes (so could be global)
         __new__: function (args) {  // Args are just the constructor args
             // In JavaScript the Python class is the prototype of the Python object
             // In this way methods and static attributes will be available both with a class and an object before the dot
@@ -1787,7 +1787,7 @@ function main () {
                         get __init__ () {return __get__ (this, function (self) {
                             self.interpreter_name = 'python';
                             self.transpiler_name = 'transcrypt';
-                            self.transpiler_version = '3.6.5';
+                            self.transpiler_version = '3.6.8';
                             self.target_subdir = '__javascript__';
                         });}
                     });
@@ -2137,6 +2137,22 @@ function main () {
     }
     __all__.__globals__ = __globals__
 
+    // Partial implementation of super () .<methodName> (<params>)
+    var __super__ = function (aClass, methodName) {
+        // Lean and fast, no C3 linearization, only call first implementation encountered
+        // Will allow __super__ ('<methodName>') (self, <params>) rather than only <className>.<methodName> (self, <params>)
+
+        for (var index = 0; index < aClass.__bases__.length; index++) {
+            var base = aClass.__bases__ [index];
+            if (methodName in base) {
+               return base [methodName];
+            }
+        }
+
+        throw new Exception ('Superclass method not found');    // !!! Improve!
+    }
+    __all__.__super__ = __super__
+
     // Python property installer function, no member since that would bloat classes
     var property = function (getter, setter) {  // Returns a property descriptor rather than a property
         if (!setter) {  // ??? Make setter optional instead of dummy?
@@ -2373,17 +2389,16 @@ function main () {
 
     // Repr function uses __repr__ method, then __str__, then toString
     var repr = function (anObject) {
-        if (anObject.__repr__) {
+        if (anObject == null) {
+            return 'None';
+        } else if (anObject.__repr__) {
             return anObject.__repr__ ();
         } else if (anObject.__str__) {
             return anObject.__str__ ();
         }
             else { // anObject has no __repr__ and no __str__
                 try {
-                    if (anObject == null) {
-                        return 'None';
-                    }
-                    else if (anObject.constructor == Object) {
+                    if (anObject.constructor == Object) {
                         var result = '{';
                         var comma = false;
                         for (var attrib in anObject) {
@@ -5838,7 +5853,7 @@ function main () {
                         var map_of_values = new_map ();
                         var gmem = _get_mem ();
                         if (!(room_name in gmem)) {
-                            return map_of_values;
+                            return 'no paths through {}'.format (room_name);
                         }
                         var __iterable0__ = gmem [room_name];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -10502,6 +10517,7 @@ function main () {
                     var role_defender = __init__ (__world__.constants).role_defender;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
                     var target_rampart_defense = __init__ (__world__.constants).target_rampart_defense;
+                    var role_miner = __init__ (__world__.constants).role_miner;
                     var RoleBase = __init__ (__world__.creeps.base).RoleBase;
                     var MilitaryBase = __init__ (__world__.creeps.behaviors.military).MilitaryBase;
                     var hostile_utils = __init__ (__world__.utilities.hostile_utils);
@@ -10634,6 +10650,15 @@ function main () {
                             if (!(self.pos.isEqualTo (target))) {
                                 self.move_to (target);
                             }
+                            else {
+                                var at_target = self.room.look_at (LOOK_CREEPS, target);
+                                if (_.some (at_target, (function __lambda__ (c) {
+                                    return c.memory.role == role_miner;
+                                }))) {
+                                    self.log ('Hot spot has miner: untargeting.');
+                                    self.targets.untarget (self, target_rampart_defense);
+                                }
+                            }
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -10656,6 +10681,7 @@ function main () {
                         __all__.positions = positions;
                         __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
                         __all__.role_defender = role_defender;
+                        __all__.role_miner = role_miner;
                         __all__.role_recycling = role_recycling;
                         __all__.target_rampart_defense = target_rampart_defense;
                     __pragma__ ('</all>')
@@ -15636,23 +15662,27 @@ function main () {
                         }
                         return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y]);
                     };
-                    var _create_custom_cost_matrix = function (room_name, plain_cost, swamp_cost, debug) {
+                    var _create_custom_cost_matrix = function (room_name, plain_cost, swamp_cost, min_cost, debug) {
                         this.cost_matrix = new PathFinder.CostMatrix ();
                         this.room_name = room_name;
                         this.plain_cost = plain_cost;
                         this.swamp_cost = swamp_cost;
+                        this.min_cost = min_cost;
                         this.added_at = {};
                         if (debug) {
                             this.debug = true;
                         }
                     };
-                    var create_custom_cost_matrix = function (room_name, plain_cost, swamp_cost, debug) {
-                        return new _create_custom_cost_matrix (room_name, plain_cost, swamp_cost, debug);
+                    var create_custom_cost_matrix = function (room_name, plain_cost, swamp_cost, min_cost, debug) {
+                        return new _create_custom_cost_matrix (room_name, plain_cost, swamp_cost, min_cost, debug);
                     };
                     var _cma_get = function (x, y) {
                         return this.cost_matrix.get (x, y);
                     };
                     var _cma_set = function (x, y, value) {
+                        if (value < this.min_cost) {
+                            var value = this.min_cost;
+                        }
                         if (this.debug) {
                             print ('[DEBUG][ccm][{}] Setting {},{} as {}.'.format (this.room_name, x, y, value));
                         }
@@ -15914,7 +15944,8 @@ function main () {
                             }
                             var plain_cost = opts ['plain_cost'] || 1;
                             var swamp_cost = opts ['swamp_cost'] || 5;
-                            var matrix = create_custom_cost_matrix (room_name, plain_cost, swamp_cost, opts.debug_output);
+                            var min_cost = opts ['min_cost'] || 1;
+                            var matrix = create_custom_cost_matrix (room_name, plain_cost, swamp_cost, min_cost, opts.debug_output);
                             if (!(room) && !(room_data)) {
                                 mark_exit_tiles (matrix);
                                 mark_flags (matrix);
@@ -16191,7 +16222,7 @@ function main () {
                                 }
                             }
                             if (paved_for) {
-                                mining_paths.set_decreasing_cost_matrix_costs (room_name, paved_for, matrix.cost_matrix, plain_cost, swamp_cost, 2);
+                                mining_paths.set_decreasing_cost_matrix_costs (room_name, paved_for, matrix.cost_matrix, plain_cost, swamp_cost, min_cost);
                             }
                             if (opts.debug_visual) {
                                 print ('visual debug\n\n' + matrix.visual ());
@@ -16246,22 +16277,30 @@ function main () {
                                 }
                             }
                             if (paved_for) {
-                                var plain_cost = 5;
-                                var swamp_cost = 10;
+                                var plain_cost = 20;
+                                var swamp_cost = 40;
+                                var heuristic = 18;
+                                var min_cost = 15;
                             }
                             else if (ignore_swamp) {
                                 var plain_cost = 1;
                                 var swamp_cost = 1;
+                                var heuristic = 1.2;
+                                var min_cost = 1;
                             }
                             else if (roads_better) {
                                 var plain_cost = 2;
                                 var swamp_cost = 10;
+                                var heuristic = 1.2;
+                                var min_cost = 1;
                             }
                             else {
                                 var plain_cost = 1;
                                 var swamp_cost = 5;
+                                var heuristic = 1.2;
+                                var min_cost = 1;
                             }
-                            var result = PathFinder.search (origin, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost}), 'maxRooms': max_rooms, 'maxOps': max_ops});
+                            var result = PathFinder.search (origin, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost, 'min_cost': min_cost}), 'maxRooms': max_rooms, 'maxOps': max_ops, 'heuristicWeight': heuristic});
                             print ('[honey] Calculated new path from {} to {} in {} ops.'.format (origin, destination, result.ops));
                             var path = result.path;
                             if (result.incomplete) {
@@ -20572,6 +20611,31 @@ function main () {
                             }
                         }
                     };
+                    var clean_up_owned_room_roads = function (hive) {
+                        var __iterable0__ = hive.my_rooms;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var room = __iterable0__ [__index0__];
+                            var roads = [];
+                            var non_roads = new_set ();
+                            var __iterable1__ = room.find (FIND_STRUCTURES);
+                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                var structure = __iterable1__ [__index1__];
+                                if (structure.structureType == STRUCTURE_ROAD) {
+                                    roads.push (structure);
+                                }
+                                else if (structure.structureType != STRUCTURE_RAMPART && structure.structureType != STRUCTURE_CONTAINER) {
+                                    non_roads.add (positions.serialize_pos_xy (structure));
+                                }
+                            }
+                            var __iterable1__ = roads;
+                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                var road = __iterable1__ [__index1__];
+                                if (non_roads.has (positions.serialize_pos_xy (road))) {
+                                    road.destroy ();
+                                }
+                            }
+                        }
+                    };
                     var repave = function (mine_name) {
                         var flag = Game.flags [mine_name];
                         if (!(flag)) {
@@ -20617,6 +20681,7 @@ function main () {
                         __all__._cache_key_placed_roads_for_mine = _cache_key_placed_roads_for_mine;
                         __all__.building_priorities = building_priorities;
                         __all__.clean_up_all_road_construction_sites = clean_up_all_road_construction_sites;
+                        __all__.clean_up_owned_room_roads = clean_up_owned_room_roads;
                         __all__.context = context;
                         __all__.default_priority = default_priority;
                         __all__.flags = flags;
@@ -20662,6 +20727,7 @@ function main () {
                     var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
                     var rmem_key_defense_mind_storage = __init__ (__world__.constants).rmem_key_defense_mind_storage;
                     var rmem_key_stored_hostiles = __init__ (__world__.constants).rmem_key_stored_hostiles;
+                    var role_miner = __init__ (__world__.constants).role_miner;
                     var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
                     var new_map = __init__ (__world__.jstools.js_set_map).new_map;
                     var new_set = __init__ (__world__.jstools.js_set_map).new_set;
@@ -21185,7 +21251,17 @@ function main () {
                                         }
                                     }
                                     if (is_rampart && !(is_other)) {
-                                        protect.set (positions.serialize_pos_xy (position), 0);
+                                        var __iterable2__ = self.room.look_at (LOOK_CREEPS, position.x, position.y);
+                                        for (var __index2__ = 0; __index2__ < __iterable2__.length; __index2__++) {
+                                            var creep = __iterable2__ [__index2__];
+                                            if (creep.memory.role == role_miner) {
+                                                var is_other = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!(is_other)) {
+                                            protect.set (positions.serialize_pos_xy (position), 0);
+                                        }
                                     }
                                 }
                             }
@@ -21707,6 +21783,24 @@ function main () {
                                 if (rampart.setPublic) {
                                     var serialized = positions.serialize_pos_xy (rampart);
                                     if (!(hot_found.has (serialized))) {
+                                        var is_other = false;
+                                        var __iterable1__ = self.room.look_at (LOOK_STRUCTURES, rampart);
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var structure = __iterable1__ [__index1__];
+                                            if (!(structure.setPublic)) {
+                                                var is_other = true;
+                                            }
+                                        }
+                                        var __iterable1__ = self.room.look_at (LOOK_CREEPS, rampart);
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var creep = __iterable1__ [__index1__];
+                                            if (creep.memory.role == role_miner) {
+                                                var is_other = true;
+                                            }
+                                        }
+                                        if (is_other) {
+                                            continue;
+                                        }
                                         var nearby = self.room.look_for_in_area_around (LOOK_CREEPS, rampart, 1);
                                         var total_offense = 0;
                                         var __iterable1__ = nearby;
@@ -21843,6 +21937,7 @@ function main () {
                         __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
                         __all__.rmem_key_defense_mind_storage = rmem_key_defense_mind_storage;
                         __all__.rmem_key_stored_hostiles = rmem_key_stored_hostiles;
+                        __all__.role_miner = role_miner;
                         __all__.role_wall_defender = role_wall_defender;
                         __all__.stored_hostiles_in = stored_hostiles_in;
                         __all__.stored_hostiles_near = stored_hostiles_near;
@@ -22173,6 +22268,7 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var volatile_cache = __init__ (__world__.cache.volatile_cache);
+                    var rmem_key_currently_under_siege = __init__ (__world__.constants).rmem_key_currently_under_siege;
                     var rmem_key_empty_all_resources_into_room = __init__ (__world__.constants).rmem_key_empty_all_resources_into_room;
                     var rmem_key_mineral_mind_storage = __init__ (__world__.constants).rmem_key_mineral_mind_storage;
                     var rmem_key_now_supporting = __init__ (__world__.constants).rmem_key_now_supporting;
@@ -22867,7 +22963,22 @@ function main () {
                                 var min_via_spending = self.get_estimate_total_energy ();
                             }
                             var sending_to = self.room.mem [rmem_key_now_supporting];
-                            var to_send = min (self.terminal.store [RESOURCE_ENERGY], min_via_spending);
+                            var destination_room = Game.rooms [sending_to];
+                            if (destination_room) {
+                                if (destination_room.terminal) {
+                                    var capacity = destination_room.terminal.storeCapacity - _.sum (destination_room.terminal.store);
+                                }
+                                else {
+                                    var capacity = 0;
+                                }
+                            }
+                            else {
+                                var capacity = TERMINAL_CAPACITY;
+                            }
+                            var to_send = min (self.terminal.store [RESOURCE_ENERGY], capacity, min_via_spending);
+                            if (to_send < 100) {
+                                return ;
+                            }
                             var distance = Game.map.getRoomLinearDistance (self.room.name, sending_to, true);
                             var total_cost_of_1_energy = 1 + 1 * (math.log ((distance + 9) * 0.1) + 0.1);
                             var amount = math.floor (to_send / total_cost_of_1_energy);
@@ -23116,7 +23227,7 @@ function main () {
                             self.log ("WARNING: Couldn't find any open spots to place a container near {}".format (pos));
                         }, 'place_container_construction_site');},
                         get get_target_mineral_miner_count () {return __get__ (this, function (self) {
-                            if (self.has_no_terminal_or_storage () || self.room.mem [rmem_key_empty_all_resources_into_room]) {
+                            if (self.has_no_terminal_or_storage () || self.room.mem [rmem_key_empty_all_resources_into_room] || self.room.mem [rmem_key_currently_under_siege]) {
                                 return 0;
                             }
                             var __iterable0__ = self.room.find (FIND_MINERALS);
@@ -23285,6 +23396,7 @@ function main () {
                         __all__.find_credits_one_energy_is_worth = find_credits_one_energy_is_worth;
                         __all__.max_minerals_to_keep = max_minerals_to_keep;
                         __all__.movement = movement;
+                        __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
                         __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
                         __all__.rmem_key_mineral_mind_storage = rmem_key_mineral_mind_storage;
                         __all__.rmem_key_now_supporting = rmem_key_now_supporting;
@@ -27380,6 +27492,11 @@ function main () {
                 records.start_record ();
                 building.clean_up_all_road_construction_sites ();
                 records.finish_record ('building.clean-up-road-construction-sites');
+            }
+            if (__mod__ (Game.time, 600) == 200) {
+                records.start_record ();
+                building.clean_up_owned_room_roads (hive);
+                records.finish_record ('building.clean-up-owned-room-roads');
             }
             records.start_record ();
             hive.poll_all_creeps ();
