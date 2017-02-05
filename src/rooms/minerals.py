@@ -828,7 +828,8 @@ class MineralMind:
         self.log("WARNING: Couldn't find any open spots to place a container near {}".format(pos))
 
     def get_target_mineral_miner_count(self):
-        if self.has_no_terminal_or_storage() or self.room.mem[rmem_key_empty_all_resources_into_room]:
+        if self.has_no_terminal_or_storage() or self.room.mem[rmem_key_empty_all_resources_into_room] \
+                or self.room.mem[rmem_key_currently_under_siege]:
             return 0
         # TODO: cache this
         for mineral in self.room.find(FIND_MINERALS):
