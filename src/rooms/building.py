@@ -871,6 +871,23 @@ def clean_up_all_road_construction_sites():
                 Game.notify(msg)
 
 
+def clean_up_owned_room_roads(hive):
+    """
+    :type hive: empire.hive.HiveMind
+    """
+    for room in hive.my_rooms:
+        roads = new_map()
+        non_roads = new_set()
+        for structure in room.find(FIND_STRUCTURES):
+            if structure.structureType == STRUCTURE_ROAD:
+                roads.set(positions.serialize_pos_xy(structure), structure)
+            elif structure.structureType != STRUCTURE_RAMPART and structure.structureType != STRUCTURE_CONTAINER:
+                non_roads.add(positions.serialize_pos_xy(structure))
+        for pos in roads.keys():
+            if non_roads.has(pos):
+                roads.get(pos).destroy()
+
+
 def repave(mine_name):
     """
     Command which is useful for use from console.

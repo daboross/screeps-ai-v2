@@ -274,6 +274,10 @@ def main():
         records.start_record()
         building.clean_up_all_road_construction_sites()
         records.finish_record('building.clean-up-road-construction-sites')
+    if Game.time % 600 == 200:
+        records.start_record()
+        building.clean_up_owned_room_roads(hive)
+        records.finish_record('building.clean-up-owned-room-roads')
 
     records.start_record()
     hive.poll_all_creeps()
