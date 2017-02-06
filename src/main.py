@@ -232,7 +232,7 @@ def main():
     records.finish_record('bucket.check')
 
     records.start_record()
-    client_scripts.check_output_to_console()
+    client_scripts.injection_check()
     records.finish_record('client-scripts.check')
 
     records.start_record()

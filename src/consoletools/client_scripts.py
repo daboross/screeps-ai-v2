@@ -84,7 +84,6 @@ def ij_command(command):
         return "Disabled tracing!"
     elif command == 't':
         Memory['_ij_timeout'] = Game.time + 1000
-        return "Won't send updates for another 1000 ticks!"
     else:
         return "Unknown command: `{}`".format(command)
 
@@ -92,7 +91,7 @@ def ij_command(command):
 ij_command.toString = ij_command  # allow access to stuff via just `_ij` in console.
 
 
-def check_output_to_console():
+def injection_check():
     time = Game.time
     if time % 10 == 5:
         timeout = Memory['_ij_timeout']
