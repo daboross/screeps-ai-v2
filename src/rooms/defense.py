@@ -366,7 +366,7 @@ class RoomDefense:
                     return 10.04
                 else:
                     return 10
-            elif hostile.hasBodyparts(ATTACK):
+            elif hostile.hasBodyparts(ATTACK) or hostile.hasBodyparts(RANGED_ATTACK):
                 if (self.any_broken_walls() or structs_near or
                         _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
                                lambda obj: obj.creep.my)):
