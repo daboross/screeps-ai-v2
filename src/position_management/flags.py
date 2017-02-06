@@ -560,3 +560,30 @@ def look_for(room, position, main, sub=None):
             return []
         return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
+
+
+_flag_sponsor_regex = __new__(RegExp("^(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})"))
+
+
+def flag_sponsor(flag, backup_search_by=None):
+    """
+    :type backup_search_by: empire.hive.HiveMind
+    :param flag: Flag to find the sponsor of
+    :param backup_search_by: The hive to search for backup, if any
+    :return:
+    """
+    if flag.name in Memory.flags:
+        sponsor = flag.memory.sponsor
+        if sponsor:
+            return sponsor
+    sponsor_match = _flag_sponsor_regex.exec(flag.name)
+    if sponsor_match:
+        return sponsor_match[0]
+    elif backup_search_by:
+        room = backup_search_by.get_closest_owned_room(flag.pos.roomName)
+        if room:
+            return room.name
+        else:
+            return None
+    else:
+        return None

@@ -85,7 +85,7 @@ def poll_hostiles(hive, run_away_checks):
                     room.reset_planned_role()
                 else:
                     for flag in flags.find_flags(room, REMOTE_MINE):
-                        sponsor = hive.get_room(flag.memory.sponsor)
+                        sponsor = hive.get_room(flags.flag_sponsor(flag))
                         if sponsor:
                             sponsor.reset_planned_role()
             room.mem[rmem_key_stored_hostiles] = danger

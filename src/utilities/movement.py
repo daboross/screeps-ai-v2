@@ -11,7 +11,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
-room_regex = __new__(RegExp("(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})"))
+room_regex = __new__(RegExp("(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})"))
 
 
 def squared_distance(xy1, xy2):

@@ -1082,34 +1082,15 @@ class RoomMind:
 
     def _any_closest_to_me(self, flag_type):
         for flag in flags.find_flags_global(flag_type):
-            if 'sponsor' in flag.memory:
-                if flag.memory.sponsor == self.name:
-                    return True
-            else:
-                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
-                possible_sponsor = str(flag.name).split('_')[0]
-                if possible_sponsor in Game.rooms:
-                    if possible_sponsor == self.name:
-                        return True
-                else:
-                    if self.hive.get_closest_owned_room(flag.pos.roomName).name == self.name:
-                        return True
+            if flags.flag_sponsor(flag, self.hive) == self.name:
+                return True
 
         return False
 
     def flags_without_target(self, flag_type):
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
-            if flag.memory.sponsor:
-                ours = flag.memory.sponsor == self.name
-            else:
-                # We would do .split('_', 1), but the Python->JS conversion makes that more expensive than just this
-                possible_sponsor = str(flag.name).split('_')[0]
-                if possible_sponsor in Game.rooms:
-                    ours = possible_sponsor == self.name
-                else:
-                    ours = self.hive.get_closest_owned_room(flag.pos.roomName).name == self.name
-            if ours:
+            if flags.flag_sponsor(flag, self.hive) == self.name:
                 flag_id = "flag-{}".format(flag.name)
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
                 if noneol_targeting_count < 1:

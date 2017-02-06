@@ -897,10 +897,7 @@ def repave(mine_name):
     flag = Game.flags[mine_name]
     if not flag:
         return "error: flag {} does not exist!".format(mine_name)
-    if 'sponsor' in flag.memory:
-        sponsor = flag.memory.sponsor
-    else:
-        sponsor = flag.name.split('_')[0]
+    sponsor = flags.flag_sponsor(flag)
     room = context.hive().get_room(sponsor)
     if not room:
         return "error: room {} not visible.".format(sponsor)

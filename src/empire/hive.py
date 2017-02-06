@@ -91,10 +91,7 @@ class HiveMind:
             else:
                 if flag.name not in Memory.flags or not flag.memory.active:
                     continue
-                if 'sponsor' in flag.memory:
-                    sponsor = self.get_room(flag.memory.sponsor)
-                else:
-                    sponsor = self.get_room(flag.name.split('_')[0])
+                sponsor = flags.flag_sponsor(flag)
                 if not sponsor:
                     print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
                         flag.name, flag.memory.sponsor
