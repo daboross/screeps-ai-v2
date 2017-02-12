@@ -114,7 +114,8 @@ class MilitaryBase(RoleBase):
         if opts:
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
-        if distance_squared_room_pos(origin, target) > math.pow(200, 2):
+        if distance_squared_room_pos(origin, target) > math.pow(200, 2) \
+                and not self._using_reroute(origin, target):
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
             path_opts.use_roads = False
@@ -251,8 +252,6 @@ class MilitaryBase(RoleBase):
                         self.memory.lost_path_at = self.pos
                     self.memory.off_path_for += 1
                     if self.memory.off_path_for > 10:
-                        self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {}".format(
-                            origin, target, self.pos, new_target))
                         if chebyshev_distance_room_pos(self.memory.lost_path_at, self.pos) < 5 \
                                 and not self.pos.isEqualTo(new_target) \
                                 and not self.pos.isEqualTo(get_entrance_for_exit_pos(new_target)):
@@ -260,6 +259,12 @@ class MilitaryBase(RoleBase):
                             del self.memory.off_path_for
                             del self.memory.lost_path_at
                             del self.memory.next_ppos
+
+                        self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {} (path: {})".format(
+                            origin, target, self.pos, new_target, [
+                                "({},{})".format(p.x, p.y) for p in Room.deserializePath(
+                                    self.memory['_move']['path'])
+                                ].join(', ')))
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
         else:
