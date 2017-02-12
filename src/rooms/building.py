@@ -635,7 +635,16 @@ class ConstructionMind:
 
         honey = self.hive.honey
         if deposit_point.pos.isNearTo(mine_flag):
-            all_positions = []
+            route_to_mine = honey.get_serialized_path_obj(self.room.spawn, deposit_point, {
+                'paved_for': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
+            check_route(route_to_mine, None, None)
+
+            all_positions = honey.list_of_room_positions_in_path(self.room.spawn, deposit_point, {
+                'paved_for': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
         else:
             route_to_mine = honey.get_serialized_path_obj(mine_flag, deposit_point, {
                 'paved_for': mine_flag,
@@ -708,8 +717,10 @@ class ConstructionMind:
         hive_honey = self.hive.honey
 
         if deposit_point.pos.isNearTo(mine_flag):
-            mine_path = []
-            mining_paths.register_new_mining_path(mine_flag, mine_path)
+            mine_path = hive_honey.completely_repath_and_get_raw_path(self.room.spawn, mine_flag, {
+                'paved_for': mine_flag,
+                'keep_for': min_repath_mine_roads_every * 2,
+            })
         else:
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
