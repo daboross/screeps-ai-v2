@@ -109,7 +109,10 @@ def room_pos_of_closest_serialized(room, here_pos, list_of_serialized):
     for xy in list_of_serialized:
         x, y = positions.deserialize_xy(xy)
         distance = max(abs(here_x - x), abs(here_y - y))
-        if distance < closest_length and is_block_clear(room, x, y):
+        if here_pos.x == x and here_pos.y == y:
+            closest_length = -Infinity
+            closest = xy
+        elif distance < closest_length and is_block_clear(room, x, y):
             closest_length = distance
             closest = xy
     if closest is not None:
