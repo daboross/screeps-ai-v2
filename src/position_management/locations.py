@@ -88,6 +88,10 @@ def _get_hint():
     return hint
 
 
+def _get_pos():
+    return this
+
+
 def _set_hint(hint):
     Object.defineProperty(this, 'hint', {
         'get': __pragma__('js', '{}', '() => hint'),
@@ -123,6 +127,12 @@ Object.defineProperty(DeserializedPos.prototype, 'hint', {
     'get': _get_hint,
     'set': _set_hint,
     'enumerable': True,
+    'configurable': True,
+})
+
+Object.defineProperty(DeserializedPos.prototype, 'pos', {
+    'get': _get_pos,
+    'enumerable': False,
     'configurable': True,
 })
 

@@ -4,6 +4,7 @@ __all__ = [
     "Game",
     "Memory",
     "Room",
+    "Flag",
     "RoomPosition",
     "PathFinder",
     "Object",

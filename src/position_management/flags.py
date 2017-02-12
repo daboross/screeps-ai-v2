@@ -170,6 +170,14 @@ flag_definitions = {
     REROUTE_DESTINATION: (COLOR_WHITE, COLOR_YELLOW),
 }
 
+reverse_definitions = {}
+for name in Object.keys(flag_definitions):
+    primary, secondary = flag_definitions[name]
+    if primary in reverse_definitions:
+        reverse_definitions[primary][secondary] = name
+    else:
+        reverse_definitions[primary] = {secondary: name}
+
 main_to_flag_primary = {
     MAIN_DESTRUCT: COLOR_RED,
     MAIN_BUILD: COLOR_PURPLE,
@@ -587,3 +595,14 @@ def flag_sponsor(flag, backup_search_by=None):
             return None
     else:
         return None
+
+
+def _flag_hint():
+    reverse_primary = reverse_definitions[this.color]
+    if reverse_primary:
+        if this.secondaryColor in reverse_primary:
+            return reverse_primary[this.secondaryColor]
+    return None
+
+
+Flag.prototype.hint = _flag_hint
