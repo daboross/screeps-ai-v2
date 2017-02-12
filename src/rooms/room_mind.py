@@ -987,14 +987,14 @@ class RoomMind:
 
         if target != old_target or (target is not None
                                     and _.get(Memory, ['rooms', target, mem_key_currently_under_siege])
-                                    and self.main_spending_expenditure() != room_spending_state_supporting_sieged):
+                                    and self.get_spending_target() != room_spending_state_supporting_sieged):
             self.reset_spending_state()
 
     def reset_spending_state(self):
         self.delete_cached_property(cache_key_spending_now)
         self.reset_planned_role()
 
-    def main_spending_expenditure(self):
+    def get_spending_target(self):
         cached = self.get_cached_property(cache_key_spending_now)
         if cached:
             return cached
@@ -1284,7 +1284,7 @@ class RoomMind:
             return 0
 
         if self.full_storage_use:
-            spending = self.main_spending_expenditure()
+            spending = self.get_spending_target()
             if spending == room_spending_state_building:
                 extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point
                 wm = spawning.max_sections_of(self, creep_base_worker)
@@ -1389,7 +1389,7 @@ class RoomMind:
             self._target_upgrader_work_mass = wm
             return wm
         elif self.get_full_storage_use():
-            spending = self.main_spending_expenditure()
+            spending = self.get_spending_target()
             if spending == room_spending_state_upgrading:
                 wm = 4
                 extra = self.minerals.get_estimate_total_energy() - energy_to_keep_always_in_reserve

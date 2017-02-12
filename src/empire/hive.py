@@ -209,7 +209,7 @@ class HiveMind:
                 room_result.push('supporting {}'.format(room.mem[rmem_key_now_supporting]))
             if room.mem[rmem_key_prepping_defenses]:
                 room_result.push('prepping defenses')
-            room_result.push('spending on {}.'.format(room_spending_state_visual[room.main_spending_expenditure()]))
+            room_result.push('spending on {}.'.format(room_spending_state_visual[room.get_spending_target()]))
             result.push('{}: {}'.format(room.name, ', '.join(room_result)))
         return '\n'.join(result)
 

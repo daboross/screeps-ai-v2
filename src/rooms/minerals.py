@@ -423,7 +423,7 @@ class MineralMind:
             if 'ten_without_self_orders' not in self.mem:
                 self.recalculate_energy_needed()
             min_via_fulfillment = min(currently_have - 120 * 1000, self.mem['total_energy_needed'])
-            spending_state = self.room.main_spending_expenditure()
+            spending_state = self.room.get_spending_target()
             if spending_state == room_spending_state_supporting:
                 min_via_spending = currently_have - energy_balance_point_for_rcl8_supporting
             elif spending_state == room_spending_state_supporting_sieged:
@@ -452,7 +452,7 @@ class MineralMind:
                         biggest_order = order.amountRemaining
                 return biggest_order
 
-            if self.room.main_spending_expenditure() != room_spending_state_selling and \
+            if self.room.get_spending_target() != room_spending_state_selling and \
                             currently_have >= 1000 and \
                     (mineral != RESOURCE_POWER or self.room.mem[rmem_key_empty_all_resources_into_room]):
                 return 1000 * min(math.floor(currently_have / 1000), 20)
@@ -548,7 +548,7 @@ class MineralMind:
     def run_spending_state_tick(self):
         if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] or self.terminal.store[RESOURCE_ENERGY] < 5000:
             return
-        spending_state = self.room.main_spending_expenditure()
+        spending_state = self.room.get_spending_target()
         if spending_state == room_spending_state_supporting or spending_state == room_spending_state_supporting_sieged:
             self.run_support(spending_state)
         elif spending_state == room_spending_state_selling_and_supporting:
