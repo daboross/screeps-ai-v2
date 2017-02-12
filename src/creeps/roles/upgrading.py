@@ -1,8 +1,8 @@
 import math
 
 from cache import volatile_cache
-from constants import UPGRADER_SPOT, creep_base_worker, recycle_time, role_builder, role_link_manager, role_recycling, \
-    role_upgrade_fill, role_upgrader, target_home_flag
+from constants import UPGRADER_SPOT, creep_base_full_upgrader, creep_base_worker, recycle_time, role_builder, \
+    role_link_manager, role_recycling, role_upgrade_fill, role_upgrader, target_home_flag
 from creep_management import spawning
 from creeps.base import RoleBase
 from jstools.screeps import *
@@ -101,7 +101,9 @@ class Upgrader(RoleBase):
                                 creep.suicide()
                                 self.home.check_all_creeps_next_tick()
                                 break
-                            elif name.getBodyparts(WORK) < self.home.get_upgrader_size():
+                            elif creep.getBodyparts(WORK) < self.home.get_upgrader_size() \
+                                    * (0.5 if self.home.get_variable_base(role_upgrader) is creep_base_full_upgrader
+                                       else 1):
                                 small = creep
                     else:
                         if small is not None:
