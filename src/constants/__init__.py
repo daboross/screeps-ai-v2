@@ -183,8 +183,8 @@ request_priority_low = 20
 min_repath_mine_roads_every = 200 * 1000
 max_repath_mine_roads_every = 250 * 1000
 
-min_repave_mine_roads_every = 20 * 1000
-max_repave_mine_roads_every = 25 * 1000
+min_repave_mine_roads_every = 10 * 1000
+max_repave_mine_roads_every = 15 * 1000
 
 global_cache_mining_paths_suffix = 'mrd'
 global_cache_swamp_paths_suffix = 'swl'
