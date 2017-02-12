@@ -146,7 +146,7 @@ function activateCustomizations() {
         return total;
     };
 
-    // Custom additionF
+    // Custom addition
     Creep.prototype.getBodypartsBoostEquivalent = function (type, action) {
         var total = 0;
         var typeBoosts, boostPowers, actionPower;
@@ -1613,7 +1613,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-05 02:09:09
+// Transcrypt'ed from Python, 2017-02-11 18:33:31
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -3966,7 +3966,7 @@ function main () {
                                 hive.targets.untarget_all ({'name': name});
                             }
                         }
-                        var __iterable0__ = ['cpu_usage', 'profiler', '_debug', 'x'];
+                        var __iterable0__ = ['cpu_usage', 'profiler', '_debug', 'x', '_ij_timeout', '_visuals_till', '_inject_timeout'];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var key = __iterable0__ [__index0__];
                             if ((key in Memory)) {
@@ -4386,55 +4386,130 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
-                    var _IJ_VERSION = 5;
+                    var _VERSION = 8;
                     var _whitespace_regex = new RegExp ('\\s+');
-                    var _inject_check = "\n        <script>\n            (window._ij != _IJ_VERSION) && $('body').injector().get('Connection').sendConsoleCommand('_ij()')\n        </script>\n    ".py_replace ('_IJ_VERSION', str (_IJ_VERSION)).py_replace (_whitespace_regex, '');
-                    var _full_injection = '\n    <script>\n        if (window._ij != _IJ_VERSION) {\n            window._ij = _IJ_VERSION;\n            var ijSendCommand = function (cmd) {\n                $(\'body\').injector().get(\'Connection\').sendConsoleCommand(\'_ij("\' + cmd + \'")\');\n            };\n            var text = `\n            <app:aside-block heading="IJ Options"\n                    visibility-model="Room.asidePanels.options"\n                    class="ij-options ng-isolate-scope ng-scope">\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'+\')">\n                    Enable tracing.\n                </button>\n                <br>\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'-\')">\n                    Disable tracing.\n                </button>\n            </app:aside-block>\n            `;\n            function addOptions() {\n                $(".ij-options").remove();\n                $(\'.aside-content\').each(function () {\n                    var aside = $(this);\n                    aside.injector().invoke([\'$compile\', function ($compile) {\n                        var scope = aside.scope();\n                        scope.ijSend = ijSendCommand;\n                        aside.append($compile(text)(scope));\n                    }]);\n                });\n                ijSendCommand(\'t\');\n            }\n            addOptions();\n            var timeoutID = setInterval(function () {\n                if (window._ij != _IJ_VERSION) {\n                    clearInterval(timeoutID);\n                    return;\n                }\n                if ($(".ij-options").length == 0) {\n                    addOptions();\n                }\n            }, 10000);\n        }\n    </script>\n    '.py_replace (_whitespace_regex, ' ').py_replace ('_IJ_VERSION', str (_IJ_VERSION));
-                    var ij_command = function (command) {
+                    var _inject_check = "\n        <script>\n            $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')')\n        </script>\n    ".py_replace ('_VERSION', str (_VERSION)).py_replace (_whitespace_regex, '');
+                    var _full_injection = '\n    <script>\n        if (window._ij != _VERSION) {\n            window._ij = _VERSION;\n            var ijSendCommand = function (cmd, arg) {\n                $(\'body\').injector().get(\'Connection\').sendConsoleCommand(\'_inject("\' + cmd + \'", "\' + arg + \'")\');\n            };\n            var text = `\n            <app:aside-block heading="Nyxr Options"\n                    visibility-model="Room.asidePanels.options"\n                    class="ij-options ng-isolate-scope ng-scope">\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'enable-visuals\')">\n                    Enable Visualizations\n                </button>\n                <br>\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'disable-visuals\')">\n                    Disable Visualizations\n                </button>\n            </app:aside-block>\n            `;\n            function addOptions(ij_options, aside_content) {\n                ij_options.remove();\n                aside_content.each(function () {\n                    var aside = $(this);\n                    aside.injector().invoke([\'$compile\', function ($compile) {\n                        var scope = aside.scope();\n                        scope.ijSend = (cmd) => ijSendCommand(cmd, scope.Room.roomName);\n                        aside.append($compile(text)(scope));\n                    }]);\n                });\n            }\n            addOptions($(".ij-options"), $(\'.aside-content\'));\n            var timeoutID = setInterval(function () {\n                if (window._ij != _VERSION) {\n                    clearInterval(timeoutID);\n                    return;\n                }\n                var ij_options = $(\'.ij-options\');\n                if (ij_options.length == 0) {\n                    var aside_content = $(\'.aside-content\');\n                    if (aside_content.length > 0) {\n                        addOptions(ij_options, aside_content);\n                    }\n                }\n            }, 1000);\n        }\n    </script>\n    '.py_replace (_whitespace_regex, ' ').py_replace ('_VERSION', str (_VERSION));
+                    var injection_command = function (command, room_name) {
                         if (!(command)) {
                             return _full_injection;
                         }
-                        else if (command == '+') {
-                            return 'Enabled tracing!';
+                        else if (command == 'enable-visuals') {
+                            var options_mem = Memory ['nyxr_options'];
+                            if (!(options_mem)) {
+                                var __left0__ = {};
+                                var options_mem = __left0__;
+                                Memory ['nyxr_options'] = __left0__;
+                            }
+                            options_mem [room_name] = Game.time + 100;
+                            return 'Visuals enabled for {}.'.format (room_name);
                         }
-                        else if (command == '-') {
-                            return 'Disabled tracing!';
+                        else if (command == 'disable-visuals') {
+                            Memory ['nyxr_options'] = {'_inject_timeout': Game.time + 1000};
+                            return 'Visuals disabled.';
                         }
-                        else if (command == 't') {
-                            Memory ['_ij_timeout'] = Game.time + 1000;
-                            return "Won't send updates for another 1000 ticks!";
+                        else if (command === true) {
+                            var options_mem = Memory ['nyxr_options'];
+                            if (!(options_mem)) {
+                                var __left0__ = {};
+                                var options_mem = __left0__;
+                                Memory ['nyxr_options'] = __left0__;
+                            }
+                            options_mem ['_inject_timeout'] = Game.time + 1000;
                         }
                         else {
                             return 'Unknown command: `{}`'.format (command);
                         }
                     };
-                    ij_command.toString = ij_command;
-                    var check_output_to_console = function () {
-                        var time = Game.time;
-                        if (__mod__ (time, 10) == 5) {
-                            var timeout = Memory ['_ij_timeout'];
-                            if (timeout) {
-                                if (timeout > Game.time) {
-                                    return ;
+                    var injection_check = function () {
+                        if (__mod__ (Game.time, 10) == 5) {
+                            var options_mem = Memory ['nyxr_options'];
+                            if (options_mem) {
+                                var timeout = options_mem ['_inject_timeout'];
+                                if (timeout) {
+                                    if (timeout > Game.time) {
+                                        return ;
+                                    }
+                                    else {
+                                        delete options_mem ['_inject_timeout'];
+                                    }
                                 }
-                                else {
-                                    delete Memory ['_ij_timeout'];
+                                var any_alive = false;
+                                var __iterable0__ = Object.keys (options_mem);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var key = __iterable0__ [__index0__];
+                                    if (options_mem [key] < Game.time) {
+                                        delete options_mem [key];
+                                    }
+                                    else {
+                                        var any_alive = true;
+                                    }
+                                }
+                                if (!(any_alive)) {
+                                    delete Memory ['nyxr_options'];
                                 }
                             }
                             print (_inject_check);
                         }
                     };
-                    global._ij = ij_command;
+                    global._inject = injection_command;
                     __pragma__ ('<use>' +
                         'jstools.screeps' +
                     '</use>')
                     __pragma__ ('<all>')
-                        __all__._IJ_VERSION = _IJ_VERSION;
+                        __all__._VERSION = _VERSION;
                         __all__._full_injection = _full_injection;
                         __all__._inject_check = _inject_check;
                         __all__._whitespace_regex = _whitespace_regex;
-                        __all__.check_output_to_console = check_output_to_console;
-                        __all__.ij_command = ij_command;
+                        __all__.injection_check = injection_check;
+                        __all__.injection_command = injection_command;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'consoletools.visuals', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var mining_paths = __init__ (__world__.creep_management.mining_paths);
+                    var js_visuals = __init__ (__world__.jstools.js_visuals);
+                    var positions = __init__ (__world__.utilities.positions);
+                    var visualize_room = function (room_name) {
+                        js_visuals.py_clear (room_name);
+                        var path_colors = ['#6AB4FF', '#A4B227', '#EDFF51', '#CC362C', '#B2615B'];
+                        var next_color = 0;
+                        var path_list = mining_paths.list_of_paths_with_metadata (room_name);
+                        var __iterable0__ = _.sortBy (path_list);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var path = __iterable0__ [__index0__];
+                            var points = [];
+                            var path = path.__getslice__ (path.codePointAt (0), null, 1);
+                            for (var i = 0; i < len (path); i++) {
+                                var xy = path.codePointAt (i);
+                                var __left0__ = positions.deserialize_xy (xy);
+                                var x = __left0__ [0];
+                                var y = __left0__ [1];
+                                points.append ([x, y]);
+                            }
+                            var color = path_colors [next_color];
+                            var next_color = __mod__ (next_color + 1, len (path_colors));
+                            js_visuals.poly (room_name, points, {'stroke': color, 'opacity': 0.3, 'strokeWidth': 0.2});
+                        }
+                    };
+                    __pragma__ ('<use>' +
+                        'creep_management.mining_paths' +
+                        'jstools.js_visuals' +
+                        'jstools.screeps' +
+                        'utilities.positions' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.js_visuals = js_visuals;
+                        __all__.mining_paths = mining_paths;
+                        __all__.positions = positions;
+                        __all__.visualize_room = visualize_room;
                     __pragma__ ('</all>')
                 }
             }
@@ -4557,8 +4632,8 @@ function main () {
                     var request_priority_low = 20;
                     var min_repath_mine_roads_every = 200 * 1000;
                     var max_repath_mine_roads_every = 250 * 1000;
-                    var min_repave_mine_roads_every = 20 * 1000;
-                    var max_repave_mine_roads_every = 25 * 1000;
+                    var min_repave_mine_roads_every = 10 * 1000;
+                    var max_repave_mine_roads_every = 15 * 1000;
                     var global_cache_mining_paths_suffix = 'mrd';
                     var global_cache_swamp_paths_suffix = 'swl';
                     var global_cache_roadless_paths_suffix = 'nrd';
@@ -5849,11 +5924,11 @@ function main () {
                         }
                         return the_set;
                     };
-                    var debug_str = function (room_name) {
+                    var usage_map_of = function (room_name) {
                         var map_of_values = new_map ();
                         var gmem = _get_mem ();
                         if (!(room_name in gmem)) {
-                            return 'no paths through {}'.format (room_name);
+                            return map_of_values;
                         }
                         var __iterable0__ = gmem [room_name];
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -5869,6 +5944,21 @@ function main () {
                                 }
                             }
                         }
+                        return map_of_values;
+                    };
+                    var list_of_paths_with_metadata = function (room_name) {
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return [];
+                        }
+                        return gmem [room_name];
+                    };
+                    var debug_str = function (room_name) {
+                        var gmem = _get_mem ();
+                        if (!(room_name in gmem)) {
+                            return 'no paths through {}'.format (room_name);
+                        }
+                        var map_of_values = usage_map_of (room_name);
                         var output = [];
                         for (var y = 0; y < 50; y++) {
                             output.push ('\n');
@@ -6033,12 +6123,14 @@ function main () {
                         __all__.debug_str = debug_str;
                         __all__.get_set_of_all_serialized_positions_in = get_set_of_all_serialized_positions_in;
                         __all__.gmem_key_room_mining_paths = gmem_key_room_mining_paths;
+                        __all__.list_of_paths_with_metadata = list_of_paths_with_metadata;
                         __all__.new_map = new_map;
                         __all__.new_set = new_set;
                         __all__.no_spawn_name_name = no_spawn_name_name;
                         __all__.register_new_mining_path = register_new_mining_path;
                         __all__.set_decreasing_cost_matrix_costs = set_decreasing_cost_matrix_costs;
                         __all__.set_slightly_increased_cost = set_slightly_increased_cost;
+                        __all__.usage_map_of = usage_map_of;
                     __pragma__ ('</all>')
                 }
             }
@@ -8772,7 +8864,7 @@ function main () {
                             if (opts) {
                                 var path_opts = _.create (path_opts, opts);
                             }
-                            if (distance_squared_room_pos (origin, target) > math.pow (200, 2)) {
+                            if (distance_squared_room_pos (origin, target) > math.pow (200, 2) && !(self._using_reroute (origin, target))) {
                                 path_opts.max_ops = chebyshev_distance_room_pos (origin, target) * 150;
                                 path_opts.max_rooms = math.ceil (chebyshev_distance_room_pos (origin, target) / 5);
                                 path_opts.use_roads = false;
@@ -8934,13 +9026,21 @@ function main () {
                                         }
                                         self.memory.off_path_for++;
                                         if (self.memory.off_path_for > 10) {
-                                            self.log ('Lost the path from {} to {}! Pos: {}. Retargeting to: {}'.format (origin, target, self.pos, new_target));
                                             if (chebyshev_distance_room_pos (self.memory.lost_path_at, self.pos) < 5 && !(self.pos.isEqualTo (new_target)) && !(self.pos.isEqualTo (get_entrance_for_exit_pos (new_target)))) {
                                                 honey.clear_cached_path (origin, target, path_opts);
                                                 delete self.memory.off_path_for;
                                                 delete self.memory.lost_path_at;
                                                 delete self.memory.next_ppos;
                                             }
+                                            self.log ('Lost the path from {} to {}! Pos: {}. Retargeting to: {} (path: {})'.format (origin, target, self.pos, new_target, function () {
+                                                var __accu0__ = [];
+                                                var __iterable0__ = Room.deserializePath (self.memory ['_move'] ['path']);
+                                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                    var p = __iterable0__ [__index0__];
+                                                    __accu0__.append ('({},{})'.format (p.x, p.y));
+                                                }
+                                                return __accu0__;
+                                            } ().join (', ')));
                                         }
                                     }
                                 }
@@ -10725,6 +10825,7 @@ function main () {
                                 if (self.memory.rp) {
                                     self.log ('Recalculating path due to circumstances in {}.'.format (self.memory.rp));
                                     self.recalc_military_path (self.home.spawn, destination, {'ignore_swamp': true, 'use_roads': false});
+                                    delete self.memory.rp;
                                 }
                                 if (self.memory.last_room != self.pos.roomName) {
                                     self.memory.last_room = self.pos.roomName;
@@ -10734,27 +10835,29 @@ function main () {
                                     var __left0__ = movement.parse_room_to_xy (self.pos.roomName);
                                     var rx = __left0__ [0];
                                     var ry = __left0__ [1];
-                                    var rrx = __mod__ ((rx < 0 ? -(rx) - 1 : rx), 10);
-                                    var rry = __mod__ ((ry < 0 ? -(ry) - 1 : ry), 10);
-                                    var lair_count = 0;
-                                    if ((rrx == 4 || rrx == 5 || rrx == 6) && (rry == 4 || rry == 5 || rry == 6) && !(rrx == 5 && rry == 5)) {
-                                        var __break0__ = false;
-                                        var __iterable0__ = self.room.find (FIND_HOSTILE_STRUCTURES);
-                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                            var lair = __iterable0__ [__index0__];
-                                            if (lair.structureType == STRUCTURE_KEEPER_LAIR) {
-                                                lair_count++;
+                                    var last_updated = stored_data.get_last_updated_tick (self.pos.roomName);
+                                    if (!(last_updated) || Game.time - last_updated > 100) {
+                                        var rrx = __mod__ ((rx < 0 ? -(rx) - 1 : rx), 10);
+                                        var rry = __mod__ ((ry < 0 ? -(ry) - 1 : ry), 10);
+                                        if ((rrx == 4 || rrx == 5 || rrx == 6) && (rry == 4 || rry == 5 || rry == 6) && !(rrx == 5 && rry == 5)) {
+                                            var lair_count = 0;
+                                            var __iterable0__ = self.room.find (FIND_HOSTILE_STRUCTURES);
+                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                var lair = __iterable0__ [__index0__];
+                                                if (lair.structureType == STRUCTURE_KEEPER_LAIR) {
+                                                    lair_count++;
+                                                }
+                                            }
+                                            if (lair_count > 0) {
+                                                var recalc = true;
+                                                self.memory.rp = self.pos.roomName;
+                                            }
+                                            else {
+                                                self.log ('WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?'.format (self.pos.roomName));
                                             }
                                         }
-                                        if (!__break0__) {
-                                            self.log ('WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?'.format (self.pos.roomName));
-                                        }
+                                        stored_data.update_data (self.room.room);
                                     }
-                                    if (lair_count > 0) {
-                                        self.memory.rp = self.pos.roomName;
-                                        var recalc = true;
-                                    }
-                                    stored_data.update_data (self.room.room);
                                     self.log ('Scouted room {}, {}.'.format (rx, ry));
                                 }
                             }
@@ -14028,6 +14131,7 @@ function main () {
                     __nest__ (math, '', __init__ (__world__.math));
                     var volatile_cache = __init__ (__world__.cache.volatile_cache);
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var role_builder = __init__ (__world__.constants).role_builder;
@@ -14147,7 +14251,7 @@ function main () {
                                                     __break0__ = true;
                                                     break;
                                                 }
-                                                else if (name.getBodyparts (WORK) < self.home.get_upgrader_size ()) {
+                                                else if (creep.getBodyparts (WORK) < self.home.get_upgrader_size () * (self.home.get_variable_base (role_upgrader) === creep_base_full_upgrader ? 0.5 : 1)) {
                                                     var small = creep;
                                                 }
                                             }
@@ -14544,6 +14648,7 @@ function main () {
                         __all__.RoleBase = RoleBase;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
                         __all__.Upgrader = Upgrader;
+                        __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_worker = creep_base_worker;
                         __all__.flags = flags;
                         __all__.recycle_time = recycle_time;
@@ -15098,21 +15203,16 @@ function main () {
                                     if (!(flag.name in Memory.flags) || !(flag.memory.active)) {
                                         continue;
                                     }
-                                    if (('sponsor' in flag.memory)) {
-                                        var sponsor = self.get_room (flag.memory.sponsor);
-                                    }
-                                    else {
-                                        var sponsor = self.get_room (flag.name.py_split ('_') [0]);
-                                    }
+                                    var sponsor = flags.flag_sponsor (flag);
                                     if (!(sponsor)) {
                                         print ("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format (flag.name, flag.memory.sponsor));
                                         continue;
                                     }
-                                    if (room_to_flags [sponsor.name]) {
-                                        room_to_flags [sponsor.name].push (flag);
+                                    if (room_to_flags [sponsor]) {
+                                        room_to_flags [sponsor].push (flag);
                                     }
                                     else {
-                                        room_to_flags [sponsor.name] = [flag];
+                                        room_to_flags [sponsor] = [flag];
                                     }
                                 }
                             }
@@ -15121,10 +15221,16 @@ function main () {
                                 var room = __iterable0__ [__index0__];
                                 if ((room.name in room_to_flags)) {
                                     room._remote_mining_operations = room_to_flags [room.name];
+                                    delete room_to_flags [room.name];
                                 }
                                 else {
                                     room._remote_mining_operations = [];
                                 }
+                            }
+                            var __iterable0__ = Object.keys (room_to_flags);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room_name = __iterable0__ [__index0__];
+                                print ('[hive] WARNING! Flags {} has sponsor {}, which is not an owned room!'.format (room_to_flags [room_name], room_name));
                             }
                         });},
                         get get_closest_owned_room () {return __get__ (this, function (self, current_room_name) {
@@ -15274,7 +15380,7 @@ function main () {
                                 if (room.mem [rmem_key_prepping_defenses]) {
                                     room_result.push ('prepping defenses');
                                 }
-                                room_result.push ('spending on {}.'.format (room_spending_state_visual [room.main_spending_expenditure ()]));
+                                room_result.push ('spending on {}.'.format (room_spending_state_visual [room.get_spending_target ()]));
                                 result.push ('{}: {}'.format (room.name, ', '.join (room_result)));
                             }
                             return '\n'.join (result);
@@ -15637,6 +15743,9 @@ function main () {
                             var direction = dxdy_to_direction (dx, dy);
                             if (direction === null) {
                                 print ('[honey][pathfinder_to_regular_path] Unknown direction for pos: {},{}, last: {},{}'.format (pos.x, pos.y, last_x, last_y));
+                                if (dx == 0 && dy == 0) {
+                                    continue;
+                                }
                                 return null;
                             }
                             var last_x = pos.x;
@@ -16461,7 +16570,7 @@ function main () {
                                 throw __except0__;
                             }
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
-                            if ((current_room in serialized_path_obj)) {
+                            if (serialized_path_obj !== null && (current_room in serialized_path_obj)) {
                                 return serialized_path_obj [current_room];
                             }
                             else {
@@ -16548,6 +16657,9 @@ function main () {
                                 var opts = null;
                             };
                             var serialized_path_obj = self.get_serialized_path_obj (origin, destination, opts);
+                            if (!(serialized_path_obj)) {
+                                return 1;
+                            }
                             if ((_path_cached_data_key_metadata in serialized_path_obj)) {
                                 return int (serialized_path_obj [_path_cached_data_key_metadata].split (',') [0]);
                             }
@@ -18458,6 +18570,64 @@ function main () {
     );
     __nest__ (
         __all__,
+        'jstools.js_visuals', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var circle = function (room_name, x, y, style) {
+                        if (typeof style == 'undefined' || (style != null && style .hasOwnProperty ("__kwargtrans__"))) {;
+                            var style = undefined;
+                        };
+                        console.addVisual (room_name, {'t': 'c', 'x': x, 'y': y, 's': style});
+                    };
+                    var line = function (room_name, x1, y1, x2, y2, style) {
+                        if (typeof style == 'undefined' || (style != null && style .hasOwnProperty ("__kwargtrans__"))) {;
+                            var style = undefined;
+                        };
+                        console.addVisual (room_name, {'t': 'l', 'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 's': style});
+                    };
+                    var rect = function (room_name, x, y, w, h, style) {
+                        if (typeof style == 'undefined' || (style != null && style .hasOwnProperty ("__kwargtrans__"))) {;
+                            var style = undefined;
+                        };
+                        console.addVisual (room_name, {'t': 'r', 'x': x, 'y': y, 'w': w, 'h': h, 's': style});
+                    };
+                    var poly = function (room_name, points, style) {
+                        if (typeof style == 'undefined' || (style != null && style .hasOwnProperty ("__kwargtrans__"))) {;
+                            var style = undefined;
+                        };
+                        console.addVisual (room_name, {'t': 'p', 'points': points, 's': style});
+                    };
+                    var text = function (room_name, x, y, text, style) {
+                        if (typeof style == 'undefined' || (style != null && style .hasOwnProperty ("__kwargtrans__"))) {;
+                            var style = undefined;
+                        };
+                        console.addVisual (room_name, {'t': 't', 'text': text, 'x': x, 'y': y, 's': style});
+                    };
+                    var get_size = function (room_name) {
+                        return console.getVisualSize (room_name);
+                    };
+                    var py_clear = function (room_name) {
+                        return console.clearVisual (room_name);
+                    };
+                    __pragma__ ('<use>' +
+                        'jstools.screeps' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.circle = circle;
+                        __all__.py_clear = py_clear;
+                        __all__.get_size = get_size;
+                        __all__.line = line;
+                        __all__.poly = poly;
+                        __all__.rect = rect;
+                        __all__.text = text;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
         'jstools.memory_info', {
             __all__: {
                 __inited__: false,
@@ -18952,6 +19122,20 @@ function main () {
                     var SUB_ROAD = 121;
                     var SUB_CONTAINER = 122;
                     var flag_definitions = {[LOCAL_MINE]: [COLOR_BLUE, COLOR_PURPLE], [DEPOT]: [COLOR_BLUE, COLOR_BLUE], [SPAWN_FILL_WAIT]: [COLOR_BLUE, COLOR_CYAN], [UPGRADER_SPOT]: [COLOR_BLUE, COLOR_GREEN], [SLIGHTLY_AVOID]: [COLOR_BLUE, COLOR_GREY], [SK_LAIR_SOURCE_NOTED]: [COLOR_BLUE, COLOR_WHITE], [TD_H_H_STOP]: [COLOR_CYAN, COLOR_RED], [TD_H_D_STOP]: [COLOR_CYAN, COLOR_PURPLE], [TD_D_GOAD]: [COLOR_CYAN, COLOR_BLUE], [ATTACK_DISMANTLE]: [COLOR_CYAN, COLOR_GREEN], [RAID_OVER]: [COLOR_CYAN, COLOR_YELLOW], [ENERGY_GRAB]: [COLOR_CYAN, COLOR_ORANGE], [SCOUT]: [COLOR_CYAN, COLOR_BROWN], [RANGED_DEFENSE]: [COLOR_CYAN, COLOR_CYAN], [ATTACK_POWER_BANK]: [COLOR_CYAN, COLOR_GREY], [REAP_POWER_BANK]: [COLOR_CYAN, COLOR_WHITE], [REMOTE_MINE]: [COLOR_GREEN, COLOR_CYAN], [CLAIM_LATER]: [COLOR_GREEN, COLOR_PURPLE], [RESERVE_NOW]: [COLOR_GREEN, COLOR_GREY], [RAMPART_DEFENSE]: [COLOR_GREEN, COLOR_GREEN], [REROUTE]: [COLOR_WHITE, COLOR_GREEN], [REROUTE_DESTINATION]: [COLOR_WHITE, COLOR_YELLOW]};
+                    var reverse_definitions = {};
+                    var __iterable0__ = Object.keys (flag_definitions);
+                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                        var name = __iterable0__ [__index0__];
+                        var __left0__ = flag_definitions [name];
+                        var primary = __left0__ [0];
+                        var secondary = __left0__ [1];
+                        if ((primary in reverse_definitions)) {
+                            reverse_definitions [primary] [secondary] = name;
+                        }
+                        else {
+                            reverse_definitions [primary] = {[secondary]: name};
+                        }
+                    }
                     var main_to_flag_primary = {[MAIN_DESTRUCT]: COLOR_RED, [MAIN_BUILD]: COLOR_PURPLE};
                     var sub_to_flag_secondary = {[SUB_WALL]: COLOR_RED, [SUB_RAMPART]: COLOR_PURPLE, [SUB_EXTENSION]: COLOR_BLUE, [SUB_SPAWN]: COLOR_CYAN, [SUB_TOWER]: COLOR_GREEN, [SUB_STORAGE]: COLOR_YELLOW, [SUB_LINK]: COLOR_ORANGE, [SUB_EXTRACTOR]: COLOR_BROWN, [SUB_CONTAINER]: COLOR_BROWN, [SUB_ROAD]: COLOR_WHITE, [SUB_TERMINAL]: COLOR_GREY};
                     var flag_secondary_to_sub = {[COLOR_RED]: SUB_WALL, [COLOR_PURPLE]: SUB_RAMPART, [COLOR_BLUE]: SUB_EXTENSION, [COLOR_CYAN]: SUB_SPAWN, [COLOR_GREEN]: SUB_TOWER, [COLOR_YELLOW]: SUB_STORAGE, [COLOR_ORANGE]: SUB_LINK, [COLOR_BROWN]: SUB_EXTRACTOR, [COLOR_GREY]: SUB_TERMINAL, [COLOR_WHITE]: SUB_ROAD};
@@ -19345,6 +19529,44 @@ function main () {
                             }));
                         }
                     };
+                    var _flag_sponsor_regex = new RegExp ('^(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})');
+                    var flag_sponsor = function (flag, backup_search_by) {
+                        if (typeof backup_search_by == 'undefined' || (backup_search_by != null && backup_search_by .hasOwnProperty ("__kwargtrans__"))) {;
+                            var backup_search_by = null;
+                        };
+                        if ((flag.name in Memory.flags)) {
+                            var sponsor = flag.memory.sponsor;
+                            if (sponsor) {
+                                return sponsor;
+                            }
+                        }
+                        var sponsor_match = _flag_sponsor_regex.exec (flag.name);
+                        if (sponsor_match) {
+                            return sponsor_match [0];
+                        }
+                        else if (backup_search_by) {
+                            var room = backup_search_by.get_closest_owned_room (flag.pos.roomName);
+                            if (room) {
+                                return room.name;
+                            }
+                            else {
+                                return null;
+                            }
+                        }
+                        else {
+                            return null;
+                        }
+                    };
+                    var _flag_hint = function () {
+                        var reverse_primary = reverse_definitions [this.color];
+                        if (reverse_primary) {
+                            if ((this.secondaryColor in reverse_primary)) {
+                                return reverse_primary [this.secondaryColor];
+                            }
+                        }
+                        return null;
+                    };
+                    Flag.prototype.hint = _flag_hint;
                     __pragma__ ('<use>' +
                         'constants' +
                         'jstools.js_set_map' +
@@ -19394,6 +19616,8 @@ function main () {
                         __all__.__get_room_and_name = __get_room_and_name;
                         __all__._closest_flag_cache = _closest_flag_cache;
                         __all__._closest_flag_refresh_time = _closest_flag_refresh_time;
+                        __all__._flag_hint = _flag_hint;
+                        __all__._flag_sponsor_regex = _flag_sponsor_regex;
                         __all__._global_flag_cache = _global_flag_cache;
                         __all__._global_flag_refresh_time = _global_flag_refresh_time;
                         __all__._last_checked_flag_len = _last_checked_flag_len;
@@ -19411,15 +19635,20 @@ function main () {
                         __all__.find_ms_flags = find_ms_flags;
                         __all__.flag_definitions = flag_definitions;
                         __all__.flag_secondary_to_sub = flag_secondary_to_sub;
+                        __all__.flag_sponsor = flag_sponsor;
                         __all__.flag_sub_to_structure_type = flag_sub_to_structure_type;
                         __all__.is_def = is_def;
                         __all__.look_for = look_for;
                         __all__.main_to_flag_primary = main_to_flag_primary;
                         __all__.move_flags = move_flags;
+                        __all__.name = name;
                         __all__.naming = naming;
                         __all__.new_map = new_map;
+                        __all__.primary = primary;
                         __all__.refresh_flag_caches = refresh_flag_caches;
                         __all__.rename_flags = rename_flags;
+                        __all__.reverse_definitions = reverse_definitions;
+                        __all__.secondary = secondary;
                         __all__.squared_distance = squared_distance;
                         __all__.structure_type_to_flag_sub = structure_type_to_flag_sub;
                         __all__.sub_to_flag_secondary = sub_to_flag_secondary;
@@ -19472,6 +19701,9 @@ function main () {
                         , 'set': _set_hint, 'enumerable': true, 'configurable': true});
                         return hint;
                     };
+                    var _get_pos = function () {
+                        return this;
+                    };
                     var _set_hint = function (hint) {
                         Object.defineProperty (this, 'hint', {'get': () => hint
                         , 'set': _set_hint, 'enumerable': true, 'configurable': true});
@@ -19487,6 +19719,7 @@ function main () {
                     };
                     DeserializedPos.prototype.py_update = _update_deserialized_pos_xy;
                     Object.defineProperty (DeserializedPos.prototype, 'hint', {'get': _get_hint, 'set': _set_hint, 'enumerable': true, 'configurable': true});
+                    Object.defineProperty (DeserializedPos.prototype, 'pos', {'get': _get_pos, 'enumerable': false, 'configurable': true});
                     DeserializedPos.prototype.toString = _deserialized_pos_to_string;
                     var _deserialize = function (string, name) {
                         return new DeserializedPos (string, name);
@@ -19592,6 +19825,7 @@ function main () {
                         __all__._deserialize = _deserialize;
                         __all__._deserialized_pos_to_string = _deserialized_pos_to_string;
                         __all__._get_hint = _get_hint;
+                        __all__._get_pos = _get_pos;
                         __all__._last_update = _last_update;
                         __all__._mem = _mem;
                         __all__._mem_expirations = _mem_expirations;
@@ -20297,11 +20531,9 @@ function main () {
                                     var room = hive.get_room (room_name);
                                     var path = Room.deserializePath (serialized_obj [room_name]);
                                     if (room_name == not_near_end_of) {
-                                        var rest = path.slice (-(2));
                                         var path = path.slice (0, -(2));
                                     }
                                     if (room_name == not_near_start_of) {
-                                        var rest = path.slice (0, 2);
                                         var path = path.slice (2);
                                     }
                                     var __iterable1__ = path;
@@ -20329,7 +20561,9 @@ function main () {
                             };
                             var honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
-                                var all_positions = [];
+                                var route_to_mine = honey.get_serialized_path_obj (self.room.spawn, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
+                                check_route (route_to_mine, null, null);
+                                var all_positions = honey.list_of_room_positions_in_path (self.room.spawn, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                             }
                             else {
                                 var route_to_mine = honey.get_serialized_path_obj (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
@@ -20406,8 +20640,7 @@ function main () {
                         get _repath_roads_for () {return __get__ (this, function (self, mine_flag, deposit_point) {
                             var hive_honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
-                                var mine_path = [];
-                                mining_paths.register_new_mining_path (mine_flag, mine_path);
+                                var mine_path = hive_honey.completely_repath_and_get_raw_path (self.room.spawn, mine_flag, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                             }
                             else {
                                 var mine_path = hive_honey.completely_repath_and_get_raw_path (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
@@ -20641,12 +20874,7 @@ function main () {
                         if (!(flag)) {
                             return 'error: flag {} does not exist!'.format (mine_name);
                         }
-                        if (('sponsor' in flag.memory)) {
-                            var sponsor = flag.memory.sponsor;
-                        }
-                        else {
-                            var sponsor = flag.name.py_split ('_') [0];
-                        }
+                        var sponsor = flags.flag_sponsor (flag);
                         var room = context.hive ().get_room (sponsor);
                         if (!(room)) {
                             return 'error: room {} not visible.'.format (sponsor);
@@ -20784,7 +21012,7 @@ function main () {
                                         var __iterable1__ = flags.find_flags (room, REMOTE_MINE);
                                         for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
                                             var flag = __iterable1__ [__index1__];
-                                            var sponsor = hive.get_room (flag.memory.sponsor);
+                                            var sponsor = hive.get_room (flags.flag_sponsor (flag));
                                             if (sponsor) {
                                                 sponsor.reset_planned_role ();
                                             }
@@ -21041,7 +21269,7 @@ function main () {
                                         return 10;
                                     }
                                 }
-                                else if (hostile.hasBodyparts (ATTACK)) {
+                                else if (hostile.hasBodyparts (ATTACK) || hostile.hasBodyparts (RANGED_ATTACK)) {
                                     if (self.any_broken_walls () || structs_near || _.find (self.room.look_for_in_area_around (LOOK_CREEPS, hostile, 1), (function __lambda__ (obj) {
                                         return obj.creep.my;
                                     }))) {
@@ -22778,7 +23006,7 @@ function main () {
                                     self.recalculate_energy_needed ();
                                 }
                                 var min_via_fulfillment = min (currently_have - 120 * 1000, self.mem ['total_energy_needed']);
-                                var spending_state = self.room.main_spending_expenditure ();
+                                var spending_state = self.room.get_spending_target ();
                                 if (spending_state == room_spending_state_supporting) {
                                     var min_via_spending = currently_have - energy_balance_point_for_rcl8_supporting;
                                 }
@@ -22816,7 +23044,7 @@ function main () {
                                     }
                                     return biggest_order;
                                 }
-                                if (self.room.main_spending_expenditure () != room_spending_state_selling && currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem [rmem_key_empty_all_resources_into_room])) {
+                                if (self.room.get_spending_target () != room_spending_state_selling && currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem [rmem_key_empty_all_resources_into_room])) {
                                     return 1000 * min (math.floor (currently_have / 1000), 20);
                                 }
                                 else {
@@ -22934,7 +23162,7 @@ function main () {
                             if (!(self.terminal) || !(self.terminal.store [RESOURCE_ENERGY]) || self.terminal.store [RESOURCE_ENERGY] < 5000) {
                                 return ;
                             }
-                            var spending_state = self.room.main_spending_expenditure ();
+                            var spending_state = self.room.get_spending_target ();
                             if (spending_state == room_spending_state_supporting || spending_state == room_spending_state_supporting_sieged) {
                                 self.run_support (spending_state);
                             }
@@ -25298,7 +25526,7 @@ function main () {
                         get set_supporting_room () {return __get__ (this, function (self, target) {
                             var old_target = self.mem [mem_key_now_supporting];
                             self.mem [mem_key_now_supporting] = target;
-                            if (target != old_target || target !== null && _.get (Memory, ['rooms', target, mem_key_currently_under_siege]) && self.main_spending_expenditure () != room_spending_state_supporting_sieged) {
+                            if (target != old_target || target !== null && _.get (Memory, ['rooms', target, mem_key_currently_under_siege]) && self.get_spending_target () != room_spending_state_supporting_sieged) {
                                 self.reset_spending_state ();
                             }
                         }, 'set_supporting_room');},
@@ -25306,7 +25534,7 @@ function main () {
                             self.delete_cached_property (cache_key_spending_now);
                             self.reset_planned_role ();
                         }, 'reset_spending_state');},
-                        get main_spending_expenditure () {return __get__ (this, function (self) {
+                        get get_spending_target () {return __get__ (this, function (self) {
                             var cached = self.get_cached_property (cache_key_spending_now);
                             if (cached) {
                                 return cached;
@@ -25418,26 +25646,13 @@ function main () {
                             }
                             self.store_cached_property (cache_key_spending_now, state, 500);
                             return state;
-                        }, 'main_spending_expenditure');},
+                        }, 'get_spending_target');},
                         get _any_closest_to_me () {return __get__ (this, function (self, flag_type) {
                             var __iterable0__ = flags.find_flags_global (flag_type);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
-                                if (('sponsor' in flag.memory)) {
-                                    if (flag.memory.sponsor == self.name) {
-                                        return true;
-                                    }
-                                }
-                                else {
-                                    var possible_sponsor = str (flag.name).py_split ('_') [0];
-                                    if ((possible_sponsor in Game.rooms)) {
-                                        if (possible_sponsor == self.name) {
-                                            return true;
-                                        }
-                                    }
-                                    else if (self.hive.get_closest_owned_room (flag.pos.roomName).name == self.name) {
-                                        return true;
-                                    }
+                                if (flags.flag_sponsor (flag, self.hive) == self.name) {
+                                    return true;
                                 }
                             }
                             return false;
@@ -25447,19 +25662,7 @@ function main () {
                             var __iterable0__ = flags.find_flags_global (flag_type);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
-                                if (flag.memory.sponsor) {
-                                    var ours = flag.memory.sponsor == self.name;
-                                }
-                                else {
-                                    var possible_sponsor = str (flag.name).py_split ('_') [0];
-                                    if ((possible_sponsor in Game.rooms)) {
-                                        var ours = possible_sponsor == self.name;
-                                    }
-                                    else {
-                                        var ours = self.hive.get_closest_owned_room (flag.pos.roomName).name == self.name;
-                                    }
-                                }
-                                if (ours) {
+                                if (flags.flag_sponsor (flag, self.hive) == self.name) {
                                     var flag_id = 'flag-{}'.format (flag.name);
                                     var noneol_targeting_count = self.count_noneol_creeps_targeting (target_single_flag, flag_id);
                                     if (noneol_targeting_count < 1) {
@@ -25718,7 +25921,7 @@ function main () {
                                 return 0;
                             }
                             if (self.full_storage_use) {
-                                var spending = self.main_spending_expenditure ();
+                                var spending = self.get_spending_target ();
                                 if (spending == room_spending_state_building) {
                                     var extra = self.minerals.get_estimate_total_energy () - energy_pre_rcl8_scaling_balance_point;
                                     var wm = spawning.max_sections_of (self, creep_base_worker);
@@ -25841,7 +26044,7 @@ function main () {
                                 return wm;
                             }
                             else if (self.get_full_storage_use ()) {
-                                var spending = self.main_spending_expenditure ();
+                                var spending = self.get_spending_target ();
                                 if (spending == room_spending_state_upgrading) {
                                     var wm = 4;
                                     var extra = self.minerals.get_estimate_total_energy () - energy_to_keep_always_in_reserve;
@@ -26751,7 +26954,7 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var positions = __init__ (__world__.utilities.positions);
-                    var room_regex = new RegExp ('(W|E)([0-9]{1,2})(N|S)([0-9]{1,2})');
+                    var room_regex = new RegExp ('(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})');
                     var squared_distance = function (xy1, xy2) {
                         var x_diff = xy1 [0] - xy2 [0];
                         var y_diff = xy1 [1] - xy2 [1];
@@ -26851,7 +27054,11 @@ function main () {
                             var x = __left0__ [0];
                             var y = __left0__ [1];
                             var distance = max (abs (here_x - x), abs (here_y - y));
-                            if (distance < closest_length && is_block_clear (room, x, y)) {
+                            if (here_pos.x == x && here_pos.y == y) {
+                                var closest_length = -(Infinity);
+                                var closest = xy;
+                            }
+                            else if (distance < closest_length && is_block_clear (room, x, y)) {
                                 var closest_length = distance;
                                 var closest = xy;
                             }
@@ -27219,6 +27426,7 @@ function main () {
         var global_cache = __init__ (__world__.cache.global_cache);
         var volatile_cache = __init__ (__world__.cache.volatile_cache);
         var client_scripts = __init__ (__world__.consoletools.client_scripts);
+        var visuals = __init__ (__world__.consoletools.visuals);
         var default_roles = __init__ (__world__.constants).default_roles;
         var rmem_key_pause_all_room_operations = __init__ (__world__.constants).rmem_key_pause_all_room_operations;
         var role_hauler = __init__ (__world__.constants).role_hauler;
@@ -27456,7 +27664,7 @@ function main () {
             }
             records.finish_record ('bucket.check');
             records.start_record ();
-            client_scripts.check_output_to_console ();
+            client_scripts.injection_check ();
             records.finish_record ('client-scripts.check');
             records.start_record ();
             flags.move_flags ();
@@ -27605,6 +27813,25 @@ function main () {
                 hive.sing ();
                 records.finish_record ('hive.sing');
             }
+            records.start_record ();
+            var any_visualized_rooms = false;
+            var options_mem = Memory ['nyxr_options'];
+            if (options_mem) {
+                var __iterable0__ = Object.keys (options_mem);
+                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                    var room_name = __iterable0__ [__index0__];
+                    if (room_name [0] == '_') {
+                        continue;
+                    }
+                    var any_visualized_rooms = true;
+                    visuals.visualize_room (room_name);
+                    records.finish_record ('visuals.visualize-room');
+                    records.start_record ();
+                }
+            }
+            if (!(any_visualized_rooms)) {
+                records.finish_record ('visuals.empty-check');
+            }
             records.finish_main_record ();
         };
         module.exports.loop = main;
@@ -27634,6 +27861,7 @@ function main () {
             'cache.global_cache' +
             'cache.volatile_cache' +
             'consoletools.client_scripts' +
+            'consoletools.visuals' +
             'constants' +
             'creep_management.autoactions' +
             'creep_management.creep_wrappers' +
@@ -27701,6 +27929,7 @@ function main () {
             __all__.stored_data = stored_data;
             __all__.try_thing = try_thing;
             __all__.try_thing2 = try_thing2;
+            __all__.visuals = visuals;
             __all__.volatile_cache = volatile_cache;
             __all__.walkby_move = walkby_move;
             __all__.wrap_creep = wrap_creep;
