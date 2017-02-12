@@ -2,7 +2,7 @@ import math
 
 import constants
 from cache import consistency, context, global_cache, volatile_cache
-from consoletools import client_scripts
+from consoletools import client_scripts, visuals
 from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
     role_ranged_offense, role_spawn_fill, role_temporary_replacing, role_tower_fill, role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
@@ -365,6 +365,20 @@ def main():
         records.start_record()
         hive.sing()
         records.finish_record('hive.sing')
+
+    records.start_record()
+    any_visualized_rooms = False
+    options_mem = Memory['nyxr_options']
+    if options_mem:
+        for room_name in Object.keys(options_mem):
+            if room_name[0] == '_':
+                continue
+            any_visualized_rooms = True
+            visuals.visualize_room(room_name)
+            records.finish_record('visuals.visualize-room')
+            records.start_record()
+    if not any_visualized_rooms:
+        records.finish_record('visuals.empty-check')
 
     records.finish_main_record()
 

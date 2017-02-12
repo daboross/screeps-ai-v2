@@ -8,99 +8,116 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 
-_IJ_VERSION = 5
+_VERSION = 8
 
 _whitespace_regex = __new__(RegExp('\s+'))
 
 _inject_check = (
     """
         <script>
-            (window._ij != _IJ_VERSION) && $('body').injector().get('Connection').sendConsoleCommand('_ij()')
+            $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')')
         </script>
-    """.replace('_IJ_VERSION', str(_IJ_VERSION)).replace(_whitespace_regex, '')
+    """.replace('_VERSION', str(_VERSION)).replace(_whitespace_regex, '')
 )
 
 _full_injection = (
     """
     <script>
-        if (window._ij != _IJ_VERSION) {
-            window._ij = _IJ_VERSION;
-            var ijSendCommand = function (cmd) {
-                $('body').injector().get('Connection').sendConsoleCommand('_ij("' + cmd + '")');
+        if (window._ij != _VERSION) {
+            window._ij = _VERSION;
+            var ijSendCommand = function (cmd, arg) {
+                $('body').injector().get('Connection').sendConsoleCommand('_inject("' + cmd + '", "' + arg + '")');
             };
             var text = `
-            <app:aside-block heading="IJ Options"
+            <app:aside-block heading="Nyxr Options"
                     visibility-model="Room.asidePanels.options"
                     class="ij-options ng-isolate-scope ng-scope">
                 <button class="md-raised md-button md-ink-ripple"
                         type="button"
                         md-ink-ripple="#FF0000"
-                        ng-click="ijSend('+')">
-                    Enable tracing.
+                        ng-click="ijSend('enable-visuals')">
+                    Enable Visualizations
                 </button>
                 <br>
                 <button class="md-raised md-button md-ink-ripple"
                         type="button"
                         md-ink-ripple="#FF0000"
-                        ng-click="ijSend('-')">
-                    Disable tracing.
+                        ng-click="ijSend('disable-visuals')">
+                    Disable Visualizations
                 </button>
             </app:aside-block>
             `;
-            function addOptions() {
-                $(".ij-options").remove();
-                $('.aside-content').each(function () {
+            function addOptions(ij_options, aside_content) {
+                ij_options.remove();
+                aside_content.each(function () {
                     var aside = $(this);
                     aside.injector().invoke(['$compile', function ($compile) {
                         var scope = aside.scope();
-                        scope.ijSend = ijSendCommand;
+                        scope.ijSend = (cmd) => ijSendCommand(cmd, scope.Room.roomName);
                         aside.append($compile(text)(scope));
                     }]);
                 });
-                ijSendCommand('t');
             }
-            addOptions();
+            addOptions($(".ij-options"), $('.aside-content'));
             var timeoutID = setInterval(function () {
-                if (window._ij != _IJ_VERSION) {
+                if (window._ij != _VERSION) {
                     clearInterval(timeoutID);
                     return;
                 }
-                if ($(".ij-options").length == 0) {
-                    addOptions();
+                var ij_options = $('.ij-options');
+                if (ij_options.length == 0) {
+                    var aside_content = $('.aside-content');
+                    if (aside_content.length > 0) {
+                        addOptions(ij_options, aside_content);
+                    }
                 }
-            }, 10000);
+            }, 1000);
         }
     </script>
-    """.replace(_whitespace_regex, ' ').replace('_IJ_VERSION', str(_IJ_VERSION))
+    """.replace(_whitespace_regex, ' ').replace('_VERSION', str(_VERSION))
 )
 
 
-def ij_command(command):
+def injection_command(command, room_name):
     if not command:
         return _full_injection
-    elif command == '+':
-        return "Enabled tracing!"
-    elif command == '-':
-        return "Disabled tracing!"
-    elif command == 't':
-        Memory['_ij_timeout'] = Game.time + 1000
+    elif command == 'enable-visuals':
+        options_mem = Memory['nyxr_options']
+        if not options_mem:
+            options_mem = Memory['nyxr_options'] = {}
+        options_mem[room_name] = Game.time + 100
+        return "Visuals enabled for {}.".format(room_name)
+    elif command == 'disable-visuals':
+        Memory['nyxr_options'] = {'_inject_timeout': Game.time + 1000}
+        return "Visuals disabled."
+    elif command is True:
+        options_mem = Memory['nyxr_options']
+        if not options_mem:
+            options_mem = Memory['nyxr_options'] = {}
+        options_mem['_inject_timeout'] = Game.time + 1000
     else:
         return "Unknown command: `{}`".format(command)
 
 
-ij_command.toString = ij_command  # allow access to stuff via just `_ij` in console.
-
-
 def injection_check():
-    time = Game.time
-    if time % 10 == 5:
-        timeout = Memory['_ij_timeout']
-        if timeout:
-            if timeout > Game.time:
-                return
-            else:
-                del Memory['_ij_timeout']
+    if Game.time % 10 == 5:
+        options_mem = Memory['nyxr_options']
+        if options_mem:
+            timeout = options_mem['_inject_timeout']
+            if timeout:
+                if timeout > Game.time:
+                    return
+                else:
+                    del options_mem['_inject_timeout']
+            any_alive = False
+            for key in Object.keys(options_mem):
+                if options_mem[key] < Game.time:
+                    del options_mem[key]
+                else:
+                    any_alive = True
+            if not any_alive:
+                del Memory['nyxr_options']
         print(_inject_check)
 
 
-js_global._ij = ij_command
+js_global._inject = injection_command

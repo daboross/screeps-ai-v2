@@ -140,12 +140,16 @@ def get_set_of_all_serialized_positions_in(room_name):
     return the_set
 
 
-def debug_str(room_name):
+def usage_map_of(room_name):
+    """
+    :type room_name: str
+    :rtype: jstools.js_set_map.JSMap
+    """
     map_of_values = new_map()
 
     gmem = _get_mem()
     if room_name not in gmem:
-        return 'no paths through {}'.format(room_name)
+        return map_of_values
     for data_string in gmem[room_name]:
         points = data_string[data_string.codePointAt(0):]
         for i in range(0, len(points)):
@@ -154,6 +158,26 @@ def debug_str(room_name):
                 map_of_values.set(xy, map_of_values.get(xy) + 1)
             else:
                 map_of_values.set(xy, 1)
+    return map_of_values
+
+
+def list_of_paths_with_metadata(room_name):
+    gmem = _get_mem()
+    if room_name not in gmem:
+        return []
+    return gmem[room_name]
+
+
+def debug_str(room_name):
+    """
+    :type room_name: str
+    :rtype: str
+    """
+
+    gmem = _get_mem()
+    if room_name not in gmem:
+        return 'no paths through {}'.format(room_name)
+    map_of_values = usage_map_of(room_name)
     output = []
     for y in range(0, 50):
         output.push('\n')

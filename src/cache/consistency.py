@@ -127,7 +127,7 @@ def complete_refresh(hive):
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
             hive.targets.untarget_all({'name': name})
     # Remove deprecated Memory paths that are no longer in use:
-    for key in ['cpu_usage', 'profiler', '_debug', 'x']:
+    for key in ['cpu_usage', 'profiler', '_debug', 'x', '_ij_timeout', '_visuals_till', '_inject_timeout']:
         if key in Memory:
             print('[consistency] Removing deprecated memory path: {}'.format(key))
             del Memory[key]
