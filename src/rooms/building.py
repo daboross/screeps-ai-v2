@@ -616,10 +616,8 @@ class ConstructionMind:
                 room = hive.get_room(room_name)
                 path = Room.deserializePath(serialized_obj[room_name])
                 if room_name == not_near_end_of:
-                    rest = path.slice(-2)
                     path = path.slice(0, -2)
                 if room_name == not_near_start_of:
-                    rest = path.slice(0, 2)
                     path = path.slice(2)
                 for position in path:
                     xy_key = positions.serialize_pos_xy(position)

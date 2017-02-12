@@ -146,7 +146,7 @@ function activateCustomizations() {
         return total;
     };
 
-    // Custom additionF
+    // Custom addition
     Creep.prototype.getBodypartsBoostEquivalent = function (type, action) {
         var total = 0;
         var typeBoosts, boostPowers, actionPower;
