@@ -118,6 +118,8 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
         if direction is None:
             print("[honey][pathfinder_to_regular_path] Unknown direction for pos: {},{}, last: {},{}".format(
                 pos.x, pos.y, last_x, last_y))
+            if dx == 0 and dy == 0:
+                continue
             return None
         last_x = pos.x
         last_y = pos.y
@@ -956,7 +958,7 @@ class HoneyTrails:
 
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
-        if current_room in serialized_path_obj:
+        if serialized_path_obj is not None and current_room in serialized_path_obj:
             return serialized_path_obj[current_room]
         else:
             return ''
@@ -1024,6 +1026,8 @@ class HoneyTrails:
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
         # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
 
+        if not serialized_path_obj:
+            return 1
         if _path_cached_data_key_metadata in serialized_path_obj:  # Version 3 stored path
             return int(serialized_path_obj[_path_cached_data_key_metadata].js_split(',')[0])
         if _path_cached_data_key_full_path in serialized_path_obj:  # Version 1 stored path
