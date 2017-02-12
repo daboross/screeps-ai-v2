@@ -97,15 +97,19 @@ class HiveMind:
                         flag.name, flag.memory.sponsor
                     ))
                     continue
-                if room_to_flags[sponsor.name]:
-                    room_to_flags[sponsor.name].push(flag)
+                if room_to_flags[sponsor]:
+                    room_to_flags[sponsor].push(flag)
                 else:
-                    room_to_flags[sponsor.name] = [flag]
+                    room_to_flags[sponsor] = [flag]
         for room in self.my_rooms:
             if room.name in room_to_flags:
                 room._remote_mining_operations = room_to_flags[room.name]
+                del room_to_flags[room.name]
             else:
                 room._remote_mining_operations = []
+        for room_name in Object.keys(room_to_flags):
+            print("[hive] WARNING! Flags {} has sponsor {}, which is not an owned room!"
+                  .format(room_to_flags[room_name], room_name))
 
     __pragma__('fcall')
 
