@@ -100,6 +100,8 @@ class MilitaryBase(RoleBase):
             to_home = opts["to_home"]
         else:
             to_home = False
+        if not origin:
+            origin = movement.find_an_open_space(self.memory.home)
         if origin.pos:
             origin = origin.pos
         if target.pos:
@@ -153,6 +155,8 @@ class MilitaryBase(RoleBase):
             to_home = opts["to_home"]
         else:
             to_home = False
+        if not origin:
+            origin = movement.find_an_open_space(self.memory.home)
         if origin.pos:
             origin = origin.pos
         if target.pos:
@@ -264,7 +268,7 @@ class MilitaryBase(RoleBase):
                         self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {} (path: {})".format(
                             origin, target, self.pos, new_target, [
                                 "({},{})".format(p.x, p.y) for p in Room.deserializePath(
-                                    self.memory['_move']['path'])
+                                    _.get(self.memory, ['_move', 'path'], ''))
                                 ].join(', ')))
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
