@@ -96,6 +96,9 @@ _(Game.market.incomingTransactions).filter(x => x.resourceType == RESOURCE_ENERG
 # Get recent transactions:
 JSON.stringify(Game.market.outgoingTransactions, null, 4)
 
+# Get recent non-support transactions:
+_(Game.market.incomingTransactions).filter(x => x.to == 'E18S66' && x.resourceType != 'energy').map(x=>JSON.stringify(x)).value().join('\n')
+
 # Check on market orders
 JSON.stringify(Game.market.orders, null, 4)
 
@@ -122,5 +125,9 @@ Memory.rooms.E17N55.cache.building_targets = []; Memory.rooms.E17N55.non_wall_co
 
 # Get furthest distance between owned rooms
 _(py.hive().my_rooms).map(r => _(py.hive().my_rooms).map(r2 => Game.map.getRoomLinearDistance(r.name, r2.name)).max()).max()
+
+# Buy enforcement minerals
+[RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID].forEach(x => Game.market.createOrder(ORDER_BUY, x, 2.5, 10 * 1000, 'E62N6'))
+
 ```
 
