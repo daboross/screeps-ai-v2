@@ -37,6 +37,7 @@ class RoomMind:
     :type building: ConstructionMind
     :type links: LinkingMind
     :type mining: MiningMind
+    :type minerals: MineralMind
     :type subsidiaries: list[RoomMind]
     :type sources: list[Source]
     :type creeps: list[Creep]

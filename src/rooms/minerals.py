@@ -43,6 +43,14 @@ bottom_prices = {
     RESOURCE_LEMERGIUM: 0.2,
 }
 
+
+minerals_to_keep_on_hand = [
+    RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+    RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+    RESOURCE_CATALYZED_ZYNTHIUM_ACID,
+    RESOURCE_CATALYZED_UTRIUM_ACID,
+]
+
 __pragma__('fcall')
 
 
@@ -73,8 +81,8 @@ class MineralMind:
         self._adding_to_terminal = undefined
         self._my_mineral_deposit_minerals = undefined
         self._labs = undefined
-        self._needed_in_lab1 = undefined
-        self._needed_in_lab2 = undefined
+        self._lab_targets = undefined
+        self._labs_for_mineral = undefined
         self._energy_needed_in_labs = undefined
         __pragma__('noskip')
         if rmem_key_mineral_mind_storage not in room.mem:
@@ -253,44 +261,10 @@ class MineralMind:
             self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
         return self._labs
 
-    def amount_needed_in_lab1(self):
-        if self._needed_in_lab1 is undefined:
-            mineral = self.get_lab_target_mineral()
-            if mineral is None:
-                return 0
-            all_labs = _(self.labs())
-            labs = all_labs.filter(lambda x: x.mineralType == mineral)
-            if not labs.size():
-                labs = all_labs.filter(lambda x: not x.mineralAmount)
-            capacity = labs.sum('mineralCapacity')
-            filled = labs.sum('mineralAmount')
-            empty = capacity - filled
-            available = self.get_total_room_resource_counts()[mineral] - filled
-            self._needed_in_lab1 = min(empty, available)
-        return self._needed_in_lab1
-
-    def amount_needed_in_lab2(self):
-        if self._needed_in_lab2 is undefined:
-            mineral = self.get_lab2_target_mineral()
-            if mineral is None:
-                return 0
-            all_labs = _(self.labs())
-            labs = all_labs.filter(lambda x: x.mineralType == mineral)
-            if not labs.size():
-                labs = all_labs.filter(lambda x: not x.mineralAmount)
-            capacity = labs.sum('mineralCapacity')
-            filled = labs.sum('mineralAmount')
-            empty = capacity - filled
-            available = self.get_total_room_resource_counts()[mineral] - filled
-            self._needed_in_lab2 = min(empty, available)
-        return self._needed_in_lab2
 
     def energy_needed_in_labs(self):
         if self._energy_needed_in_labs is undefined:
-            mineral = self.get_lab_target_mineral()
-            if mineral is None:
-                return 0
-            labs = _(self.labs()).filter('mineralAmount')
+            labs = _(self.labs())
             capacity = labs.sum('energyCapacity')
             filled = labs.sum('energy')
             empty = capacity - filled
@@ -298,19 +272,59 @@ class MineralMind:
             self._energy_needed_in_labs = min(empty, available)
         return self._energy_needed_in_labs
 
-    def get_lab_target_mineral(self):
-        mineral = "XKHO2"
-        if _.find(self.labs(), lambda l: l.mineralType == mineral or not l.mineralType) \
-                and self.get_total_room_resource_counts()[mineral]:
-            return mineral
-        return None
+    def get_lab_targets(self):
+        """
+        Gets labs and the mineral they need.
+        :rtype: list[(StructureLab, str, int)]
+        """
+        if self._lab_targets is not undefined:
+            return self._lab_targets
+        possible_minerals = [
+            RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
+            RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
+            RESOURCE_CATALYZED_ZYNTHIUM_ACID,
+            RESOURCE_CATALYZED_UTRIUM_ACID,
+        ]
+        resource_counts = self.get_total_room_resource_counts()
+        minerals_needing_lab = []
+        for mineral in possible_minerals:
+            if mineral in resource_counts:
+                minerals_needing_lab.append(mineral)
+        result = []
+        labs = self.labs()
+        extra_labs = []
+        for lab in labs:
+            if lab.mineralType:
+                if possible_minerals.includes(lab.mineralType):
+                    result.append((lab, lab.mineralType, min(resource_counts[lab.mineralType], LAB_MINERAL_CAPACITY)))
+                    _.pull(minerals_needing_lab, lab.mineralType)
+            else:
+                extra_labs.append(lab)
+        if len(minerals_needing_lab):
+            for lab in extra_labs:
+                mineral = minerals_needing_lab.splice(0, 1)[0]
+                result.append((lab, mineral, min(resource_counts[mineral], LAB_MINERAL_CAPACITY)))
+        self._lab_targets = result
+        return result
 
-    def get_lab2_target_mineral(self):
-        mineral = "XLHO2"
-        if _.find(self.labs(), lambda l: l.mineralType == mineral or not l.mineralType) \
-                and self.get_total_room_resource_counts()[mineral]:
-            return mineral
-        return None
+    def get_labs_needing_mineral(self):
+        """
+        Get labs per mineral
+        :rtype: dict[str, (StructureLab, int)]
+        :return:
+        """
+        if self._labs_for_mineral is not undefined:
+            return self._labs_for_mineral
+        lab_targets = self.get_lab_targets()
+        result = {}
+        for lab, mineral, amount in lab_targets:
+            if lab.mineralAmount < amount:
+                if mineral in result:
+                    result[mineral].push((lab, amount))
+                else:
+                    result[mineral] = [(lab, amount)]
+        self._labs_for_mineral = result
+        return result
 
     def get_total_room_resource_counts(self):
         if self._total_resource_counts is not undefined:
@@ -435,7 +449,7 @@ class MineralMind:
             else:
                 min_via_spending = 0
             return min(currently_have - 50 * 1000, max(0, min_via_empty_to, min_via_fulfillment, min_via_spending))
-        elif mineral == self.get_lab_target_mineral() or mineral == self.get_lab2_target_mineral():
+        elif _.some(self.get_lab_targets(), lambda t: t[1] == mineral):
             return 0
         else:
             if self.my_mineral_deposit_minerals().includes(mineral):
@@ -876,7 +890,7 @@ class MineralMind:
         if self.has_no_terminal_or_storage():
             return 0
         elif self.get_target_mineral_miner_count() or len(self.adding_to_terminal()) or self.energy_needed_in_labs() \
-                or self.amount_needed_in_lab1() or self.amount_needed_in_lab2() \
+                or _.some(self.get_lab_targets(), lambda t: t[0].mineralAmount < t[2]) \
                 or _.sum(self.removing_from_terminal(), lambda t: t[1]) > 50 * 1000:
             # We don't really need to be spawning a new mineral hauler if we only need to remove things from the
             # terminal, and not add them.

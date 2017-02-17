@@ -153,22 +153,16 @@ class MineralHauler(RoleBase):
 
         for resource in Object.keys(self.creep.carry):
             if self.creep.carry[resource] > 0:
+                if resource in mind.get_labs_needing_mineral():
+                    if debug:
+                        self.log("Choosing fill_labs as we have a mineral that is needed.")
+                    return _FILL_LABS
+        for resource in Object.keys(self.creep.carry):
+            if self.creep.carry[resource] > 0:
                 if (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
                     if debug:
                         self.log("Choosing terminal_dropoff as we have a mineral which we need in the terminal.")
                     return _TERMINAL_DROPOFF
-                elif mind.get_lab_target_mineral() == resource and mind.amount_needed_in_lab1():
-                    if debug:
-                        self.log("Choosing fill_labs as we have a mineral that is needed in lab 1.")
-                    return _FILL_LABS
-                elif mind.get_lab2_target_mineral() == resource and mind.amount_needed_in_lab2():
-                    if debug:
-                        self.log("Choosing fill_labs as we have a mineral that is needed in lab 2.")
-                    return _FILL_LABS
-                elif resource == RESOURCE_ENERGY and mind.energy_needed_in_labs():
-                    if debug:
-                        self.log("Choosing fill_labs as we have energy that is needed in labs.")
-                    return _FILL_LABS
 
         if now_held:
             # We have a store which has no minerals needed by the terminal
@@ -179,7 +173,23 @@ class MineralHauler(RoleBase):
             if debug:
                 self.log("Choosing dead because we are near death.")
             return _DEAD
-        elif len(mind.removing_from_terminal()) and self.pos.isNearTo(mind.terminal):
+        elif mind.energy_needed_in_labs():
+            if debug:
+                self.log("Choosing storage_pickup as there is something needed in labs.")
+            return _STORAGE_PICKUP
+
+        for lab, mineral, amount in mind.get_lab_targets():
+            if lab.mineralAmount < amount:
+                if mineral in mind.storage.store:
+                    if debug:
+                        self.log("Choosing storage_pickup as {} is needed in a lab.".format(mineral))
+                    return _STORAGE_PICKUP
+                elif mineral in mind.terminal.store:
+                    if debug:
+                        self.log("Choosing terminal_pickup as {} is needed in a lab.".format(mineral))
+                    return _TERMINAL_PICKUP
+
+        if len(mind.removing_from_terminal()) and self.pos.isNearTo(mind.terminal):
             if debug:
                 self.log("Choosing terminal_pickup as we are close to the terminal, and we have things to remove.")
             return _TERMINAL_PICKUP
@@ -197,10 +207,6 @@ class MineralHauler(RoleBase):
             if debug:
                 self.log("Choosing miner_harvest as there is a target miner count.")
             return _MINER_HARVEST
-        elif mind.amount_needed_in_lab1() or mind.amount_needed_in_lab2() or mind.energy_needed_in_labs():
-            if debug:
-                self.log("Choosing storage_pickup as there is something needed in labs.")
-            return _STORAGE_PICKUP
         else:
             if debug:
                 self.log("Choosing depot because there is nothing else to do.")
@@ -337,9 +343,10 @@ class MineralHauler(RoleBase):
                 self.move_to(mind.storage)
             return False
         for resource, needed_in_terminal in mind.adding_to_terminal() \
-                .concat([(RESOURCE_ENERGY, mind.energy_needed_in_labs()),
-                         (mind.get_lab_target_mineral(), mind.amount_needed_in_lab1()),
-                         (mind.get_lab2_target_mineral(), mind.amount_needed_in_lab2())]):
+                .concat([(RESOURCE_ENERGY, mind.energy_needed_in_labs())]) \
+                .concat([(mineral, amount)
+                         for lab, mineral, amount in mind.get_lab_targets()
+                         if amount < lab.mineralAmount]):
             to_withdraw = min(self.creep.carryCapacity - now_carrying,
                               needed_in_terminal - (self.creep.carry[resource] or 0),
                               mind.storage.store[resource] or 0)
@@ -428,47 +435,38 @@ class MineralHauler(RoleBase):
 
     def run_lab_drop_off(self):
         mind = self.home.minerals
-        mineral1 = mind.get_lab_target_mineral()
-        mineral2 = mind.get_lab2_target_mineral()
 
-        mineral1_holding = self.creep.carry[mineral1]
-        mineral2_holding = self.creep.carry[mineral2]
-        energy_holding = self.creep.carry[RESOURCE_ENERGY]
+        best_lab = None
+        best_resource = None
+        closest_distance = Infinity
 
-        if mind.energy_needed_in_labs() and energy_holding:
-            target = _(mind.labs()).filter(lambda l: l.energy < l.energyCapacity and l.mineralAmount) \
-                .min(lambda l: movement.chebyshev_distance_room_pos(self.pos, l.pos))
-            resource = RESOURCE_ENERGY
-        elif mind.amount_needed_in_lab1() and mineral1_holding:
-            labs = _(mind.labs()).filter(lambda l: l.mineralAmount < l.mineralCapacity)
-            if labs.find(lambda l: l.mineralType == mineral1):
-                labs = labs.filter(lambda l: l.mineralType == mineral1)
-            else:
-                labs = labs.filter(lambda l: not l.mineralAmount)
-
-            target = labs.min(lambda l: movement.chebyshev_distance_room_pos(self.pos, l.pos))
-            resource = mineral1
-        elif mind.amount_needed_in_lab2() and mineral2_holding:
-            labs = _(mind.labs()).filter(lambda l: l.mineralAmount < l.mineralCapacity)
-            if labs.find(lambda l: l.mineralType == mineral2):
-                labs = labs.filter(lambda l: l.mineralType == mineral2)
-            else:
-                labs = labs.filter(lambda l: not l.mineralAmount)
-
-            target = labs.min(lambda l: movement.chebyshev_distance_room_pos(self.pos, l.pos))
-            resource = mineral2
-        else:
+        for lab, mineral, amount in mind.get_lab_targets():
+            if lab.mineralAmount < amount and self.creep.carry[mineral]:
+                distance = movement.chebyshev_distance_room_pos(self.pos, lab.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    best_lab = lab
+                    best_resource = mineral
+            elif lab.energy < lab.energyCapacity and self.creep.carry[RESOURCE_ENERGY]:
+                distance = movement.chebyshev_distance_room_pos(self.pos, lab.pos)
+                if distance < closest_distance:
+                    closest_distance = distance
+                    best_lab = lab
+                    best_resource = RESOURCE_ENERGY
+        if not best_lab:
+            if self.memory.debug:
+                self.log("Untargetting labs: no minerals needed that we have.")
             del self.memory.state
-            return True
+            return
 
-        if not self.pos.isNearTo(target):
-            self.move_to(target)
+        if not self.pos.isNearTo(best_lab):
+            self.move_to(best_lab)
             return False
 
-        result = self.creep.transfer(target, resource)
+        result = self.creep.transfer(best_lab, best_resource)
         if result != OK:
             self.log("Unknown result from mineral-hauler.transfer({}, {}): {}".format(
-                target, resource, result))
+                best_lab, best_resource, result))
 
     def _calculate_time_to_replace(self):
         return _.size(self.creep.body) * CREEP_SPAWN_TIME  # Don't live replace mineral haulers
