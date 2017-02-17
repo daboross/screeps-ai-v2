@@ -359,14 +359,18 @@ class MiningMind:
     def is_mine_linked(self, source):
         flag = flags.look_for(self.room, source, LOCAL_MINE)
         if flag:
-            # TODO: duplicated in get_next_needed_mining_role_for, haulers_can_target_mine
-            miner_carry_no_haulers = (
-                flag.pos.roomName == self.room.name
-                and self.room.room.energyCapacityAvailable
-                >= (BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK] * 5)  # 600 on official server
-                and flag.pos.inRangeTo(self.closest_deposit_point_to_mine(flag), 2)
-            )
-            return miner_carry_no_haulers
+            deposit_point = self.closest_deposit_point_to_mine(flag)
+            if deposit_point:
+                # TODO: duplicated in get_next_needed_mining_role_for, haulers_can_target_mine
+                miner_carry_no_haulers = (
+                    flag.pos.roomName == self.room.name
+                    and self.room.room.energyCapacityAvailable
+                    >= (BODYPART_COST[MOVE] + BODYPART_COST[CARRY] + BODYPART_COST[WORK] * 5)  # 600 on official server
+                    and flag.pos.inRangeTo(deposit_point, 2)
+                )
+                return miner_carry_no_haulers
+            else:
+                return False
         else:
             # TODO: what to do here?
             print("[mining] Warning: can't find local flag for mine {}!".format(source))
