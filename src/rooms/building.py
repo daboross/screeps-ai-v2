@@ -557,6 +557,16 @@ class ConstructionMind:
                 return True
         return False
 
+    def reset_inactive_mines(self):
+        mines = self.room.mining.active_mines
+        all_mines = self.room.possible_remote_mining_operations
+        for mine in all_mines:
+            if not mines.includes(mine):
+                self.reset_last_paved(mine)
+
+    def reset_last_paved(self, mine_flag):
+        self.room.delete_cached_property(_cache_key_placed_roads_for_mine + mine_flag.name)
+
     def build_road(self, mine_flag):
         current_method_version = 1
 

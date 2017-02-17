@@ -166,6 +166,10 @@ def run_room(targets, creeps_skipped, room):
                 records.finish_record('building.roads.check-pavement')
             else:
                 records.finish_record('building.roads.cache-checks-only')
+            if (Game.time + room.get_unique_owned_index()) % 150 == 0:
+                records.start_record()
+                room.building.reset_inactive_mines()
+                records.finish_record('building.roads.reset-inactive-mines')
 
         records.start_record()
         room.building.place_home_ramparts()
