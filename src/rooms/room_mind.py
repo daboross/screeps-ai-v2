@@ -1458,7 +1458,7 @@ class RoomMind:
                 wm = min(wm, worker_size * max_upgraders)
 
             energy_struct = self.get_upgrader_energy_struct()
-            if energy_struct.structureType == STRUCTURE_LINK:
+            if energy_struct and energy_struct.structureType == STRUCTURE_LINK:
                 distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct)
                 # TODO: enable or remove this after we've tested the effectiveness of using exact parts
                 # if distance > 3:
