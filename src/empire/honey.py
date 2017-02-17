@@ -253,7 +253,7 @@ class CustomCostMatrix:
         """
         :type x: int
         :type y: int
-        :type cost_type: int
+        :type cost_type: int | None
         :type added: int
         """
         raise NotImplementedError
@@ -324,18 +324,21 @@ def _cma_get_existing(x, y):
 
 
 def _cma_increase_at(x, y, cost_type, added):
+    if added <= 0:
+        return
     existing = this.get_existing(x, y)
     if existing >= 255:
         return
 
     ser = positions.serialize_xy(x, y)
-    if cost_type in this.added_at:
-        cost_map = this.added_at[cost_type]
-    else:
-        cost_map = this.added_at[cost_type] = __new__(Set())
-    if cost_map.has(ser):
-        return
-    cost_map.add(ser)
+    if cost_type is not None:
+        if cost_type in this.added_at:
+            cost_map = this.added_at[cost_type]
+        else:
+            cost_map = this.added_at[cost_type] = __new__(Set())
+        if cost_map.has(ser):
+            return
+        cost_map.add(ser)
 
     if this.debug:
         print('[DEBUG][ccm][{}] Increasing {},{} from {} to {}.'
@@ -391,6 +394,8 @@ _COST_TYPE_AVOID_SOURCE = 4
 _COST_TYPE_AVOID_CONTROLLER = 5
 _COST_TYPE_AVOID_STORAGE = 6
 _COST_TYPE_AVOID_EXTENSIONS = 7
+COST_TYPE_CUSTOM_1 = 8
+COST_TYPE_CUSTOM_2 = 9
 _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE = '--linked--'
 
 
