@@ -209,12 +209,15 @@ def _create_basic_room_cost_matrix(room_name):
             return matrix
         for obstacle in data.structures:
             if obstacle.type == StoredStructureType.ROAD:
+                if matrix.get(obstacle.x, obstacle.y) == 0:
+                    matrix.set(obstacle.x, obstacle.y, 1)
+            else:
+                if obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                    for x in range(obstacle.x - 4, obstacle.x + 5):
+                        for y in range(obstacle.y - 4, obstacle.y + 5):
+                            matrix.set(x, y, 250)
                 matrix.set(obstacle.x, obstacle.y, 255)
-            elif obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
-                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
-                for x in range(obstacle.x - 4, obstacle.x + 5):
-                    for y in range(obstacle.y - 4, obstacle.y + 5):
-                        matrix.set(x, y, 250)
     return matrix
 
 
