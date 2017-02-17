@@ -329,9 +329,9 @@ class Upgrader(RoleBase):
             path_length = self.hive.honey.find_path_length(self.home.spawn, self.home.room.controller)
             # No leeway because we're assuming that we A: won't need to go all the way to the controller and B: the road
             # will be somewhat paved
-            return path_length * 2 + _.size(self.creep.body) * 3
+            return path_length * 2 + _.size(self.creep.body) * CREEP_SPAWN_TIME
         else:
-            return _.size(self.creep.body) * 3 + 15
+            return _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
 
 class DedicatedUpgradeFiller(RoleBase):

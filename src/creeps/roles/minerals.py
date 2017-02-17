@@ -88,7 +88,8 @@ class MineralMiner(RoleBase):
             return -1
         mineral_pos = minerals[0].pos
         spawn_pos = self.home.spawn.pos
-        time = self.hive.honey.find_path_length(spawn_pos, mineral_pos) * 2 + _.size(self.creep.body) * 3 + 15
+        time = (self.hive.honey.find_path_length(spawn_pos, mineral_pos) * 2
+                + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15)
         return time
 
 
@@ -470,4 +471,4 @@ class MineralHauler(RoleBase):
                 target, resource, result))
 
     def _calculate_time_to_replace(self):
-        return _.size(self.creep.body) * 3  # Don't live replace mineral haulers
+        return _.size(self.creep.body) * CREEP_SPAWN_TIME  # Don't live replace mineral haulers

@@ -361,4 +361,4 @@ class KitingOffense(MilitaryBase):
         if not marker_flag:
             return -1
         path_len = self.get_military_path_length(self.home.spawn, marker_flag)
-        return path_len * 1.05 + _.size(self.creep.body) * 3 + 20
+        return path_len * 1.05 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 20

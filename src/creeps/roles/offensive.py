@@ -41,7 +41,7 @@ class TowerDrainHealer(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 class TowerDrainer(MilitaryBase):
@@ -111,7 +111,7 @@ class TowerDrainer(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target, {'avoid_rooms': [target.pos.roomName]})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME+ 10
 
 
 class Dismantler(MilitaryBase):
@@ -286,7 +286,7 @@ class Dismantler(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 class EnergyGrab(TransportPickup, EnergyHauler):
@@ -337,7 +337,7 @@ class EnergyGrab(TransportPickup, EnergyHauler):
         path_len = self.path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 class PowerAttack(MilitaryBase):
@@ -410,7 +410,7 @@ class PowerAttack(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 # TODO: Change the speech on this to something unique.
@@ -527,4 +527,4 @@ class PowerCleanup(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10

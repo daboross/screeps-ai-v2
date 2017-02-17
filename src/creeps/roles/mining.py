@@ -183,7 +183,7 @@ class EnergyMiner(TransportPickup):
         if self.home.all_paved():
             moves_every /= 2
         moves_every = math.ceil(moves_every)
-        return path_length / moves_every + _.size(self.creep.body) * 3 + 15
+        return path_length / moves_every + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
 
 class EnergyHauler(TransportPickup, SpawnFill, Refill):
@@ -259,7 +259,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
             return -1
         path_length = self.hive.honey.find_path_length(self.home.spawn, source)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
-        return path_length * 1.7 + _.size(self.creep.body) * 3 + 15
+        return path_length * 1.7 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
 
 class RemoteReserve(TransportPickup):
@@ -362,4 +362,4 @@ class RemoteReserve(TransportPickup):
             return -1
         path_length = self.hive.honey.find_path_length(self.home.spawn, target_pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
-        return path_length + _.size(self.creep.body) * 3 + 15
+        return path_length + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15

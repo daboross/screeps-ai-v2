@@ -106,7 +106,7 @@ class RoleBase:
             return self.memory.calculated_replacement_time
 
     def _calculate_time_to_replace(self):
-        return recycle_time + _.size(self.creep.body) * 3
+        return recycle_time + _.size(self.creep.body) * CREEP_SPAWN_TIME
 
     def run(self):
         """

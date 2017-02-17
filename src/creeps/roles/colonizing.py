@@ -77,7 +77,7 @@ class Colonist(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, movement.center_pos(colony), {'range': 20})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 class Claim(MilitaryBase):
@@ -175,7 +175,7 @@ class Claim(MilitaryBase):
             if not target:
                 return -1
             path_len = self.get_military_path_length(self.home.spawn, target)
-            return path_len + _.size(self.creep.body) * 3
+            return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME
         else:
             return 0
 
@@ -216,7 +216,7 @@ class ReserveNow(MilitaryBase):
         path_len = self.get_military_path_length(self.home.spawn, target)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
-        return path_len + _.size(self.creep.body) * 3 + 10
+        return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
 class MineralSteal(TransportPickup):
@@ -253,4 +253,4 @@ class MineralSteal(TransportPickup):
 
     def _calculate_time_to_replace(self):
         # TODO: find a good time in a better way!
-        return _.size(self.creep.body) * 3 + 15  # Don't live-replace as often.
+        return _.size(self.creep.body) * CREEP_SPAWN_TIME + 15  # Don't live-replace as often.

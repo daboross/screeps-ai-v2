@@ -137,7 +137,8 @@ class LinkManager(RoleBase):
             return -1
         link_pos = link.pos
         # No leeway because we assume the path will be at least partially paved
-        return self.hive.honey.find_path_length(self.home.spawn, link_pos) * 2 + _.size(self.creep.body) * 3
+        return (self.hive.honey.find_path_length(self.home.spawn, link_pos) * 2
+                + _.size(self.creep.body) * CREEP_SPAWN_TIME)
 
 
 # TODO: Change the speech on this to something unique.
