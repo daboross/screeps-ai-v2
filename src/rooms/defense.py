@@ -677,7 +677,7 @@ class RoomDefense:
     def tower_heal(self):
         damaged = _.filter(self.room.find(FIND_MY_CREEPS), lambda c: c.hits < c.hitsMax)
         if len(damaged):
-            towers = self.towers()
+            towers = _.filter(self.towers(), lambda x: x.energy)
             if not len(towers):
                 return
             if len(damaged) > 1 and len(towers) > 1:
@@ -779,7 +779,7 @@ class RoomDefense:
             self.mem.alert_for = 1
 
         hostiles = self.dangerous_hostiles()
-        towers = self.towers()
+        towers = _.filter(self.towers(), lambda x: x.energy)
 
         # if len(hostiles) and (len(towers) or self.room.spawn):
         #     print("[{}][defense] Found danger:{}".format(
