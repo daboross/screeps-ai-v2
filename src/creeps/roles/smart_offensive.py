@@ -328,7 +328,7 @@ class KitingOffense(MilitaryBase):
             safe_distance = 0
         else:
             safe_distance = 3
-        should_run = (not _.find(self.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': True})
+        should_run = (not _.some(self.pos.lookFor(LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': True})
                       and not harmless
                       and (min_distance < safe_distance or (min_distance == safe_distance and not fatigue)))
 
