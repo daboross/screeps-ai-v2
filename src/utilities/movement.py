@@ -65,7 +65,7 @@ def find_an_open_space(room_name):
     y = 0
     dx = 0
     dy = -1
-    for _ in range(0, 50 * 50):
+    for i in range(0, 50 * 50):
         if Game.map.getTerrainAt(24 + x, 24 + y, room_name) != 'wall':
             return __new__(RoomPosition(24 + x, 24 + y, room_name))
         if x == y or (x < 0 and x == -y) or (x > 0 and x == -y + 1):
@@ -310,8 +310,16 @@ def diff_as_direction(origin, destination):
         origin = origin.pos
     if destination.pos is not undefined:
         destination = destination.pos
-    direction = dxdy_to_direction(destination.x - origin.x, destination.y - origin.y)
+    if origin.roomName and destination.roomName and origin.roomName != destination.roomName:
+        origin_room_pos = parse_room_to_xy(origin.roomName)
+        destination_room_pos = parse_room_to_xy(destination.roomName)
+        direction = dxdy_to_direction(destination_room_pos[0] * 50 + destination.x
+                                      - origin_room_pos[0] * 50 - origin.x,
+                                      destination_room_pos[1] * 50 + destination.y
+                                      - origin_room_pos[1] * 50 - origin.y)
+    else:
+        direction = dxdy_to_direction(destination.x - origin.x, destination.y - origin.y)
     if direction is None:
-        print("[movement][direction_to] No direction found for get_direction({} - {}, {} - {})."
-              .format(destination.x, origin.x, destination.y, origin.y))
+        print("[movement] No direction found for diff_as_direction({}, {})."
+              .format(origin, destination))
     return direction
