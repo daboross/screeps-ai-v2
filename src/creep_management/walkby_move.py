@@ -129,6 +129,8 @@ function move (direction) {
                 }
             }
         }
+    } else if ('pt' in this.memory && Game.time - this.memory.pt > 50) {
+        delete this.memory.pt;
     }
     this.__moved = true;
     return result;
