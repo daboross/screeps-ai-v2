@@ -16,7 +16,11 @@ _whitespace_regex = __new__(RegExp('\s+'))
 _inject_check = (
     """
         <script>
-            $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')')
+            var date = Date.now();
+            if (window._ij != _VERSION || !(window._lij > date)) {
+                $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');
+                window._lij = date + 18e5;
+            }
         </script>
     """.replace('_VERSION', str(_VERSION)).replace(_whitespace_regex, '')
 )
@@ -27,6 +31,7 @@ _full_injection = (
         if (window._ij != _VERSION) {
             window._ij = _VERSION;
             var ijSendCommand = function (cmd, arg) {
+                console.log(`Sending command (cmd: ${cmd}, arg: ${arg}).`);
                 $('body').injector().get('Connection').sendConsoleCommand('_inject("' + cmd + '", "' + arg + '")');
             };
             var text = `
@@ -81,6 +86,10 @@ _full_injection = (
 
 def injection_command(command, room_name):
     if not command:
+        options_mem = Memory['nyxr_options']
+        if not options_mem:
+            options_mem = Memory['nyxr_options'] = {}
+        options_mem['_inject_timeout'] = Game.time + 1000
         return _full_injection
     elif command == 'enable-visuals':
         options_mem = Memory['nyxr_options']
@@ -96,6 +105,7 @@ def injection_command(command, room_name):
         if not options_mem:
             options_mem = Memory['nyxr_options'] = {}
         options_mem['_inject_timeout'] = Game.time + 1000
+        return 'injection time out (command: {}, tick: {})'.format(command, Game.time)
     else:
         return "Unknown command: `{}`".format(command)
 
@@ -118,6 +128,7 @@ def injection_check():
                     any_alive = True
             if not any_alive:
                 del Memory['nyxr_options']
+        print("Trying injection. (tick: {})".format(Game.time))
         print(_inject_check)
 
 
