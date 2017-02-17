@@ -487,6 +487,8 @@ class TargetMind:
         # best_id = None
         if len(repair_targets) <= 1 and not len(creep.home.building.get_construction_targets()):
             max_work = Infinity
+        best = None
+        second_best = None
         for struct_id in repair_targets:
             structure = Game.getObjectById(struct_id)
             if not structure:
@@ -494,6 +496,15 @@ class TargetMind:
             # TODO: merge this logic with ConstructionMind _efficiently!_
             this_hits_max = min(structure.hitsMax, max_hits)
             if structure and structure.hits < this_hits_max * 0.9:
+                distance = movement.chebyshev_distance_room_pos(structure, creep)
+                ticks_to_repair = (structure.hitsMax - structure.hits) \
+                                  / (creep.creep.getActiveBodyparts(WORK) * REPAIR_POWER)
+                if ticks_to_repair < 10 and distance < 3:
+                    return structure
+                elif distance + ticks_to_repair < 15:
+                    best = structure
+                if second_best:
+                    continue
                 if max_work is Infinity:
                     current_max = Infinity
                 else:
@@ -502,13 +513,16 @@ class TargetMind:
                 if not current_workforce or current_workforce < current_max:
                     #     or current_workforce < smallest_num_builders + 1:
                     # Already priority sorted
-                    return struct_id
+                    second_best = struct_id
                     # distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                     # if distance < closest_distance:
                     #     smallest_num_builders = current_workforce
                     #     closest_distance = distance
                     #     best_id = struct_id
-        return None
+        if best:
+            return best
+        else:
+            return second_best
 
     def _find_new_big_repair_site(self, creep, max_hits):
         """
