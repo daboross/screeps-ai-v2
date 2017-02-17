@@ -375,7 +375,7 @@ class MineralMind:
             energy += self.terminal.store[RESOURCE_ENERGY]
         hauler = self.get_mineral_hauler()
         if hauler and RESOURCE_ENERGY in hauler.carry:
-            energy += hauler[RESOURCE_ENERGY]
+            energy += hauler.carry[RESOURCE_ENERGY]
         self._estimate_energy = energy
         return energy
 
@@ -495,7 +495,7 @@ class MineralMind:
             self.run_empty2()
 
     def find_emptying_mineral_and_cost(self):
-        if self._next_mineral_to_empty is None:
+        if not self._next_mineral_to_empty:
             energy = self.terminal.store.energy
             minerals = _.sum(self.terminal.store) - energy
 
