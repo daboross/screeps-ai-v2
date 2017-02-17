@@ -9,6 +9,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 no_spawn_name_name = 'none'
 

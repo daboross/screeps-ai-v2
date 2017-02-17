@@ -19,6 +19,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 _cache_key_placed_roads_for_mine = 'prfm'
 _cache_key_found_roads_for_mine = 'frfm'

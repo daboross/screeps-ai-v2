@@ -18,6 +18,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
 _SELL_ORDER_SIZE = 10 * 1000

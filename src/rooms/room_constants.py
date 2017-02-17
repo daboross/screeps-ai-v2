@@ -7,6 +7,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 min_total_pause_remote_mining = 950 * 1000
 min_energy_pause_remote_mining = 150 * 1000

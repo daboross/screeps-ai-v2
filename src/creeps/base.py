@@ -14,6 +14,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 _REUSE_PATH = 100
 _WITH_ROAD_PF_OPTIONS = {

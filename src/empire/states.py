@@ -8,6 +8,7 @@ __pragma__('noalias', 'keys')
 __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
+__pragma__('noalias', 'update')
 
 # 1 million on default server
 _min_wall_hit_difference_to_balance = WALL_HITS_MAX / 300
