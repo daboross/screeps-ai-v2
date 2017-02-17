@@ -117,7 +117,7 @@ class MilitaryBase(RoleBase):
         if opts:
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
-        if distance_squared_room_pos(origin, target) > math.pow(200, 2) \
+        if chebyshev_distance_room_pos(origin, target) > 900 \
                 and not self._using_reroute(origin, target):
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
@@ -172,7 +172,7 @@ class MilitaryBase(RoleBase):
         if opts:
             path_opts = _.create(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
-        if distance_squared_room_pos(origin, target) > math.pow(200, 2) \
+        if chebyshev_distance_room_pos(origin, target) > 900 \
                 and not self._using_reroute(origin, target):
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)

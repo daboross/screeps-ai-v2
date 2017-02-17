@@ -503,12 +503,15 @@ class HoneyTrails:
         if room_data and room_data.owner:
             if room_data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL:
                 if room_name != origin.roomName and room_name != destination.roomName:
+                    if opts['enemy_ok']:
+                        print('[honey] Avoiding fully functional enemy room {}!'
+                              .format(room_name))
                     # print("[honey] Avoiding room {}.".format(room_name))
                     return False
                 else:
                     print("[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!"
                           .format(origin, destination, room_data.owner.name, room_name))
-            elif room_data.owner.state is StoredEnemyRoomState.RESERVED \
+            elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.RESERVED \
                     and not Memory.meta.friends.includes(room_data.owner.name):
                 if room_name != origin.roomName and room_name != destination.roomName:
                     # print("[honey] Avoiding room {}.".format(room_name))
@@ -516,17 +519,20 @@ class HoneyTrails:
                 else:
                     print("[honey] Warning: path {}-{} ends up in a friendly mining room ({})!"
                           .format(origin, destination, room_name))
-            elif room_data.owner.state is StoredEnemyRoomState.JUST_MINING:
+            elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.JUST_MINING:
                 print("[honey] Warning: path {}-{} may pass through {}'s mining room, {}"
                       .format(origin, destination, room_data.owner.name, room_name))
         elif room and room.enemy:
             # TODO: add the granularity we have above down here.
             if room_name != origin.roomName and room_name != destination.roomName:
+                if opts['enemy_ok']:
+                    print('[honey] Avoiding fully functional enemy room {}!'
+                          .format(room_name))
                 # print("[honey] Avoiding room {}.".format(room_name))
                 return False
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
-                      .format(origin, destination, room_data.owner.name, room_name))
+                      .format(origin, destination, room_name))
 
         plain_cost = opts['plain_cost'] or 1
         swamp_cost = opts['swamp_cost'] or 5
@@ -797,6 +803,15 @@ class HoneyTrails:
             heuristic = 1.2
             min_cost = 1
 
+        destination_data = stored_data.get_data(destination.roomName)
+        if destination_data and destination_data.owner \
+                and destination_data.owner.state != StoredEnemyRoomState.JUST_MINING:
+            enemy_ok = True
+            print("[honey] Calculating path assuming traversing enemy rooms is OK, as {} is an enemy room."
+                  .format(destination.roomName))
+        else:
+            enemy_ok = False
+
         result = PathFinder.search(origin, {"pos": destination, "range": pf_range}, {
             "plainCost": plain_cost,
             "swampCost": swamp_cost,
@@ -807,6 +822,7 @@ class HoneyTrails:
                 "plain_cost": plain_cost,
                 "swamp_cost": swamp_cost,
                 "min_cost": min_cost,
+                "enemy_ok": enemy_ok
             }),
             "maxRooms": max_rooms,
             "maxOps": max_ops,
