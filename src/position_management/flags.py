@@ -606,4 +606,4 @@ def _flag_hint():
     return None
 
 
-Flag.prototype.hint = _flag_hint
+Object.defineProperty(Flag.prototype, 'hint', {'get': _flag_hint})
