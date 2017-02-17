@@ -180,6 +180,8 @@ request_priority_economy = 5
 request_priority_helping_party = 9
 request_priority_low = 20
 
+basic_reuse_path = 100
+
 min_repath_mine_roads_every = 200 * 1000
 max_repath_mine_roads_every = 250 * 1000
 

@@ -1,7 +1,7 @@
 import math
 
 from constants import DEPOT, recycle_time, role_miner, role_recycling, role_spawn_fill, role_tower_fill, \
-    target_closest_energy_site, target_source
+    target_closest_energy_site, target_source, basic_reuse_path
 from creep_management import walkby_move
 from jstools.screeps import *
 from position_management import flags
@@ -16,18 +16,17 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-_REUSE_PATH = 100
 _WITH_ROAD_PF_OPTIONS = {
     "maxRooms": 10,
     "maxOps": 4000,
-    "reusePath": _REUSE_PATH,
+    "reusePath": basic_reuse_path,
     "plainCost": 2,
     "swampCost": 10,
 }
 _NO_ROAD_PF_OPTIONS = {
     "maxRooms": 10,
     "maxOps": 4000,
-    "reusePath": _REUSE_PATH,
+    "reusePath": basic_reuse_path,
     "plainCost": 1,
     "swampCost": 5,
 }

@@ -642,13 +642,13 @@ function activateCustomizations() {
             }
         }
 
-        const reusePath = _.isObject(this.memory) && ('reusePath' in opts ? opts.reusePath : 5);
+        const reusePath = _.isObject(this.memory) && ('reusePath' in opts ? Number(opts.reusePath) : 5);
 
         if (reusePath) {
             var _move = this.memory._move;
 
             if (_.isObject(_move)
-                && Game.time <= _move.time + Number(reusePath)
+                && Game.time <= _move.time + reusePath
                 && _move.room == this.pos.roomName
                 && _move.dest.room == targetPos.roomName
                 && _move.dest.x == targetPos.x
