@@ -68,12 +68,12 @@ Yellow:
     Grey:
     White:
 Orange:
-    Red:
-    Purple:
-    Blue:
-    Cyan:
-    Green:
-    Yellow:
+    Red: SQUAD_KITING_HEALER    - Marks a location for a kiting attacker and healer squad.
+    Purple: SQUAD_DUAL_SCOUTS   - Marks a location for two scouts.
+    Blue: SQUAD_4_SCOUTS        - Marks a location for four scouts.
+    Cyan: SQUAD_DUAL_ATTACK     - Marks a location for one attack and one heal squad.
+    Green: SQUAD_DISMANTLE_RANGED - Marks a location for one ranged, one dismantle and two healer squad.
+    Yellow: SQUAD_TOWER_DRAIN   - Marks a location for three healers.
     Orange:
     Brown:
     Grey:
@@ -115,7 +115,8 @@ White:
 
 from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
     RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
-    SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, TD_D_GOAD, TD_H_D_STOP, TD_H_H_STOP, UPGRADER_SPOT
+    SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, \
+    SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, SQUAD_TOWER_DRAIN, TD_D_GOAD, TD_H_D_STOP, TD_H_H_STOP, UPGRADER_SPOT
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from utilities import naming
@@ -169,6 +170,12 @@ flag_definitions = {
     RAMPART_DEFENSE: (COLOR_GREEN, COLOR_GREEN),
     REROUTE: (COLOR_WHITE, COLOR_GREEN),
     REROUTE_DESTINATION: (COLOR_WHITE, COLOR_YELLOW),
+    SQUAD_KITING_PAIR: (COLOR_ORANGE, COLOR_RED),
+    SQUAD_DUAL_SCOUTS: (COLOR_ORANGE, COLOR_PURPLE),
+    SQUAD_4_SCOUTS: (COLOR_ORANGE, COLOR_BLUE),
+    SQUAD_DUAL_ATTACK: (COLOR_ORANGE, COLOR_CYAN),
+    SQUAD_DISMANTLE_RANGED: (COLOR_ORANGE, COLOR_GREEN),
+    SQUAD_TOWER_DRAIN: (COLOR_ORANGE, COLOR_YELLOW),
 }
 
 reverse_definitions = {}
@@ -406,6 +413,34 @@ def find_flags_global(flag_type, reload=False):
         if flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]:
             flag_list.append(flag)
     _global_flag_cache.set(flag_type, flag_list)
+    return flag_list
+
+
+def find_flags_global_multitype_shared_first(flag_types, reload=False):
+    global _global_flag_refresh_time, _global_flag_cache
+    __check_new_flags()
+    if Game.time > _global_flag_refresh_time:
+        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
+        _global_flag_cache = new_map()
+    cache_key = '|'.join(flag_types)
+    if _global_flag_cache.has(cache_key) and not reload:
+        return _global_flag_cache.get(cache_key)
+    shared_first = None
+    seconds = []
+    for flag_type in flag_types:
+        definition = flag_definitions[flag_type]
+        if shared_first is None:
+            shared_first = definition[0]
+        elif shared_first != definition[0]:
+            print('[flags][find_flags_global_multitype_shared_first] Called with diverse firsts! {}'.format(flag_types))
+            return None
+        seconds.append(definition[1])
+    flag_list = []
+    for name in Object.keys(Game.flags):
+        flag = Game.flags[name]
+        if shared_first == flag.color and seconds.includes(flag.secondaryColor):
+            flag_list.append(flag)
+    _global_flag_cache.set(cache_key, flag_list)
     return flag_list
 
 

@@ -323,3 +323,42 @@ def diff_as_direction(origin, destination):
         print("[movement] No direction found for diff_as_direction({}, {})."
               .format(origin, destination))
     return direction
+
+
+def next_pos_in_direction_to(origin, destination):
+    if origin.pos is not undefined:
+        origin = origin.pos
+    if destination.pos is not undefined:
+        destination = destination.pos
+    if origin.roomName and destination.roomName and origin.roomName != destination.roomName:
+        origin_room_pos = parse_room_to_xy(origin.roomName)
+        destination_room_pos = parse_room_to_xy(destination.roomName)
+        dx = destination_room_pos[0] * 50 + destination.x - origin_room_pos[0] * 50 - origin.x
+        dy = destination_room_pos[1] * 50 + destination.y - origin_room_pos[1] * 50 - origin.y
+    else:
+        dx = destination.x - origin.x
+        dy = destination.y - origin.y
+    new_x = origin.x + Math.sign(dx)
+    new_y = origin.y + Math.sign(dy)
+    if new_x > 49 or new_x < 0 or new_y > 49 or new_y < 0:
+        room_x, room_y = parse_room_to_xy(origin.roomName)
+        if new_x > 49:
+            new_x -= 50
+            room_x += 1
+        elif new_x < 0:
+            new_x += 50
+            room_x -= 1
+        if new_y > 49:
+            new_y -= 50
+            room_y += 1
+        elif new_y < 0:
+            new_y += 50
+            room_y -= 1
+        return __new__(RoomPosition(new_x, new_y, room_xy_to_name(room_x, room_y)))
+    else:
+        return __new__(RoomPosition(new_x, new_y, origin.roomName))
+
+
+def is_edge_position(pos):
+    pos = pos.pos or pos
+    return pos.x == 49 or pos.y == 49 or pos.x == 0 or pos.y == 0

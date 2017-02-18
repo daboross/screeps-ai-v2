@@ -34,4 +34,8 @@ mem_key_building_priority_spawn = 'prio_spawn'
 mem_key_there_might_be_energy_lying_around = 'tons'
 
 mem_key_now_supporting = 's'
+mem_key_alive_squads = 'st'
+
 cache_key_spending_now = 'ss'
+cache_key_squads = 'sqds'
+cache_key_squad_prefix = 'sq&'

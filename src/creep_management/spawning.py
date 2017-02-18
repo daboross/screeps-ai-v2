@@ -50,12 +50,15 @@ scalable_sections = {
     creep_base_full_move_goader: [MOVE, TOUGH, CARRY, CARRY],
     creep_base_half_move_healer: [MOVE, HEAL, HEAL],
     creep_base_full_move_healer: [MOVE, HEAL],
+    creep_base_squad_healer: [MOVE, HEAL],
+    creep_base_squad_ranged: [MOVE, RANGED_ATTACK],
+    creep_base_squad_dismantle: [MOVE, WORK],
     creep_base_dismantler: [WORK, WORK, MOVE],
     creep_base_full_move_dismantler: [WORK, MOVE],
     creep_base_full_upgrader: [MOVE, WORK, WORK],
     creep_base_scout: [MOVE],
     creep_base_mammoth_miner: [MOVE, WORK, WORK, WORK, WORK],
-    creep_base_full_move_power_attack: [MOVE, ATTACK],
+    creep_base_full_move_attack: [MOVE, ATTACK],
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
     creep_base_half_move_hauler: [MOVE, CARRY, CARRY],
     creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE],
@@ -129,7 +132,7 @@ def run(room, spawn):
     :type spawn: StructureSpawn
     :type
     """
-    if spawn.spawning:
+    if spawn.spawning or room.squads.any_high_priority_renew():
         return
     role_obj = room.get_next_role()
     # This is what is represented by "role_obj"
@@ -481,6 +484,26 @@ def run(room, spawn):
             parts.append(MOVE)
         for i in range(0, math.ceil(num_sections / 2)):
             parts.append(HEAL)
+    elif base is creep_base_squad_healer:
+        parts = []
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(HEAL)
+    elif base is creep_base_squad_ranged:
+        parts = []
+        for i in range(0, num_sections):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(RANGED_ATTACK)
+    elif base is creep_base_squad_dismantle:
+        parts = []
+        for i in range(0, math.floor(num_sections / 2)):
+            parts.append(MOVE)
+        for i in range(0, num_sections):
+            parts.append(WORK)
+        for i in range(0, math.ceil(num_sections / 2)):
+            parts.append(MOVE)
     elif base is creep_base_dismantler:
         parts = []
         for i in range(0, num_sections * 2 + half_section):
@@ -521,7 +544,7 @@ def run(room, spawn):
             parts.append(MOVE)
         for i in range(0, num_sections * 3 + half_section):
             parts.append(ATTACK)
-    elif base is creep_base_full_move_power_attack:
+    elif base is creep_base_full_move_attack:
         parts = []
         for i in range(0, num_sections):
             parts.append(MOVE)

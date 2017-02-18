@@ -81,6 +81,7 @@ class MineralMind:
         self._adding_to_terminal = undefined
         self._my_mineral_deposit_minerals = undefined
         self._labs = undefined
+        self._labs_for = undefined
         self._lab_targets = undefined
         self._labs_for_mineral = undefined
         self._energy_needed_in_labs = undefined
@@ -261,6 +262,13 @@ class MineralMind:
             self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
         return self._labs
 
+    def labs_for(self, mineral):
+        if self._labs_for is undefined:
+            self._labs_for = (_(self.labs())
+                              .filter(lambda l: l.mineralAmount and l.energy)
+                              .groupBy('mineralType')
+                              .value())
+        return self._labs_for[mineral] or []
 
     def energy_needed_in_labs(self):
         if self._energy_needed_in_labs is undefined:

@@ -46,3 +46,12 @@ def deserialize_xy(xy):
 
 def deserialize_xy_to_pos(xy, room_name):
     return __new__(RoomPosition(xy & 0x3F, xy >> 6 & 0x3F, room_name))
+
+
+def serialize_xy_room(x, y, room_name):
+    return str(x | y << 6) + '|' + room_name
+
+
+def serialize_xy_room_pos(pos):
+    pos = pos.pos or pos
+    return str(pos.x | pos.y << 6) + '|' + pos.roomName

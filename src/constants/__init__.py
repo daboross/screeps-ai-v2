@@ -11,7 +11,10 @@ creep_base_dismantler = "med_dismantle"
 creep_base_full_move_dismantler = "fm_dismantle"
 creep_base_full_move_goader = "fm_goader"
 creep_base_full_move_healer = "fm_healer"
-creep_base_full_move_power_attack = "fm_power_attack"
+creep_base_full_move_attack = "fm_attack"
+creep_base_squad_healer = "sq_heal"
+creep_base_squad_ranged = "sq_ranged"
+creep_base_squad_dismantle = "sq_dismantle"
 creep_base_full_upgrader = "min_carry_worker"
 creep_base_goader = "med_goader"
 creep_base_half_move_hauler = "hm_hauler"
@@ -82,6 +85,17 @@ role_power_attack = "attack_power"
 role_power_cleanup = "power_cleanup"
 role_scout = "scout"
 
+role_squad_init = "sqi"
+role_squad_final_renew = 'sqr'
+role_squad_final_boost = 'sqb'
+role_squad_drone = "sqd"
+role_squad_dismantle = "sqdd"
+role_squad_ranged = "sqdr"
+role_squad_heal = "sqdh"
+role_squad_all_attack = "sqdaat"
+role_squad_kiting_attack = "sqkpa"
+role_squad_kiting_heal = "sqkph"
+
 old_role_names = {
     "ufiller": "upgrade_fill",
     "remote_miner": "miner",
@@ -131,7 +145,7 @@ default_roles = {
     creep_base_full_upgrader: role_upgrader,
     creep_base_scout: role_scout,
     creep_base_power_attack: role_power_attack,
-    creep_base_full_move_power_attack: role_power_attack,
+    creep_base_full_move_attack: role_power_attack,
     creep_base_rampart_defense: role_wall_defender,
     creep_base_claim_attack: role_simple_claim,
 }
@@ -165,6 +179,14 @@ TD_H_D_STOP = 61
 TD_D_GOAD = 62
 ATTACK_POWER_BANK = 65
 REAP_POWER_BANK = 66
+# SQUAD MOVEMENTS! :D
+SQUAD_DUAL_ATTACK = 73
+SQUAD_KITING_PAIR = 74
+SQUAD_DUAL_SCOUTS = 75
+SQUAD_4_SCOUTS = 76
+SQUAD_DISMANTLE_RANGED = 77
+SQUAD_TOWER_DRAIN = 78
+
 # Find constants
 
 PYFIND_REPAIRABLE_ROADS = 1001
@@ -177,6 +199,7 @@ recycle_time = 50
 
 request_priority_imminent_threat_defense = 1
 request_priority_economy = 5
+request_priority_attack = 7
 request_priority_helping_party = 9
 request_priority_low = 20
 
@@ -195,10 +218,13 @@ global_cache_roadless_paths_suffix = 'nrd'
 # Note: regex useful for generating the following:
 # in room.py, search for: ([^ \n]+) = '[^']+'\n+
 # replace with: $1 as r$1, \\\n
-from constants.memkeys import global_mem_key_last_room_state_refresh as gmem_key_last_room_state_refresh, \
+from constants.memkeys import \
+    global_mem_key_last_room_state_refresh as gmem_key_last_room_state_refresh, \
     global_mem_key_room_data as gmem_key_room_data, \
     global_mem_key_room_mining_paths as gmem_key_room_mining_paths
-from constants.memkeys.room import mem_key_building_paused as rmem_key_building_paused, \
+from constants.memkeys.room import \
+    mem_key_alive_squads as rmem_key_alive_quads, \
+    mem_key_building_paused as rmem_key_building_paused, \
     mem_key_building_priority_spawn as rmem_key_building_priority_spawn, \
     mem_key_building_priority_walls as rmem_key_building_priority_walls, \
     mem_key_cache as rmem_key_cache, \

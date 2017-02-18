@@ -1,10 +1,11 @@
 import math
 
 import constants
+import creeps.roles.squads
 from cache import consistency, context, global_cache, volatile_cache
 from consoletools import client_scripts, visuals
 from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
-    role_ranged_offense, role_spawn_fill, role_temporary_replacing, role_tower_fill, role_wall_defender
+    role_ranged_offense, role_spawn_fill, role_squad_init, role_temporary_replacing, role_tower_fill, role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
@@ -14,7 +15,7 @@ from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
 from jstools.screeps import *
 from position_management import flags, locations
-from rooms import building, defense, minerals
+from rooms import building, defense, minerals, squads
 from utilities import hostile_utils, movement
 
 __pragma__('noalias', 'name')
@@ -87,7 +88,8 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
                 creeps_skipped[room.name] = [creep.name]
             return
 
-    if creep.spawning and creep.memory.role != role_temporary_replacing:
+    if creep.spawning and creep.memory.role != role_temporary_replacing \
+            and creep.memory.role != role_squad_init:
         return
     if creep.defense_override:
         return
@@ -174,6 +176,9 @@ def run_room(targets, creeps_skipped, room):
         records.start_record()
         room.building.place_home_ramparts()
         records.finish_record('building.ramparts')
+        records.start_record()
+        room.squads.run()
+        records.finish_record('squads.run')
         for spawn in room.spawns:
             records.start_record()
             spawning.run(room, spawn)
@@ -409,6 +414,8 @@ __pragma__('js', 'global').py = {
     "minerals": minerals,
     "stored_data": stored_data,
     "honey": honey,
+    "squads": squads,
+    "roles_squads": creeps.roles.squads,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,

@@ -16,6 +16,7 @@ from rooms.links import LinkingMind
 from rooms.minerals import MineralMind
 from rooms.mining import MiningMind
 from rooms.room_constants import *
+from rooms.squads import SquadTactics
 from utilities import hostile_utils, movement, speech
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
@@ -38,6 +39,7 @@ class RoomMind:
     :type links: LinkingMind
     :type mining: MiningMind
     :type minerals: MineralMind
+    :type squads: SquadTactics
     :type subsidiaries: list[RoomMind]
     :type sources: list[Source]
     :type creeps: list[Creep]
@@ -62,6 +64,7 @@ class RoomMind:
             self.links = LinkingMind(self)
             self.mining = MiningMind(self)
             self.minerals = MineralMind(self)
+            self.squads = SquadTactics(self)
         else:
             self.rcl = 0
         self.defense = RoomDefense(self)
@@ -107,7 +110,6 @@ class RoomMind:
         self._target_upgrade_fill_work_mass = undefined
         self._total_needed_spawn_fill_mass = undefined
         self._target_builder_work_mass = undefined
-
         __pragma__('noskip')
 
         # Other properties to calculate for every room
@@ -1762,6 +1764,19 @@ class RoomMind:
 
         return None
 
+    def _next_attack_role(self):
+        attack_req = self._get_next_requested_creep(request_priority_attack)
+        if attack_req:
+            hauler = self._check_role_reqs([
+                [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count],
+            ])
+            if hauler:
+                return hauler
+            else:
+                return attack_req
+        else:
+            return None
+
     def _next_needed_local_role(self):
         requirements = [
             [role_upgrade_fill, self.get_target_upgrade_fill_mass, True],
@@ -1851,11 +1866,11 @@ class RoomMind:
             return role_obj
 
         role_obj = self.spawn_one_creep_per_flag(ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
-                                                 creep_base_full_move_power_attack)
+                                                 creep_base_full_move_attack)
         if role_obj:
             return role_obj
         role_obj = self.spawn_one_creep_per_flag(ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack,
-                                                 creep_base_full_move_power_attack)
+                                                 creep_base_full_move_attack)
         if role_obj:
             return role_obj
         role_obj = self.spawn_one_creep_per_flag(REAP_POWER_BANK, role_power_cleanup, creep_base_half_move_hauler,
@@ -1922,6 +1937,7 @@ class RoomMind:
                 self._next_cheap_military_role,
                 self.next_cheap_dismantle_goal,
                 self._next_complex_defender,
+                self._next_attack_role,
                 self.mining.next_mining_role,
                 lambda: self._get_next_requested_creep(request_priority_economy),
                 self._next_tower_breaker_role,

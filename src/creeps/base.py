@@ -627,4 +627,7 @@ class RoleBase:
     def toString(self):
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.name)
 
+    def findSpecialty(self):
+        return self.creep.findSpecialty()
+
     __pragma__('nofcall')

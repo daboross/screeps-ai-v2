@@ -50,6 +50,16 @@ role_movement_types = {
     role_power_attack: MILITARY,
     role_power_cleanup: MILITARY,
     role_energy_grab: MILITARY,
+    role_squad_init: IDLE_ABOUT,
+    role_squad_final_renew: MOVE_THEN_WORK,
+    role_squad_final_boost: MOVE_THEN_WORK,
+    role_squad_drone: MILITARY,
+    role_squad_kiting_heal: MILITARY,
+    role_squad_kiting_attack: MILITARY,
+    role_squad_ranged: MILITARY,
+    role_squad_all_attack: MILITARY,
+    role_squad_dismantle: MILITARY,
+    role_squad_heal: MILITARY,
 }
 
 move_prototype = __pragma__('js', '{}', """
