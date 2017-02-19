@@ -175,6 +175,39 @@ function activateCustomizations() {
         return total;
     };
 
+    // Custom addition
+    Creep.prototype.findSpecialty = function () {
+        var specialty = this._specialty;
+        if (specialty !== undefined) {
+            return specialty;
+        }
+        var counts = {};
+        for (var i = this.body.length; i-- > 0;) {
+            var x = this.body[i];
+            if (x.type != MOVE) {
+                if (x.type in counts) {
+                    counts[x.type] += 1;
+                } else {
+                    counts[x.type] = 1;
+                }
+            }
+        }
+        var best = null;
+        var bestAmount = 0;
+        for (var type in counts) {
+            var amount = counts[type];
+            if (amount > bestAmount) {
+                best = type;
+                bestAmount = amount;
+            }
+        }
+        if (best === null) {
+            best = MOVE;
+        }
+        this._specialty = best;
+        return best;
+    };
+
     // Default RoomPosition.prototype.isNearTo:
     // function (firstArg, secondArg) {
     //     var _utils$fetchXYArgumen9 = utils.fetchXYArguments(firstArg, secondArg, globals);
@@ -482,6 +515,53 @@ function activateCustomizations() {
         return ERR_NOT_FOUND;
     };
 
+    // Custom addition
+    Creep.prototype.findNextPathPos = function (path) {
+        if (!_.isString(path)) {
+            path = Room.serializePath(path);
+        }
+        var path_len = path.length;
+        if (path_len < 5) {
+            return ERR_NOT_FOUND;
+        }
+        var my_x = this.pos.x, my_y = this.pos.y;
+        var x_to_check = +path.slice(0, 2);
+        var y_to_check = +path.slice(2, 4);
+        var dir, dxdy;
+        // The path serialization format basically starts with the second position x, second position y, and then
+        // follows with a list of directions *to get to each position*. To clarify, the first direction, at idx=4,
+        // gives the direction *from the first position to the second position*. So, to find the first position,
+        // we subtract that! I do think this is actually more performant than trying to do any more complicated
+        // logic in the loop.
+        dxdy = directionToDxDy(+path[4]);
+        x_to_check -= dxdy[0];
+        y_to_check -= dxdy[1];
+        // Since we start at 4 again, we'll be re-adding what we just subtracted above - this lets us check both the
+        // first and second positions correctly!
+        for (var idx = 4; idx < path_len; idx++) {
+            // Essentially at this point, *_to_check represent the point reached by the *last* movement (the pos
+            // reached by the movement at (idx - 1) since idx just got incremented at the start of this loop)
+            // Also, if this is the first iteration and x/y_to_check match the first pos, idx is at 4, the fifth
+            // pos, directly after the initial x/y, and also the first direction to go!
+            if (x_to_check === my_x && y_to_check == my_y) {
+                // console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y})`);
+                dxdy = directionToDxDy(+path[idx]);
+                return new RoomPosition(x_to_check + dxdy[0], x_to_check + dxdy[1], this.pos.roomName);
+            } else {
+                // console.log(`[${this.memory.home}][${this.name}] Not my position: (${x_to_check}, ${y_to_check})`);
+            }
+            dxdy = directionToDxDy(+path[idx]);
+            if (dxdy === null) {
+                console.log(`Unknown direction! couldn't figure out '${path[idx]}'`);
+                return ERR_INVALID_ARGS;
+            }
+            x_to_check += dxdy[0];
+            y_to_check += dxdy[1];
+        }
+        return ERR_NOT_FOUND;
+    };
+
+
     // Default Creep.prototype.moveTo:
     // function (firstArg, secondArg, opts) {
     //
@@ -642,13 +722,13 @@ function activateCustomizations() {
             }
         }
 
-        const reusePath = _.isObject(this.memory) && ('reusePath' in opts ? opts.reusePath : 5);
+        const reusePath = _.isObject(this.memory) && ('reusePath' in opts ? Number(opts.reusePath) : 5);
 
         if (reusePath) {
             var _move = this.memory._move;
 
             if (_.isObject(_move)
-                && Game.time <= _move.time + Number(reusePath)
+                && Game.time <= _move.time + reusePath
                 && _move.room == this.pos.roomName
                 && _move.dest.room == targetPos.roomName
                 && _move.dest.x == targetPos.x
@@ -1613,7 +1693,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-11 18:33:31
+// Transcrypt'ed from Python, 2017-02-18 16:23:50
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -3696,10 +3776,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -3709,10 +3796,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -3724,6 +3811,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -3740,10 +3830,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -3798,6 +3890,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -3855,8 +3957,9 @@ function main () {
                         }
                     };
                     var clear_memory = function (room) {
+                        var game_time = Game.time;
                         var smallest_ticks_to_live = 500;
-                        var closest_replacement_time = Game.time + 100;
+                        var closest_replacement_time = game_time + 100;
                         var targets = room.hive.targets;
                         var __iterable0__ = _.pairs (Memory.creeps);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -3879,6 +3982,13 @@ function main () {
                                 var replacement_time = room.replacement_time_of (creep);
                                 if ((Game.time < replacement_time && replacement_time < closest_replacement_time)) {
                                     var closest_replacement_time = replacement_time;
+                                }
+                            }
+                            var move_memory = memory ['_move'];
+                            if (move_memory) {
+                                var time = move_memory.time;
+                                if (!(time) || game_time > time + basic_reuse_path) {
+                                    delete memory ['_move'];
                                 }
                             }
                         }
@@ -4065,10 +4175,17 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.clear_cache = clear_cache;
                         __all__.clear_memory = clear_memory;
                         __all__.complete_refresh = complete_refresh;
@@ -4081,10 +4198,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -4096,6 +4213,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -4115,10 +4235,12 @@ function main () {
                         __all__.old_role_names = old_role_names;
                         __all__.reassign_room_roles = reassign_room_roles;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -4173,6 +4295,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -4388,10 +4520,17 @@ function main () {
                 __init__: function (__all__) {
                     var _VERSION = 8;
                     var _whitespace_regex = new RegExp ('\\s+');
-                    var _inject_check = "\n        <script>\n            $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')')\n        </script>\n    ".py_replace ('_VERSION', str (_VERSION)).py_replace (_whitespace_regex, '');
-                    var _full_injection = '\n    <script>\n        if (window._ij != _VERSION) {\n            window._ij = _VERSION;\n            var ijSendCommand = function (cmd, arg) {\n                $(\'body\').injector().get(\'Connection\').sendConsoleCommand(\'_inject("\' + cmd + \'", "\' + arg + \'")\');\n            };\n            var text = `\n            <app:aside-block heading="Nyxr Options"\n                    visibility-model="Room.asidePanels.options"\n                    class="ij-options ng-isolate-scope ng-scope">\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'enable-visuals\')">\n                    Enable Visualizations\n                </button>\n                <br>\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'disable-visuals\')">\n                    Disable Visualizations\n                </button>\n            </app:aside-block>\n            `;\n            function addOptions(ij_options, aside_content) {\n                ij_options.remove();\n                aside_content.each(function () {\n                    var aside = $(this);\n                    aside.injector().invoke([\'$compile\', function ($compile) {\n                        var scope = aside.scope();\n                        scope.ijSend = (cmd) => ijSendCommand(cmd, scope.Room.roomName);\n                        aside.append($compile(text)(scope));\n                    }]);\n                });\n            }\n            addOptions($(".ij-options"), $(\'.aside-content\'));\n            var timeoutID = setInterval(function () {\n                if (window._ij != _VERSION) {\n                    clearInterval(timeoutID);\n                    return;\n                }\n                var ij_options = $(\'.ij-options\');\n                if (ij_options.length == 0) {\n                    var aside_content = $(\'.aside-content\');\n                    if (aside_content.length > 0) {\n                        addOptions(ij_options, aside_content);\n                    }\n                }\n            }, 1000);\n        }\n    </script>\n    '.py_replace (_whitespace_regex, ' ').py_replace ('_VERSION', str (_VERSION));
+                    var _inject_check = "\n        <script>\n            var date = Date.now();\n            if (window._ij != _VERSION || !(window._lij > date)) {\n                $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');\n                window._lij = date + 18e5;\n            }\n        </script>\n    ".py_replace ('_VERSION', str (_VERSION)).py_replace (_whitespace_regex, '');
+                    var _full_injection = '\n    <script>\n        if (window._ij != _VERSION) {\n            window._ij = _VERSION;\n            var ijSendCommand = function (cmd, arg) {\n                console.log(`Sending command (cmd: ${cmd}, arg: ${arg}).`);\n                $(\'body\').injector().get(\'Connection\').sendConsoleCommand(\'_inject("\' + cmd + \'", "\' + arg + \'")\');\n            };\n            var text = `\n            <app:aside-block heading="Nyxr Options"\n                    visibility-model="Room.asidePanels.options"\n                    class="ij-options ng-isolate-scope ng-scope">\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'enable-visuals\')">\n                    Enable Visualizations\n                </button>\n                <br>\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'disable-visuals\')">\n                    Disable Visualizations\n                </button>\n            </app:aside-block>\n            `;\n            function addOptions(ij_options, aside_content) {\n                ij_options.remove();\n                aside_content.each(function () {\n                    var aside = $(this);\n                    aside.injector().invoke([\'$compile\', function ($compile) {\n                        var scope = aside.scope();\n                        scope.ijSend = (cmd) => ijSendCommand(cmd, scope.Room.roomName);\n                        aside.append($compile(text)(scope));\n                    }]);\n                });\n            }\n            addOptions($(".ij-options"), $(\'.aside-content\'));\n            var timeoutID = setInterval(function () {\n                if (window._ij != _VERSION) {\n                    clearInterval(timeoutID);\n                    return;\n                }\n                var ij_options = $(\'.ij-options\');\n                if (ij_options.length == 0) {\n                    var aside_content = $(\'.aside-content\');\n                    if (aside_content.length > 0) {\n                        addOptions(ij_options, aside_content);\n                    }\n                }\n            }, 1000);\n        }\n    </script>\n    '.py_replace (_whitespace_regex, ' ').py_replace ('_VERSION', str (_VERSION));
                     var injection_command = function (command, room_name) {
                         if (!(command)) {
+                            var options_mem = Memory ['nyxr_options'];
+                            if (!(options_mem)) {
+                                var __left0__ = {};
+                                var options_mem = __left0__;
+                                Memory ['nyxr_options'] = __left0__;
+                            }
+                            options_mem ['_inject_timeout'] = Game.time + 1000;
                             return _full_injection;
                         }
                         else if (command == 'enable-visuals') {
@@ -4416,6 +4555,7 @@ function main () {
                                 Memory ['nyxr_options'] = __left0__;
                             }
                             options_mem ['_inject_timeout'] = Game.time + 1000;
+                            return 'injection time out (command: {}, tick: {})'.format (command, Game.time);
                         }
                         else {
                             return 'Unknown command: `{}`'.format (command);
@@ -4449,6 +4589,7 @@ function main () {
                                     delete Memory ['nyxr_options'];
                                 }
                             }
+                            print ('Trying injection. (tick: {})'.format (Game.time));
                             print (_inject_check);
                         }
                     };
@@ -4533,7 +4674,10 @@ function main () {
                     var creep_base_full_move_dismantler = 'fm_dismantle';
                     var creep_base_full_move_goader = 'fm_goader';
                     var creep_base_full_move_healer = 'fm_healer';
-                    var creep_base_full_move_power_attack = 'fm_power_attack';
+                    var creep_base_full_move_attack = 'fm_attack';
+                    var creep_base_squad_healer = 'sq_heal';
+                    var creep_base_squad_ranged = 'sq_ranged';
+                    var creep_base_squad_dismantle = 'sq_dismantle';
                     var creep_base_full_upgrader = 'min_carry_worker';
                     var creep_base_goader = 'med_goader';
                     var creep_base_half_move_hauler = 'hm_hauler';
@@ -4595,9 +4739,19 @@ function main () {
                     var role_power_attack = 'attack_power';
                     var role_power_cleanup = 'power_cleanup';
                     var role_scout = 'scout';
+                    var role_squad_init = 'sqi';
+                    var role_squad_final_renew = 'sqr';
+                    var role_squad_final_boost = 'sqb';
+                    var role_squad_drone = 'sqd';
+                    var role_squad_dismantle = 'sqdd';
+                    var role_squad_ranged = 'sqdr';
+                    var role_squad_heal = 'sqdh';
+                    var role_squad_all_attack = 'sqdaat';
+                    var role_squad_kiting_attack = 'sqkpa';
+                    var role_squad_kiting_heal = 'sqkph';
                     var old_role_names = {'ufiller': 'upgrade_fill', 'remote_miner': 'miner', 'remote_hauler': 'hauler', 'basic_colonist': 'colonist'};
                     var role_bases = {[role_spawn_fill_backup]: creep_base_worker, [role_spawn_fill]: creep_base_hauler, [role_upgrade_fill]: creep_base_hauler, [role_builder]: creep_base_worker, [role_tower_fill]: creep_base_hauler, [role_remote_mining_reserve]: creep_base_reserving, [role_link_manager]: creep_base_half_move_hauler, [role_defender]: creep_base_defender, [role_wall_defender]: creep_base_rampart_defense, [role_cleanup]: creep_base_hauler, [role_colonist]: creep_base_worker, [role_simple_claim]: creep_base_claiming, [role_room_reserve]: creep_base_reserving, [role_mineral_miner]: creep_base_mammoth_miner, [role_mineral_hauler]: creep_base_hauler, [role_simple_dismantle]: creep_base_dismantler, [role_scout]: creep_base_scout, [role_mineral_steal]: creep_base_half_move_hauler};
-                    var default_roles = {[creep_base_worker]: role_spawn_fill_backup, [creep_base_1500miner]: role_miner, [creep_base_3000miner]: role_miner, [creep_base_4000miner]: role_miner, [creep_base_carry3000miner]: role_miner, [creep_base_hauler]: role_hauler, [creep_base_work_full_move_hauler]: role_hauler, [creep_base_work_half_move_hauler]: role_hauler, [creep_base_reserving]: role_remote_mining_reserve, [creep_base_defender]: role_defender, [creep_base_mammoth_miner]: role_mineral_miner, [creep_base_goader]: role_td_goad, [creep_base_full_move_goader]: role_td_goad, [creep_base_half_move_healer]: role_td_healer, [creep_base_full_move_healer]: role_td_healer, [creep_base_dismantler]: role_simple_dismantle, [creep_base_full_move_dismantler]: role_simple_dismantle, [creep_base_full_upgrader]: role_upgrader, [creep_base_scout]: role_scout, [creep_base_power_attack]: role_power_attack, [creep_base_full_move_power_attack]: role_power_attack, [creep_base_rampart_defense]: role_wall_defender, [creep_base_claim_attack]: role_simple_claim};
+                    var default_roles = {[creep_base_worker]: role_spawn_fill_backup, [creep_base_1500miner]: role_miner, [creep_base_3000miner]: role_miner, [creep_base_4000miner]: role_miner, [creep_base_carry3000miner]: role_miner, [creep_base_hauler]: role_hauler, [creep_base_work_full_move_hauler]: role_hauler, [creep_base_work_half_move_hauler]: role_hauler, [creep_base_reserving]: role_remote_mining_reserve, [creep_base_defender]: role_defender, [creep_base_mammoth_miner]: role_mineral_miner, [creep_base_goader]: role_td_goad, [creep_base_full_move_goader]: role_td_goad, [creep_base_half_move_healer]: role_td_healer, [creep_base_full_move_healer]: role_td_healer, [creep_base_dismantler]: role_simple_dismantle, [creep_base_full_move_dismantler]: role_simple_dismantle, [creep_base_full_upgrader]: role_upgrader, [creep_base_scout]: role_scout, [creep_base_power_attack]: role_power_attack, [creep_base_full_move_attack]: role_power_attack, [creep_base_rampart_defense]: role_wall_defender, [creep_base_claim_attack]: role_simple_claim};
                     var DEPOT = 0;
                     var UPGRADER_SPOT = 1;
                     var SPAWN_FILL_WAIT = 2;
@@ -4620,6 +4774,12 @@ function main () {
                     var TD_D_GOAD = 62;
                     var ATTACK_POWER_BANK = 65;
                     var REAP_POWER_BANK = 66;
+                    var SQUAD_DUAL_ATTACK = 73;
+                    var SQUAD_KITING_PAIR = 74;
+                    var SQUAD_DUAL_SCOUTS = 75;
+                    var SQUAD_4_SCOUTS = 76;
+                    var SQUAD_DISMANTLE_RANGED = 77;
+                    var SQUAD_TOWER_DRAIN = 78;
                     var PYFIND_REPAIRABLE_ROADS = 1001;
                     var PYFIND_BUILDABLE_ROADS = 1002;
                     var PYFIND_HURT_CREEPS = 1003;
@@ -4628,8 +4788,10 @@ function main () {
                     var recycle_time = 50;
                     var request_priority_imminent_threat_defense = 1;
                     var request_priority_economy = 5;
+                    var request_priority_attack = 7;
                     var request_priority_helping_party = 9;
                     var request_priority_low = 20;
+                    var basic_reuse_path = 100;
                     var min_repath_mine_roads_every = 200 * 1000;
                     var max_repath_mine_roads_every = 250 * 1000;
                     var min_repave_mine_roads_every = 10 * 1000;
@@ -4640,6 +4802,7 @@ function main () {
                     var gmem_key_last_room_state_refresh = __init__ (__world__.constants.memkeys).global_mem_key_last_room_state_refresh;
                     var gmem_key_room_data = __init__ (__world__.constants.memkeys).global_mem_key_room_data;
                     var gmem_key_room_mining_paths = __init__ (__world__.constants.memkeys).global_mem_key_room_mining_paths;
+                    var rmem_key_alive_quads = __init__ (__world__.constants.memkeys.room).mem_key_alive_squads;
                     var rmem_key_building_paused = __init__ (__world__.constants.memkeys.room).mem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_walls;
@@ -4699,10 +4862,17 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.creep_base_1500miner = creep_base_1500miner;
                         __all__.creep_base_3000miner = creep_base_3000miner;
                         __all__.creep_base_3h = creep_base_3h;
@@ -4712,10 +4882,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -4727,6 +4897,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -4743,10 +4916,12 @@ function main () {
                         __all__.min_repave_mine_roads_every = min_repave_mine_roads_every;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -4801,6 +4976,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -4886,9 +5071,15 @@ function main () {
                     var mem_key_building_priority_spawn = 'prio_spawn';
                     var mem_key_there_might_be_energy_lying_around = 'tons';
                     var mem_key_now_supporting = 's';
+                    var mem_key_alive_squads = 'st';
                     var cache_key_spending_now = 'ss';
+                    var cache_key_squads = 'sqds';
+                    var cache_key_squad_prefix = 'sq&';
                     __pragma__ ('<all>')
                         __all__.cache_key_spending_now = cache_key_spending_now;
+                        __all__.cache_key_squad_prefix = cache_key_squad_prefix;
+                        __all__.cache_key_squads = cache_key_squads;
+                        __all__.mem_key_alive_squads = mem_key_alive_squads;
                         __all__.mem_key_building_paused = mem_key_building_paused;
                         __all__.mem_key_building_priority_spawn = mem_key_building_priority_spawn;
                         __all__.mem_key_building_priority_walls = mem_key_building_priority_walls;
@@ -5360,10 +5551,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -5373,10 +5571,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -5388,6 +5586,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -5404,10 +5605,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -5462,6 +5665,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -5497,10 +5710,11 @@ function main () {
                     var offensive = __init__ (__world__.creeps.roles.offensive);
                     var smart_offensive = __init__ (__world__.creeps.roles.smart_offensive);
                     var spawn_fill = __init__ (__world__.creeps.roles.spawn_fill);
+                    var squads = __init__ (__world__.creeps.roles.squads);
                     var tower_fill = __init__ (__world__.creeps.roles.tower_fill);
                     var upgrading = __init__ (__world__.creeps.roles.upgrading);
                     var utility = __init__ (__world__.creeps.roles.utility);
-                    var role_classes = {[role_upgrader]: upgrading.Upgrader, [role_spawn_fill]: spawn_fill.SpawnFill, [role_spawn_fill_backup]: spawn_fill.SpawnFill, [role_upgrade_fill]: upgrading.DedicatedUpgradeFiller, [role_link_manager]: utility.LinkManager, [role_builder]: building.Builder, [role_tower_fill]: tower_fill.TowerFill, [role_miner]: mining.EnergyMiner, [role_hauler]: mining.EnergyHauler, [role_remote_mining_reserve]: mining.RemoteReserve, [role_defender]: defensive.RoleDefender, [role_wall_defender]: defensive.WallDefender, [role_ranged_offense]: smart_offensive.KitingOffense, [role_cleanup]: utility.Cleanup, [role_temporary_replacing]: generic.ReplacingExpendedCreep, [role_colonist]: colonizing.Colonist, [role_simple_claim]: colonizing.Claim, [role_room_reserve]: colonizing.ReserveNow, [role_mineral_steal]: colonizing.MineralSteal, [role_recycling]: generic.Recycling, [role_mineral_miner]: minerals.MineralMiner, [role_mineral_hauler]: minerals.MineralHauler, [role_td_healer]: offensive.TowerDrainHealer, [role_td_goad]: offensive.TowerDrainer, [role_simple_dismantle]: offensive.Dismantler, [role_scout]: exploring.Scout, [role_power_attack]: offensive.PowerAttack, [role_power_cleanup]: offensive.PowerCleanup, [role_energy_grab]: offensive.EnergyGrab, [role_tower_fill_once]: tower_fill.TowerFillOnce};
+                    var role_classes = {[role_upgrader]: upgrading.Upgrader, [role_spawn_fill]: spawn_fill.SpawnFill, [role_spawn_fill_backup]: spawn_fill.SpawnFill, [role_upgrade_fill]: upgrading.DedicatedUpgradeFiller, [role_link_manager]: utility.LinkManager, [role_builder]: building.Builder, [role_tower_fill]: tower_fill.TowerFill, [role_miner]: mining.EnergyMiner, [role_hauler]: mining.EnergyHauler, [role_remote_mining_reserve]: mining.RemoteReserve, [role_defender]: defensive.RoleDefender, [role_wall_defender]: defensive.WallDefender, [role_ranged_offense]: smart_offensive.KitingOffense, [role_cleanup]: utility.Cleanup, [role_temporary_replacing]: generic.ReplacingExpendedCreep, [role_colonist]: colonizing.Colonist, [role_simple_claim]: colonizing.Claim, [role_room_reserve]: colonizing.ReserveNow, [role_mineral_steal]: colonizing.MineralSteal, [role_recycling]: generic.Recycling, [role_mineral_miner]: minerals.MineralMiner, [role_mineral_hauler]: minerals.MineralHauler, [role_td_healer]: offensive.TowerDrainHealer, [role_td_goad]: offensive.TowerDrainer, [role_simple_dismantle]: offensive.Dismantler, [role_scout]: exploring.Scout, [role_power_attack]: offensive.PowerAttack, [role_power_cleanup]: offensive.PowerCleanup, [role_energy_grab]: offensive.EnergyGrab, [role_tower_fill_once]: tower_fill.TowerFillOnce, [role_squad_init]: squads.SquadInit, [role_squad_final_renew]: squads.SquadFinalRenew, [role_squad_final_boost]: squads.SquadFinalBoost, [role_squad_drone]: squads.SquadDrone, [role_squad_dismantle]: squads.SquadDismantle, [role_squad_heal]: squads.SquadHeal, [role_squad_ranged]: squads.SquadRangedAttack, [role_squad_all_attack]: squads.SquadAllAttack, [role_squad_kiting_attack]: squads.SquadKitingRangedAttack, [role_squad_kiting_heal]: squads.SquadDirectSupportHeal};
                     var wrap_creep = function (hive, targets, home, creep) {
                         var role = creep.memory.role;
                         if ((role in role_classes)) {
@@ -5528,6 +5742,7 @@ function main () {
                         'creeps.roles.offensive' +
                         'creeps.roles.smart_offensive' +
                         'creeps.roles.spawn_fill' +
+                        'creeps.roles.squads' +
                         'creeps.roles.tower_fill' +
                         'creeps.roles.upgrading' +
                         'creeps.roles.utility' +
@@ -5557,10 +5772,17 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.building = building;
                         __all__.colonizing = colonizing;
                         __all__.creep_base_1500miner = creep_base_1500miner;
@@ -5572,10 +5794,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -5587,6 +5809,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -5609,10 +5834,12 @@ function main () {
                         __all__.offensive = offensive;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -5668,6 +5895,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -5678,6 +5915,7 @@ function main () {
                         __all__.role_wall_defender = role_wall_defender;
                         __all__.smart_offensive = smart_offensive;
                         __all__.spawn_fill = spawn_fill;
+                        __all__.squads = squads;
                         __all__.target_big_big_repair = target_big_big_repair;
                         __all__.target_big_repair = target_big_repair;
                         __all__.target_closest_energy_site = target_closest_energy_site;
@@ -6169,10 +6407,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -6182,10 +6427,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -6197,6 +6442,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -6213,10 +6461,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -6271,6 +6521,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -6298,7 +6558,7 @@ function main () {
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
                     var naming = __init__ (__world__.utilities.naming);
                     var initial_section = {[creep_base_work_full_move_hauler]: [WORK, WORK, MOVE, MOVE], [creep_base_work_half_move_hauler]: [WORK, WORK, MOVE], [creep_base_goader]: [ATTACK, MOVE, TOUGH], [creep_base_full_move_goader]: [ATTACK, MOVE], [creep_base_full_upgrader]: [MOVE, CARRY, CARRY], [creep_base_1500miner]: [WORK, WORK, WORK], [creep_base_3000miner]: [WORK, WORK, WORK, WORK, WORK], [creep_base_4000miner]: [WORK, WORK, WORK, WORK, WORK, WORK, WORK], [creep_base_carry3000miner]: [CARRY, WORK, WORK, WORK, WORK, WORK], [creep_base_mammoth_miner]: [MOVE, CARRY, WORK, WORK, WORK], [creep_base_ranged_offense]: [MOVE, HEAL], [creep_base_3h]: [MOVE, MOVE, MOVE, HEAL, HEAL, HEAL]};
-                    var scalable_sections = {[creep_base_worker]: [MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, WORK], [creep_base_hauler]: [MOVE, CARRY], [creep_base_work_full_move_hauler]: [MOVE, CARRY], [creep_base_work_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_reserving]: [MOVE, CLAIM], [creep_base_defender]: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK], [creep_base_rampart_defense]: [MOVE, ATTACK, ATTACK], [creep_base_ranged_offense]: [MOVE, RANGED_ATTACK], [creep_base_3h]: [MOVE, RANGED_ATTACK], [creep_base_1500miner]: [MOVE], [creep_base_3000miner]: [MOVE], [creep_base_4000miner]: [MOVE], [creep_base_carry3000miner]: [MOVE], [creep_base_goader]: [MOVE, TOUGH, TOUGH], [creep_base_full_move_goader]: [MOVE, TOUGH, CARRY, CARRY], [creep_base_half_move_healer]: [MOVE, HEAL, HEAL], [creep_base_full_move_healer]: [MOVE, HEAL], [creep_base_dismantler]: [WORK, WORK, MOVE], [creep_base_full_move_dismantler]: [WORK, MOVE], [creep_base_full_upgrader]: [MOVE, WORK, WORK], [creep_base_scout]: [MOVE], [creep_base_mammoth_miner]: [MOVE, WORK, WORK, WORK, WORK], [creep_base_full_move_power_attack]: [MOVE, ATTACK], [creep_base_power_attack]: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK], [creep_base_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_claiming]: [MOVE, MOVE, MOVE, CLAIM, MOVE], [creep_base_claim_attack]: [MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM]};
+                    var scalable_sections = {[creep_base_worker]: [MOVE, MOVE, MOVE, MOVE, CARRY, CARRY, CARRY, WORK], [creep_base_hauler]: [MOVE, CARRY], [creep_base_work_full_move_hauler]: [MOVE, CARRY], [creep_base_work_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_reserving]: [MOVE, CLAIM], [creep_base_defender]: [TOUGH, MOVE, MOVE, MOVE, ATTACK, ATTACK], [creep_base_rampart_defense]: [MOVE, ATTACK, ATTACK], [creep_base_ranged_offense]: [MOVE, RANGED_ATTACK], [creep_base_3h]: [MOVE, RANGED_ATTACK], [creep_base_1500miner]: [MOVE], [creep_base_3000miner]: [MOVE], [creep_base_4000miner]: [MOVE], [creep_base_carry3000miner]: [MOVE], [creep_base_goader]: [MOVE, TOUGH, TOUGH], [creep_base_full_move_goader]: [MOVE, TOUGH, CARRY, CARRY], [creep_base_half_move_healer]: [MOVE, HEAL, HEAL], [creep_base_full_move_healer]: [MOVE, HEAL], [creep_base_squad_healer]: [MOVE, HEAL], [creep_base_squad_ranged]: [MOVE, RANGED_ATTACK], [creep_base_squad_dismantle]: [MOVE, WORK], [creep_base_dismantler]: [WORK, WORK, MOVE], [creep_base_full_move_dismantler]: [WORK, MOVE], [creep_base_full_upgrader]: [MOVE, WORK, WORK], [creep_base_scout]: [MOVE], [creep_base_mammoth_miner]: [MOVE, WORK, WORK, WORK, WORK], [creep_base_full_move_attack]: [MOVE, ATTACK], [creep_base_power_attack]: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK], [creep_base_half_move_hauler]: [MOVE, CARRY, CARRY], [creep_base_claiming]: [MOVE, MOVE, MOVE, CLAIM, MOVE], [creep_base_claim_attack]: [MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM]};
                     var half_sections = {[creep_base_worker]: [WORK, MOVE], [creep_base_work_half_move_hauler]: [MOVE, CARRY], [creep_base_half_move_hauler]: [MOVE, CARRY], [creep_base_full_upgrader]: [MOVE, WORK], [creep_base_defender]: [ATTACK, MOVE], [creep_base_rampart_defense]: [ATTACK, MOVE], [creep_base_goader]: [TOUGH, MOVE], [creep_base_half_move_healer]: [MOVE, HEAL], [creep_base_power_attack]: [MOVE, ATTACK], [creep_base_dismantler]: [MOVE, WORK], [creep_base_claim_attack]: [MOVE, MOVE, TOUGH, HEAL], [creep_base_3h]: [MOVE, MOVE, TOUGH, TOUGH]};
                     var low_energy_sections = {[creep_base_worker]: [MOVE, MOVE, CARRY, WORK], [creep_base_full_upgrader]: [MOVE, CARRY, WORK], [creep_base_claiming]: [MOVE, CLAIM, MOVE]};
                     var low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_4000miner];
@@ -6323,7 +6583,7 @@ function main () {
                         return emergency;
                     };
                     var run = function (room, spawn) {
-                        if (spawn.spawning) {
+                        if (spawn.spawning || room.squads.any_high_priority_renew ()) {
                             return ;
                         }
                         var role_obj = room.get_next_role ();
@@ -6760,6 +7020,36 @@ function main () {
                                 parts.append (HEAL);
                             }
                         }
+                        else if (base === creep_base_squad_healer) {
+                            var parts = [];
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (HEAL);
+                            }
+                        }
+                        else if (base === creep_base_squad_ranged) {
+                            var parts = [];
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (RANGED_ATTACK);
+                            }
+                        }
+                        else if (base === creep_base_squad_dismantle) {
+                            var parts = [];
+                            for (var i = 0; i < math.floor (num_sections / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                            for (var i = 0; i < num_sections; i++) {
+                                parts.append (WORK);
+                            }
+                            for (var i = 0; i < math.ceil (num_sections / 2); i++) {
+                                parts.append (MOVE);
+                            }
+                        }
                         else if (base === creep_base_dismantler) {
                             var parts = [];
                             for (var i = 0; i < num_sections * 2 + half_section; i++) {
@@ -6814,7 +7104,7 @@ function main () {
                                 parts.append (ATTACK);
                             }
                         }
-                        else if (base === creep_base_full_move_power_attack) {
+                        else if (base === creep_base_full_move_attack) {
                             var parts = [];
                             for (var i = 0; i < num_sections; i++) {
                                 parts.append (MOVE);
@@ -7176,10 +7466,17 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.carry_count = carry_count;
                         __all__.ceil_sections = ceil_sections;
                         __all__.cost_of_sections = cost_of_sections;
@@ -7192,10 +7489,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -7207,6 +7504,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -7239,10 +7539,12 @@ function main () {
                         __all__.old_role_names = old_role_names;
                         __all__.postspawn_calculate_cost_of = postspawn_calculate_cost_of;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -7297,6 +7599,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -7364,10 +7676,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -7377,10 +7696,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -7392,6 +7711,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -7408,10 +7730,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -7466,6 +7790,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -7499,7 +7833,7 @@ function main () {
                     var SEMICONSTANT_MOVEMENT = 3;
                     var MILITARY = 2;
                     var MOVE_THEN_STOP = 1;
-                    var role_movement_types = {[role_upgrader]: MOVE_THEN_WORK, [role_spawn_fill]: SEMICONSTANT_MOVEMENT, [role_spawn_fill_backup]: SEMICONSTANT_MOVEMENT, [role_upgrade_fill]: IDLE_ABOUT, [role_link_manager]: MOVE_THEN_STOP, [role_builder]: MOVE_THEN_WORK, [role_tower_fill]: SEMICONSTANT_MOVEMENT, [role_miner]: MOVE_THEN_STOP, [role_hauler]: CONSTANT_MOVEMENT, [role_remote_mining_reserve]: MOVE_THEN_STOP, [role_defender]: MILITARY, [role_wall_defender]: MILITARY, [role_ranged_offense]: MILITARY, [role_cleanup]: MOVE_THEN_WORK, [role_temporary_replacing]: MOVE_THEN_WORK, [role_colonist]: MOVE_THEN_WORK, [role_simple_claim]: MILITARY, [role_room_reserve]: MOVE_THEN_STOP, [role_mineral_steal]: CONSTANT_MOVEMENT, [role_recycling]: CONSTANT_MOVEMENT, [role_mineral_miner]: MOVE_THEN_STOP, [role_mineral_hauler]: IDLE_ABOUT, [role_td_healer]: MILITARY, [role_td_goad]: MILITARY, [role_simple_dismantle]: MILITARY, [role_scout]: MILITARY, [role_power_attack]: MILITARY, [role_power_cleanup]: MILITARY, [role_energy_grab]: MILITARY};
+                    var role_movement_types = {[role_upgrader]: MOVE_THEN_WORK, [role_spawn_fill]: SEMICONSTANT_MOVEMENT, [role_spawn_fill_backup]: SEMICONSTANT_MOVEMENT, [role_upgrade_fill]: IDLE_ABOUT, [role_link_manager]: MOVE_THEN_STOP, [role_builder]: MOVE_THEN_WORK, [role_tower_fill]: SEMICONSTANT_MOVEMENT, [role_miner]: MOVE_THEN_STOP, [role_hauler]: CONSTANT_MOVEMENT, [role_remote_mining_reserve]: MOVE_THEN_STOP, [role_defender]: MILITARY, [role_wall_defender]: MILITARY, [role_ranged_offense]: MILITARY, [role_cleanup]: MOVE_THEN_WORK, [role_temporary_replacing]: MOVE_THEN_WORK, [role_colonist]: MOVE_THEN_WORK, [role_simple_claim]: MILITARY, [role_room_reserve]: MOVE_THEN_STOP, [role_mineral_steal]: CONSTANT_MOVEMENT, [role_recycling]: CONSTANT_MOVEMENT, [role_mineral_miner]: MOVE_THEN_STOP, [role_mineral_hauler]: IDLE_ABOUT, [role_td_healer]: MILITARY, [role_td_goad]: MILITARY, [role_simple_dismantle]: MILITARY, [role_scout]: MILITARY, [role_power_attack]: MILITARY, [role_power_cleanup]: MILITARY, [role_energy_grab]: MILITARY, [role_squad_init]: IDLE_ABOUT, [role_squad_final_renew]: MOVE_THEN_WORK, [role_squad_final_boost]: MOVE_THEN_WORK, [role_squad_drone]: MILITARY, [role_squad_kiting_heal]: MILITARY, [role_squad_kiting_attack]: MILITARY, [role_squad_ranged]: MILITARY, [role_squad_all_attack]: MILITARY, [role_squad_dismantle]: MILITARY, [role_squad_heal]: MILITARY};
                     var move_prototype =
                     function move (direction) {
                         var result = this.__move(direction);
@@ -7577,6 +7911,8 @@ function main () {
                                     }
                                 }
                             }
+                        } else if ('pt' in this.memory && Game.time - this.memory.pt > 50) {
+                            delete this.memory.pt;
                         }
                         this.__moved = true;
                         return result;
@@ -7685,14 +8021,19 @@ function main () {
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var obstacle = __iterable0__ [__index0__];
                                 if (obstacle.type == StoredStructureType.ROAD) {
-                                    matrix.set (obstacle.x, obstacle.y, 255);
+                                    if (matrix.get (obstacle.x, obstacle.y) == 0) {
+                                        matrix.set (obstacle.x, obstacle.y, 1);
+                                    }
                                 }
-                                else if (obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
-                                    for (var x = obstacle.x - 4; x < obstacle.x + 5; x++) {
-                                        for (var y = obstacle.y - 4; y < obstacle.y + 5; y++) {
-                                            matrix.set (x, y, 250);
+                                else {
+                                    if (obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                        for (var x = obstacle.x - 4; x < obstacle.x + 5; x++) {
+                                            for (var y = obstacle.y - 4; y < obstacle.y + 5; y++) {
+                                                matrix.set (x, y, 250);
+                                            }
                                         }
                                     }
+                                    matrix.set (obstacle.x, obstacle.y, 255);
                                 }
                             }
                         }
@@ -7848,6 +8189,12 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
@@ -7856,6 +8203,7 @@ function main () {
                         __all__._add_only_blocking_creeps_to_matrix = _add_only_blocking_creeps_to_matrix;
                         __all__._create_basic_room_cost_matrix = _create_basic_room_cost_matrix;
                         __all__.apply_move_prototype = apply_move_prototype;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.create_cost_callback = create_cost_callback;
                         __all__.creep_base_1500miner = creep_base_1500miner;
                         __all__.creep_base_3000miner = creep_base_3000miner;
@@ -7866,10 +8214,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -7881,6 +8229,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -7901,10 +8252,12 @@ function main () {
                         __all__.move_prototype = move_prototype;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -7960,6 +8313,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -8008,12 +8371,12 @@ function main () {
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
                     var target_closest_energy_site = __init__ (__world__.constants).target_closest_energy_site;
                     var target_source = __init__ (__world__.constants).target_source;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var walkby_move = __init__ (__world__.creep_management.walkby_move);
                     var flags = __init__ (__world__.position_management.flags);
                     var movement = __init__ (__world__.utilities.movement);
-                    var _REUSE_PATH = 100;
-                    var _WITH_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 2, 'swampCost': 10};
-                    var _NO_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': _REUSE_PATH, 'plainCost': 1, 'swampCost': 5};
+                    var _WITH_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': basic_reuse_path, 'plainCost': 2, 'swampCost': 10};
+                    var _NO_ROAD_PF_OPTIONS = {'maxRooms': 10, 'maxOps': 4000, 'reusePath': basic_reuse_path, 'plainCost': 1, 'swampCost': 5};
                     var RoleBase = __class__ ('RoleBase', [object], {
                         get __init__ () {return __get__ (this, function (self, hive, targets, home, creep) {
                             self.hive = hive;
@@ -8077,7 +8440,7 @@ function main () {
                             }
                         }, 'get_replacement_time');},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
-                            return recycle_time + _.size (self.creep.body) * 3;
+                            return recycle_time + _.size (self.creep.body) * CREEP_SPAWN_TIME;
                         }, '_calculate_time_to_replace');},
                         get run () {return __get__ (this, function (self) {
                             // pass;
@@ -8716,7 +9079,10 @@ function main () {
                         }, 'target');},
                         get toString () {return __get__ (this, function (self) {
                             return 'Creep[{}, role: {}, home: {}]'.format (self.name, self.memory.role, self.home.name);
-                        }, 'toString');}
+                        }, 'toString');},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return self.creep.findSpecialty ();
+                        }, 'findSpecialty');}
                     });
                     Object.defineProperty (RoleBase, 'name', property.call (RoleBase, RoleBase.get_name));;
                     Object.defineProperty (RoleBase, 'pos', property.call (RoleBase, RoleBase.get_pos));;
@@ -8733,8 +9099,8 @@ function main () {
                         __all__.DEPOT = DEPOT;
                         __all__.RoleBase = RoleBase;
                         __all__._NO_ROAD_PF_OPTIONS = _NO_ROAD_PF_OPTIONS;
-                        __all__._REUSE_PATH = _REUSE_PATH;
                         __all__._WITH_ROAD_PF_OPTIONS = _WITH_ROAD_PF_OPTIONS;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.flags = flags;
                         __all__.movement = movement;
                         __all__.recycle_time = recycle_time;
@@ -8847,6 +9213,9 @@ function main () {
                             else {
                                 var to_home = false;
                             }
+                            if (!(origin)) {
+                                var origin = movement.find_an_open_space (self.memory.home);
+                            }
                             if (origin.pos) {
                                 var origin = origin.pos;
                             }
@@ -8864,7 +9233,7 @@ function main () {
                             if (opts) {
                                 var path_opts = _.create (path_opts, opts);
                             }
-                            if (distance_squared_room_pos (origin, target) > math.pow (200, 2) && !(self._using_reroute (origin, target))) {
+                            if (chebyshev_distance_room_pos (origin, target) > 900 && !(self._using_reroute (origin, target))) {
                                 path_opts.max_ops = chebyshev_distance_room_pos (origin, target) * 150;
                                 path_opts.max_rooms = math.ceil (chebyshev_distance_room_pos (origin, target) / 5);
                                 path_opts.use_roads = false;
@@ -8912,6 +9281,9 @@ function main () {
                             else {
                                 var to_home = false;
                             }
+                            if (!(origin)) {
+                                var origin = movement.find_an_open_space (self.memory.home);
+                            }
                             if (origin.pos) {
                                 var origin = origin.pos;
                             }
@@ -8929,7 +9301,7 @@ function main () {
                             if (opts) {
                                 var path_opts = _.create (path_opts, opts);
                             }
-                            if (distance_squared_room_pos (origin, target) > math.pow (200, 2) && !(self._using_reroute (origin, target))) {
+                            if (chebyshev_distance_room_pos (origin, target) > 900 && !(self._using_reroute (origin, target))) {
                                 path_opts.max_ops = chebyshev_distance_room_pos (origin, target) * 150;
                                 path_opts.max_rooms = math.ceil (chebyshev_distance_room_pos (origin, target) / 5);
                                 if (to_home) {
@@ -9034,7 +9406,7 @@ function main () {
                                             }
                                             self.log ('Lost the path from {} to {}! Pos: {}. Retargeting to: {} (path: {})'.format (origin, target, self.pos, new_target, function () {
                                                 var __accu0__ = [];
-                                                var __iterable0__ = Room.deserializePath (self.memory ['_move'] ['path']);
+                                                var __iterable0__ = Room.deserializePath (_.get (self.memory, ['_move', 'path'], ''));
                                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                                     var p = __iterable0__ [__index0__];
                                                     __accu0__.append ('({},{})'.format (p.x, p.y));
@@ -10372,7 +10744,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var Claim = __class__ ('Claim', [MilitaryBase], {
@@ -10490,7 +10862,7 @@ function main () {
                                     return -(1);
                                 }
                                 var path_len = self.get_military_path_length (self.home.spawn, target);
-                                return path_len + _.size (self.creep.body) * 3;
+                                return path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME;
                             }
                             else {
                                 return 0;
@@ -10534,7 +10906,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var MineralSteal = __class__ ('MineralSteal', [TransportPickup], {
@@ -10572,7 +10944,7 @@ function main () {
                             return self.transport (pickup, fill, false);
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
-                            return _.size (self.creep.body) * 3 + 15;
+                            return _.size (self.creep.body) * CREEP_SPAWN_TIME + 15;
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -10985,10 +11357,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -10998,10 +11377,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -11013,6 +11392,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -11029,10 +11411,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -11087,6 +11471,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -11287,10 +11681,17 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.creep_base_1500miner = creep_base_1500miner;
                         __all__.creep_base_3000miner = creep_base_3000miner;
                         __all__.creep_base_3h = creep_base_3h;
@@ -11300,10 +11701,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -11315,6 +11716,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -11334,10 +11738,12 @@ function main () {
                         __all__.movement = movement;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -11392,6 +11798,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -11517,7 +11933,7 @@ function main () {
                             }
                             var mineral_pos = minerals [0].pos;
                             var spawn_pos = self.home.spawn.pos;
-                            var time = (self.hive.honey.find_path_length (spawn_pos, mineral_pos) * 2 + _.size (self.creep.body) * 3) + 15;
+                            var time = (self.hive.honey.find_path_length (spawn_pos, mineral_pos) * 2 + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 15;
                             return time;
                         });}
                     });
@@ -11603,29 +12019,23 @@ function main () {
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var resource = __iterable0__ [__index0__];
                                 if (self.creep.carry [resource] > 0) {
+                                    if ((resource in mind.get_labs_needing_mineral ())) {
+                                        if (debug) {
+                                            self.log ('Choosing fill_labs as we have a mineral that is needed.');
+                                        }
+                                        return _FILL_LABS;
+                                    }
+                                }
+                            }
+                            var __iterable0__ = Object.keys (self.creep.carry);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var resource = __iterable0__ [__index0__];
+                                if (self.creep.carry [resource] > 0) {
                                     if ((mind.terminal.store [resource] || 0) < mind.get_all_terminal_targets () [resource]) {
                                         if (debug) {
                                             self.log ('Choosing terminal_dropoff as we have a mineral which we need in the terminal.');
                                         }
                                         return _TERMINAL_DROPOFF;
-                                    }
-                                    else if (mind.get_lab_target_mineral () == resource && mind.amount_needed_in_lab1 ()) {
-                                        if (debug) {
-                                            self.log ('Choosing fill_labs as we have a mineral that is needed in lab 1.');
-                                        }
-                                        return _FILL_LABS;
-                                    }
-                                    else if (mind.get_lab2_target_mineral () == resource && mind.amount_needed_in_lab2 ()) {
-                                        if (debug) {
-                                            self.log ('Choosing fill_labs as we have a mineral that is needed in lab 2.');
-                                        }
-                                        return _FILL_LABS;
-                                    }
-                                    else if (resource == RESOURCE_ENERGY && mind.energy_needed_in_labs ()) {
-                                        if (debug) {
-                                            self.log ('Choosing fill_labs as we have energy that is needed in labs.');
-                                        }
-                                        return _FILL_LABS;
                                     }
                                 }
                             }
@@ -11641,7 +12051,34 @@ function main () {
                                 }
                                 return _DEAD;
                             }
-                            else if (len (mind.removing_from_terminal ()) && self.pos.isNearTo (mind.terminal)) {
+                            else if (mind.energy_needed_in_labs ()) {
+                                if (debug) {
+                                    self.log ('Choosing storage_pickup as there is something needed in labs.');
+                                }
+                                return _STORAGE_PICKUP;
+                            }
+                            var __iterable0__ = mind.get_lab_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var lab = __left0__ [0];
+                                var mineral = __left0__ [1];
+                                var amount = __left0__ [2];
+                                if (lab.mineralAmount < amount) {
+                                    if ((mineral in mind.storage.store)) {
+                                        if (debug) {
+                                            self.log ('Choosing storage_pickup as {} is needed in a lab.'.format (mineral));
+                                        }
+                                        return _STORAGE_PICKUP;
+                                    }
+                                    else if ((mineral in mind.terminal.store)) {
+                                        if (debug) {
+                                            self.log ('Choosing terminal_pickup as {} is needed in a lab.'.format (mineral));
+                                        }
+                                        return _TERMINAL_PICKUP;
+                                    }
+                                }
+                            }
+                            if (len (mind.removing_from_terminal ()) && self.pos.isNearTo (mind.terminal)) {
                                 if (debug) {
                                     self.log ('Choosing terminal_pickup as we are close to the terminal, and we have things to remove.');
                                 }
@@ -11664,12 +12101,6 @@ function main () {
                                     self.log ('Choosing miner_harvest as there is a target miner count.');
                                 }
                                 return _MINER_HARVEST;
-                            }
-                            else if (mind.amount_needed_in_lab1 () || mind.amount_needed_in_lab2 () || mind.energy_needed_in_labs ()) {
-                                if (debug) {
-                                    self.log ('Choosing storage_pickup as there is something needed in labs.');
-                                }
-                                return _STORAGE_PICKUP;
                             }
                             else {
                                 if (debug) {
@@ -11844,7 +12275,20 @@ function main () {
                                 return false;
                             }
                             var __break0__ = false;
-                            var __iterable0__ = mind.adding_to_terminal ().concat ([[RESOURCE_ENERGY, mind.energy_needed_in_labs ()], [mind.get_lab_target_mineral (), mind.amount_needed_in_lab1 ()], [mind.get_lab2_target_mineral (), mind.amount_needed_in_lab2 ()]]);
+                            var __iterable0__ = mind.adding_to_terminal ().concat ([[RESOURCE_ENERGY, mind.energy_needed_in_labs ()]]).concat (function () {
+                                var __accu0__ = [];
+                                var __iterable1__ = mind.get_lab_targets ();
+                                for (var __index0__ = 0; __index0__ < __iterable1__.length; __index0__++) {
+                                    var __left0__ = __iterable1__ [__index0__];
+                                    var lab = __left0__ [0];
+                                    var mineral = __left0__ [1];
+                                    var amount = __left0__ [2];
+                                    if (amount < lab.mineralAmount) {
+                                        __accu0__.append ([mineral, amount]);
+                                    }
+                                }
+                                return __accu0__;
+                            } ());
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var resource = __left0__ [0];
@@ -11958,76 +12402,50 @@ function main () {
                         });},
                         get run_lab_drop_off () {return __get__ (this, function (self) {
                             var mind = self.home.minerals;
-                            var mineral1 = mind.get_lab_target_mineral ();
-                            var mineral2 = mind.get_lab2_target_mineral ();
-                            var mineral1_holding = self.creep.carry [mineral1];
-                            var mineral2_holding = self.creep.carry [mineral2];
-                            var energy_holding = self.creep.carry [RESOURCE_ENERGY];
-                            if (mind.energy_needed_in_labs () && energy_holding) {
-                                var target = _ (mind.labs ()).filter ((function __lambda__ (l) {
-                                    return l.energy < l.energyCapacity && l.mineralAmount;
-                                })).min ((function __lambda__ (l) {
-                                    return movement.chebyshev_distance_room_pos (self.pos, l.pos);
-                                }));
-                                var resource = RESOURCE_ENERGY;
+                            var best_lab = null;
+                            var best_resource = null;
+                            var closest_distance = Infinity;
+                            var __iterable0__ = mind.get_lab_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var lab = __left0__ [0];
+                                var mineral = __left0__ [1];
+                                var amount = __left0__ [2];
+                                if (lab.mineralAmount < amount && self.creep.carry [mineral]) {
+                                    var distance = movement.chebyshev_distance_room_pos (self.pos, lab.pos);
+                                    if (distance < closest_distance) {
+                                        var closest_distance = distance;
+                                        var best_lab = lab;
+                                        var best_resource = mineral;
+                                    }
+                                }
+                                else if (lab.energy < lab.energyCapacity && self.creep.carry [RESOURCE_ENERGY]) {
+                                    var distance = movement.chebyshev_distance_room_pos (self.pos, lab.pos);
+                                    if (distance < closest_distance) {
+                                        var closest_distance = distance;
+                                        var best_lab = lab;
+                                        var best_resource = RESOURCE_ENERGY;
+                                    }
+                                }
                             }
-                            else if (mind.amount_needed_in_lab1 () && mineral1_holding) {
-                                var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
-                                    return l.mineralAmount < l.mineralCapacity;
-                                }));
-                                if (labs.find ((function __lambda__ (l) {
-                                    return l.mineralType == mineral1;
-                                }))) {
-                                    var labs = labs.filter ((function __lambda__ (l) {
-                                        return l.mineralType == mineral1;
-                                    }));
+                            if (!(best_lab)) {
+                                if (self.memory.debug) {
+                                    self.log ('Untargetting labs: no minerals needed that we have.');
                                 }
-                                else {
-                                    var labs = labs.filter ((function __lambda__ (l) {
-                                        return !(l.mineralAmount);
-                                    }));
-                                }
-                                var target = labs.min ((function __lambda__ (l) {
-                                    return movement.chebyshev_distance_room_pos (self.pos, l.pos);
-                                }));
-                                var resource = mineral1;
-                            }
-                            else if (mind.amount_needed_in_lab2 () && mineral2_holding) {
-                                var labs = _ (mind.labs ()).filter ((function __lambda__ (l) {
-                                    return l.mineralAmount < l.mineralCapacity;
-                                }));
-                                if (labs.find ((function __lambda__ (l) {
-                                    return l.mineralType == mineral2;
-                                }))) {
-                                    var labs = labs.filter ((function __lambda__ (l) {
-                                        return l.mineralType == mineral2;
-                                    }));
-                                }
-                                else {
-                                    var labs = labs.filter ((function __lambda__ (l) {
-                                        return !(l.mineralAmount);
-                                    }));
-                                }
-                                var target = labs.min ((function __lambda__ (l) {
-                                    return movement.chebyshev_distance_room_pos (self.pos, l.pos);
-                                }));
-                                var resource = mineral2;
-                            }
-                            else {
                                 delete self.memory.state;
-                                return true;
+                                return ;
                             }
-                            if (!(self.pos.isNearTo (target))) {
-                                self.move_to (target);
+                            if (!(self.pos.isNearTo (best_lab))) {
+                                self.move_to (best_lab);
                                 return false;
                             }
-                            var result = self.creep.transfer (target, resource);
+                            var result = self.creep.transfer (best_lab, best_resource);
                             if (result != OK) {
-                                self.log ('Unknown result from mineral-hauler.transfer({}, {}): {}'.format (target, resource, result));
+                                self.log ('Unknown result from mineral-hauler.transfer({}, {}): {}'.format (best_lab, best_resource, result));
                             }
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
-                            return _.size (self.creep.body) * 3;
+                            return _.size (self.creep.body) * CREEP_SPAWN_TIME;
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -12284,7 +12702,7 @@ function main () {
                                 moves_every /= 2;
                             }
                             var moves_every = math.ceil (moves_every);
-                            return (path_length / moves_every + _.size (self.creep.body) * 3) + 15;
+                            return (path_length / moves_every + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 15;
                         });}
                     });
                     var EnergyHauler = __class__ ('EnergyHauler', [TransportPickup, SpawnFill, Refill], {
@@ -12375,7 +12793,7 @@ function main () {
                                 return -(1);
                             }
                             var path_length = self.hive.honey.find_path_length (self.home.spawn, source);
-                            return (path_length * 1.7 + _.size (self.creep.body) * 3) + 15;
+                            return (path_length * 1.7 + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 15;
                         });}
                     });
                     var RemoteReserve = __class__ ('RemoteReserve', [TransportPickup], {
@@ -12503,7 +12921,7 @@ function main () {
                                 return -(1);
                             }
                             var path_length = self.hive.honey.find_path_length (self.home.spawn, target_pos);
-                            return (path_length + _.size (self.creep.body) * 3) + 15;
+                            return (path_length + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 15;
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -12599,7 +13017,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var TowerDrainer = __class__ ('TowerDrainer', [MilitaryBase], {
@@ -12693,7 +13111,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var Dismantler = __class__ ('Dismantler', [MilitaryBase], {
@@ -12922,7 +13340,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var EnergyGrab = __class__ ('EnergyGrab', [TransportPickup, EnergyHauler], {
@@ -12987,7 +13405,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var PowerAttack = __class__ ('PowerAttack', [MilitaryBase], {
@@ -13094,7 +13512,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     var PowerCleanup = __class__ ('PowerCleanup', [MilitaryBase], {
@@ -13236,7 +13654,7 @@ function main () {
                             if (self.creep.getActiveBodyparts (MOVE) < len (self.creep.body) / 2) {
                                 path_len *= 2;
                             }
-                            return (path_len + _.size (self.creep.body) * 3) + 10;
+                            return (path_len + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 10;
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -13707,7 +14125,7 @@ function main () {
                             else {
                                 var safe_distance = 3;
                             }
-                            var should_run = !(_.find (self.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': true})) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
+                            var should_run = !(_.some (self.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': true})) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
                             var should_approach = !(should_run) && (harmless || min_distance > safe_distance);
                             if (should_approach) {
                                 self.move_to (closest_pos, _MOVE_TO_OPTIONS);
@@ -13742,7 +14160,7 @@ function main () {
                                 return -(1);
                             }
                             var path_len = self.get_military_path_length (self.home.spawn, marker_flag);
-                            return (path_len * 1.05 + _.size (self.creep.body) * 3) + 20;
+                            return (path_len * 1.05 + _.size (self.creep.body) * CREEP_SPAWN_TIME) + 20;
                         });}
                     });
                     __pragma__ ('<use>' +
@@ -13990,6 +14408,1132 @@ function main () {
                         __all__.target_spawn_deposit = target_spawn_deposit;
                         __all__.upgrading = upgrading;
                         __all__.volatile_cache = volatile_cache;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'creeps.roles.squads', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var math = {};
+                    __nest__ (math, '', __init__ (__world__.math));
+                    var role_recycling = __init__ (__world__.constants).role_recycling;
+                    var target_single_flag = __init__ (__world__.constants).target_single_flag;
+                    var RoleBase = __init__ (__world__.creeps.base).RoleBase;
+                    var MilitaryBase = __init__ (__world__.creeps.behaviors.military).MilitaryBase;
+                    var kiting_away_raw_path = __init__ (__world__.creeps.roles.smart_offensive).kiting_away_raw_path;
+                    var honey = __init__ (__world__.empire.honey);
+                    var stored_data = __init__ (__world__.empire.stored_data);
+                    var errorlog = __init__ (__world__.jstools.errorlog);
+                    var locations = __init__ (__world__.position_management.locations);
+                    var defense = __init__ (__world__.rooms.defense);
+                    var hostile_utils = __init__ (__world__.utilities.hostile_utils);
+                    var movement = __init__ (__world__.utilities.movement);
+                    var positions = __init__ (__world__.utilities.positions);
+                    var SquadInit = __class__ ('SquadInit', [RoleBase], {
+                        get run () {return __get__ (this, function (self) {
+                            var target = self.target (target_single_flag);
+                            if (!(target)) {
+                                self.log ('Squad init has no target! D:');
+                                self.memory.last_role = self.memory.role;
+                                self.memory.role = role_recycling;
+                                return ;
+                            }
+                            self.home.squads.note_stage0_creep (self, target);
+                            self.home.squads.renew_or_depot (self);
+                        });},
+                        get go_to_depot () {return __get__ (this, function (self) {
+                            if (self.findSpecialty () == ATTACK) {
+                                var target = self.room.find_closest_by_range (FIND_HOSTILE_CREEPS, self);
+                                if (target) {
+                                    self.move_to (target);
+                                    return ;
+                                }
+                            }
+                            RoleBase.go_to_depot (self);
+                        });},
+                        get get_replacement_time () {return __get__ (this, function (self) {
+                            return Game.time + CREEP_LIFE_TIME * 2;
+                        });}
+                    });
+                    var SquadFinalRenew = __class__ ('SquadFinalRenew', [RoleBase], {
+                        get run () {return __get__ (this, function (self) {
+                            self.home.squads.renew_or_depot (self);
+                            self.home.squads.note_stage1_creep (self, self.memory.squad);
+                        });},
+                        get go_to_depot () {return __get__ (this, function (self) {
+                            if (self.findSpecialty () == ATTACK) {
+                                var target = self.room.find_closest_by_range (FIND_HOSTILE_CREEPS, self);
+                                if (target) {
+                                    self.move_to (target);
+                                    return ;
+                                }
+                            }
+                            RoleBase.go_to_depot (self);
+                        });},
+                        get get_replacement_time () {return __get__ (this, function (self) {
+                            return Game.time + CREEP_LIFE_TIME * 2;
+                        });}
+                    });
+                    var SquadFinalBoost = __class__ ('SquadFinalBoost', [RoleBase], {
+                        get run () {return __get__ (this, function (self) {
+                            self.home.squads.boost_or_depot (self);
+                            self.home.squads.note_stage2_creep (self, self.memory.squad);
+                        });},
+                        get go_to_depot () {return __get__ (this, function (self) {
+                            if (self.findSpecialty () == ATTACK) {
+                                var target = self.room.find_closest_by_range (FIND_HOSTILE_CREEPS, self);
+                                if (target) {
+                                    self.move_to (target);
+                                    return ;
+                                }
+                            }
+                            RoleBase.go_to_depot (self);
+                        });}
+                    });
+                    var SquadDrone = __class__ ('SquadDrone', [MilitaryBase], {
+                        get run () {return __get__ (this, function (self) {
+                            self.home.squads.note_stage3_creep (self, self.memory.squad);
+                        });},
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            // pass;
+                        });},
+                        get find_target_here () {return __get__ (this, function (self, target) {
+                            return null;
+                        });},
+                        get get_replacement_time () {return __get__ (this, function (self) {
+                            return Game.time + CREEP_LIFE_TIME * 2;
+                        });}
+                    });
+                    var cost_of_wall_hits = function (hits) {
+                        return int (math.ceil (20 * math.log (hits / (((DISMANTLE_POWER * MAX_CREEP_SIZE) / 2) * 40), 50)));
+                    };
+                    var dismantle_pathfinder_callback = function (room_name) {
+                        var room = Game.rooms [room_name];
+                        if (room) {
+                            var plain_cost = 2;
+                            var matrix = honey.create_custom_cost_matrix (room_name, plain_cost, plain_cost * 5, 1, false);
+                            var any_lairs = false;
+                            var __iterable0__ = room.find (FIND_STRUCTURES);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var structure = __iterable0__ [__index0__];
+                                var structure_type = structure.structureType;
+                                if (structure_type == STRUCTURE_RAMPART && (structure.my || structure.isPublic)) {
+                                    continue;
+                                }
+                                else if (structure_type == STRUCTURE_ROAD) {
+                                    if (matrix.get (structure.pos.x, structure.pos.y) == 0) {
+                                        matrix.set (structure.pos.x, structure.pos.y, plain_cost);
+                                    }
+                                    continue;
+                                }
+                                else if (structure_type == STRUCTURE_CONTAINER) {
+                                    continue;
+                                }
+                                else if (structure_type == STRUCTURE_KEEPER_LAIR) {
+                                    var any_lairs = true;
+                                    matrix.set (structure.pos.x, structure.pos.y, 255);
+                                }
+                                else if (structure_type == STRUCTURE_SPAWN || structure_type == STRUCTURE_EXTENSION) {
+                                    for (var x = structure.pos.x - 1; x < structure.pos.x + 2; x++) {
+                                        for (var y = structure.pos.y - 1; y < structure.pos.y + 2; y++) {
+                                            var existing = matrix.get_existing (x, y);
+                                            matrix.set (x, y, existing - 1);
+                                        }
+                                    }
+                                }
+                                else if (structure_type == STRUCTURE_TOWER) {
+                                    var initial_x = structure.pos.x;
+                                    var initial_y = structure.pos.y;
+                                    for (var x = initial_x - 10; x < initial_x + 10; x++) {
+                                        for (var y = initial_y - 10; y < initial_y + 10; y++) {
+                                            var distance = movement.chebyshev_distance_xy (initial_x, initial_y, x, y);
+                                            if (distance <= 5) {
+                                                matrix.increase_at (x, y, null, 10 * plain_cost);
+                                            }
+                                            else {
+                                                matrix.increase_at (x, y, null, (10 - distance) * plain_cost);
+                                            }
+                                        }
+                                    }
+                                }
+                                else if (structure.hits) {
+                                    matrix.increase_at (structure.pos.x, structure.pos.y, null, cost_of_wall_hits (structure.hits) * plain_cost);
+                                }
+                                else {
+                                    matrix.set (structure.pos.x, structure.pos.y, 255);
+                                }
+                            }
+                            var __iterable0__ = room.find (FIND_MY_CONSTRUCTION_SITES);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var site = __iterable0__ [__index0__];
+                                if (site.structureType == STRUCTURE_RAMPART || site.structureType == STRUCTURE_ROAD || site.structureType == STRUCTURE_CONTAINER) {
+                                    continue;
+                                }
+                                matrix.set (site.pos.x, site.pos.y, 255);
+                            }
+                            if (!(room.controller) || !(room.controller.my) || !(room.controller.safeMode)) {
+                                var __iterable0__ = room.find (FIND_HOSTILE_CREEPS);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var creep = __iterable0__ [__index0__];
+                                    matrix.set (creep.pos.x, creep.pos.y, 255);
+                                }
+                            }
+                            if (any_lairs) {
+                                var __iterable0__ = room.find (FIND_SOURCES);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var source = __iterable0__ [__index0__];
+                                    for (var x = source.pos.x - 4; x < source.pos.x + 5; x++) {
+                                        for (var y = source.pos.y - 4; y < source.pos.y + 5; y++) {
+                                            matrix.set (x, y, 200);
+                                        }
+                                    }
+                                }
+                                var __iterable0__ = room.find (FIND_MINERALS);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var mineral = __iterable0__ [__index0__];
+                                    for (var x = mineral.pos.x - 4; x < mineral.pos.x + 5; x++) {
+                                        for (var y = mineral.pos.y - 4; y < mineral.pos.y + 5; y++) {
+                                            matrix.set (x, y, 200);
+                                        }
+                                    }
+                                }
+                            }
+                            print ('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'.format (room_name, matrix.visual ()));
+                        }
+                        else {
+                            var matrix = new PathFinder.CostMatrix ();
+                            var data = stored_data.get_data (room_name);
+                            if (!(data)) {
+                                return matrix;
+                            }
+                            var __iterable0__ = data.structures;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var obstacle = __iterable0__ [__index0__];
+                                if (obstacle.type == StoredStructureType.ROAD) {
+                                    if (matrix.get (obstacle.x, obstacle.y) == 0) {
+                                        matrix.set (obstacle.x, obstacle.y, 1);
+                                    }
+                                }
+                                else {
+                                    if (obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                        for (var x = obstacle.x - 4; x < obstacle.x + 5; x++) {
+                                            for (var y = obstacle.y - 4; y < obstacle.y + 5; y++) {
+                                                matrix.set (x, y, 200);
+                                            }
+                                        }
+                                    }
+                                    matrix.set (obstacle.x, obstacle.y, 255);
+                                }
+                            }
+                        }
+                        return matrix;
+                    };
+                    var _dismantle_move_to_opts = {'maxRooms': 1, 'maxOps': 4000, 'reusePath': 100, 'plainCost': 2, 'swampCost': 10, 'roomCallback': dismantle_pathfinder_callback};
+                    var dismantle_condition_not_a_road = function (structure) {
+                        return structure.structureType != STRUCTURE_ROAD && !(structure.my);
+                    };
+                    var SquadDismantle = __class__ ('SquadDismantle', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            var path = _.get (self.memory, ['_move', 'path']);
+                            if (path) {
+                                var next_pos = self.creep.findNextPathPos (path);
+                                if (_.isObject (next_pos)) {
+                                    var best_structure = _.find (self.room.look_at (LOOK_STRUCTURES, next_pos), dismantle_condition_not_a_road);
+                                    if (best_structure) {
+                                        var result = self.creep.dismantle (best_structure);
+                                        if (result != OK) {
+                                            self.log ('Unknown result from {}.dismantle({}): {}'.format (self.creep, best_structure, result));
+                                        }
+                                        return ;
+                                    }
+                                }
+                                else if (next_pos == ERR_NOT_FOUND) {
+                                    delete self.memory ['_move'];
+                                }
+                            }
+                            if (self.room.my) {
+                                return ;
+                            }
+                            var structures_around = self.room.look_for_in_area_around (LOOK_STRUCTURES, self, 1);
+                            var best_structure = null;
+                            var our_dismantle_power = DISMANTLE_POWER * self.creep.getActiveBodypartsBoostEquivalent (WORK, 'dismantle');
+                            if (len (structures_around) > 1) {
+                                var ramparts_at = null;
+                                var __iterable0__ = structures_around;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var structure_obj = __iterable0__ [__index0__];
+                                    if (structure_obj.structure.structureType == STRUCTURE_RAMPART) {
+                                        if (ramparts_at === null) {
+                                            var ramparts_at = {};
+                                        }
+                                        ramparts_at [positions.serialize_pos_xy (structure_obj.structure)] = structure_obj.structure.hits;
+                                    }
+                                }
+                                var best_rank = -(Infinity);
+                                var __iterable0__ = self.room.look_for_in_area_around (LOOK_STRUCTURES, self, 1);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var structure_obj = __iterable0__ [__index0__];
+                                    var structure = structure_obj.structure;
+                                    if (structure.my || structure_type == STRUCTURE_CONTROLLER || structure_type == STRUCTURE_PORTAL || structure.store && _.findKey (structure.store, (function __lambda__ (amount, key) {
+                                        return amount > 5000 && (key != RESOURCE_ENERGY || amount > 100 * 1000);
+                                    }))) {
+                                        continue;
+                                    }
+                                    var structure_type = structure.structureType;
+                                    if (structure_type == STRUCTURE_TOWER) {
+                                        var rank = 55;
+                                    }
+                                    else if (structure_type == STRUCTURE_SPAWN) {
+                                        var rank = 50;
+                                    }
+                                    else if (structure_type == STRUCTURE_LAB) {
+                                        var rank = 45;
+                                    }
+                                    else if (structure_type == STRUCTURE_EXTENSION) {
+                                        var rank = 40;
+                                    }
+                                    else if (structure_type == STRUCTURE_LINK) {
+                                        var rank = 30;
+                                    }
+                                    else {
+                                        var rank = 10;
+                                    }
+                                    var rampart = ramparts_at && ramparts_at [positions.serialize_pos_xy (structure)];
+                                    var hits = structure.hits;
+                                    if (rampart && rampart.hits) {
+                                        hits += rampart.hits;
+                                    }
+                                    if (hits < our_dismantle_power) {
+                                        rank -= hits / our_dismantle_power;
+                                    }
+                                    if (rank > best_rank) {
+                                        var best_rank = rank;
+                                        var best_structure = structure;
+                                    }
+                                }
+                            }
+                            else if (len (structures_around)) {
+                                var best_structure = structures_around [0].structure;
+                                if (best_structure.my) {
+                                    return ;
+                                }
+                            }
+                            else {
+                                return ;
+                            }
+                            var result = self.creep.dismantle (best_structure);
+                            self._dismantled = best_structure;
+                            if (result == OK) {
+                                if (best_structure.hits < our_dismantle_power || best_structure.hits < our_dismantle_power + _.sum (members, (function __lambda__ (x) {
+                                    return x.creep.getActiveBodypartsBoostEquivalent (RANGED_ATTACK, 'rangedAttack') * RANGED_ATTACK_POWER;
+                                }))) {
+                                    delete self.memory._move;
+                                }
+                            }
+                            else {
+                                self.log ('Unknown result from {}.dismantle({}): {}'.format (self.creep, best_structure, result));
+                            }
+                        });},
+                        get find_target_here () {return __get__ (this, function (self, target) {
+                            if (self.memory.tloctimeout > Game.time) {
+                                var pos = positions.deserialize_xy_to_pos (self.memory.tloc, target.roomName);
+                                if (pos) {
+                                    if (_.some (self.room.look_at (LOOK_STRUCTURES, pos), dismantle_condition_not_a_road)) {
+                                        return pos;
+                                    }
+                                }
+                            }
+                            var structure_target = _.find (self.room.look_at (LOOK_STRUCTURES, target), dismantle_condition_not_a_road);
+                            if (structure_target) {
+                                self.memory.tloc = positions.serialize_pos_xy (structure_target);
+                                self.memory.tloctimeout = Game.time + 50;
+                                return structure_target.pos;
+                            }
+                            if (self.pos.roomName != target.roomName) {
+                                return null;
+                            }
+                            var best_target = null;
+                            var best_rank = -(Infinity);
+                            var enemy_structures = self.room.find (FIND_HOSTILE_STRUCTURES);
+                            var __iterable0__ = enemy_structures;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var struct = __iterable0__ [__index0__];
+                                var structure_type = struct.structureType;
+                                if (structure_type == STRUCTURE_SPAWN) {
+                                    var rank = 50;
+                                }
+                                else if (structure_type == STRUCTURE_LAB) {
+                                    var rank = 40;
+                                }
+                                else if (structure_type == STRUCTURE_TOWER) {
+                                    var rank = 30;
+                                }
+                                else if (structure_type == STRUCTURE_EXTENSION) {
+                                    var rank = 20;
+                                }
+                                else if (structure_type != STRUCTURE_RAMPART) {
+                                    var rank = 10;
+                                }
+                                else {
+                                    var rank = 0;
+                                }
+                                rank -= movement.chebyshev_distance_room_pos (self, struct) / 20;
+                                if (structure_type != STRUCTURE_RAMPART) {
+                                    var rampart = _.find (self.room.look_at (LOOK_STRUCTURES, struct), {'structureType': STRUCTURE_RAMPART});
+                                    if (rampart) {
+                                        rank -= (10 * rampart.hits) / ((((DISMANTLE_POWER * MAX_CREEP_SIZE) / 2) * CREEP_LIFE_TIME) * 0.9);
+                                    }
+                                }
+                                if (rank > best_rank) {
+                                    var best_target = struct;
+                                    var best_rank = rank;
+                                }
+                            }
+                            if (best_target) {
+                                self.memory.tloc = positions.serialize_pos_xy (best_target);
+                                self.memory.tloctimeout = Game.time + 100;
+                                return best_target.pos;
+                            }
+                            else {
+                                self.memory.tloc = positions.serialize_pos_xy (target);
+                                self.memory.tloctimeout = Game.time + 20;
+                                return target;
+                            }
+                        });},
+                        get _move_options () {return __get__ (this, function (self, target_room, opts) {
+                            var target = locations.get (self.memory.squad);
+                            if (target && target.roomName == self.pos.roomName && target.roomName == target_room) {
+                                return _dismantle_move_to_opts;
+                            }
+                            else {
+                                return SquadDrone._move_options (self, target_room, opts);
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return WORK;
+                        });}
+                    });
+                    var SquadHeal = __class__ ('SquadHeal', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            var best_near_rank = -(Infinity);
+                            var best_near = null;
+                            var best_damaged_rank = -(Infinity);
+                            var best_damaged_near = null;
+                            var __iterable0__ = members;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var to_check = __iterable0__ [__index0__];
+                                if (self.pos.isNearTo (to_check)) {
+                                    var specialty = to_check.findSpecialty ();
+                                    if (specialty == HEAL && to_check.creep.hits < to_check.creep.hitsMax * 0.7) {
+                                        var rank = 7;
+                                    }
+                                    else if (specialty == RANGED_ATTACK || specialty == ATTACK || specialty == WORK) {
+                                        var rank = 5;
+                                    }
+                                    else {
+                                        var rank = 1;
+                                    }
+                                    if (to_check.creep.hits < to_check.creep.hitsMax) {
+                                        rank += (to_check.creep.hitsMax - to_check.creep.hits) / to_check.creep.hitsMax;
+                                        if (best_damaged_rank < rank) {
+                                            var best_damaged_near = to_check;
+                                            var best_damaged_rank = rank;
+                                        }
+                                    }
+                                    if (best_near_rank < rank) {
+                                        var best_near = to_check;
+                                        var best_near_rank = rank;
+                                    }
+                                }
+                            }
+                            if (best_damaged_near) {
+                                var result = self.creep.heal (best_damaged_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_damaged_rank.creep, result));
+                                }
+                            }
+                            else if (best_near) {
+                                var result = self.creep.heal (best_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_near.creep, result));
+                                }
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return HEAL;
+                        });}
+                    });
+                    var SquadTowerDrainHeal = __class__ ('SquadTowerDrainHeal', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            var best_near_rank = -(Infinity);
+                            var best_near = null;
+                            var best_damaged_rank = -(Infinity);
+                            var best_damaged_near = null;
+                            var most_damage = 0;
+                            var most_damaged = null;
+                            var __iterable0__ = members;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var to_check = __iterable0__ [__index0__];
+                                var damage = (to_check.creep.hitsMax - to_check.creep.hits) / to_check.creep.hitsMax;
+                                if (self.pos.isNearTo (to_check)) {
+                                    var specialty = to_check.findSpecialty ();
+                                    if (specialty == HEAL && to_check.creep.hits < to_check.creep.hitsMax * 0.7) {
+                                        var rank = 7;
+                                    }
+                                    else if (specialty == RANGED_ATTACK || specialty == ATTACK || specialty == WORK) {
+                                        var rank = 5;
+                                    }
+                                    else {
+                                        var rank = 1;
+                                    }
+                                    if (damage) {
+                                        rank += damage;
+                                        if (best_damaged_rank < rank) {
+                                            var best_damaged_near = to_check;
+                                            var best_damaged_rank = rank;
+                                        }
+                                    }
+                                    if (best_near_rank < rank) {
+                                        var best_near = to_check;
+                                        var best_near_rank = rank;
+                                    }
+                                }
+                                if (damage > most_damage) {
+                                    var most_damage = damage;
+                                    var most_damaged = to_check;
+                                }
+                            }
+                            if (best_damaged_near) {
+                                var result = self.creep.heal (best_damaged_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_damaged_rank.creep, result));
+                                }
+                            }
+                            else if (best_near) {
+                                var result = self.creep.heal (best_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_near.creep, result));
+                                }
+                            }
+                            else if (most_damaged) {
+                                var result = self.creep.rangedHeal (most_damaged.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.rangedHeal({}): {}'.format (self.creep, most_damaged.creep, result));
+                                }
+                            }
+                            if (!(self.creep.__moved) && most_damaged && !(self.pos.isNearTo (most_damaged))) {
+                                self.move_to (most_damaged);
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return HEAL;
+                        });}
+                    });
+                    var SquadRangedAttack = __class__ ('SquadRangedAttack', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            var attacked = false;
+                            var here = self.room.find (FIND_HOSTILE_CREEPS);
+                            if (len (here)) {
+                                var directly_nearby = 0;
+                                var best = null;
+                                var best_range = Infinity;
+                                var best_rank = -(Infinity);
+                                var __iterable0__ = here;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var enemy = __iterable0__ [__index0__];
+                                    var enemy_range = movement.chebyshev_distance_room_pos (enemy, self);
+                                    if (enemy_range <= 3) {
+                                        var specialty = enemy.findSpecialty ();
+                                        if (specialty == ATTACK || specialty == RANGED_ATTACK) {
+                                            var rank = 40;
+                                        }
+                                        else if (specialty == WORK) {
+                                            var rank = 35;
+                                        }
+                                        else {
+                                            var rank = 30;
+                                        }
+                                        if (_.some (self.room.look_at (LOOK_STRUCTURES, enemy), (function __lambda__ (s) {
+                                            return s.structureType == STRUCTURE_RAMPART && !(s.my);
+                                        }))) {
+                                            rank -= 20;
+                                        }
+                                        rank += ((enemy.hitsMax - enemy.hits) / enemy.hitsMax) * 5;
+                                        if (enemy_range < 1) {
+                                            directly_nearby += rank;
+                                        }
+                                        if (rank > best_rank) {
+                                            var best_rank = rank;
+                                            var best_range = enemy_range;
+                                            var best = enemy;
+                                        }
+                                    }
+                                }
+                                if (directly_nearby > 65 || best_range <= 1) {
+                                    var result = self.creep.rangedMassAttack ();
+                                    if (result != OK) {
+                                        self.log ('Unknown result from {}.rangedMassAttack(): {}'.format (self.creep, result));
+                                    }
+                                    var attacked = true;
+                                }
+                                else if (best) {
+                                    var result = self.creep.rangedAttack (best);
+                                    if (result != OK) {
+                                        self.log ('Unknown result from {}.rangedAttack({}): {}'.format (self.creep, best, result));
+                                    }
+                                    var attacked = true;
+                                }
+                            }
+                            if (!(attacked)) {
+                                var dismantler = _.find (members, (function __lambda__ (x) {
+                                    return isinstance (x, SquadDismantle);
+                                }));
+                                if (dismantler && ('_dismantled' in dismantler)) {
+                                    self.creep.rangedAttack (dismantler ['_dismantled']);
+                                }
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return RANGED_ATTACK;
+                        });}
+                    });
+                    var SquadAllAttack = __class__ ('SquadAllAttack', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            if (_.all (members, (function __lambda__ (x) {
+                                return x.pos.roomName == target.roomName;
+                            }))) {
+                                self.move_to (self.room.find_closest_by_range (FIND_HOSTILE_CREEPS, self));
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return ATTACK;
+                        });}
+                    });
+                    var _MOVE_TO_OPTIONS = {'reusePath': 1, 'useRoads': false};
+                    var ranged_mass_attack_rates = [1, 1, 0.4, 0.1];
+                    var SquadKitingRangedAttack = __class__ ('SquadKitingRangedAttack', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target, do_things) {
+                            if (typeof do_things == 'undefined' || (do_things != null && do_things .hasOwnProperty ("__kwargtrans__"))) {;
+                                var do_things = false;
+                            };
+                            var hostiles_nearby = defense.stored_hostiles_near (self.pos.roomName);
+                            if (self.creep.hits < self.creep.hitsMax || len (hostiles_nearby) && _.find (hostiles_nearby, (function __lambda__ (h) {
+                                return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 3;
+                            }))) {
+                                self.creep.heal (self.creep);
+                            }
+                            var marker_flag = target;
+                            if (len (hostiles_nearby)) {
+                                if (_.find (hostiles_nearby, (function __lambda__ (h) {
+                                    return h.offensive && movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room) <= 5);
+                                }))) {
+                                    var hostiles_nearby = _.filter (hostiles_nearby, 'offensive');
+                                }
+                                var nearby = _.filter (hostiles_nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 5;
+                                }));
+                                var closest = _.min (hostiles_nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) - (h.offensive ? 5 : 0);
+                                }));
+                                var closest_pos = positions.deserialize_xy_to_pos (closest.pos, closest.room);
+                                var harmless = !(_.some (nearby, (function __lambda__ (x) {
+                                    return x.attack || x.ranged;
+                                })));
+                                var ranged = _.some (nearby, (function __lambda__ (x) {
+                                    return x.ranged;
+                                }));
+                                var only_ranged = !(_.some (nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 4 && h.attack;
+                                })));
+                                var mass_attack = _.some (nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 1 && h.room == self.pos.roomName;
+                                }));
+                            }
+                            else {
+                                var enemies = self.room.find (FIND_HOSTILE_CREEPS);
+                                if (len (enemies)) {
+                                    if (self.pos.roomName != marker_flag.roomName) {
+                                        var enemies = _.filter (enemies, (function __lambda__ (h) {
+                                            return hostile_utils.is_offensive (h) && hostile_utils.not_sk (h);
+                                        }));
+                                    }
+                                    else {
+                                        var any_offensive = _.find (enemies, hostile_utils.is_offensive);
+                                        if (any_offensive) {
+                                            var enemies = _.filter (enemies, (function __lambda__ (h) {
+                                                return hostile_utils.is_offensive (h) && hostile_utils.not_sk (h);
+                                            }));
+                                        }
+                                        else {
+                                            var enemies = _.filter (enemies, hostile_utils.not_sk);
+                                        }
+                                    }
+                                }
+                                if (len (enemies)) {
+                                    var closest = _.min (enemies, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (self.pos, h.pos);
+                                    }));
+                                    var closest_pos = closest.pos;
+                                    var nearby = _.filter (enemies, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (h, self.pos) <= 5;
+                                    }));
+                                    var harmless = !(_.some (nearby, (function __lambda__ (h) {
+                                        return h.hasActiveBodyparts (ATTACK) || h.hasActiveBodyparts (RANGED_ATTACK);
+                                    }))) && self.creep.hits >= self.creep.hitsMax;
+                                    var ranged = _.some (nearby, (function __lambda__ (h) {
+                                        return h.hasActiveBodyparts (RANGED_ATTACK);
+                                    }));
+                                    var only_ranged = !(_.some (nearby, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (self.pos, h.pos) <= 4 && h.hasBodyparts (ATTACK);
+                                    })));
+                                    var mass_attack = _.some (nearby, (function __lambda__ (h) {
+                                        return self.pos.isNearTo (h.pos) && self.pos.roomName == h.pos.roomName;
+                                    }));
+                                }
+                                else {
+                                    var closest = null;
+                                    var closest_pos = null;
+                                    var nearby = [];
+                                    var harmless = false;
+                                    var ranged = false;
+                                    var only_ranged = true;
+                                    var mass_attack = false;
+                                }
+                            }
+                            if (!(closest)) {
+                                if (!(do_things)) {
+                                    return false;
+                                }
+                                self.move_to (target);
+                                return false;
+                            }
+                            var closest_creep = Game.getObjectById (closest.id);
+                            var min_distance = movement.chebyshev_distance_room_pos (closest_pos, self.pos);
+                            if (__mod__ (Game.time, 2)) {
+                                self.creep.say ('{},{}: {}'.format (closest_pos.x, closest_pos.y, min_distance));
+                            }
+                            else {
+                                self.creep.say ('🐾 🏹 🐾', true);
+                            }
+                            var fatigue = closest_creep && (closest_creep.fatigue || !(closest_creep.hasActiveBodyparts (MOVE)));
+                            if (self.memory.healing) {
+                                var __left0__ = self.creep.hits < self.creep.hitsMax;
+                                self.memory.healing = __left0__;
+                                var self_damaged = __left0__;
+                            }
+                            else {
+                                var total_ra = self.creep.getBodyparts (RANGED_ATTACK);
+                                var alive_ra = self.creep.getActiveBodyparts (RANGED_ATTACK);
+                                var __left0__ = total_ra < 10 && alive_ra < total_ra / 2 || alive_ra < total_ra / 3;
+                                self.memory.healing = __left0__;
+                                var self_damaged = __left0__;
+                            }
+                            if (closest_pos.roomName == self.pos.roomName && min_distance <= 3) {
+                                if (mass_attack) {
+                                    self.creep.rangedMassAttack ();
+                                }
+                                else {
+                                    var closest_creep = Game.getObjectById (closest.id);
+                                    self.creep.rangedAttack (closest_creep);
+                                }
+                            }
+                            if (min_distance <= 6 && self.pos.roomName != closest_pos.roomName) {
+                                self.memory.countdown = (self.memory.countdown || 10) - 1;
+                                if (self.memory.countdown <= 0) {
+                                    if (self.memory.countdown == 0) {
+                                        self.memory.countdown--;
+                                    }
+                                    if (self.memory.countdown <= 5) {
+                                        delete self.memory.countdown;
+                                    }
+                                    self.move_to (marker_flag, _MOVE_TO_OPTIONS);
+                                }
+                                return ;
+                            }
+                            if (ranged && self_damaged) {
+                                var safe_distance = 5;
+                            }
+                            else if (ranged && only_ranged) {
+                                var safe_distance = 0;
+                            }
+                            else {
+                                var safe_distance = 3;
+                            }
+                            var should_run = !(_.some (self.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': true})) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
+                            var should_approach = !(should_run) && (harmless || min_distance > safe_distance);
+                            if (should_approach) {
+                                var moved = false;
+                                if (min_distance == 1 && len (nearby) > 1) {
+                                    var rate_attack_pos = function (x, y) {
+                                        var summation = 0;
+                                        var __iterable0__ = nearby;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var enemy = __iterable0__ [__index0__];
+                                            if (enemy.pos.x) {
+                                                var ex = enemy.pos.x;
+                                                var ey = enemy.pos.y;
+                                            }
+                                            else {
+                                                var __left0__ = positions.deserialize_xy (enemy.pos);
+                                                var ex = __left0__ [0];
+                                                var ey = __left0__ [1];
+                                            }
+                                            var distance = movement.chebyshev_distance_xy (x, y, ex, ey);
+                                            summation += ranged_mass_attack_rates [distance] || 0;
+                                        }
+                                        return summation * 10 + movement.chebyshev_distance_xy (x, y, self.pos.x, self.pos.y);
+                                    };
+                                    var best_attack_x = self.pos.x;
+                                    var best_attack_y = self.pos.y;
+                                    var best_attack_rate = rate_attack_pos (best_attack_x, best_attack_y);
+                                    for (var xx = self.pos.x - 1; xx < self.pos.x + 1; xx++) {
+                                        for (var yy = self.pos.y - 1; yy < self.pos.y + 1; yy++) {
+                                            var rate = rate_attack_pos (xx, yy);
+                                            if (rate > best_attack_rate) {
+                                                var best_attack_x = xx;
+                                                var best_attack_y = yy;
+                                                var best_attack_rate = rate;
+                                            }
+                                        }
+                                    }
+                                    if (best_attack_x != self.pos.x || best_attack_y != self.pos.y) {
+                                        self.move_to (new RoomPosition (best_attack_x, best_attack_y, self.pos.roomName));
+                                        var moved = true;
+                                    }
+                                }
+                                if (!(moved)) {
+                                    self.move_to (closest_pos, _MOVE_TO_OPTIONS);
+                                }
+                            }
+                            else if (should_run) {
+                                var kiting_path = errorlog.try_exec ('kiting-offense', kiting_away_raw_path, (function __lambda__ (pos) {
+                                    return 'Error calculating or moving by kiting path at pos {}.'.format (pos);
+                                }), self.pos, function () {
+                                    var __accu0__ = [];
+                                    var __iterable0__ = hostiles_nearby;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var h = __iterable0__ [__index0__];
+                                        __accu0__.append ({'pos': positions.deserialize_xy_to_pos (h.pos, h.room), 'range': 10});
+                                    }
+                                    return __accu0__;
+                                } ());
+                                if (kiting_path === true) {
+                                    self.creep.say ('Err');
+                                    self.go_to_depot ();
+                                }
+                                else if (len (kiting_path)) {
+                                    self.creep.move (self.pos.getDirectionTo (kiting_path [0]));
+                                }
+                                else {
+                                    self.log ('WARNING: kiting offense has no path at position {}!'.format (self.pos));
+                                }
+                            }
+                            return true;
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return RANGED_ATTACK;
+                        });}
+                    });
+                    var SquadKitingAttack = __class__ ('SquadKitingAttack', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target, do_things) {
+                            if (typeof do_things == 'undefined' || (do_things != null && do_things .hasOwnProperty ("__kwargtrans__"))) {;
+                                var do_things = false;
+                            };
+                            if (!(do_things)) {
+                                return ;
+                            }
+                            var hostiles_nearby = defense.stored_hostiles_near (self.pos.roomName);
+                            if (self.creep.hits < self.creep.hitsMax || len (hostiles_nearby) && _.find (hostiles_nearby, (function __lambda__ (h) {
+                                return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 3;
+                            }))) {
+                                self.creep.heal (self.creep);
+                            }
+                            var marker_flag = target;
+                            if (len (hostiles_nearby)) {
+                                if (_.find (hostiles_nearby, (function __lambda__ (h) {
+                                    return h.offensive && movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room) <= 5);
+                                }))) {
+                                    var hostiles_nearby = _.filter (hostiles_nearby, 'offensive');
+                                }
+                                var nearby = _.filter (hostiles_nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 5;
+                                }));
+                                var closest = _.min (hostiles_nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) - (h.offensive ? 5 : 0);
+                                }));
+                                var closest_pos = positions.deserialize_xy_to_pos (closest.pos, closest.room);
+                                var harmless = !(_.some (nearby, (function __lambda__ (x) {
+                                    return x.attack || x.ranged;
+                                })));
+                                var ranged = _.some (nearby, (function __lambda__ (x) {
+                                    return x.ranged;
+                                }));
+                                var only_ranged = !(_.some (nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 4 && h.attack;
+                                })));
+                                var mass_attack = _.some (nearby, (function __lambda__ (h) {
+                                    return movement.chebyshev_distance_room_pos (self.pos, positions.deserialize_xy_to_pos (h.pos, h.room)) <= 1 && h.room == self.pos.roomName;
+                                }));
+                            }
+                            else {
+                                var enemies = self.room.find (FIND_HOSTILE_CREEPS);
+                                if (len (enemies)) {
+                                    if (self.pos.roomName != marker_flag.roomName) {
+                                        var enemies = _.filter (enemies, (function __lambda__ (h) {
+                                            return hostile_utils.is_offensive (h) && hostile_utils.not_sk (h);
+                                        }));
+                                    }
+                                    else {
+                                        var any_offensive = _.find (enemies, hostile_utils.is_offensive);
+                                        if (any_offensive) {
+                                            var enemies = _.filter (enemies, (function __lambda__ (h) {
+                                                return hostile_utils.is_offensive (h) && hostile_utils.not_sk (h);
+                                            }));
+                                        }
+                                        else {
+                                            var enemies = _.filter (enemies, hostile_utils.not_sk);
+                                        }
+                                    }
+                                }
+                                if (len (enemies)) {
+                                    var closest = _.min (enemies, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (self.pos, h.pos);
+                                    }));
+                                    var closest_pos = closest.pos;
+                                    var nearby = _.filter (enemies, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (h, self.pos) <= 5;
+                                    }));
+                                    var harmless = !(_.some (nearby, (function __lambda__ (h) {
+                                        return h.hasActiveBodyparts (ATTACK) || h.hasActiveBodyparts (RANGED_ATTACK);
+                                    }))) && self.creep.hits >= self.creep.hitsMax;
+                                    var ranged = _.some (nearby, (function __lambda__ (h) {
+                                        return h.hasActiveBodyparts (RANGED_ATTACK);
+                                    }));
+                                    var only_ranged = !(_.some (nearby, (function __lambda__ (h) {
+                                        return movement.chebyshev_distance_room_pos (self.pos, h.pos) <= 4 && h.hasBodyparts (ATTACK);
+                                    })));
+                                    var mass_attack = _.some (nearby, (function __lambda__ (h) {
+                                        return self.pos.isNearTo (h.pos) && self.pos.roomName == h.pos.roomName;
+                                    }));
+                                }
+                                else {
+                                    var closest = null;
+                                    var closest_pos = null;
+                                    var nearby = [];
+                                    var harmless = false;
+                                    var ranged = false;
+                                    var only_ranged = true;
+                                    var mass_attack = false;
+                                }
+                            }
+                            if (!(closest)) {
+                                self.move_to (target);
+                                return ;
+                            }
+                            var closest_creep = Game.getObjectById (closest.id);
+                            var min_distance = movement.chebyshev_distance_room_pos (closest_pos, self.pos);
+                            if (__mod__ (Game.time, 2)) {
+                                self.creep.say ('{},{}: {}'.format (closest_pos.x, closest_pos.y, min_distance));
+                            }
+                            else {
+                                self.creep.say ('🏹', true);
+                            }
+                            var fatigue = closest_creep && (closest_creep.fatigue || !(closest_creep.hasActiveBodyparts (MOVE)));
+                            if (self.memory.healing) {
+                                var __left0__ = self.creep.hits < self.creep.hitsMax;
+                                self.memory.healing = __left0__;
+                                var self_damaged = __left0__;
+                            }
+                            else {
+                                var total_ra = self.creep.getBodyparts (ATTACK);
+                                var alive_ra = self.creep.getActiveBodyparts (ATTACK);
+                                var __left0__ = total_ra < 10 && alive_ra < total_ra / 2 || alive_ra < total_ra / 3;
+                                self.memory.healing = __left0__;
+                                var self_damaged = __left0__;
+                            }
+                            if (closest_pos.roomName == self.pos.roomName && min_distance <= 1) {
+                                var closest_creep = Game.getObjectById (closest.id);
+                                self.creep.attack (closest_creep);
+                            }
+                            if (min_distance <= 6 && self.pos.roomName != closest_pos.roomName) {
+                                self.memory.countdown = (self.memory.countdown || 10) - 1;
+                                if (self.memory.countdown <= 0) {
+                                    if (self.memory.countdown == 0) {
+                                        self.memory.countdown--;
+                                    }
+                                    if (self.memory.countdown <= 5) {
+                                        delete self.memory.countdown;
+                                    }
+                                    self.move_to (marker_flag, _MOVE_TO_OPTIONS);
+                                }
+                                return ;
+                            }
+                            if (ranged && self_damaged) {
+                                var safe_distance = 5;
+                            }
+                            else if (ranged && only_ranged) {
+                                var safe_distance = 0;
+                            }
+                            else if (self_damaged) {
+                                var safe_distance = 3;
+                            }
+                            else {
+                                var safe_distance = 0;
+                            }
+                            var should_run = !(_.some (self.pos.lookFor (LOOK_STRUCTURES), {'structureType': STRUCTURE_RAMPART, 'my': true})) && !(harmless) && (min_distance < safe_distance || min_distance == safe_distance && !(fatigue));
+                            var should_approach = !(should_run) && (harmless || min_distance > safe_distance);
+                            if (should_approach) {
+                                self.move_to (closest_pos, _MOVE_TO_OPTIONS);
+                            }
+                            else if (should_run) {
+                                var kiting_path = errorlog.try_exec ('kiting-offense', kiting_away_raw_path, (function __lambda__ (pos) {
+                                    return 'Error calculating or moving by kiting path at pos {}.'.format (pos);
+                                }), self.pos, function () {
+                                    var __accu0__ = [];
+                                    var __iterable0__ = hostiles_nearby;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var h = __iterable0__ [__index0__];
+                                        __accu0__.append ({'pos': positions.deserialize_xy_to_pos (h.pos, h.room), 'range': 10});
+                                    }
+                                    return __accu0__;
+                                } ());
+                                if (kiting_path === true) {
+                                    self.creep.say ('Err');
+                                    self.go_to_depot ();
+                                }
+                                else if (len (kiting_path)) {
+                                    self.creep.move (self.pos.getDirectionTo (kiting_path [0]));
+                                }
+                                else {
+                                    self.log ('WARNING: kiting offense has no path at position {}!'.format (self.pos));
+                                }
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return RANGED_ATTACK;
+                        });}
+                    });
+                    var SquadDirectSupportHeal = __class__ ('SquadDirectSupportHeal', [SquadDrone], {
+                        get run_squad () {return __get__ (this, function (self, members, target) {
+                            var best_near_rank = -(Infinity);
+                            var best_near = null;
+                            var best_damaged_rank = -(Infinity);
+                            var best_damaged_near = null;
+                            var most_damage = 0;
+                            var most_damaged = null;
+                            var __iterable0__ = members;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var to_check = __iterable0__ [__index0__];
+                                var damage = (to_check.creep.hitsMax - to_check.creep.hits) / to_check.creep.hitsMax;
+                                if (self.pos.isNearTo (to_check)) {
+                                    var specialty = to_check.findSpecialty ();
+                                    if (specialty == HEAL && to_check.creep.hits < to_check.creep.hitsMax * 0.7) {
+                                        var rank = 7;
+                                    }
+                                    else if (specialty == RANGED_ATTACK || specialty == ATTACK || specialty == WORK) {
+                                        var rank = 5;
+                                    }
+                                    else {
+                                        var rank = 1;
+                                    }
+                                    if (damage) {
+                                        rank += damage;
+                                        if (best_damaged_rank < rank) {
+                                            var best_damaged_near = to_check;
+                                            var best_damaged_rank = rank;
+                                        }
+                                    }
+                                    if (best_near_rank < rank) {
+                                        var best_near = to_check;
+                                        var best_near_rank = rank;
+                                    }
+                                }
+                                if (damage > most_damage) {
+                                    var most_damage = damage;
+                                    var most_damaged = to_check;
+                                }
+                            }
+                            if (best_damaged_near) {
+                                var result = self.creep.heal (best_damaged_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_damaged_rank.creep, result));
+                                }
+                            }
+                            else if (best_near) {
+                                var result = self.creep.heal (best_near.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.heal({}): {}'.format (self.creep, best_near.creep, result));
+                                }
+                            }
+                            else if (most_damaged) {
+                                var result = self.creep.rangedHeal (most_damaged.creep);
+                                if (result != OK) {
+                                    self.log ('Unknown result using {}.rangedHeal({}): {}'.format (self.creep, most_damaged.creep, result));
+                                }
+                            }
+                            if (!(self.creep.__moved)) {
+                                if (most_damaged && !(self.pos.isNearTo (most_damaged))) {
+                                    self.move_to (most_damaged);
+                                }
+                            }
+                        });},
+                        get findSpecialty () {return __get__ (this, function (self) {
+                            return HEAL;
+                        });}
+                    });
+                    __pragma__ ('<use>' +
+                        'constants' +
+                        'creeps.base' +
+                        'creeps.behaviors.military' +
+                        'creeps.roles.smart_offensive' +
+                        'empire.honey' +
+                        'empire.stored_data' +
+                        'jstools.errorlog' +
+                        'jstools.screeps' +
+                        'math' +
+                        'position_management.locations' +
+                        'rooms.defense' +
+                        'utilities.hostile_utils' +
+                        'utilities.movement' +
+                        'utilities.positions' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.MilitaryBase = MilitaryBase;
+                        __all__.RoleBase = RoleBase;
+                        __all__.SquadAllAttack = SquadAllAttack;
+                        __all__.SquadDirectSupportHeal = SquadDirectSupportHeal;
+                        __all__.SquadDismantle = SquadDismantle;
+                        __all__.SquadDrone = SquadDrone;
+                        __all__.SquadFinalBoost = SquadFinalBoost;
+                        __all__.SquadFinalRenew = SquadFinalRenew;
+                        __all__.SquadHeal = SquadHeal;
+                        __all__.SquadInit = SquadInit;
+                        __all__.SquadKitingAttack = SquadKitingAttack;
+                        __all__.SquadKitingRangedAttack = SquadKitingRangedAttack;
+                        __all__.SquadRangedAttack = SquadRangedAttack;
+                        __all__.SquadTowerDrainHeal = SquadTowerDrainHeal;
+                        __all__._MOVE_TO_OPTIONS = _MOVE_TO_OPTIONS;
+                        __all__._dismantle_move_to_opts = _dismantle_move_to_opts;
+                        __all__.cost_of_wall_hits = cost_of_wall_hits;
+                        __all__.defense = defense;
+                        __all__.dismantle_condition_not_a_road = dismantle_condition_not_a_road;
+                        __all__.dismantle_pathfinder_callback = dismantle_pathfinder_callback;
+                        __all__.errorlog = errorlog;
+                        __all__.honey = honey;
+                        __all__.hostile_utils = hostile_utils;
+                        __all__.kiting_away_raw_path = kiting_away_raw_path;
+                        __all__.locations = locations;
+                        __all__.movement = movement;
+                        __all__.positions = positions;
+                        __all__.ranged_mass_attack_rates = ranged_mass_attack_rates;
+                        __all__.role_recycling = role_recycling;
+                        __all__.stored_data = stored_data;
+                        __all__.target_single_flag = target_single_flag;
                     __pragma__ ('</all>')
                 }
             }
@@ -14535,10 +16079,10 @@ function main () {
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             if (self.home.spawn) {
                                 var path_length = self.hive.honey.find_path_length (self.home.spawn, self.home.room.controller);
-                                return path_length * 2 + _.size (self.creep.body) * 3;
+                                return path_length * 2 + _.size (self.creep.body) * CREEP_SPAWN_TIME;
                             }
                             else {
-                                return _.size (self.creep.body) * 3 + 15;
+                                return _.size (self.creep.body) * CREEP_SPAWN_TIME + 15;
                             }
                         });}
                     });
@@ -14823,7 +16367,7 @@ function main () {
                                 return -(1);
                             }
                             var link_pos = link.pos;
-                            return self.hive.honey.find_path_length (self.home.spawn, link_pos) * 2 + _.size (self.creep.body) * 3;
+                            return self.hive.honey.find_path_length (self.home.spawn, link_pos) * 2 + _.size (self.creep.body) * CREEP_SPAWN_TIME;
                         });}
                     });
                     var Cleanup = __class__ ('Cleanup', [SpawnFill], {
@@ -14992,10 +16536,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -15005,10 +16556,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -15020,6 +16571,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -15036,10 +16590,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -15094,6 +16650,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -15474,11 +17040,18 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.StateCalc = StateCalc;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.creep_base_1500miner = creep_base_1500miner;
                         __all__.creep_base_3000miner = creep_base_3000miner;
                         __all__.creep_base_3h = creep_base_3h;
@@ -15488,10 +17061,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -15503,6 +17076,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -15522,10 +17098,12 @@ function main () {
                         __all__.movement = movement;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -15580,6 +17158,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -15820,23 +17408,28 @@ function main () {
                         return existing;
                     };
                     var _cma_increase_at = function (x, y, cost_type, added) {
+                        if (added <= 0) {
+                            return ;
+                        }
                         var existing = this.get_existing (x, y);
                         if (existing >= 255) {
                             return ;
                         }
                         var ser = positions.serialize_xy (x, y);
-                        if ((cost_type in this.added_at)) {
-                            var cost_map = this.added_at [cost_type];
+                        if (cost_type !== null) {
+                            if ((cost_type in this.added_at)) {
+                                var cost_map = this.added_at [cost_type];
+                            }
+                            else {
+                                var __left0__ = new Set ();
+                                var cost_map = __left0__;
+                                this.added_at [cost_type] = __left0__;
+                            }
+                            if (cost_map.has (ser)) {
+                                return ;
+                            }
+                            cost_map.add (ser);
                         }
-                        else {
-                            var __left0__ = new Set ();
-                            var cost_map = __left0__;
-                            this.added_at [cost_type] = __left0__;
-                        }
-                        if (cost_map.has (ser)) {
-                            return ;
-                        }
-                        cost_map.add (ser);
                         if (this.debug) {
                             print ('[DEBUG][ccm][{}] Increasing {},{} from {} to {}.'.format (this.room_name, x, y, existing, existing + added));
                         }
@@ -15892,6 +17485,8 @@ function main () {
                     var _COST_TYPE_AVOID_CONTROLLER = 5;
                     var _COST_TYPE_AVOID_STORAGE = 6;
                     var _COST_TYPE_AVOID_EXTENSIONS = 7;
+                    var COST_TYPE_CUSTOM_1 = 8;
+                    var COST_TYPE_CUSTOM_2 = 9;
                     var _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE = '--linked--';
                     var mark_exit_tiles = function (matrix) {
                         var plain_cost = matrix.plain_cost;
@@ -16025,13 +17620,16 @@ function main () {
                             if (room_data && room_data.owner) {
                                 if (room_data.owner.state === StoredEnemyRoomState.FULLY_FUNCTIONAL) {
                                     if (room_name != origin.roomName && room_name != destination.roomName) {
+                                        if (opts ['enemy_ok']) {
+                                            print ('[honey] Avoiding fully functional enemy room {}!'.format (room_name));
+                                        }
                                         return false;
                                     }
                                     else {
                                         print ('[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!'.format (origin, destination, room_data.owner.name, room_name));
                                     }
                                 }
-                                else if (room_data.owner.state === StoredEnemyRoomState.RESERVED && !(Memory.meta.friends.includes (room_data.owner.name))) {
+                                else if (!(opts ['enemy_ok']) && room_data.owner.state === StoredEnemyRoomState.RESERVED && !(Memory.meta.friends.includes (room_data.owner.name))) {
                                     if (room_name != origin.roomName && room_name != destination.roomName) {
                                         return false;
                                     }
@@ -16039,16 +17637,19 @@ function main () {
                                         print ('[honey] Warning: path {}-{} ends up in a friendly mining room ({})!'.format (origin, destination, room_name));
                                     }
                                 }
-                                else if (room_data.owner.state === StoredEnemyRoomState.JUST_MINING) {
+                                else if (!(opts ['enemy_ok']) && room_data.owner.state === StoredEnemyRoomState.JUST_MINING) {
                                     print ("[honey] Warning: path {}-{} may pass through {}'s mining room, {}".format (origin, destination, room_data.owner.name, room_name));
                                 }
                             }
                             else if (room && room.enemy) {
                                 if (room_name != origin.roomName && room_name != destination.roomName) {
+                                    if (opts ['enemy_ok']) {
+                                        print ('[honey] Avoiding fully functional enemy room {}!'.format (room_name));
+                                    }
                                     return false;
                                 }
                                 else {
-                                    print ('[honey] Warning: path {}-{} ends up in an enemy room ({})!'.format (origin, destination, room_data.owner.name, room_name));
+                                    print ('[honey] Warning: path {}-{} ends up in an enemy room ({})!'.format (origin, destination, room_name));
                                 }
                             }
                             var plain_cost = opts ['plain_cost'] || 1;
@@ -16409,7 +18010,15 @@ function main () {
                                 var heuristic = 1.2;
                                 var min_cost = 1;
                             }
-                            var result = PathFinder.search (origin, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost, 'min_cost': min_cost}), 'maxRooms': max_rooms, 'maxOps': max_ops, 'heuristicWeight': heuristic});
+                            var destination_data = stored_data.get_data (destination.roomName);
+                            if (destination_data && destination_data.owner && destination_data.owner.state != StoredEnemyRoomState.JUST_MINING) {
+                                var enemy_ok = true;
+                                print ('[honey] Calculating path assuming traversing enemy rooms is OK, as {} is an enemy room.'.format (destination.roomName));
+                            }
+                            else {
+                                var enemy_ok = false;
+                            }
+                            var result = PathFinder.search (origin, {'pos': destination, 'range': pf_range}, {'plainCost': plain_cost, 'swampCost': swamp_cost, 'roomCallback': self._get_callback (origin, destination, {'roads': roads_better, 'paved_for': paved_for, 'max_avoid': max_avoid, 'plain_cost': plain_cost, 'swamp_cost': swamp_cost, 'min_cost': min_cost, 'enemy_ok': enemy_ok}), 'maxRooms': max_rooms, 'maxOps': max_ops, 'heuristicWeight': heuristic});
                             print ('[honey] Calculated new path from {} to {} in {} ops.'.format (origin, destination, result.ops));
                             var path = result.path;
                             if (result.incomplete) {
@@ -16696,6 +18305,8 @@ function main () {
                         'utilities.positions' +
                     '</use>')
                     __pragma__ ('<all>')
+                        __all__.COST_TYPE_CUSTOM_1 = COST_TYPE_CUSTOM_1;
+                        __all__.COST_TYPE_CUSTOM_2 = COST_TYPE_CUSTOM_2;
                         __all__.HoneyTrails = HoneyTrails;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
@@ -17267,10 +18878,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -17280,10 +18898,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -17295,6 +18913,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -17311,10 +18932,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -17369,6 +18992,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -17927,6 +19560,8 @@ function main () {
                             if (len (repair_targets) <= 1 && !(len (creep.home.building.get_construction_targets ()))) {
                                 var max_work = Infinity;
                             }
+                            var best = null;
+                            var second_best = null;
                             var __iterable0__ = repair_targets;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var struct_id = __iterable0__ [__index0__];
@@ -17936,6 +19571,17 @@ function main () {
                                 }
                                 var this_hits_max = min (structure.hitsMax, max_hits);
                                 if (structure && structure.hits < this_hits_max * 0.9) {
+                                    var distance = movement.chebyshev_distance_room_pos (structure, creep);
+                                    var ticks_to_repair = (structure.hitsMax - structure.hits) / (creep.creep.getActiveBodyparts (WORK) * REPAIR_POWER);
+                                    if (ticks_to_repair < 10 && distance < 3) {
+                                        return structure;
+                                    }
+                                    else if (distance + ticks_to_repair < 15) {
+                                        var best = structure;
+                                    }
+                                    if (second_best) {
+                                        continue;
+                                    }
                                     if (max_work === Infinity) {
                                         var current_max = Infinity;
                                     }
@@ -17944,11 +19590,16 @@ function main () {
                                     }
                                     var current_workforce = self.workforce_of (target_repair, struct_id);
                                     if (!(current_workforce) || current_workforce < current_max) {
-                                        return struct_id;
+                                        var second_best = struct_id;
                                     }
                                 }
                             }
-                            return null;
+                            if (best) {
+                                return best;
+                            }
+                            else {
+                                return second_best;
+                            }
                         }, '_find_new_repair_site');},
                         get _find_new_big_repair_site () {return __get__ (this, function (self, creep, max_hits) {
                             var best_id = null;
@@ -18344,6 +19995,12 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
@@ -18352,6 +20009,7 @@ function main () {
                         __all__._MAX_BUILDERS = _MAX_BUILDERS;
                         __all__._MAX_REPAIR_WORKFORCE = _MAX_REPAIR_WORKFORCE;
                         __all__._mass_count = _mass_count;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.creep_base_1500miner = creep_base_1500miner;
                         __all__.creep_base_3000miner = creep_base_3000miner;
                         __all__.creep_base_3h = creep_base_3h;
@@ -18361,10 +20019,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -18376,6 +20034,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -18395,10 +20056,12 @@ function main () {
                         __all__.movement = movement;
                         __all__.old_role_names = old_role_names;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -18453,6 +20116,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -19102,6 +20775,12 @@ function main () {
                     var SK_LAIR_SOURCE_NOTED = __init__ (__world__.constants).SK_LAIR_SOURCE_NOTED;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
@@ -19121,7 +20800,7 @@ function main () {
                     var SUB_WALL = 120;
                     var SUB_ROAD = 121;
                     var SUB_CONTAINER = 122;
-                    var flag_definitions = {[LOCAL_MINE]: [COLOR_BLUE, COLOR_PURPLE], [DEPOT]: [COLOR_BLUE, COLOR_BLUE], [SPAWN_FILL_WAIT]: [COLOR_BLUE, COLOR_CYAN], [UPGRADER_SPOT]: [COLOR_BLUE, COLOR_GREEN], [SLIGHTLY_AVOID]: [COLOR_BLUE, COLOR_GREY], [SK_LAIR_SOURCE_NOTED]: [COLOR_BLUE, COLOR_WHITE], [TD_H_H_STOP]: [COLOR_CYAN, COLOR_RED], [TD_H_D_STOP]: [COLOR_CYAN, COLOR_PURPLE], [TD_D_GOAD]: [COLOR_CYAN, COLOR_BLUE], [ATTACK_DISMANTLE]: [COLOR_CYAN, COLOR_GREEN], [RAID_OVER]: [COLOR_CYAN, COLOR_YELLOW], [ENERGY_GRAB]: [COLOR_CYAN, COLOR_ORANGE], [SCOUT]: [COLOR_CYAN, COLOR_BROWN], [RANGED_DEFENSE]: [COLOR_CYAN, COLOR_CYAN], [ATTACK_POWER_BANK]: [COLOR_CYAN, COLOR_GREY], [REAP_POWER_BANK]: [COLOR_CYAN, COLOR_WHITE], [REMOTE_MINE]: [COLOR_GREEN, COLOR_CYAN], [CLAIM_LATER]: [COLOR_GREEN, COLOR_PURPLE], [RESERVE_NOW]: [COLOR_GREEN, COLOR_GREY], [RAMPART_DEFENSE]: [COLOR_GREEN, COLOR_GREEN], [REROUTE]: [COLOR_WHITE, COLOR_GREEN], [REROUTE_DESTINATION]: [COLOR_WHITE, COLOR_YELLOW]};
+                    var flag_definitions = {[LOCAL_MINE]: [COLOR_BLUE, COLOR_PURPLE], [DEPOT]: [COLOR_BLUE, COLOR_BLUE], [SPAWN_FILL_WAIT]: [COLOR_BLUE, COLOR_CYAN], [UPGRADER_SPOT]: [COLOR_BLUE, COLOR_GREEN], [SLIGHTLY_AVOID]: [COLOR_BLUE, COLOR_GREY], [SK_LAIR_SOURCE_NOTED]: [COLOR_BLUE, COLOR_WHITE], [TD_H_H_STOP]: [COLOR_CYAN, COLOR_RED], [TD_H_D_STOP]: [COLOR_CYAN, COLOR_PURPLE], [TD_D_GOAD]: [COLOR_CYAN, COLOR_BLUE], [ATTACK_DISMANTLE]: [COLOR_CYAN, COLOR_GREEN], [RAID_OVER]: [COLOR_CYAN, COLOR_YELLOW], [ENERGY_GRAB]: [COLOR_CYAN, COLOR_ORANGE], [SCOUT]: [COLOR_CYAN, COLOR_BROWN], [RANGED_DEFENSE]: [COLOR_CYAN, COLOR_CYAN], [ATTACK_POWER_BANK]: [COLOR_CYAN, COLOR_GREY], [REAP_POWER_BANK]: [COLOR_CYAN, COLOR_WHITE], [REMOTE_MINE]: [COLOR_GREEN, COLOR_CYAN], [CLAIM_LATER]: [COLOR_GREEN, COLOR_PURPLE], [RESERVE_NOW]: [COLOR_GREEN, COLOR_GREY], [RAMPART_DEFENSE]: [COLOR_GREEN, COLOR_GREEN], [REROUTE]: [COLOR_WHITE, COLOR_GREEN], [REROUTE_DESTINATION]: [COLOR_WHITE, COLOR_YELLOW], [SQUAD_KITING_PAIR]: [COLOR_ORANGE, COLOR_RED], [SQUAD_DUAL_SCOUTS]: [COLOR_ORANGE, COLOR_PURPLE], [SQUAD_4_SCOUTS]: [COLOR_ORANGE, COLOR_BLUE], [SQUAD_DUAL_ATTACK]: [COLOR_ORANGE, COLOR_CYAN], [SQUAD_DISMANTLE_RANGED]: [COLOR_ORANGE, COLOR_GREEN], [SQUAD_TOWER_DRAIN]: [COLOR_ORANGE, COLOR_YELLOW]};
                     var reverse_definitions = {};
                     var __iterable0__ = Object.keys (flag_definitions);
                     for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -19334,6 +21013,46 @@ function main () {
                             }
                         }
                         _global_flag_cache.set (flag_type, flag_list);
+                        return flag_list;
+                    };
+                    var find_flags_global_multitype_shared_first = function (flag_types, reload) {
+                        if (typeof reload == 'undefined' || (reload != null && reload .hasOwnProperty ("__kwargtrans__"))) {;
+                            var reload = false;
+                        };
+                        __check_new_flags ();
+                        if (Game.time > _global_flag_refresh_time) {
+                            _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
+                            _global_flag_cache = new_map ();
+                        }
+                        var cache_key = '|'.join (flag_types);
+                        if (_global_flag_cache.has (cache_key) && !(reload)) {
+                            return _global_flag_cache.get (cache_key);
+                        }
+                        var shared_first = null;
+                        var seconds = [];
+                        var __iterable0__ = flag_types;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var flag_type = __iterable0__ [__index0__];
+                            var definition = flag_definitions [flag_type];
+                            if (shared_first === null) {
+                                var shared_first = definition [0];
+                            }
+                            else if (shared_first != definition [0]) {
+                                print ('[flags][find_flags_global_multitype_shared_first] Called with diverse firsts! {}'.format (flag_types));
+                                return null;
+                            }
+                            seconds.append (definition [1]);
+                        }
+                        var flag_list = [];
+                        var __iterable0__ = Object.keys (Game.flags);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var name = __iterable0__ [__index0__];
+                            var flag = Game.flags [name];
+                            if (shared_first == flag.color && seconds.includes (flag.secondaryColor)) {
+                                flag_list.append (flag);
+                            }
+                        }
+                        _global_flag_cache.set (cache_key, flag_list);
                         return flag_list;
                     };
                     var find_flags_ms_global = function (main_type, sub_type, reload) {
@@ -19566,7 +21285,7 @@ function main () {
                         }
                         return null;
                     };
-                    Flag.prototype.hint = _flag_hint;
+                    Object.defineProperty (Flag.prototype, 'hint', {'get': _flag_hint});
                     __pragma__ ('<use>' +
                         'constants' +
                         'jstools.js_set_map' +
@@ -19594,6 +21313,12 @@ function main () {
                         __all__.SK_LAIR_SOURCE_NOTED = SK_LAIR_SOURCE_NOTED;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
                         __all__.SUB_CONTAINER = SUB_CONTAINER;
                         __all__.SUB_EXTENSION = SUB_EXTENSION;
                         __all__.SUB_EXTRACTOR = SUB_EXTRACTOR;
@@ -19631,6 +21356,7 @@ function main () {
                         __all__.find_closest_in_room = find_closest_in_room;
                         __all__.find_flags = find_flags;
                         __all__.find_flags_global = find_flags_global;
+                        __all__.find_flags_global_multitype_shared_first = find_flags_global_multitype_shared_first;
                         __all__.find_flags_ms_global = find_flags_ms_global;
                         __all__.find_ms_flags = find_ms_flags;
                         __all__.flag_definitions = flag_definitions;
@@ -19717,7 +21443,7 @@ function main () {
                         things.push (': ', this.x, ',', this.y, ' ', this.roomName, ']');
                         return ''.join (things);
                     };
-                    DeserializedPos.prototype.py_update = _update_deserialized_pos_xy;
+                    DeserializedPos.prototype.update = _update_deserialized_pos_xy;
                     Object.defineProperty (DeserializedPos.prototype, 'hint', {'get': _get_hint, 'set': _set_hint, 'enumerable': true, 'configurable': true});
                     Object.defineProperty (DeserializedPos.prototype, 'pos', {'get': _get_pos, 'enumerable': false, 'configurable': true});
                     DeserializedPos.prototype.toString = _deserialized_pos_to_string;
@@ -20456,6 +22182,20 @@ function main () {
                                 }
                             }
                             return false;
+                        });},
+                        get reset_inactive_mines () {return __get__ (this, function (self) {
+                            var mines = self.room.mining.active_mines;
+                            var all_mines = self.room.possible_remote_mining_operations;
+                            var __iterable0__ = all_mines;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var mine = __iterable0__ [__index0__];
+                                if (!(mines.includes (mine))) {
+                                    self.reset_last_paved (mine);
+                                }
+                            }
+                        });},
+                        get reset_last_paved () {return __get__ (this, function (self, mine_flag) {
+                            self.room.delete_cached_property (_cache_key_placed_roads_for_mine + mine_flag.name);
                         });},
                         get build_road () {return __get__ (this, function (self, mine_flag) {
                             var current_method_version = 1;
@@ -21611,7 +23351,9 @@ function main () {
                                 return c.hits < c.hitsMax;
                             }));
                             if (len (damaged)) {
-                                var towers = self.towers ();
+                                var towers = _.filter (self.towers (), (function __lambda__ (x) {
+                                    return x.energy;
+                                }));
                                 if (!(len (towers))) {
                                     return ;
                                 }
@@ -21750,7 +23492,9 @@ function main () {
                                 self.mem.alert_for = 1;
                             }
                             var hostiles = self.dangerous_hostiles ();
-                            var towers = self.towers ();
+                            var towers = _.filter (self.towers (), (function __lambda__ (x) {
+                                return x.energy;
+                            }));
                             if (len (towers)) {
                                 if (__mod__ (Game.time, 3) == 1) {
                                     var damaged_warriors = _.filter (self.room.find (FIND_MY_CREEPS), (function __lambda__ (c) {
@@ -22074,7 +23818,7 @@ function main () {
                                                 var nearest = spot;
                                             }
                                         }
-                                        nearest.py_update (rampart.pos.x, rampart.pos.y, rampart.pos.roomName);
+                                        nearest.update (rampart.pos.x, rampart.pos.y, rampart.pos.roomName);
                                         _.pull (cold_spots, [nearest]);
                                         hot_spots.append (nearest);
                                     }
@@ -22519,6 +24263,7 @@ function main () {
                     var _KEEP_IN_TERMINAL_ENERGY = 0;
                     var sell_at_prices = {[RESOURCE_OXYGEN]: 1.0, [RESOURCE_HYDROGEN]: 1.0, [RESOURCE_ZYNTHIUM]: 0.7, [RESOURCE_UTRIUM]: 0.7, [RESOURCE_LEMERGIUM]: 0.7, [RESOURCE_KEANIUM]: 0.7};
                     var bottom_prices = {[RESOURCE_OXYGEN]: 0.4, [RESOURCE_HYDROGEN]: 0.4, [RESOURCE_KEANIUM]: 0.2, [RESOURCE_ZYNTHIUM]: 0.2, [RESOURCE_UTRIUM]: 0.2, [RESOURCE_LEMERGIUM]: 0.2};
+                    var minerals_to_keep_on_hand = [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID];
                     var MineralMind = __class__ ('MineralMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
@@ -22739,59 +24484,17 @@ function main () {
                             }
                             return self._labs;
                         }, 'labs');},
-                        get amount_needed_in_lab1 () {return __get__ (this, function (self) {
-                            if (self._needed_in_lab1 === undefined) {
-                                var mineral = self.get_lab_target_mineral ();
-                                if (mineral === null) {
-                                    return 0;
-                                }
-                                var all_labs = _ (self.labs ());
-                                var labs = all_labs.filter ((function __lambda__ (x) {
-                                    return x.mineralType == mineral;
-                                }));
-                                if (!(labs.size ())) {
-                                    var labs = all_labs.filter ((function __lambda__ (x) {
-                                        return !(x.mineralAmount);
-                                    }));
-                                }
-                                var capacity = labs.sum ('mineralCapacity');
-                                var filled = labs.sum ('mineralAmount');
-                                var empty = capacity - filled;
-                                var available = self.get_total_room_resource_counts () [mineral] - filled;
-                                self._needed_in_lab1 = min (empty, available);
+                        get labs_for () {return __get__ (this, function (self, mineral) {
+                            if (self._labs_for === undefined) {
+                                self._labs_for = _ (self.labs ()).filter ((function __lambda__ (l) {
+                                    return l.mineralAmount && l.energy;
+                                })).groupBy ('mineralType').value ();
                             }
-                            return self._needed_in_lab1;
-                        }, 'amount_needed_in_lab1');},
-                        get amount_needed_in_lab2 () {return __get__ (this, function (self) {
-                            if (self._needed_in_lab2 === undefined) {
-                                var mineral = self.get_lab2_target_mineral ();
-                                if (mineral === null) {
-                                    return 0;
-                                }
-                                var all_labs = _ (self.labs ());
-                                var labs = all_labs.filter ((function __lambda__ (x) {
-                                    return x.mineralType == mineral;
-                                }));
-                                if (!(labs.size ())) {
-                                    var labs = all_labs.filter ((function __lambda__ (x) {
-                                        return !(x.mineralAmount);
-                                    }));
-                                }
-                                var capacity = labs.sum ('mineralCapacity');
-                                var filled = labs.sum ('mineralAmount');
-                                var empty = capacity - filled;
-                                var available = self.get_total_room_resource_counts () [mineral] - filled;
-                                self._needed_in_lab2 = min (empty, available);
-                            }
-                            return self._needed_in_lab2;
-                        }, 'amount_needed_in_lab2');},
+                            return self._labs_for [mineral] || [];
+                        }, 'labs_for');},
                         get energy_needed_in_labs () {return __get__ (this, function (self) {
                             if (self._energy_needed_in_labs === undefined) {
-                                var mineral = self.get_lab_target_mineral ();
-                                if (mineral === null) {
-                                    return 0;
-                                }
-                                var labs = _ (self.labs ()).filter ('mineralAmount');
+                                var labs = _ (self.labs ());
                                 var capacity = labs.sum ('energyCapacity');
                                 var filled = labs.sum ('energy');
                                 var empty = capacity - filled;
@@ -22800,24 +24503,71 @@ function main () {
                             }
                             return self._energy_needed_in_labs;
                         }, 'energy_needed_in_labs');},
-                        get get_lab_target_mineral () {return __get__ (this, function (self) {
-                            var mineral = 'XKHO2';
-                            if (_.find (self.labs (), (function __lambda__ (l) {
-                                return l.mineralType == mineral || !(l.mineralType);
-                            })) && self.get_total_room_resource_counts () [mineral]) {
-                                return mineral;
+                        get get_lab_targets () {return __get__ (this, function (self) {
+                            if (self._lab_targets !== undefined) {
+                                return self._lab_targets;
                             }
-                            return null;
-                        }, 'get_lab_target_mineral');},
-                        get get_lab2_target_mineral () {return __get__ (this, function (self) {
-                            var mineral = 'XLHO2';
-                            if (_.find (self.labs (), (function __lambda__ (l) {
-                                return l.mineralType == mineral || !(l.mineralType);
-                            })) && self.get_total_room_resource_counts () [mineral]) {
-                                return mineral;
+                            var possible_minerals = [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID];
+                            var resource_counts = self.get_total_room_resource_counts ();
+                            var minerals_needing_lab = [];
+                            var __iterable0__ = possible_minerals;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var mineral = __iterable0__ [__index0__];
+                                if ((mineral in resource_counts)) {
+                                    minerals_needing_lab.append (mineral);
+                                }
                             }
-                            return null;
-                        }, 'get_lab2_target_mineral');},
+                            var result = [];
+                            var labs = self.labs ();
+                            var extra_labs = [];
+                            var __iterable0__ = labs;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var lab = __iterable0__ [__index0__];
+                                if (lab.mineralType) {
+                                    if (possible_minerals.includes (lab.mineralType)) {
+                                        result.append ([lab, lab.mineralType, min (resource_counts [lab.mineralType], LAB_MINERAL_CAPACITY)]);
+                                        _.pull (minerals_needing_lab, lab.mineralType);
+                                    }
+                                }
+                                else {
+                                    extra_labs.append (lab);
+                                }
+                            }
+                            if (len (minerals_needing_lab)) {
+                                var __iterable0__ = extra_labs;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var lab = __iterable0__ [__index0__];
+                                    var mineral = minerals_needing_lab.splice (0, 1) [0];
+                                    result.append ([lab, mineral, min (resource_counts [mineral], LAB_MINERAL_CAPACITY)]);
+                                }
+                            }
+                            self._lab_targets = result;
+                            return result;
+                        }, 'get_lab_targets');},
+                        get get_labs_needing_mineral () {return __get__ (this, function (self) {
+                            if (self._labs_for_mineral !== undefined) {
+                                return self._labs_for_mineral;
+                            }
+                            var lab_targets = self.get_lab_targets ();
+                            var result = {};
+                            var __iterable0__ = lab_targets;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var lab = __left0__ [0];
+                                var mineral = __left0__ [1];
+                                var amount = __left0__ [2];
+                                if (lab.mineralAmount < amount) {
+                                    if ((mineral in result)) {
+                                        result [mineral].push ([lab, amount]);
+                                    }
+                                    else {
+                                        result [mineral] = [[lab, amount]];
+                                    }
+                                }
+                            }
+                            self._labs_for_mineral = result;
+                            return result;
+                        }, 'get_labs_needing_mineral');},
                         get get_total_room_resource_counts () {return __get__ (this, function (self) {
                             if (self._total_resource_counts !== undefined) {
                                 return self._total_resource_counts;
@@ -22905,7 +24655,7 @@ function main () {
                             }
                             var hauler = self.get_mineral_hauler ();
                             if (hauler && (RESOURCE_ENERGY in hauler.carry)) {
-                                energy += hauler [RESOURCE_ENERGY];
+                                energy += hauler.carry [RESOURCE_ENERGY];
                             }
                             self._estimate_energy = energy;
                             return energy;
@@ -23021,7 +24771,9 @@ function main () {
                                 }
                                 return min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_spending));
                             }
-                            else if (mineral == self.get_lab_target_mineral () || mineral == self.get_lab2_target_mineral ()) {
+                            else if (_.some (self.get_lab_targets (), (function __lambda__ (t) {
+                                return t [1] == mineral;
+                            }))) {
                                 return 0;
                             }
                             else {
@@ -23075,7 +24827,7 @@ function main () {
                             }
                         }, 'tick_terminal');},
                         get find_emptying_mineral_and_cost () {return __get__ (this, function (self) {
-                            if (self._next_mineral_to_empty === null) {
+                            if (!(self._next_mineral_to_empty)) {
                                 var energy = self.terminal.store.energy;
                                 var minerals = _.sum (self.terminal.store) - energy;
                                 if (minerals > 1000 || _.sum (self.storage.store) == self.storage.store.energy) {
@@ -23517,7 +25269,9 @@ function main () {
                             if (self.has_no_terminal_or_storage ()) {
                                 return 0;
                             }
-                            else if (self.get_target_mineral_miner_count () || len (self.adding_to_terminal ()) || self.energy_needed_in_labs () || self.amount_needed_in_lab1 () || self.amount_needed_in_lab2 () || _.sum (self.removing_from_terminal (), (function __lambda__ (t) {
+                            else if (self.get_target_mineral_miner_count () || len (self.adding_to_terminal ()) || self.energy_needed_in_labs () || _.some (self.get_lab_targets (), (function __lambda__ (t) {
+                                return t [0].mineralAmount < t [2];
+                            })) || _.sum (self.removing_from_terminal (), (function __lambda__ (t) {
                                 return t [1];
                             })) > 50 * 1000) {
                                 return 1;
@@ -23623,6 +25377,7 @@ function main () {
                         __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
                         __all__.find_credits_one_energy_is_worth = find_credits_one_energy_is_worth;
                         __all__.max_minerals_to_keep = max_minerals_to_keep;
+                        __all__.minerals_to_keep_on_hand = minerals_to_keep_on_hand;
                         __all__.movement = movement;
                         __all__.rmem_key_currently_under_siege = rmem_key_currently_under_siege;
                         __all__.rmem_key_empty_all_resources_into_room = rmem_key_empty_all_resources_into_room;
@@ -24029,8 +25784,14 @@ function main () {
                         get is_mine_linked () {return __get__ (this, function (self, source) {
                             var flag = flags.look_for (self.room, source, LOCAL_MINE);
                             if (flag) {
-                                var miner_carry_no_haulers = flag.pos.roomName == self.room.name && self.room.room.energyCapacityAvailable >= (BODYPART_COST [MOVE] + BODYPART_COST [CARRY]) + BODYPART_COST [WORK] * 5 && flag.pos.inRangeTo (self.closest_deposit_point_to_mine (flag), 2);
-                                return miner_carry_no_haulers;
+                                var deposit_point = self.closest_deposit_point_to_mine (flag);
+                                if (deposit_point) {
+                                    var miner_carry_no_haulers = flag.pos.roomName == self.room.name && self.room.room.energyCapacityAvailable >= (BODYPART_COST [MOVE] + BODYPART_COST [CARRY]) + BODYPART_COST [WORK] * 5 && flag.pos.inRangeTo (deposit_point, 2);
+                                    return miner_carry_no_haulers;
+                                }
+                                else {
+                                    return false;
+                                }
                             }
                             else {
                                 print ("[mining] Warning: can't find local flag for mine {}!".format (source));
@@ -24360,10 +26121,17 @@ function main () {
                     var SK_USERNAME = __init__ (__world__.constants).SK_USERNAME;
                     var SLIGHTLY_AVOID = __init__ (__world__.constants).SLIGHTLY_AVOID;
                     var SPAWN_FILL_WAIT = __init__ (__world__.constants).SPAWN_FILL_WAIT;
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
                     var TD_D_GOAD = __init__ (__world__.constants).TD_D_GOAD;
                     var TD_H_D_STOP = __init__ (__world__.constants).TD_H_D_STOP;
                     var TD_H_H_STOP = __init__ (__world__.constants).TD_H_H_STOP;
                     var UPGRADER_SPOT = __init__ (__world__.constants).UPGRADER_SPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var creep_base_1500miner = __init__ (__world__.constants).creep_base_1500miner;
                     var creep_base_3000miner = __init__ (__world__.constants).creep_base_3000miner;
                     var creep_base_3h = __init__ (__world__.constants).creep_base_3h;
@@ -24373,10 +26141,10 @@ function main () {
                     var creep_base_claiming = __init__ (__world__.constants).creep_base_claiming;
                     var creep_base_defender = __init__ (__world__.constants).creep_base_defender;
                     var creep_base_dismantler = __init__ (__world__.constants).creep_base_dismantler;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
                     var creep_base_full_move_dismantler = __init__ (__world__.constants).creep_base_full_move_dismantler;
                     var creep_base_full_move_goader = __init__ (__world__.constants).creep_base_full_move_goader;
                     var creep_base_full_move_healer = __init__ (__world__.constants).creep_base_full_move_healer;
-                    var creep_base_full_move_power_attack = __init__ (__world__.constants).creep_base_full_move_power_attack;
                     var creep_base_full_upgrader = __init__ (__world__.constants).creep_base_full_upgrader;
                     var creep_base_goader = __init__ (__world__.constants).creep_base_goader;
                     var creep_base_half_move_hauler = __init__ (__world__.constants).creep_base_half_move_hauler;
@@ -24388,6 +26156,9 @@ function main () {
                     var creep_base_ranged_offense = __init__ (__world__.constants).creep_base_ranged_offense;
                     var creep_base_reserving = __init__ (__world__.constants).creep_base_reserving;
                     var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
                     var creep_base_work_full_move_hauler = __init__ (__world__.constants).creep_base_work_full_move_hauler;
                     var creep_base_work_half_move_hauler = __init__ (__world__.constants).creep_base_work_half_move_hauler;
                     var creep_base_worker = __init__ (__world__.constants).creep_base_worker;
@@ -24404,10 +26175,12 @@ function main () {
                     var min_repave_mine_roads_every = __init__ (__world__.constants).min_repave_mine_roads_every;
                     var old_role_names = __init__ (__world__.constants).old_role_names;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
                     var request_priority_economy = __init__ (__world__.constants).request_priority_economy;
                     var request_priority_helping_party = __init__ (__world__.constants).request_priority_helping_party;
                     var request_priority_imminent_threat_defense = __init__ (__world__.constants).request_priority_imminent_threat_defense;
                     var request_priority_low = __init__ (__world__.constants).request_priority_low;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
                     var rmem_key_building_paused = __init__ (__world__.constants).rmem_key_building_paused;
                     var rmem_key_building_priority_spawn = __init__ (__world__.constants).rmem_key_building_priority_spawn;
                     var rmem_key_building_priority_walls = __init__ (__world__.constants).rmem_key_building_priority_walls;
@@ -24462,6 +26235,16 @@ function main () {
                     var role_simple_dismantle = __init__ (__world__.constants).role_simple_dismantle;
                     var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
                     var role_spawn_fill_backup = __init__ (__world__.constants).role_spawn_fill_backup;
+                    var role_squad_all_attack = __init__ (__world__.constants).role_squad_all_attack;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
                     var role_td_goad = __init__ (__world__.constants).role_td_goad;
                     var role_td_healer = __init__ (__world__.constants).role_td_healer;
                     var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
@@ -24488,6 +26271,9 @@ function main () {
                     var target_spawn_deposit = __init__ (__world__.constants).target_spawn_deposit;
                     var target_tower_fill = __init__ (__world__.constants).target_tower_fill;
                     var cache_key_spending_now = __init__ (__world__.constants.memkeys.room).cache_key_spending_now;
+                    var cache_key_squad_prefix = __init__ (__world__.constants.memkeys.room).cache_key_squad_prefix;
+                    var cache_key_squads = __init__ (__world__.constants.memkeys.room).cache_key_squads;
+                    var mem_key_alive_squads = __init__ (__world__.constants.memkeys.room).mem_key_alive_squads;
                     var mem_key_building_paused = __init__ (__world__.constants.memkeys.room).mem_key_building_paused;
                     var mem_key_building_priority_spawn = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_spawn;
                     var mem_key_building_priority_walls = __init__ (__world__.constants.memkeys.room).mem_key_building_priority_walls;
@@ -24570,6 +26356,7 @@ function main () {
                     var room_spending_state_under_siege = __init__ (__world__.rooms.room_constants).room_spending_state_under_siege;
                     var room_spending_state_upgrading = __init__ (__world__.rooms.room_constants).room_spending_state_upgrading;
                     var room_spending_state_visual = __init__ (__world__.rooms.room_constants).room_spending_state_visual;
+                    var SquadTactics = __init__ (__world__.rooms.squads).SquadTactics;
                     var hostile_utils = __init__ (__world__.utilities.hostile_utils);
                     var movement = __init__ (__world__.utilities.movement);
                     var speech = __init__ (__world__.utilities.speech);
@@ -24587,6 +26374,7 @@ function main () {
                                 self.links = LinkingMind (self);
                                 self.mining = MiningMind (self);
                                 self.minerals = MineralMind (self);
+                                self.squads = SquadTactics (self);
                             }
                             else {
                                 self.rcl = 0;
@@ -26137,7 +27925,7 @@ function main () {
                                     var wm = min (wm, worker_size * max_upgraders);
                                 }
                                 var energy_struct = self.get_upgrader_energy_struct ();
-                                if (energy_struct.structureType == STRUCTURE_LINK) {
+                                if (energy_struct && energy_struct.structureType == STRUCTURE_LINK) {
                                     var distance = movement.chebyshev_distance_room_pos (self.links.main_link, energy_struct);
                                     var wm = min (wm, math.ceil ((LINK_CAPACITY * (1 - LINK_LOSS_RATIO)) / distance));
                                 }
@@ -26427,6 +28215,21 @@ function main () {
                             }
                             return null;
                         });},
+                        get _next_attack_role () {return __get__ (this, function (self) {
+                            var attack_req = self._get_next_requested_creep (request_priority_attack);
+                            if (attack_req) {
+                                var hauler = self._check_role_reqs ([[role_mineral_hauler, self.minerals.get_target_mineral_hauler_count]]);
+                                if (hauler) {
+                                    return hauler;
+                                }
+                                else {
+                                    return attack_req;
+                                }
+                            }
+                            else {
+                                return null;
+                            }
+                        });},
                         get _next_needed_local_role () {return __get__ (this, function (self) {
                             var requirements = [[role_upgrade_fill, self.get_target_upgrade_fill_mass, true], [role_builder, self.get_target_builder_work_mass, false, true], [role_upgrader, self.get_target_upgrader_work_mass, false, true], [role_room_reserve, self.get_target_room_reserve_count], [role_colonist, self.get_target_colonist_work_mass, false, true], [role_mineral_steal, self.get_target_mineral_steal_mass, true], [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count], [role_mineral_miner, self.minerals.get_target_mineral_miner_count]];
                             return self._check_role_reqs (requirements);
@@ -26509,11 +28312,11 @@ function main () {
                             if (role_obj) {
                                 return role_obj;
                             }
-                            var role_obj = self.spawn_one_creep_per_flag (ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack, creep_base_full_move_power_attack);
+                            var role_obj = self.spawn_one_creep_per_flag (ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack, creep_base_full_move_attack);
                             if (role_obj) {
                                 return role_obj;
                             }
-                            var role_obj = self.spawn_one_creep_per_flag (ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack, creep_base_full_move_power_attack);
+                            var role_obj = self.spawn_one_creep_per_flag (ATTACK_POWER_BANK, role_power_attack, creep_base_power_attack, creep_base_full_move_attack);
                             if (role_obj) {
                                 return role_obj;
                             }
@@ -26559,7 +28362,7 @@ function main () {
                             else {
                                 var funcs_to_try = [self._next_needed_local_mining_role, (function __lambda__ () {
                                     return self._get_next_requested_creep (request_priority_imminent_threat_defense);
-                                }), self.wall_defense, self._next_cheap_military_role, self.next_cheap_dismantle_goal, self._next_complex_defender, self.mining.next_mining_role, (function __lambda__ () {
+                                }), self.wall_defense, self._next_cheap_military_role, self.next_cheap_dismantle_goal, self._next_complex_defender, self._next_attack_role, self.mining.next_mining_role, (function __lambda__ () {
                                     return self._get_next_requested_creep (request_priority_economy);
                                 }), self._next_tower_breaker_role, self._next_needed_local_role, self._next_claim, self._get_next_requested_creep];
                             }
@@ -26650,6 +28453,7 @@ function main () {
                         'rooms.minerals' +
                         'rooms.mining' +
                         'rooms.room_constants' +
+                        'rooms.squads' +
                         'utilities.hostile_utils' +
                         'utilities.movement' +
                         'utilities.positions' +
@@ -26686,11 +28490,21 @@ function main () {
                         __all__.SK_USERNAME = SK_USERNAME;
                         __all__.SLIGHTLY_AVOID = SLIGHTLY_AVOID;
                         __all__.SPAWN_FILL_WAIT = SPAWN_FILL_WAIT;
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
+                        __all__.SquadTactics = SquadTactics;
                         __all__.TD_D_GOAD = TD_D_GOAD;
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__.basic_reuse_path = basic_reuse_path;
                         __all__.cache_key_spending_now = cache_key_spending_now;
+                        __all__.cache_key_squad_prefix = cache_key_squad_prefix;
+                        __all__.cache_key_squads = cache_key_squads;
                         __all__.clamp_room_x_or_y = clamp_room_x_or_y;
                         __all__.consistency = consistency;
                         __all__.creep_base_1500miner = creep_base_1500miner;
@@ -26702,10 +28516,10 @@ function main () {
                         __all__.creep_base_claiming = creep_base_claiming;
                         __all__.creep_base_defender = creep_base_defender;
                         __all__.creep_base_dismantler = creep_base_dismantler;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
                         __all__.creep_base_full_move_dismantler = creep_base_full_move_dismantler;
                         __all__.creep_base_full_move_goader = creep_base_full_move_goader;
                         __all__.creep_base_full_move_healer = creep_base_full_move_healer;
-                        __all__.creep_base_full_move_power_attack = creep_base_full_move_power_attack;
                         __all__.creep_base_full_upgrader = creep_base_full_upgrader;
                         __all__.creep_base_goader = creep_base_goader;
                         __all__.creep_base_half_move_hauler = creep_base_half_move_hauler;
@@ -26717,6 +28531,9 @@ function main () {
                         __all__.creep_base_ranged_offense = creep_base_ranged_offense;
                         __all__.creep_base_reserving = creep_base_reserving;
                         __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
                         __all__.creep_base_work_full_move_hauler = creep_base_work_full_move_hauler;
                         __all__.creep_base_work_half_move_hauler = creep_base_work_half_move_hauler;
                         __all__.creep_base_worker = creep_base_worker;
@@ -26750,6 +28567,7 @@ function main () {
                         __all__.max_repath_mine_roads_every = max_repath_mine_roads_every;
                         __all__.max_repave_mine_roads_every = max_repave_mine_roads_every;
                         __all__.max_total_resume_remote_mining = max_total_resume_remote_mining;
+                        __all__.mem_key_alive_squads = mem_key_alive_squads;
                         __all__.mem_key_building_paused = mem_key_building_paused;
                         __all__.mem_key_building_priority_spawn = mem_key_building_priority_spawn;
                         __all__.mem_key_building_priority_walls = mem_key_building_priority_walls;
@@ -26797,10 +28615,12 @@ function main () {
                         __all__.rcl_to_max_wall_hits = rcl_to_max_wall_hits;
                         __all__.rcl_to_target_wall_hits = rcl_to_target_wall_hits;
                         __all__.recycle_time = recycle_time;
+                        __all__.request_priority_attack = request_priority_attack;
                         __all__.request_priority_economy = request_priority_economy;
                         __all__.request_priority_helping_party = request_priority_helping_party;
                         __all__.request_priority_imminent_threat_defense = request_priority_imminent_threat_defense;
                         __all__.request_priority_low = request_priority_low;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
                         __all__.rmem_key_building_paused = rmem_key_building_paused;
                         __all__.rmem_key_building_priority_spawn = rmem_key_building_priority_spawn;
                         __all__.rmem_key_building_priority_walls = rmem_key_building_priority_walls;
@@ -26855,6 +28675,16 @@ function main () {
                         __all__.role_simple_dismantle = role_simple_dismantle;
                         __all__.role_spawn_fill = role_spawn_fill;
                         __all__.role_spawn_fill_backup = role_spawn_fill_backup;
+                        __all__.role_squad_all_attack = role_squad_all_attack;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
                         __all__.role_td_goad = role_td_goad;
                         __all__.role_td_healer = role_td_healer;
                         __all__.role_temporary_replacing = role_temporary_replacing;
@@ -26896,6 +28726,896 @@ function main () {
                         __all__.target_source = target_source;
                         __all__.target_spawn_deposit = target_spawn_deposit;
                         __all__.target_tower_fill = target_tower_fill;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'rooms.squads', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var SQUAD_4_SCOUTS = __init__ (__world__.constants).SQUAD_4_SCOUTS;
+                    var SQUAD_DISMANTLE_RANGED = __init__ (__world__.constants).SQUAD_DISMANTLE_RANGED;
+                    var SQUAD_DUAL_ATTACK = __init__ (__world__.constants).SQUAD_DUAL_ATTACK;
+                    var SQUAD_DUAL_SCOUTS = __init__ (__world__.constants).SQUAD_DUAL_SCOUTS;
+                    var SQUAD_KITING_PAIR = __init__ (__world__.constants).SQUAD_KITING_PAIR;
+                    var SQUAD_TOWER_DRAIN = __init__ (__world__.constants).SQUAD_TOWER_DRAIN;
+                    var creep_base_full_move_attack = __init__ (__world__.constants).creep_base_full_move_attack;
+                    var creep_base_scout = __init__ (__world__.constants).creep_base_scout;
+                    var creep_base_squad_dismantle = __init__ (__world__.constants).creep_base_squad_dismantle;
+                    var creep_base_squad_healer = __init__ (__world__.constants).creep_base_squad_healer;
+                    var creep_base_squad_ranged = __init__ (__world__.constants).creep_base_squad_ranged;
+                    var request_priority_attack = __init__ (__world__.constants).request_priority_attack;
+                    var rmem_key_alive_quads = __init__ (__world__.constants).rmem_key_alive_quads;
+                    var role_squad_dismantle = __init__ (__world__.constants).role_squad_dismantle;
+                    var role_squad_drone = __init__ (__world__.constants).role_squad_drone;
+                    var role_squad_final_boost = __init__ (__world__.constants).role_squad_final_boost;
+                    var role_squad_final_renew = __init__ (__world__.constants).role_squad_final_renew;
+                    var role_squad_heal = __init__ (__world__.constants).role_squad_heal;
+                    var role_squad_init = __init__ (__world__.constants).role_squad_init;
+                    var role_squad_kiting_attack = __init__ (__world__.constants).role_squad_kiting_attack;
+                    var role_squad_kiting_heal = __init__ (__world__.constants).role_squad_kiting_heal;
+                    var role_squad_ranged = __init__ (__world__.constants).role_squad_ranged;
+                    var target_single_flag = __init__ (__world__.constants).target_single_flag;
+                    var cache_key_squads = __init__ (__world__.constants.memkeys.room).cache_key_squads;
+                    var try_exec = __init__ (__world__.jstools.errorlog).try_exec;
+                    var new_map = __init__ (__world__.jstools.js_set_map).new_map;
+                    var flags = __init__ (__world__.position_management.flags);
+                    var locations = __init__ (__world__.position_management.locations);
+                    var movement = __init__ (__world__.utilities.movement);
+                    var positions = __init__ (__world__.utilities.positions);
+                    var can_renew = function (creep) {
+                        return !(creep.creep.spawning) && creep.creep.ticksToLive < CREEP_LIFE_TIME - ((SPAWN_RENEW_RATIO * CREEP_LIFE_TIME) / CREEP_SPAWN_TIME) / len (creep.creep.body);
+                    };
+                    var ticks_to_renew = function (creep) {
+                        if (creep.creep.spawning) {
+                            return 0;
+                        }
+                        return (CREEP_LIFE_TIME - creep.creep.ticksToLive) / (((SPAWN_RENEW_RATIO * CREEP_LIFE_TIME) / CREEP_SPAWN_TIME) / len (creep.creep.body));
+                    };
+                    var roles_required_for = function (flag) {
+                        var hint = flag.hint;
+                        if (hint == SQUAD_KITING_PAIR) {
+                            return {[HEAL]: 1, [RANGED_ATTACK]: 1};
+                        }
+                        else if (hint == SQUAD_DUAL_ATTACK) {
+                            return {[ATTACK]: 1, [HEAL]: 1};
+                        }
+                        else if (hint == SQUAD_DUAL_SCOUTS) {
+                            return {[MOVE]: 2};
+                        }
+                        else if (hint == SQUAD_4_SCOUTS) {
+                            return {[MOVE]: 4};
+                        }
+                        else if (hint == SQUAD_DISMANTLE_RANGED) {
+                            return {[WORK]: 1, [HEAL]: 2, [RANGED_ATTACK]: 1};
+                        }
+                        else if (hint == SQUAD_TOWER_DRAIN) {
+                            return {[HEAL]: 3};
+                        }
+                        else {
+                            print ('[squads][roles_required_for] Unknown hint {}!'.format (flag.hint));
+                            return {};
+                        }
+                    };
+                    var get_base_for = function (flag, specialty) {
+                        if ((flag.name in Memory.flags) && Memory.flags [flag.name].size) {
+                            var size = Memory.flags [flag.name].size;
+                        }
+                        else {
+                            var size = MAX_CREEP_SIZE;
+                        }
+                        if (specialty == MOVE) {
+                            return [creep_base_scout, 1];
+                        }
+                        else if (specialty == ATTACK) {
+                            return [creep_base_full_move_attack, size];
+                        }
+                        else if (specialty == HEAL) {
+                            return [creep_base_squad_healer, size];
+                        }
+                        else if (specialty == RANGED_ATTACK) {
+                            return [creep_base_squad_ranged, size];
+                        }
+                        else if (specialty == WORK) {
+                            return [creep_base_squad_dismantle, size];
+                        }
+                        else {
+                            print ('[squads][get_base_for] Unknown type {}!'.format (specialty));
+                            return [creep_base_scout, 1];
+                        }
+                    };
+                    var get_drone_role = function (target_hint, specialty) {
+                        if (target_hint == SQUAD_TOWER_DRAIN) {
+                            return role_squad_heal;
+                        }
+                        if (target_hint == SQUAD_KITING_PAIR) {
+                            if (specialty == RANGED_ATTACK) {
+                                return role_squad_kiting_attack;
+                            }
+                            else if (specialty == HEAL) {
+                                return role_squad_kiting_heal;
+                            }
+                        }
+                        if (specialty == MOVE) {
+                            return role_squad_drone;
+                        }
+                        else if (specialty == WORK) {
+                            return role_squad_dismantle;
+                        }
+                        else if (specialty == RANGED_ATTACK) {
+                            return role_squad_ranged;
+                        }
+                        else if (specialty == HEAL) {
+                            return role_squad_heal;
+                        }
+                    };
+                    var _boosts_to_use = {[HEAL]: RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, [RANGED_ATTACK]: RESOURCE_CATALYZED_KEANIUM_ALKALIDE, [WORK]: RESOURCE_CATALYZED_ZYNTHIUM_ACID};
+                    var SquadTactics = __class__ ('SquadTactics', [object], {
+                        get __init__ () {return __get__ (this, function (self, room) {
+                            self.room = room;
+                        });},
+                        get squad_targets () {return __get__ (this, function (self) {
+                            var targets = self._squad_targets;
+                            if (targets !== undefined) {
+                                return targets;
+                            }
+                            var targets = [];
+                            var cached = self.room.get_cached_property (cache_key_squads);
+                            if (cached) {
+                                var __iterable0__ = cached;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var name = __iterable0__ [__index0__];
+                                    var flag = Game.flags [name];
+                                    if (flag) {
+                                        targets.append (flag);
+                                    }
+                                }
+                            }
+                            else {
+                                var cached = [];
+                                var __iterable0__ = flags.find_flags_global_multitype_shared_first ([SQUAD_KITING_PAIR, SQUAD_DUAL_SCOUTS, SQUAD_4_SCOUTS, SQUAD_DUAL_ATTACK, SQUAD_DISMANTLE_RANGED, SQUAD_TOWER_DRAIN]);
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var flag = __iterable0__ [__index0__];
+                                    if (flags.flag_sponsor (flag) == self.room.name) {
+                                        targets.append (flag);
+                                        cached.append (flag.name);
+                                    }
+                                }
+                                self.room.store_cached_property (cache_key_squads, cached, 100);
+                            }
+                            self._squad_targets = targets;
+                            return targets;
+                        }, 'squad_targets');},
+                        get renew_or_depot () {return __get__ (this, function (self, creep) {
+                            if (creep.creep.spawning) {
+                                return ;
+                            }
+                            if (!(can_renew (creep)) || !(len (self.room.spawns))) {
+                                delete creep.memory.renewed_last;
+                                creep.go_to_depot ();
+                                return ;
+                            }
+                            if (self._renewing_registered === undefined) {
+                                self._renewing_registered = [];
+                            }
+                            self._renewing_registered.append (creep);
+                        }, 'renew_or_depot');},
+                        get boost_or_depot () {return __get__ (this, function (self, creep) {
+                            if (!(self.can_boost (creep))) {
+                                creep.go_to_depot ();
+                                return ;
+                            }
+                            if (self._boost_registered === undefined) {
+                                self._boost_registered = new_map ();
+                            }
+                            var specialty = creep.findSpecialty ();
+                            var specialty_list = self._boost_registered.get (specialty);
+                            if (!(specialty_list)) {
+                                var specialty_list = [];
+                                self._boost_registered.set (specialty, specialty_list);
+                            }
+                            specialty_list.append (creep);
+                        }, 'boost_or_depot');},
+                        get can_boost () {return __get__ (this, function (self, creep) {
+                            var specialty = creep.findSpecialty ();
+                            var mineral = _boosts_to_use [specialty];
+                            if (!(mineral)) {
+                                print ("[{}][squads] Can't boost {} due to lack of a mineral specified for {} creeps.".format (self.room.name, creep.name, specialty));
+                                return false;
+                            }
+                            var labs = self.room.minerals.labs_for (mineral);
+                            if (!(len (labs))) {
+                                print ("[{}][squads] Can't boost {} due to lack of labs for boosting with {}.".format (self.room.name, creep.name, mineral));
+                                return false;
+                            }
+                            return _.some (creep.creep.body, (function __lambda__ (part) {
+                                return part.type == specialty && !(part.boost);
+                            }));
+                        }, 'can_boost');},
+                        get run () {return __get__ (this, function (self) {
+                            if (__mod__ (Game.time + self.room.get_unique_owned_index (), 25) == 5) {
+                                var targets_with_active_squads = [];
+                            }
+                            else {
+                                var targets_with_active_squads = null;
+                            }
+                            if (self._renewing_registered) {
+                                self.run_renewal ();
+                            }
+                            if (self._boost_registered) {
+                                self.run_boosts ();
+                            }
+                            if (self._stage1_registered_for_squad_id) {
+                                self.run_stage1 (targets_with_active_squads);
+                            }
+                            if (self._stage2_registered_for_squad_id) {
+                                self.run_stage2 (targets_with_active_squads);
+                            }
+                            if (self._stage3_registered_for_squad_id) {
+                                self.run_stage3 (targets_with_active_squads);
+                            }
+                            if (__mod__ (Game.time + self.room.get_unique_owned_index (), 40) == 0) {
+                                delete self.room.mem [rmem_key_alive_quads];
+                            }
+                            if (self._stage0_registered_for_target) {
+                                self.run_stage0 ();
+                            }
+                            if (targets_with_active_squads) {
+                                self.request_spawns_for_targets_excluding (targets_with_active_squads);
+                            }
+                        }, 'run');},
+                        get note_stage0_creep () {return __get__ (this, function (self, creep, target) {
+                            if (self._stage0_registered_for_target === undefined) {
+                                self._stage0_registered_for_target = new_map ();
+                            }
+                            var registered_so_far_tuple = self._stage0_registered_for_target.get (target.name);
+                            if (!(registered_so_far_tuple)) {
+                                var registered_so_far_tuple = [target, []];
+                                self._stage0_registered_for_target.set (target.name, registered_so_far_tuple);
+                            }
+                            registered_so_far_tuple [1].append (creep);
+                        }, 'note_stage0_creep');},
+                        get note_stage1_creep () {return __get__ (this, function (self, creep, squad_id) {
+                            if (!(self._stage1_registered_for_squad_id)) {
+                                self._stage1_registered_for_squad_id = new_map ();
+                            }
+                            var members = self._stage1_registered_for_squad_id.get (squad_id);
+                            if (!(members)) {
+                                var members = [];
+                                self._stage1_registered_for_squad_id.set (squad_id, members);
+                            }
+                            members.push (creep);
+                        }, 'note_stage1_creep');},
+                        get note_stage2_creep () {return __get__ (this, function (self, creep, squad_id) {
+                            if (!(self._stage2_registered_for_squad_id)) {
+                                self._stage2_registered_for_squad_id = new_map ();
+                            }
+                            var members = self._stage2_registered_for_squad_id.get (squad_id);
+                            if (!(members)) {
+                                var members = [];
+                                self._stage2_registered_for_squad_id.set (squad_id, members);
+                            }
+                            members.push (creep);
+                        }, 'note_stage2_creep');},
+                        get note_stage3_creep () {return __get__ (this, function (self, creep, squad_id) {
+                            if (!(self._stage3_registered_for_squad_id)) {
+                                self._stage3_registered_for_squad_id = new_map ();
+                            }
+                            var members = self._stage3_registered_for_squad_id.get (squad_id);
+                            if (!(members)) {
+                                var members = [];
+                                self._stage3_registered_for_squad_id.set (squad_id, members);
+                            }
+                            members.push (creep);
+                        }, 'note_stage3_creep');},
+                        get any_high_priority_renew () {return __get__ (this, function (self) {
+                            if (self._renewing_registered === undefined) {
+                                return false;
+                            }
+                            var length = len (self._renewing_registered);
+                            if (self._any_high_priority_renew !== undefined && self._any_high_priority_renew [0] == length) {
+                                return self._any_high_priority_renew [1];
+                            }
+                            var any_high_priority = false;
+                            var __iterable0__ = self._renewing_registered;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var creep = __iterable0__ [__index0__];
+                                if (creep.memory.role != role_squad_init) {
+                                    var any_high_priority = true;
+                                    break;
+                                }
+                            }
+                            self._any_high_priority_renew = [length, any_high_priority];
+                            return any_high_priority;
+                        }, 'any_high_priority_renew');},
+                        get run_renewal () {return __get__ (this, function (self) {
+                            var reset_high_prio_renew_status = false;
+                            var min_time_till_done = Infinity;
+                            var next_open_spawn = null;
+                            if (!(self.room.next_role) || self.any_high_priority_renew ()) {
+                                var avail_spawns = [];
+                                var __iterable0__ = self.room.spawns;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var spawn = __iterable0__ [__index0__];
+                                    if (!(spawn.spawning)) {
+                                        avail_spawns.append (spawn);
+                                    }
+                                }
+                                if (len (avail_spawns)) {
+                                    if (len (self._renewing_registered) > 1) {
+                                        var rank_renewing_creep = function (c) {
+                                            var extra = 0;
+                                            if (c.memory.role != role_squad_init) {
+                                                extra += 1000;
+                                            }
+                                            if (c.memory.renewed_last) {
+                                                extra += 200;
+                                            }
+                                            return (extra - ticks_to_renew (c)) - movement.minimum_chebyshev_distance (c, self.room.spawns);
+                                        };
+                                        self._renewing_registered = _.sortBy (self._renewing_registered, rank_renewing_creep);
+                                    }
+                                    while (len (avail_spawns) && len (self._renewing_registered)) {
+                                        var creep = self._renewing_registered.pop ();
+                                        if (creep.memory.role != role_squad_init) {
+                                            var reset_high_prio_renew_status = true;
+                                        }
+                                        var closest_spawn = null;
+                                        var closest_distance = Infinity;
+                                        var __iterable0__ = avail_spawns;
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var spawn = __iterable0__ [__index0__];
+                                            var distance = movement.chebyshev_distance_room_pos (creep, spawn);
+                                            if (distance < closest_distance) {
+                                                var closest_distance = distance;
+                                                var closest_spawn = spawn;
+                                            }
+                                        }
+                                        _.pull (avail_spawns, closest_spawn);
+                                        creep.memory.renewed_last = true;
+                                        if (creep.pos.isNearTo (closest_spawn)) {
+                                            var result = closest_spawn.renewCreep (creep.creep);
+                                            if (result != OK) {
+                                                print ('[{}][squads] Unknown result from {}.renewCreep({}): {}'.format (self.room.name, closest_spawn, creep.creep, result));
+                                            }
+                                        }
+                                        else {
+                                            creep.move_to (closest_spawn);
+                                        }
+                                        var time_till_done = ticks_to_renew (creep);
+                                        if (time_till_done < min_time_till_done) {
+                                            var min_time_till_done = time_till_done;
+                                            var next_open_spawn = closest_spawn;
+                                        }
+                                    }
+                                }
+                            }
+                            var __iterable0__ = self._renewing_registered;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var creep = __iterable0__ [__index0__];
+                                if (creep.memory.role != role_squad_init) {
+                                    var reset_high_prio_renew_status = true;
+                                }
+                                delete creep.memory.renewed_last;
+                                if (next_open_spawn && !(creep.pos.isNearTo (next_open_spawn)) && min_time_till_done < movement.chebyshev_distance_room_pos (creep.find_depot (), next_open_spawn)) {
+                                    creep.move_to (next_open_spawn);
+                                }
+                                else {
+                                    creep.go_to_depot ();
+                                }
+                            }
+                            self._any_high_priority_renew = [len (self._renewing_registered), reset_high_prio_renew_status];
+                        }, 'run_renewal');},
+                        get run_boosts () {return __get__ (this, function (self) {
+                            var __iterable0__ = list (self._boost_registered.entries ());
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var specialty = __left0__ [0];
+                                var creeps = __left0__ [1];
+                                var mineral = _boosts_to_use [specialty];
+                                var creeps = _.sortBy (creeps, (function __lambda__ (c) {
+                                    return c.ticksToLive;
+                                }));
+                                var original_labs = self.room.minerals.labs_for (mineral);
+                                var labs = _.clone (original_labs);
+                                while (len (creeps)) {
+                                    var creep = creeps.pop ();
+                                    var closest_lab = null;
+                                    var closest_distance = Infinity;
+                                    if (len (labs)) {
+                                        var __iterable1__ = labs;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var lab = __iterable1__ [__index1__];
+                                            var distance = movement.chebyshev_distance_room_pos (lab, creep);
+                                            if (distance < closest_distance) {
+                                                var closest_lab = lab;
+                                                var closest_distance = distance;
+                                            }
+                                        }
+                                        _.pull (labs, closest_lab);
+                                        var boost_if_close = true;
+                                    }
+                                    else {
+                                        var __iterable1__ = original_labs;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var lab = __iterable1__ [__index1__];
+                                            var distance = movement.chebyshev_distance_room_pos (lab, creep);
+                                            if (distance < closest_distance) {
+                                                var closest_lab = lab;
+                                                var closest_distance = distance;
+                                            }
+                                        }
+                                        var boost_if_close = false;
+                                    }
+                                    if (creep.pos.isNearTo (closest_lab) && (boost_if_close || !(closest_lab.__boosted))) {
+                                        var result = closest_lab.boostCreep (creep.creep);
+                                        closest_lab.__boosted = true;
+                                        if (result != OK) {
+                                            print ('[{}][squads] Unknown result from {}.boostCreep({}): {}'.format (self.room.name, closest_lab, creep.creep, result));
+                                        }
+                                    }
+                                    else {
+                                        creep.move_to (closest_lab);
+                                    }
+                                }
+                            }
+                        }, 'run_boosts');},
+                        get run_stage0 () {return __get__ (this, function (self) {
+                            var __iterable0__ = list (self._stage0_registered_for_target.values ());
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var target = __left0__ [0];
+                                var registered_so_far = __left0__ [1];
+                                var required = roles_required_for (target);
+                                var __iterable1__ = registered_so_far;
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var to_check = __iterable1__ [__index1__];
+                                    if (to_check.creep.spawning) {
+                                        continue;
+                                    }
+                                    var specialty = to_check.findSpecialty ();
+                                    if (required [specialty] > 0) {
+                                        required [specialty]--;
+                                    }
+                                }
+                                var any_needed = false;
+                                var __iterable1__ = Object.keys (required);
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var requirement = __iterable1__ [__index1__];
+                                    if (required [requirement] > 0) {
+                                        var any_needed = true;
+                                    }
+                                }
+                                if (!(any_needed)) {
+                                    var squad_target = locations.create (target.pos, target.hint, 3000);
+                                    print ('[squads] New squad formed! Squad {} has members {}.'.format (squad_target, function () {
+                                        var __accu0__ = [];
+                                        var __iterable1__ = registered_so_far;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var c = __iterable1__ [__index1__];
+                                            __accu0__.append (c.name);
+                                        }
+                                        return __accu0__;
+                                    } ().join (', ')));
+                                    var __iterable1__ = registered_so_far;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var creep = __iterable1__ [__index1__];
+                                        creep.targets.untarget_all (creep);
+                                        var __left0__ = {'home': creep.memory.home, 'role': role_squad_final_renew, 'squad': squad_target.name};
+                                        creep.memory = __left0__;
+                                        Memory.creeps [creep.name] = __left0__;
+                                    }
+                                }
+                            }
+                        }, 'run_stage0');},
+                        get run_stage1 () {return __get__ (this, function (self, tracking_for_targets_with_active_squads) {
+                            var __iterable0__ = list (self._stage1_registered_for_squad_id.entries ());
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var squad_id = __left0__ [0];
+                                var squad_members = __left0__ [1];
+                                var target = locations.get (squad_id);
+                                if (!(target)) {
+                                    print ('[{}] Squad at {} lost! could not find location!'.format (self.room.name, squad_id));
+                                    var __iterable1__ = squad_members;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var member = __iterable1__ [__index1__];
+                                        member.memory.role = role_squad_init;
+                                    }
+                                    continue;
+                                }
+                                var any_can_renew = false;
+                                var __iterable1__ = squad_members;
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var creep = __iterable1__ [__index1__];
+                                    if (creep.creep.spawning || can_renew (creep) && len (self.room.spawns)) {
+                                        var any_can_renew = true;
+                                        break;
+                                    }
+                                }
+                                if (!(any_can_renew)) {
+                                    if (_.any (squad_members, (function __lambda__ (x) {
+                                        return self.can_boost (x);
+                                    }))) {
+                                        var __iterable1__ = squad_members;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var creep = __iterable1__ [__index1__];
+                                            delete creep.memory.renewed_last;
+                                            creep.memory.role = role_squad_final_boost;
+                                        }
+                                    }
+                                    else {
+                                        var __iterable1__ = squad_members;
+                                        for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                            var creep = __iterable1__ [__index1__];
+                                            delete creep.memory.renewed_last;
+                                            creep.memory.role = get_drone_role (target.hint, creep.findSpecialty ());
+                                        }
+                                    }
+                                }
+                                if (tracking_for_targets_with_active_squads) {
+                                    tracking_for_targets_with_active_squads.append (positions.serialize_xy_room_pos (target));
+                                }
+                            }
+                        }, 'run_stage1');},
+                        get run_stage2 () {return __get__ (this, function (self, tracking_for_targets_with_active_squads) {
+                            var __iterable0__ = list (self._stage2_registered_for_squad_id.entries ());
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var squad_id = __left0__ [0];
+                                var squad_members = __left0__ [1];
+                                var target = locations.get (squad_id);
+                                if (!(target)) {
+                                    print ('[{}] Squad at {} lost! could not find location!'.format (self.room.name, squad_id));
+                                    var __iterable1__ = squad_members;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var member = __iterable1__ [__index1__];
+                                        member.memory.role = role_squad_init;
+                                    }
+                                    continue;
+                                }
+                                var any_can_boost = false;
+                                var __iterable1__ = squad_members;
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var creep = __iterable1__ [__index1__];
+                                    if (creep.creep.spawning || self.can_boost (creep)) {
+                                        var any_can_boost = true;
+                                        break;
+                                    }
+                                }
+                                if (!(any_can_boost)) {
+                                    var __iterable1__ = squad_members;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var creep = __iterable1__ [__index1__];
+                                        delete creep.memory.renewed_last;
+                                        creep.memory.role = get_drone_role (target.hint, creep.findSpecialty ());
+                                    }
+                                }
+                                if (tracking_for_targets_with_active_squads) {
+                                    tracking_for_targets_with_active_squads.append (positions.serialize_xy_room_pos (target));
+                                }
+                            }
+                        }, 'run_stage2');},
+                        get run_stage3 () {return __get__ (this, function (self, targets_fully_alive) {
+                            var __iterable0__ = list (self._stage3_registered_for_squad_id.entries ());
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var squad_id = __left0__ [0];
+                                var squad_members = __left0__ [1];
+                                var target = locations.get (squad_id);
+                                if (!(target)) {
+                                    print ('[{}] Squad at {} lost! could not find location!'.format (self.room.name, squad_id));
+                                    continue;
+                                }
+                                var target_type = target.hint;
+                                if (!(target_type in squad_run_funcs)) {
+                                    print ("[{}][squads] Warning: couldn't find run func for squad type {}!".format (self.room.name, target_type));
+                                }
+                                squad_run_funcs [target_type] (self.room, squad_members, target);
+                                if (targets_fully_alive) {
+                                    var any_near_death = false;
+                                    var distance = self.room.hive.honey.find_path_length (self.room.spawn, target, {'use_roads': false});
+                                    var __iterable1__ = squad_members;
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var member = __iterable1__ [__index1__];
+                                        if (member.ticksToLive < distance + CREEP_SPAWN_TIME * len (member.body)) {
+                                            var any_near_death = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!(any_near_death)) {
+                                        targets_fully_alive.append (positions.serialize_xy_room_pos (target));
+                                    }
+                                }
+                            }
+                        }, 'run_stage3');},
+                        get request_spawns_for_targets_excluding () {return __get__ (this, function (self, targets_already_active) {
+                            var __iterable0__ = self.squad_targets ();
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var target = __iterable0__ [__index0__];
+                                if (!(targets_already_active.includes (positions.serialize_xy_room_pos (target)))) {
+                                    var required = roles_required_for (target);
+                                    if (self._stage0_registered_for_target) {
+                                        var this_init_tuple = self._stage0_registered_for_target.get (target.name);
+                                        if (this_init_tuple) {
+                                            var __iterable1__ = this_init_tuple [1];
+                                            for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                                var to_check = __iterable1__ [__index1__];
+                                                var specialty = to_check.findSpecialty ();
+                                                if (required [specialty] > 0) {
+                                                    required [specialty]--;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if ((target.name in Game.flags)) {
+                                        var target_name = 'flag-' + target.name;
+                                    }
+                                    else {
+                                        var target_name = target.name;
+                                    }
+                                    var __iterable1__ = Object.keys (required);
+                                    for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                        var key = __iterable1__ [__index1__];
+                                        var __left0__ = get_base_for (target, key);
+                                        var base = __left0__ [0];
+                                        var num_sections = __left0__ [1];
+                                        for (var i = 0; i < required [key]; i++) {
+                                            var request_key = 'squad|{}|{}|{}'.format (target.name, key, str ((10 - required [key]) + i));
+                                            print ('[{}][squads] requesting creep {}.'.format (self.room.name, request_key));
+                                            self.room.register_creep_request (request_key, request_priority_attack, Game.time + 26, {'role': role_squad_init, 'targets': [[target_single_flag, target_name]], 'base': base, 'num_sections': num_sections});
+                                        }
+                                    }
+                                }
+                            }
+                        }, 'request_spawns_for_targets_excluding');}
+                    });
+                    var move_to_single_file = function (home, ordered_members, target, basic_move, no_move_if_close) {
+                        if (typeof basic_move == 'undefined' || (basic_move != null && basic_move .hasOwnProperty ("__kwargtrans__"))) {;
+                            var basic_move = false;
+                        };
+                        if (typeof no_move_if_close == 'undefined' || (no_move_if_close != null && no_move_if_close .hasOwnProperty ("__kwargtrans__"))) {;
+                            var no_move_if_close = false;
+                        };
+                        if (!(len (ordered_members))) {
+                            return ;
+                        }
+                        if (basic_move) {
+                            var near_target = true;
+                        }
+                        else {
+                            var distance_to_spawn = movement.chebyshev_distance_room_pos (home.spawn || movement.find_an_open_space (home.name), target);
+                            var distance_to_target = movement.chebyshev_distance_room_pos (ordered_members [0], target);
+                            var near_target = distance_to_spawn > 50 || distance_to_target < distance_to_spawn && distance_to_spawn > 10;
+                        }
+                        for (var i = len (ordered_members) - 1; i > -(1); i--) {
+                            if (i == 0) {
+                                if (!(no_move_if_close)) {
+                                    if (basic_move) {
+                                        ordered_members [i].move_to (target);
+                                    }
+                                    else {
+                                        ordered_members [i].follow_military_path (home.spawn, target);
+                                    }
+                                }
+                            }
+                            else {
+                                var next_drone = ordered_members [i - 1];
+                                var this_drone = ordered_members [i];
+                                if (this_drone.pos.isNearTo (next_drone.pos) || movement.is_edge_position (next_drone.pos)) {
+                                    if (!(no_move_if_close)) {
+                                        this_drone.creep.move (movement.diff_as_direction (this_drone, next_drone));
+                                    }
+                                    if (this_drone.creep.fatigue) {
+                                        break;
+                                    }
+                                }
+                                else if (near_target && !(movement.chebyshev_distance_room_pos (this_drone, next_drone) <= 3 && movement.is_edge_position (this_drone))) {
+                                    if (no_move_if_close) {
+                                        for (var j = len (ordered_members) - 1; j > i; j--) {
+                                            ordered_members [j].creep.move (movement.diff_as_direction (ordered_members [j], ordered_members [j - 1]));
+                                        }
+                                    }
+                                    this_drone.move_to (next_drone);
+                                    break;
+                                }
+                                else {
+                                    if (no_move_if_close) {
+                                        for (var j = len (ordered_members) - 1; j > i; j--) {
+                                            ordered_members [j].creep.move (movement.diff_as_direction (ordered_members [j], ordered_members [j - 1]));
+                                        }
+                                    }
+                                    var moved = false;
+                                    if (near_target) {
+                                        if (movement.chebyshev_distance_room_pos (this_drone, next_drone) == 2) {
+                                            var next_pos = movement.next_pos_in_direction_to (this_drone, next_drone);
+                                            if (movement.is_block_empty (this_drone.room, next_pos.x, next_pos.y)) {
+                                                var other_creeps_there = this_drone.room.look_at (LOOK_CREEPS, next_pos);
+                                                var other_drone = _.find (other_creeps_there, 'my');
+                                                if (other_drone) {
+                                                    other_drone.move (movement.diff_as_direction (other_drone, this_drone));
+                                                    this_drone.creep.move (movement.diff_as_direction (this_drone, next_drone));
+                                                    var moved = true;
+                                                }
+                                                else if (!(len (other_creeps_there))) {
+                                                    this_drone.creep.move (movement.diff_as_direction (this_drone, next_drone));
+                                                    var moved = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    if (!(moved)) {
+                                        if (basic_move) {
+                                            this_drone.move_to (target);
+                                        }
+                                        else {
+                                            this_drone.follow_military_path (home.spawn, target);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    };
+                    var run_scout_squad = function (home, members, target) {
+                        var members = _.sortByAll (members, 'name');
+                        print ('[scout squad] Running squad {} with members {}'.format (target.name, function () {
+                            var __accu0__ = [];
+                            var __iterable0__ = members;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var member = __iterable0__ [__index0__];
+                                __accu0__.append (member.name);
+                            }
+                            return __accu0__;
+                        } ()));
+                        if (members [0].pos.isNearTo (target)) {
+                            var __break0__ = false;
+                            for (var i = 0; i < len (members) - 1; i++) {
+                                if (!(members [i].pos.isNearTo (members [i + 1].pos))) {
+                                    __break0__ = true;
+                                    break;
+                                }
+                            }
+                            if (!__break0__) {
+                                return ;
+                            }
+                        }
+                        move_to_single_file (home, members, target);
+                    };
+                    var specialty_order = [ATTACK, WORK, HEAL, RANGED_ATTACK];
+                    var run_small_single_file_offense = function (home, members, target) {
+                        if (len (members) > 1) {
+                            var members = _.sortByAll (members, (function __lambda__ (x) {
+                                return specialty_order.index (x.findSpecialty ());
+                            }), 'name');
+                            if (members [0].creep.hits < members [0].creep.hitsMax * 0.6) {
+                                var temp = members [0];
+                                members [0] = members [1];
+                                members [1] = temp;
+                                if (len (members) == 4 && members [2].findSpecialty () == HEAL && members [3].findSpecialty () != HEAL) {
+                                    var temp = members [2];
+                                    members [2] = members [3];
+                                    members [3] = temp;
+                                }
+                            }
+                        }
+                        var last_pos = members [len (members) - 1].pos;
+                        if (last_pos.roomName == target.roomName && !(movement.is_edge_position (last_pos))) {
+                            var target_here = null;
+                            var __iterable0__ = members;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var member = __iterable0__ [__index0__];
+                                var target_here = member.find_target_here (target);
+                                if (target_here) {
+                                    break;
+                                }
+                            }
+                            if (target_here) {
+                                move_to_single_file (home, members, target_here, true);
+                            }
+                        }
+                        else {
+                            move_to_single_file (home, members, target);
+                        }
+                        var __iterable0__ = members;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var member = __iterable0__ [__index0__];
+                            try_exec ('squads', member.run_squad, (function __lambda__ () {
+                                return 'Error during run_squad for {}, a {}.'.format (member.name, member.memory.role);
+                            }), members, target);
+                        }
+                    };
+                    var kiting_order = [RANGED_ATTACK, HEAL];
+                    var run_kiting_pair = function (home, members, target) {
+                        if (len (members) > 1) {
+                            var members = _.sortByAll (members, (function __lambda__ (x) {
+                                return kiting_order.index (x.findSpecialty ());
+                            }), 'name');
+                        }
+                        var last_pos = members [len (members) - 1].pos;
+                        if (last_pos.roomName == target.roomName && !(movement.is_edge_position (last_pos)) || len (members [0].room.find (FIND_HOSTILE_CREEPS))) {
+                            var do_things = true;
+                        }
+                        else {
+                            var do_things = false;
+                        }
+                        var __iterable0__ = members;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var member = __iterable0__ [__index0__];
+                            var result = try_exec ('squads', member.run_squad, (function __lambda__ () {
+                                return 'Error during run_squad for {}, a {}.'.format (member.name, member.memory.role);
+                            }), members, target, do_things);
+                            if (result && !(do_things)) {
+                                var do_things = true;
+                            }
+                        }
+                        if (do_things) {
+                            move_to_single_file (home, members, members [0], true, !(members [0].__moved));
+                        }
+                        else {
+                            move_to_single_file (home, members, target);
+                        }
+                    };
+                    var squad_run_funcs = {[SQUAD_DUAL_SCOUTS]: run_scout_squad, [SQUAD_4_SCOUTS]: run_scout_squad, [SQUAD_DUAL_ATTACK]: run_small_single_file_offense, [SQUAD_DISMANTLE_RANGED]: run_small_single_file_offense, [SQUAD_TOWER_DRAIN]: run_small_single_file_offense, [SQUAD_KITING_PAIR]: run_kiting_pair};
+                    __pragma__ ('<use>' +
+                        'constants' +
+                        'constants.memkeys.room' +
+                        'jstools.errorlog' +
+                        'jstools.js_set_map' +
+                        'jstools.screeps' +
+                        'position_management.flags' +
+                        'position_management.locations' +
+                        'utilities.movement' +
+                        'utilities.positions' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.SQUAD_4_SCOUTS = SQUAD_4_SCOUTS;
+                        __all__.SQUAD_DISMANTLE_RANGED = SQUAD_DISMANTLE_RANGED;
+                        __all__.SQUAD_DUAL_ATTACK = SQUAD_DUAL_ATTACK;
+                        __all__.SQUAD_DUAL_SCOUTS = SQUAD_DUAL_SCOUTS;
+                        __all__.SQUAD_KITING_PAIR = SQUAD_KITING_PAIR;
+                        __all__.SQUAD_TOWER_DRAIN = SQUAD_TOWER_DRAIN;
+                        __all__.SquadTactics = SquadTactics;
+                        __all__._boosts_to_use = _boosts_to_use;
+                        __all__.cache_key_squads = cache_key_squads;
+                        __all__.can_renew = can_renew;
+                        __all__.creep_base_full_move_attack = creep_base_full_move_attack;
+                        __all__.creep_base_scout = creep_base_scout;
+                        __all__.creep_base_squad_dismantle = creep_base_squad_dismantle;
+                        __all__.creep_base_squad_healer = creep_base_squad_healer;
+                        __all__.creep_base_squad_ranged = creep_base_squad_ranged;
+                        __all__.flags = flags;
+                        __all__.get_base_for = get_base_for;
+                        __all__.get_drone_role = get_drone_role;
+                        __all__.kiting_order = kiting_order;
+                        __all__.locations = locations;
+                        __all__.move_to_single_file = move_to_single_file;
+                        __all__.movement = movement;
+                        __all__.new_map = new_map;
+                        __all__.positions = positions;
+                        __all__.request_priority_attack = request_priority_attack;
+                        __all__.rmem_key_alive_quads = rmem_key_alive_quads;
+                        __all__.role_squad_dismantle = role_squad_dismantle;
+                        __all__.role_squad_drone = role_squad_drone;
+                        __all__.role_squad_final_boost = role_squad_final_boost;
+                        __all__.role_squad_final_renew = role_squad_final_renew;
+                        __all__.role_squad_heal = role_squad_heal;
+                        __all__.role_squad_init = role_squad_init;
+                        __all__.role_squad_kiting_attack = role_squad_kiting_attack;
+                        __all__.role_squad_kiting_heal = role_squad_kiting_heal;
+                        __all__.role_squad_ranged = role_squad_ranged;
+                        __all__.roles_required_for = roles_required_for;
+                        __all__.run_kiting_pair = run_kiting_pair;
+                        __all__.run_scout_squad = run_scout_squad;
+                        __all__.run_small_single_file_offense = run_small_single_file_offense;
+                        __all__.specialty_order = specialty_order;
+                        __all__.squad_run_funcs = squad_run_funcs;
+                        __all__.target_single_flag = target_single_flag;
+                        __all__.ticks_to_renew = ticks_to_renew;
+                        __all__.try_exec = try_exec;
                     __pragma__ ('</all>')
                 }
             }
@@ -26994,7 +29714,7 @@ function main () {
                         var y = 0;
                         var dx = 0;
                         var dy = -(1);
-                        for (var _ = 0; _ < 50 * 50; _++) {
+                        for (var i = 0; i < 50 * 50; i++) {
                             if (Game.map.getTerrainAt (24 + x, 24 + y, room_name) != 'wall') {
                                 return new RoomPosition (24 + x, 24 + y, room_name);
                             }
@@ -27259,11 +29979,67 @@ function main () {
                         if (destination.pos !== undefined) {
                             var destination = destination.pos;
                         }
-                        var direction = dxdy_to_direction (destination.x - origin.x, destination.y - origin.y);
+                        if (origin.roomName && destination.roomName && origin.roomName != destination.roomName) {
+                            var origin_room_pos = parse_room_to_xy (origin.roomName);
+                            var destination_room_pos = parse_room_to_xy (destination.roomName);
+                            var direction = dxdy_to_direction (((destination_room_pos [0] * 50 + destination.x) - origin_room_pos [0] * 50) - origin.x, ((destination_room_pos [1] * 50 + destination.y) - origin_room_pos [1] * 50) - origin.y);
+                        }
+                        else {
+                            var direction = dxdy_to_direction (destination.x - origin.x, destination.y - origin.y);
+                        }
                         if (direction === null) {
-                            print ('[movement][direction_to] No direction found for get_direction({} - {}, {} - {}).'.format (destination.x, origin.x, destination.y, origin.y));
+                            print ('[movement] No direction found for diff_as_direction({}, {}).'.format (origin, destination));
                         }
                         return direction;
+                    };
+                    var next_pos_in_direction_to = function (origin, destination) {
+                        if (origin.pos !== undefined) {
+                            var origin = origin.pos;
+                        }
+                        if (destination.pos !== undefined) {
+                            var destination = destination.pos;
+                        }
+                        if (origin.roomName && destination.roomName && origin.roomName != destination.roomName) {
+                            var origin_room_pos = parse_room_to_xy (origin.roomName);
+                            var destination_room_pos = parse_room_to_xy (destination.roomName);
+                            var dx = ((destination_room_pos [0] * 50 + destination.x) - origin_room_pos [0] * 50) - origin.x;
+                            var dy = ((destination_room_pos [1] * 50 + destination.y) - origin_room_pos [1] * 50) - origin.y;
+                        }
+                        else {
+                            var dx = destination.x - origin.x;
+                            var dy = destination.y - origin.y;
+                        }
+                        var new_x = origin.x + Math.sign (dx);
+                        var new_y = origin.y + Math.sign (dy);
+                        if (new_x > 49 || new_x < 0 || new_y > 49 || new_y < 0) {
+                            var __left0__ = parse_room_to_xy (origin.roomName);
+                            var room_x = __left0__ [0];
+                            var room_y = __left0__ [1];
+                            if (new_x > 49) {
+                                new_x -= 50;
+                                room_x++;
+                            }
+                            else if (new_x < 0) {
+                                new_x += 50;
+                                room_x--;
+                            }
+                            if (new_y > 49) {
+                                new_y -= 50;
+                                room_y++;
+                            }
+                            else if (new_y < 0) {
+                                new_y += 50;
+                                room_y--;
+                            }
+                            return new RoomPosition (new_x, new_y, room_xy_to_name (room_x, room_y));
+                        }
+                        else {
+                            return new RoomPosition (new_x, new_y, origin.roomName);
+                        }
+                    };
+                    var is_edge_position = function (pos) {
+                        var pos = pos.pos || pos;
+                        return pos.x == 49 || pos.y == 49 || pos.x == 0 || pos.y == 0;
                     };
                     __pragma__ ('<use>' +
                         'jstools.screeps' +
@@ -27284,8 +30060,10 @@ function main () {
                         __all__.get_entrance_for_exit_pos_with_room = get_entrance_for_exit_pos_with_room;
                         __all__.is_block_clear = is_block_clear;
                         __all__.is_block_empty = is_block_empty;
+                        __all__.is_edge_position = is_edge_position;
                         __all__.is_valid_room_name = is_valid_room_name;
                         __all__.minimum_chebyshev_distance = minimum_chebyshev_distance;
+                        __all__.next_pos_in_direction_to = next_pos_in_direction_to;
                         __all__.parse_room_to_xy = parse_room_to_xy;
                         __all__.positions = positions;
                         __all__.room_pos_of_closest_serialized = room_pos_of_closest_serialized;
@@ -27349,6 +30127,13 @@ function main () {
                     var deserialize_xy_to_pos = function (xy, room_name) {
                         return new RoomPosition (xy & 63, xy >> 6 & 63, room_name);
                     };
+                    var serialize_xy_room = function (x, y, room_name) {
+                        return (str (x | y << 6) + '|') + room_name;
+                    };
+                    var serialize_xy_room_pos = function (pos) {
+                        var pos = pos.pos || pos;
+                        return (str (pos.x | pos.y << 6) + '|') + pos.roomName;
+                    };
                     __pragma__ ('<use>' +
                         'jstools.screeps' +
                     '</use>')
@@ -27359,6 +30144,8 @@ function main () {
                         __all__.parse_xy_arguments = parse_xy_arguments;
                         __all__.serialize_pos_xy = serialize_pos_xy;
                         __all__.serialize_xy = serialize_xy;
+                        __all__.serialize_xy_room = serialize_xy_room;
+                        __all__.serialize_xy_room_pos = serialize_xy_room_pos;
                     __pragma__ ('</all>')
                 }
             }
@@ -27418,9 +30205,11 @@ function main () {
     );
     (function () {
         var constants = {};
+        var creeps = {};
         var math = {};
         __nest__ (math, '', __init__ (__world__.math));
         __nest__ (constants, '', __init__ (__world__.constants));
+        __nest__ (creeps, 'roles.squads', __init__ (__world__.creeps.roles.squads));
         var consistency = __init__ (__world__.cache.consistency);
         var context = __init__ (__world__.cache.context);
         var global_cache = __init__ (__world__.cache.global_cache);
@@ -27434,6 +30223,7 @@ function main () {
         var role_miner = __init__ (__world__.constants).role_miner;
         var role_ranged_offense = __init__ (__world__.constants).role_ranged_offense;
         var role_spawn_fill = __init__ (__world__.constants).role_spawn_fill;
+        var role_squad_init = __init__ (__world__.constants).role_squad_init;
         var role_temporary_replacing = __init__ (__world__.constants).role_temporary_replacing;
         var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
         var role_wall_defender = __init__ (__world__.constants).role_wall_defender;
@@ -27456,6 +30246,7 @@ function main () {
         var building = __init__ (__world__.rooms.building);
         var defense = __init__ (__world__.rooms.defense);
         var minerals = __init__ (__world__.rooms.minerals);
+        var squads = __init__ (__world__.rooms.squads);
         var hostile_utils = __init__ (__world__.utilities.hostile_utils);
         var movement = __init__ (__world__.utilities.movement);
         if (!(global.__customizations_active)) {
@@ -27496,7 +30287,7 @@ function main () {
                     return ;
                 }
             }
-            if (creep.spawning && creep.memory.role != role_temporary_replacing) {
+            if (creep.spawning && creep.memory.role != role_temporary_replacing && creep.memory.role != role_squad_init) {
                 return ;
             }
             if (creep.defense_override) {
@@ -27588,10 +30379,18 @@ function main () {
                     else {
                         records.finish_record ('building.roads.cache-checks-only');
                     }
+                    if (__mod__ (Game.time + room.get_unique_owned_index (), 150) == 0) {
+                        records.start_record ();
+                        room.building.reset_inactive_mines ();
+                        records.finish_record ('building.roads.reset-inactive-mines');
+                    }
                 }
                 records.start_record ();
                 room.building.place_home_ramparts ();
                 records.finish_record ('building.ramparts');
+                records.start_record ();
+                room.squads.run ();
+                records.finish_record ('squads.run');
                 var __iterable0__ = room.spawns;
                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                     var spawn = __iterable0__ [__index0__];
@@ -27836,7 +30635,7 @@ function main () {
         };
         module.exports.loop = main;
         global
-        .py = {'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'building': building, 'mining_paths': mining_paths, 'meminfo': memory_info, 'minerals': minerals, 'stored_data': stored_data, 'honey': honey, 'hive': (function __lambda__ () {
+        .py = {'context': context, 'consistency': consistency, 'autoactions': autoactions, 'locations': locations, 'defense': defense, 'movement': movement, 'flags': flags, 'constants': constants, 'spawning': spawning, 'volatile': volatile_cache, 'cache': global_cache, 'hostile_utils': hostile_utils, 'building': building, 'mining_paths': mining_paths, 'meminfo': memory_info, 'minerals': minerals, 'stored_data': stored_data, 'honey': honey, 'squads': squads, 'roles_squads': creeps.roles.squads, 'hive': (function __lambda__ () {
             return context.hive ();
         }), 'get_room': (function __lambda__ (name) {
             return context.hive ().get_room (name);
@@ -27870,6 +30669,7 @@ function main () {
             'creep_management.spawning' +
             'creep_management.walkby_move' +
             'creeps.base' +
+            'creeps.roles.squads' +
             'empire.hive' +
             'empire.honey' +
             'empire.stored_data' +
@@ -27884,6 +30684,7 @@ function main () {
             'rooms.building' +
             'rooms.defense' +
             'rooms.minerals' +
+            'rooms.squads' +
             'utilities.hostile_utils' +
             'utilities.movement' +
         '</use>')
@@ -27920,12 +30721,14 @@ function main () {
             __all__.role_miner = role_miner;
             __all__.role_ranged_offense = role_ranged_offense;
             __all__.role_spawn_fill = role_spawn_fill;
+            __all__.role_squad_init = role_squad_init;
             __all__.role_temporary_replacing = role_temporary_replacing;
             __all__.role_tower_fill = role_tower_fill;
             __all__.role_wall_defender = role_wall_defender;
             __all__.run_creep = run_creep;
             __all__.run_room = run_room;
             __all__.spawning = spawning;
+            __all__.squads = squads;
             __all__.stored_data = stored_data;
             __all__.try_thing = try_thing;
             __all__.try_thing2 = try_thing2;
