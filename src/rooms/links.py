@@ -20,7 +20,7 @@ __pragma__('fcall')
 class LinkingMind:
     """
     :type room: rooms.room_mind.RoomMind
-    :type link_creep: roles.utility.LinkManager
+    :type link_creep: creeps.roles.utility.LinkManager
 
     """
 
@@ -29,6 +29,7 @@ class LinkingMind:
         __pragma__('skip')
         self._links = undefined
         self._main_link = undefined
+        self._second_link = undefined
         self.link_creep = undefined
         __pragma__('noskip')
         self.enabled_last_turn = room.get_cached_property("links_enabled") or False
@@ -45,15 +46,25 @@ class LinkingMind:
     def get_main_link(self):
         if self._main_link is undefined:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
-                self._main_link = _.min(self._links,
-                                        lambda l: movement.chebyshev_distance_room_pos(self.room.room.storage, l))
-                if movement.chebyshev_distance_room_pos(self._main_link, self.room.room.storage) > 2:
-                    self._main_link = None
-            else:
+                for link in self.links:
+                    if movement.chebyshev_distance_room_pos(self.room.room.storage, link) <= 2:
+                        if self._main_link is undefined:
+                            self._main_link = link
+                        else:
+                            self._second_link = link
+            if self._main_link is undefined:
                 self._main_link = None
+            if self._second_link is undefined:
+                self._second_link = None
         return self._main_link
 
+    def get_second_main_link(self):
+        if self._main_link is undefined:
+            self.get_main_link()
+        return self._second_link
+
     main_link = property(get_main_link)
+    secondary_link = property(get_second_main_link)
 
     def link_mem(self, link):
         if link.id:
@@ -108,22 +119,22 @@ class LinkingMind:
         to both the main link and storage, and then LinkingMind will give the creep the needed action at the end of the
         tick.
 
-        :type creep: roles.utility.LinkManager
+        :type creep: creeps.roles.utility.LinkManager
         :param creep: Link manager
         """
         if self.link_creep is not undefined:
             creep1 = self.link_creep
             creep2 = creep
 
-            def send_to_link(amount):
-                creep1.send_to_link(amount)
+            def send_to_link(link, amount):
+                creep1.send_to_link(link, amount)
                 if amount > creep1.creep.carryCapacity / 2:
-                    creep2.send_to_link(amount - creep1.creep.carryCapacity / 2)
+                    creep2.send_to_link(link, amount - creep1.creep.carryCapacity / 2)
 
-            def send_from_link(amount):
-                creep1.send_from_link(amount)
+            def send_from_link(link, amount):
+                creep1.send_from_link(link, amount)
                 if amount > creep1.creep.carryCapacity / 2:
-                    creep2.send_to_link(amount - creep1.creep.carryCapacity / 2)
+                    creep2.send_to_link(link, amount - creep1.creep.carryCapacity / 2)
 
             self.link_creep = {
                 "send_to_link": send_to_link,
@@ -136,13 +147,14 @@ class LinkingMind:
     def tick_links(self):
         if not self.enabled_this_turn():
             return
-        main_link = self.get_main_link()
+        main_link = self.main_link
+        secondary_link = self.secondary_link
         current_output_links = []
         current_input_links = []
         future_output_links = []
         future_input_links = []
         for link in self.links:
-            if link.id == main_link.id:
+            if link.id == main_link.id or (secondary_link and link.id == secondary_link.id):
                 continue
             mem = self.link_mem(link)
             vmem = self.volatile_link_mem(link)
@@ -215,19 +227,34 @@ class LinkingMind:
         if len(current_output_links) and (not len(current_input_links) or Game.time % 12 >= 6):
             # Priority is output
             if main_link.energy < main_link.energyCapacity:
-                self.link_creep.send_to_link(main_link.energyCapacity - main_link.energy)
-            if main_link.cooldown == 0:
-                if main_link.energy >= current_output_links[0].link.energyCapacity - \
-                        current_output_links[0].link.energy:
-                    self.main_link.transferEnergy(current_output_links[0].link)
-            elif len(current_input_links):
-                current_input_links[0].link.transferEnergy(current_output_links[0].link)
-            elif len(future_input_links):
-                future_input_links[0].link.transferEnergy(current_output_links[0].link)
+                self.link_creep.send_to_link(main_link, main_link.energyCapacity - main_link.energy)
+            elif secondary_link and secondary_link.energy < secondary_link.energyCapacity:
+                self.link_creep.send_to_link(secondary_link, secondary_link.energyCapacity - secondary_link.energy)
+            next_output_index = 0
+            priority_output = current_output_links[next_output_index]
+            next_output_index += 1
+            if (main_link.cooldown == 0
+                and main_link.energy * (1 - LINK_LOSS_RATIO)
+                    >= (priority_output.link.energyCapacity - priority_output.link.energy)):
+                main_link.transferEnergy(priority_output.link)
+                priority_output = current_output_links[next_output_index]
+                next_output_index += 1
+            if (priority_output and secondary_link and secondary_link.cooldown == 0
+                and ((priority_output.link.energy == 0 and secondary_link.energy == secondary_link.energyCapacity
+                      ) or (secondary_link.energy == secondary_link.energyCapacity or
+                                        secondary_link.energy * (1 + LINK_LOSS_RATIO)
+                                    >= (priority_output.link.energyCapacity - priority_output.link.energy)))):
+                secondary_link.transferEnergy(priority_output.link)
+                priority_output = current_output_links[next_output_index]
+                next_output_index += 1
+            if priority_output and len(current_input_links):
+                current_input_links[0].link.transferEnergy(priority_output.link)
+            elif priority_output and len(future_input_links):
+                future_input_links[0].link.transferEnergy(priority_output.link)
         elif len(current_input_links):
             # Priority is input
             if main_link.energy > 0:
-                self.link_creep.send_from_link(main_link.energy)
+                self.link_creep.send_from_link(main_link, main_link.energy)
             else:
                 for obj in current_input_links:
                     if obj.link.energy >= obj.link.energyCapacity * 0.85:
@@ -235,20 +262,23 @@ class LinkingMind:
                         break
         elif len(future_input_links):
             if main_link.energyCapacity - main_link.energy < future_input_links[0].link.energy:
-                self.link_creep.send_from_link(main_link.energy)
+                self.link_creep.send_from_link(main_link, main_link.energy)
             else:
                 future_input_links[0].link.transferEnergy(main_link)
         elif len(future_output_links):
             if main_link.energy < future_output_links[0].amount - future_output_links[0].link.energy:
-                self.link_creep.send_to_link(future_output_links[0].amount - future_output_links[0].link.energy
+                self.link_creep.send_to_link(main_link,
+                                             future_output_links[0].amount - future_output_links[0].link.energy
                                              - main_link.energy)
             else:
                 self.main_link.transferEnergy(future_output_links[0].link)
-        elif main_link.energy != main_link.energyCapacity * 2:
-            if main_link.energy > main_link.energyCapacity * 2:
-                self.link_creep.send_from_link(main_link.energy - main_link.energyCapacity * 2)
+        elif main_link.energy != main_link.energyCapacity / 2:
+            if main_link.energy > main_link.energyCapacity / 2:
+                self.link_creep.send_from_link(main_link, main_link.energy - main_link.energyCapacity / 2)
             else:
-                self.link_creep.send_to_link(main_link.energyCapacity * 2 - main_link.energy)
+                self.link_creep.send_to_link(main_link, main_link.energyCapacity / 2 - main_link.energy)
+        elif secondary_link and secondary_link.energy < secondary_link.energyCapacity:
+            self.link_creep.send_to_link(secondary_link, secondary_link.energyCapacity - secondary_link.energy)
 
 
 __pragma__('nofcall')

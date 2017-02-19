@@ -24,6 +24,7 @@ class LinkManager(RoleBase):
             return False
         # Note: this does assume storage is directly within one space of the main link.
         if 'station_pos' not in self.memory:
+            secondary = self.home.links.secondary_link
             best_priority = 0
             best = None
             for x in range(link.pos.x - 1, link.pos.x + 2):
@@ -44,6 +45,8 @@ class LinkManager(RoleBase):
                                     return False
                         pos = __new__(RoomPosition(x, y, self.home.name))
                         priority = 1
+                        if secondary and movement.chebyshev_distance_xy(secondary.pos.x, secondary.pos.y, x, y) <= 1:
+                            priority += 20
                         if link.pos.x == storage.pos.x == pos.x:
                             priority += 5
                         elif link.pos.y == storage.pos.y == pos.y:
@@ -67,12 +70,21 @@ class LinkManager(RoleBase):
         if self.creep.carry.energy != self.creep.carryCapacity / 2:
             # this is not the norm.
             if self.creep.carry.energy > self.creep.carryCapacity / 2:
-                result = self.creep.transfer(storage, RESOURCE_ENERGY, self.creep.carry.energy
+                target = storage
+                result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
                                              - self.creep.carryCapacity / 2)
                 if result == ERR_FULL:
-                    result = self.creep.transfer(self.home.links.main_link, RESOURCE_ENERGY, self.creep.carry.energy
+                    target = self.home.links.main_link
+                    result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
                                                  - self.creep.carryCapacity / 2)
-                self.ensure_ok(result, "transfer", storage, RESOURCE_ENERGY)
+                    if result == ERR_FULL:
+                        secondary = self.home.links.secondary_link
+                        if secondary:
+                            target = secondary
+                            result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
+                                                         - self.creep.carryCapacity / 2)
+
+                self.ensure_ok(result, "transfer", target, RESOURCE_ENERGY)
 
             else:
                 target = storage
@@ -82,6 +94,12 @@ class LinkManager(RoleBase):
                     target = self.home.links.main_link
                     result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
                                                  - self.creep.carry.energy)
+                    if result == ERR_NOT_ENOUGH_RESOURCES:
+                        secondary = self.home.links.secondary_link
+                        if secondary:
+                            target = secondary
+                            result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
+                                                         - self.creep.carry.energy)
                 self.ensure_ok(result, "withdraw", target, RESOURCE_ENERGY)
             return False
 
@@ -89,11 +107,14 @@ class LinkManager(RoleBase):
 
         return False
 
-    def ensure_ok(self, result, action, p1, p2):
+    def ensure_ok(self, result, action, p1, p2, p3=None):
         # TODO: nicer messages for running out of energy, and also saying if this was a transfer or withdraw, from a
         # link or storage.
         if result != OK:
-            self.log("ERROR: Unknown result from link creep.{}({},{}): {}!".format(action, p1, p2, result))
+            if p3:
+                self.log("ERROR: Unknown result from link creep.{}({},{},{}): {}!".format(action, p1, p2, p3,result))
+            else:
+                self.log("ERROR: Unknown result from link creep.{}({},{}): {}!".format(action, p1, p2, result))
 
     def ensure_no_minerals(self):
         storage = self.home.room.storage
@@ -104,9 +125,8 @@ class LinkManager(RoleBase):
                     return True
         return False
 
-    def send_to_link(self, amount=None):
+    def send_to_link(self, link, amount=None):
         storage = self.home.room.storage
-        link = self.home.links.main_link
 
         if not amount or amount > self.creep.carryCapacity / 2:
             amount = self.creep.carryCapacity / 2
@@ -116,11 +136,10 @@ class LinkManager(RoleBase):
             return
 
         self.ensure_ok(self.creep.transfer(link, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
-        self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
+        self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, amount), "withdraw", storage, RESOURCE_ENERGY)
 
-    def send_from_link(self, amount=None):
+    def send_from_link(self, link, amount=None):
         storage = self.home.room.storage
-        link = self.home.links.main_link
 
         if not amount or amount > self.creep.carryCapacity / 2:
             amount = self.creep.carryCapacity / 2
@@ -129,7 +148,7 @@ class LinkManager(RoleBase):
         if link.energy == 0:
             return
         self.ensure_ok(self.creep.withdraw(link, RESOURCE_ENERGY, amount), "withdraw", link, RESOURCE_ENERGY)
-        self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
+        self.ensure_ok(self.creep.transfer(storage, RESOURCE_ENERGY, amount), "transfer", storage, RESOURCE_ENERGY)
 
     def _calculate_time_to_replace(self):
         link = self.home.links.main_link

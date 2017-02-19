@@ -1465,12 +1465,11 @@ class RoomMind:
             energy_struct = self.get_upgrader_energy_struct()
             if energy_struct and energy_struct.structureType == STRUCTURE_LINK:
                 distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct)
-                # TODO: enable or remove this after we've tested the effectiveness of using exact parts
-                # if distance > 3:
-                #     distance -= 3
-                # Max energy per tick transferred via link, with a little leeway towards allowing more upgrader parts
-                # (since our logic isn't 100% great in terms of sending energy exactly on schedule)
-                wm = min(wm, math.ceil(LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / distance))
+                total_throughput = LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / distance
+                if self.links.secondary_link:
+                    secondary_distance = movement.chebyshev_distance_room_pos(self.links.secondary_link, energy_struct)
+                    total_throughput += LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / secondary_distance
+                wm = min(wm, math.ceil(total_throughput))
         self._target_upgrader_work_mass = wm
         return wm
 
