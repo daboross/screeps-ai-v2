@@ -25,6 +25,11 @@ __pragma__('noalias', 'update')
 __pragma__('fcall')
 
 
+def is_sk(flag):
+    return (flag.name in Memory.flags and flag.memory.sk_room) \
+           or (Memory.no_controller and Memory.no_controller[flag.pos.roomName])
+
+
 class MiningMind:
     """
     :type room: rooms.room_mind.RoomMind
@@ -102,7 +107,7 @@ class MiningMind:
         priority = self.distance_to_mine(flag)
         if flag.pos.roomName == self.room.name:
             priority -= 50
-        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+        if is_sk(flag):
             priority -= 40
         elif self.should_reserve(flag.pos.roomName):
             priority -= 30
@@ -130,7 +135,7 @@ class MiningMind:
         # With 1 added to have some leeway
         if room and room.controller and room.controller.my:
             mining_per_tick = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME
-        elif flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+        elif is_sk(flag):
             mining_per_tick = SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME
         elif self.should_reserve(flag.pos.roomName):
             mining_per_tick = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME
@@ -155,12 +160,14 @@ class MiningMind:
 
     def cleanup_old_flag_sitting_values(self):
         for flag in self.available_mines:
+            if flag.name not in Memory.flags:
+                continue
             if 'sitting' in flag.memory and flag.memory.sitting < Game.time - flag.memory.sitting_set \
                     and Game.time - flag.memory.sitting_set > 10:
                 del flag.memory.sitting
                 del flag.memory.sitting_set
-                if not len(flag.memory):
-                    del Memory.flags[flag.name]
+            if not len(flag.memory):
+                del Memory.flags[flag.name]
 
     def energy_sitting_at(self, flag):
         if 'sitting' not in flag.memory or Game.time > flag.memory.sitting_set + 10:
@@ -181,19 +188,15 @@ class MiningMind:
             for source in self.room.sources:
                 flag = flags.look_for(self.room, source, LOCAL_MINE)
                 if not flag:
-                    name = flags.create_flag(source, LOCAL_MINE)
+                    name = flags.create_flag(source, LOCAL_MINE, self.room.name)
                     if not name:
-                        print("[{}][mining] Warning: Couldn't create local mining flag!".format(
-                            self.room.name))
+                        print("[{}][mining] Warning: Couldn't create local mining flag!".format(self.room.name))
                         continue
                     flag = Game.flags[name]
                     if not flag:
                         print("[{}][mining] Warning: Couldn't find local mining flag with name {}!".format(
                             self.room.name, name))
                         continue
-                if 'sponsor' not in flag.memory:
-                    flag.memory.sponsor = self.room.name
-                    flag.memory.active = True
                 result.append(flag)
             self._local_mining_flags = result
         return self._local_mining_flags
@@ -254,13 +257,12 @@ class MiningMind:
     def should_reserve(self, room_name):
         if self.room.room.energyCapacityAvailable < (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE]) * 2:
             return False
-        flag_list = _.filter(flags.find_flags(room_name, REMOTE_MINE),
-                             lambda f: f.name in Memory.flags and f.memory.active)
-        if _.find(flag_list, lambda f: f.memory.sk_room):
-            return False
         if Memory.no_controller and Memory.no_controller[room_name]:
             return False
-        if _.find(flag_list, lambda f: f.memory.do_reserve):
+        flag_list = flags.find_flags(room_name, REMOTE_MINE)
+        if _.some(flag_list, is_sk):
+            return False
+        if _.some(flag_list, lambda f: f.name in Memory.flags and f.memory.do_reserve):
             return True
         if len(flag_list) < 2:
             return False
@@ -288,8 +290,7 @@ class MiningMind:
         """
         room_name = flag.pos.roomName
 
-        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[room_name]) \
-                or not self.should_reserve(room_name):
+        if not self.should_reserve(room_name):
             return None
 
         if room_name in Game.rooms:
@@ -334,7 +335,7 @@ class MiningMind:
             return None
 
     def get_ideal_miner_workmass_for(self, flag):
-        if flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+        if is_sk(flag):
             return math.ceil((SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
         elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
             return math.ceil((SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
@@ -434,7 +435,7 @@ class MiningMind:
             if miner_carry_no_haulers:
                 base = creep_base_carry3000miner
                 num_sections = min(5, spawning.max_sections_of(self.room, base))
-            elif flag.memory.sk_room or (Memory.no_controller and Memory.no_controller[flag.pos.roomName]):
+            elif is_sk(flag):
                 base = creep_base_4000miner
                 num_sections = min(7, spawning.max_sections_of(self.room, base))
             elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):

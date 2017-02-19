@@ -32,8 +32,8 @@ class EnergyMiner(TransportPickup):
             self.memory.role = role_recycling
             self.memory.last_role = role_miner
             return False
-        if source_flag.memory.sponsor and source_flag.memory.sponsor != self.home.name:
-            self.memory.home = source_flag.memory.sponsor
+        if Game.time % 10 == 7 and flags.flag_sponsor(source_flag) != self.home.name:
+            self.memory.home = flags.flag_sponsor(source_flag)
 
         if self.creep.hits < self.creep.hitsMax:
             if not len(flags.find_flags(self, RANGED_DEFENSE)) \

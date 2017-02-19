@@ -90,8 +90,6 @@ class HiveMind:
                 print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.name, flag.name))
                 flag.remove()
             else:
-                if flag.name not in Memory.flags or not flag.memory.active:
-                    continue
                 sponsor = flags.flag_sponsor(flag)
                 if not sponsor:
                     print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
