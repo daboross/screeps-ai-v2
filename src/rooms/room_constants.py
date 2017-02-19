@@ -49,11 +49,22 @@ rcl_to_max_wall_hits = [
 energy_to_keep_always_in_reserve = STORAGE_CAPACITY / 2
 energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve * 0.25
 energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1
+energy_pre_rcl8_building_when_upgrading_balance_point = energy_pre_rcl8_scaling_balance_point * 1.5
 energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1
 energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.1
 energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_upgrading * 1.1
 energy_balance_point_for_rcl8_selling = energy_to_keep_always_in_reserve * 0.6
 energy_at_which_to_stop_supporting = energy_to_keep_always_in_reserve * 1.5
+
+energy_to_keep_always_in_reserve_urgent = STORAGE_CAPACITY / 8
+energy_to_keep_always_in_reserve_when_supporting_sieged_urgent = energy_to_keep_always_in_reserve_urgent * 0.25
+energy_pre_rcl8_scaling_balance_point_urgent = energy_to_keep_always_in_reserve_urgent * 1.1
+energy_balance_point_for_rcl8_upgrading_urgent = energy_to_keep_always_in_reserve_urgent * 1.1
+energy_balance_point_for_rcl8_building_urgent = energy_balance_point_for_rcl8_upgrading_urgent * 1.1
+energy_balance_point_for_rcl8_supporting_urgent = energy_balance_point_for_rcl8_upgrading_urgent * 1.1
+energy_balance_point_for_rcl8_selling_urgent = energy_to_keep_always_in_reserve_urgent * 0.6
+energy_at_which_to_stop_supporting_urgent = energy_to_keep_always_in_reserve_urgent * 1.5
+
 max_minerals_to_keep = STORAGE_CAPACITY / 4
 
 energy_for_terminal_when_selling = TERMINAL_CAPACITY / 2

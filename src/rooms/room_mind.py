@@ -631,6 +631,42 @@ class RoomMind:
     def reassign_roles(self):
         return consistency.reassign_room_roles(self)
 
+    def is_urgent(self):
+        return self.mem.urgency > 0
+
+    def constant_energy_to_keep_in_reserve(self):
+        if self.is_urgent():
+            return energy_to_keep_always_in_reserve_urgent
+        else:
+            return energy_to_keep_always_in_reserve
+
+    def constant_pre_rcl8_energy_balance_point(self):
+        if self.is_urgent():
+            return energy_pre_rcl8_scaling_balance_point_urgent
+        else:
+            return energy_pre_rcl8_scaling_balance_point
+
+    def constant_balance_point_for_rcl8_upgrading_energy(self):
+        if self.is_urgent():
+            return energy_balance_point_for_rcl8_upgrading_urgent
+        else:
+            return energy_balance_point_for_rcl8_upgrading
+
+    def constant_balance_point_for_rcl8_building_energy(self):
+        if self.is_urgent():
+            return energy_balance_point_for_rcl8_building_urgent
+        else:
+            return energy_balance_point_for_rcl8_building
+
+    def constant_balance_point_for_rcl8_supporting_energy(self):
+        if self.is_urgent():
+            return energy_balance_point_for_rcl8_supporting_urgent
+        else:
+            return energy_balance_point_for_rcl8_supporting
+
+    def constant_balance_point_for_pre_rcl8_backup_energy_spending(self):
+        return energy_pre_rcl8_building_when_upgrading_balance_point
+
     def paving(self):
         if '_paving' not in self:
             if not self.my:
@@ -756,11 +792,13 @@ class RoomMind:
 
     def upgrading_paused(self):
         if '_upgrading_paused' not in self:
-            if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0:
+            if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0 \
+                    or self.being_bootstrapped():
                 self._upgrading_paused = False
             # TODO: constant here and below in upgrader_work_mass
-            elif self.conducting_siege() and (self.room.storage.store.energy < 100 * 1000 or (
-                            self.rcl < 7 and self.room.storage.store.energy < 500 * 1000)):
+            elif self.conducting_siege() and (
+                            self.room.storage.store.energy < (self.constant_energy_to_keep_in_reserve() / 4) or (
+                                    self.rcl < 7 and self.room.storage.store.energy < self.constant_energy_to_keep_in_reserve())):
                 self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
             else:
                 if self.rcl >= 8:
@@ -839,7 +877,7 @@ class RoomMind:
                 or (self.under_siege() and (not self.room.storage or self.room.storage.storeCapacity))
             )
             and self.room.controller.ticksToDowngrade >= 1000
-            and (not self.room.storage or self.room.storage.store.energy < 700 * 1000)
+            and (not self.room.storage or self.room.storage.store.energy < STORAGE_CAPACITY * 0.7)
         )
         self.store_cached_property("upgrading_deprioritized", deprioritized, 15)
         return deprioritized
@@ -1018,15 +1056,15 @@ class RoomMind:
                     state = room_spending_state_supporting_sieged
                 else:
                     energy = self.minerals.get_estimate_total_energy()
-                    if energy < energy_to_keep_always_in_reserve / 2:
+                    if energy < self.constant_energy_to_keep_in_reserve() / 2:
                         state = room_spending_state_saving
                     elif self.room.terminal \
                             and self.minerals.get_estimate_total_non_energy() > max_minerals_to_keep / 2:
-                        if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                        if energy > self.constant_energy_to_keep_in_reserve() + energy_for_terminal_when_selling:
                             state = room_spending_state_selling_and_supporting
                         else:
                             state = room_spending_state_selling
-                    elif energy < energy_to_keep_always_in_reserve:
+                    elif energy < self.constant_energy_to_keep_in_reserve():
                         state = room_spending_state_saving
                     else:
                         state = room_spending_state_supporting
@@ -1034,10 +1072,10 @@ class RoomMind:
         if state is None:
             energy = self.minerals.get_estimate_total_energy()
             non_energy = self.room.terminal and self.minerals.get_estimate_total_non_energy()
-            if energy < energy_to_keep_always_in_reserve / 2:
+            if energy < self.constant_energy_to_keep_in_reserve() / 2:
                 state = room_spending_state_saving
             elif self.room.terminal and non_energy > max_minerals_to_keep:
-                if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                if energy > self.constant_energy_to_keep_in_reserve() + energy_for_terminal_when_selling:
                     if self.rcl >= 8:
                         state = room_spending_state_selling_and_rcl8building
                     else:
@@ -1052,10 +1090,10 @@ class RoomMind:
                                 state = room_spending_state_selling_and_upgrading
                 else:
                     state = room_spending_state_selling
-            elif energy < energy_to_keep_always_in_reserve:
+            elif energy < self.constant_energy_to_keep_in_reserve():
                 state = room_spending_state_saving
             elif self.room.terminal and non_energy > max_minerals_to_keep / 2:
-                if energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling:
+                if energy > self.constant_energy_to_keep_in_reserve() + energy_for_terminal_when_selling:
                     if self.rcl >= 8:
                         state = room_spending_state_selling_and_rcl8building
                     else:
@@ -1293,26 +1331,26 @@ class RoomMind:
         if self.full_storage_use:
             spending = self.get_spending_target()
             if spending == room_spending_state_building:
-                extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point
+                extra = self.minerals.get_estimate_total_energy() - self.constant_pre_rcl8_energy_balance_point()
                 wm = spawning.max_sections_of(self, creep_base_worker)
                 if extra > 0:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_selling_and_building:
-                extra = self.minerals.get_estimate_total_energy() - energy_pre_rcl8_scaling_balance_point \
+                extra = self.minerals.get_estimate_total_energy() - self.constant_pre_rcl8_energy_balance_point() \
                         - energy_for_terminal_when_selling
                 wm = spawning.max_sections_of(self, creep_base_worker)
                 if extra > 0:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_rcl8_building:
-                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy()
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_selling_and_rcl8building:
-                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building \
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy() \
                         - energy_for_terminal_when_selling
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
@@ -1321,19 +1359,26 @@ class RoomMind:
             elif spending == room_spending_state_supporting_sieged:
                 wm = self.building.get_max_builder_work_parts_urgent()
             elif spending == room_spending_state_under_siege:
-                if self.minerals.get_estimate_total_energy() < energy_to_keep_always_in_reserve / 2:
+                if self.minerals.get_estimate_total_energy() < self.constant_energy_to_keep_in_reserve() / 2:
                     wm = self.building.get_max_builder_work_parts_urgent()
                 else:
-                    extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_building
+                    extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy()
                     wm = spawning.max_sections_of(self, creep_base_worker) * 3
                     if extra > 0:
                         wm += math.floor(extra / 2500)
                     wm = min(wm, self.building.get_max_builder_work_parts())
             else:
-                wm = min(
-                    spawning.max_sections_of(self, creep_base_worker) * 3,
-                    self.building.get_max_builder_work_parts_noextra(),
-                )
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_pre_rcl8_backup_energy_spending()
+                if extra > 0:
+                    wm = min(
+                        min(4, spawning.max_sections_of(self, creep_base_worker)) + math.floor(extra / 2500),
+                        self.building.get_max_builder_work_parts()
+                    )
+                else:
+                    wm = min(
+                        spawning.max_sections_of(self, creep_base_worker) * 3,
+                        self.building.get_max_builder_work_parts_noextra(),
+                    )
         elif self.trying_to_get_full_storage_use:
             wm = min(
                 spawning.max_sections_of(self, creep_base_worker) * 2,
@@ -1395,38 +1440,38 @@ class RoomMind:
                 wm = 0
             self._target_upgrader_work_mass = wm
             return wm
-        elif self.get_full_storage_use():
+        elif self.full_storage_use:
             spending = self.get_spending_target()
             if spending == room_spending_state_upgrading:
                 wm = 4
-                extra = self.minerals.get_estimate_total_energy() - energy_to_keep_always_in_reserve
+                extra = self.minerals.get_estimate_total_energy() - self.constant_energy_to_keep_in_reserve()
                 if extra > 0:
                     wm += math.floor(extra / 2000)
                     if extra >= STORAGE_CAPACITY / 5:
                         wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
             elif spending == room_spending_state_selling_and_upgrading:
                 wm = 4
-                extra = self.minerals.get_estimate_total_energy() - energy_to_keep_always_in_reserve \
+                extra = self.minerals.get_estimate_total_energy() - self.constant_energy_to_keep_in_reserve() \
                         - energy_for_terminal_when_selling
                 if extra > 0:
                     wm += math.floor(extra / 2000)
                     if extra >= STORAGE_CAPACITY / 5:
                         wm += math.ceil((extra - STORAGE_CAPACITY / 5) / 400)
             elif spending == room_spending_state_rcl8_building:
-                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_upgrading_energy()
                 if extra < 0:
                     wm = 4
                 else:
                     wm = 15
             elif spending == room_spending_state_selling_and_rcl8building:
-                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading \
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_upgrading_energy() \
                         - energy_for_terminal_when_selling
                 if extra < 0:
                     wm = 4
                 else:
                     wm = 15
             elif spending == room_spending_state_supporting:
-                extra = self.minerals.get_estimate_total_energy() - energy_balance_point_for_rcl8_upgrading
+                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_upgrading_energy()
                 if extra < 0:
                     wm = 4
                 # TODO: see if this is the best possible condition we could have...

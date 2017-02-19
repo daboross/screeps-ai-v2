@@ -36,6 +36,8 @@ mem_key_there_might_be_energy_lying_around = 'tons'
 mem_key_now_supporting = 's'
 mem_key_alive_squads = 'st'
 
+mem_key_urgency = 'urgency'
+
 cache_key_spending_now = 'ss'
 cache_key_squads = 'sqds'
 cache_key_squad_prefix = 'sq&'
