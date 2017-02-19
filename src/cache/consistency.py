@@ -161,12 +161,20 @@ def complete_refresh(hive):
                 del mem[key]
         if _.isEmpty(mem):
             del Memory.rooms[name]
-    for name in Object.keys(Memory.reserving):
-        if Memory.reserving[name] not in Game.creeps:
-            del Memory.reserving[name]
-    for name in Object.keys(Memory.flags):
-        mem = Memory.flags[name]
-        if 'remote_miner_targeting' in mem:
-            del mem['remote_miner_targeting']
-        if _.isEmpty(mem):
-            del Memory.flags[name]
+    if Memory.reserving:
+        for name in Object.keys(Memory.reserving):
+            if Memory.reserving[name] not in Game.creeps:
+                del Memory.reserving[name]
+    if Memory.flags:
+        for name in Object.keys(Memory.flags):
+            mem = Memory.flags[name]
+            if 'remote_miner_targeting' in mem:
+                del mem['remote_miner_targeting']
+            if _.isEmpty(mem):
+                del Memory.flags[name]
+    if Memory.spawns:
+        for name in Object.keys(Memory.spawns):
+            if _.isEmpty(Memory.spawns[name]):
+                del Memory.spawns[name]
+        if _.isEmpty(Memory.spawns):
+            del Memory.spawns
