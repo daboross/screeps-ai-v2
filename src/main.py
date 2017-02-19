@@ -421,6 +421,7 @@ __pragma__('js', 'global').py = {
     "get_creep": lambda name: wrap_creep(context.hive(), context.hive().targets,
                                          context.hive().get_room(Memory.creeps[name].home), Game.creeps[name])
     if name in Game.creeps else None,
+    "repave": building.repave,
     "cc": global_cache.clear_values_matching,
     "full_refresh": lambda: consistency.complete_refresh(context.hive()),
     "analyse_mem": lambda path: memory_info.analyse_memory(path),
