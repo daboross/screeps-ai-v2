@@ -1,4 +1,5 @@
 from jstools.screeps import *
+from utilities import naming
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -16,10 +17,8 @@ _whitespace_regex = __new__(RegExp('\s+'))
 _inject_check = (
     """
         <script>
-            var date = Date.now();
-            if (window._ij != _VERSION || !(window._lij > date)) {
+            if (!window['_SPECIFIC_KEY']) {
                 $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');
-                window._lij = date + 18e5;
             }
         </script>
     """.replace('_VERSION', str(_VERSION)).replace(_whitespace_regex, '')
@@ -128,8 +127,8 @@ def injection_check():
                     any_alive = True
             if not any_alive:
                 del Memory['nyxr_options']
-        print("Trying injection. (tick: {})".format(Game.time))
-        print(_inject_check)
+        specific_key = naming.random_digits()
+        print(_inject_check.replace('_SPECIFIC_KEY', specific_key))
 
 
 js_global._inject = injection_command
