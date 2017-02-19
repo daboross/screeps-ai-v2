@@ -1,7 +1,7 @@
 import math
 
-from constants import DEPOT, recycle_time, role_miner, role_recycling, role_spawn_fill, role_tower_fill, \
-    target_closest_energy_site, target_source, basic_reuse_path
+from constants import DEPOT, basic_reuse_path, recycle_time, role_miner, role_recycling, role_spawn_fill, \
+    role_tower_fill, target_closest_energy_site, target_source
 from creep_management import walkby_move
 from jstools.screeps import *
 from position_management import flags
@@ -355,7 +355,7 @@ class RoleBase:
             self.home.building.place_depot_flag()
             depots = flags.find_flags_global(DEPOT)
             if len(depots):
-                depot = depots[0].pos
+                depot = _.min(depots, lambda d: movement.chebyshev_distance_room_pos(self, d)).pos
             elif self.home.spawn:
                 depot = self.home.spawn.pos
             else:
