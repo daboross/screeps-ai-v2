@@ -218,6 +218,9 @@ class RoomMind:
                 return room.look_at(look_type, x, y)
             else:
                 return []
+        if x > 49 | x < 0 | y > 49 | y < 0:
+            print('[{}] warning: looked for {} at {}, {},{}'.format(self.name, look_type, self.name, x, y))
+            return []
         result = self.room.lookForAt(look_type, x, y)
         return result
 
