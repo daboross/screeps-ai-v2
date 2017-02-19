@@ -356,18 +356,13 @@ class MineralMind:
             else:
                 counts[rtype] = amount
         if self.room.rcl >= 6 and self.terminal:
-            for lab in self.room.find(FIND_MY_STRUCTURES):
+            for lab in self.labs():
                 if lab.structureType == STRUCTURE_LAB:
                     if lab.mineralAmount:
                         if lab.mineralType in counts:
                             counts[lab.mineralType] += lab.mineralAmount
                         else:
                             counts[lab.mineralType] = lab.mineralAmount
-                    if lab.energy:
-                        if RESOURCE_ENERGY in counts:
-                            counts[RESOURCE_ENERGY] += lab.energy
-                        else:
-                            counts[RESOURCE_ENERGY] = lab.energy
         self._total_resource_counts = counts
         return counts
 
