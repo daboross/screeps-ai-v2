@@ -20,19 +20,24 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-_SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000
+_SINGLE_MINERAL_FULFILLMENT_MAX = math.floor(TERMINAL_CAPACITY / 6)
 _SELL_ORDER_SIZE = 10 * 1000
-_KEEP_IN_TERMINAL_MY_MINERAL = TERMINAL_CAPACITY * 0.4
+_KEEP_IN_TERMINAL_MY_MINERAL = math.floor(TERMINAL_CAPACITY * 0.4)
 _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = energy_for_terminal_when_selling
+_MAX_KEEP_IN_TERMINAL_OTHER_MINERALS = math.floor(TERMINAL_CAPACITY / 20)
 _KEEP_IN_TERMINAL_ENERGY = 0
 
 sell_at_prices = {
-    RESOURCE_OXYGEN: 1.0,
-    RESOURCE_HYDROGEN: 1.0,
+    RESOURCE_OXYGEN: 0.5,
+    RESOURCE_HYDROGEN: 0.5,
     RESOURCE_ZYNTHIUM: 0.7,
     RESOURCE_UTRIUM: 0.7,
     RESOURCE_LEMERGIUM: 0.7,
     RESOURCE_KEANIUM: 0.7,
+    RESOURCE_CATALYST: 0.9,
+    RESOURCE_ENERGY: 0.1,
+    RESOURCE_POWER: 3.0,
+    RESOURCE_GHODIUM: 2.0,
 }
 bottom_prices = {
     RESOURCE_OXYGEN: 0.4,
@@ -41,8 +46,47 @@ bottom_prices = {
     RESOURCE_ZYNTHIUM: 0.2,
     RESOURCE_UTRIUM: 0.2,
     RESOURCE_LEMERGIUM: 0.2,
+    RESOURCE_CATALYST: 0.2,
+    RESOURCE_ENERGY: 0.01,
+    RESOURCE_POWER: 1.0,
+    RESOURCE_GHODIUM: 0.5,
 }
 
+tier_one_minerals = [
+    RESOURCE_OXYGEN,
+    RESOURCE_HYDROGEN,
+    RESOURCE_ZYNTHIUM,
+    RESOURCE_UTRIUM,
+    RESOURCE_LEMERGIUM,
+    RESOURCE_KEANIUM,
+    RESOURCE_CATALYST,
+]
+
+
+def add_reaction_prices():
+    for i in range(0, 10):
+        any_added = False
+        for resource_1 in Object.keys(REACTIONS):
+            if resource_1 not in sell_at_prices:
+                continue
+            resource_reaction_map = REACTIONS[resource_1]
+            for resource_2 in Object.keys(resource_reaction_map):
+                if resource_2 not in sell_at_prices:
+                    continue
+                result = resource_reaction_map[resource_2]
+                if result in sell_at_prices:
+                    continue
+                sell_at_prices[result] = sell_at_prices[resource_1] + sell_at_prices[resource_2]
+                bottom_prices[result] = bottom_prices[resource_1] + bottom_prices[resource_2]
+                any_added = True
+        if not any_added:
+            break
+    for resource in RESOURCES_ALL:
+        if resource not in sell_at_prices or resource not in bottom_prices:
+            print('[minerals] WARNING: Could not find a price for {}!'.format(resource))
+
+
+add_reaction_prices()
 
 minerals_to_keep_on_hand = [
     RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
@@ -84,6 +128,7 @@ class MineralMind:
         self._removing_from_terminal = undefined
         self._adding_to_terminal = undefined
         self._my_mineral_deposit_minerals = undefined
+        self._minerals_to_sell = undefined
         self._labs = undefined
         self._labs_for = undefined
         self._lab_targets = undefined
@@ -268,19 +313,50 @@ class MineralMind:
             self._my_mineral_deposit_minerals = result
         return self._my_mineral_deposit_minerals
 
+    def minerals_to_sell(self):
+        if not self._minerals_to_sell:
+            result = []
+            for mineral in Object.keys(self.get_total_room_resource_counts()):
+                if mineral != RESOURCE_ENERGY and not minerals_to_keep_on_hand.includes(mineral):
+                    result.append(mineral)
+            self._minerals_to_sell = result
+        return self._minerals_to_sell
+
     def get_all_terminal_targets(self):
         if self._target_mineral_counts is not undefined:
             return self._target_mineral_counts
         target_counts = {}
 
         counts = self.get_total_room_resource_counts()
+        priorities = {}
         for rtype, have in _.pairs(counts):
             if have > 0:
-                target = self._terminal_target_for_resource(rtype, have)
+                target, priority = self._terminal_target_for_resource(rtype, have)
                 if target > 0:
                     target_counts[rtype] = min(target, have)
-        if _.sum(target_counts) == target_counts[RESOURCE_ENERGY]:
+                    if priority in priorities:
+                        priorities[priority].push(rtype)
+                    else:
+                        priorities[priority] = [rtype]
+        total = _.sum(target_counts)
+        if total == target_counts[RESOURCE_ENERGY]:
             target_counts = {}
+        elif total > TERMINAL_CAPACITY:
+            if priorities[0]:
+                for rtype in priorities[0]:
+                    del target_counts[rtype]
+                total = _.sum(target_counts)
+            if total > TERMINAL_CAPACITY:
+                if priorities[1]:
+                    for rtype in priorities[1]:
+                        del target_counts[rtype]
+                    total = _.sum(target_counts)
+            if total > TERMINAL_CAPACITY:
+                if priorities[2]:
+                    while total > TERMINAL_CAPACITY:
+                        for rtype in priorities[2]:
+                            target_counts[rtype] = math.floor(target_counts[rtype] / 2)
+                        total = _.sum(target_counts)
         self._target_mineral_counts = target_counts
         return target_counts
 
@@ -480,9 +556,9 @@ class MineralMind:
     def _terminal_target_for_resource(self, mineral, currently_have):
         if mineral == RESOURCE_ENERGY:
             if currently_have < 50 * 1000:
-                return 0
+                return 0, 0
             if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
-                return min(_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000)
+                return min(_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000), 2
             if self.room.mem[rmem_key_empty_all_resources_into_room]:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
@@ -498,16 +574,17 @@ class MineralMind:
                                        currently_have - energy_balance_point_for_rcl8_selling)
             else:
                 min_via_spending = 0
-            return min(currently_have - 50 * 1000, max(0, min_via_empty_to, min_via_fulfillment, min_via_spending))
-        elif _.some(self.get_lab_targets(), lambda t: t[1] == mineral):
+            return min(currently_have - 50 * 1000,
+                       max(0, min_via_empty_to, min_via_fulfillment, min_via_spending)), 2
+        elif minerals_to_keep_on_hand.includes(mineral):
             return 0
         else:
             if self.my_mineral_deposit_minerals().includes(mineral):
-                return min(currently_have, _KEEP_IN_TERMINAL_MY_MINERAL)
+                return min(currently_have, _KEEP_IN_TERMINAL_MY_MINERAL), 1
 
             fulfilling = self.ro_fulfilling_mem()[mineral]
             if fulfilling and len(fulfilling):
-                return min(_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum(fulfilling, 'amount'))
+                return min(_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum(fulfilling, 'amount')), 2
 
             sell_orders = self.sell_orders_by_mineral()[mineral]
             if sell_orders and len(sell_orders):
@@ -515,14 +592,8 @@ class MineralMind:
                 for order in sell_orders:
                     if order.amountRemaining > biggest_order:
                         biggest_order = order.amountRemaining
-                return biggest_order
-
-            if self.room.get_spending_target() != room_spending_state_selling and \
-                            currently_have >= 1000 and \
-                    (mineral != RESOURCE_POWER or self.room.mem[rmem_key_empty_all_resources_into_room]):
-                return 1000 * min(math.floor(currently_have / 1000), 20)
-            else:
-                return 0
+                return biggest_order, 2
+            return min(currently_have, _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS), 0
 
     def tick_terminal(self):
         time = Game.time + self.room.get_unique_owned_index()
@@ -671,11 +742,11 @@ class MineralMind:
         Execute buy orders. Don't call if we don't have a terminal or there isn't energy in it (this assumes both).
         """
         # print("[{}][minerals] Executing potential buy orders.".format(self.room.name))
-        minerals = self.my_mineral_deposit_minerals()
+        minerals = self.minerals_to_sell()
         cache = volatile_cache.mem('market_orders')
         for mineral in minerals:
             we_have = self.terminal.store[mineral]
-            if not we_have or we_have < 1000:
+            if not we_have or (we_have < 1000 and we_have < self.get_total_room_resource_counts()[minerals]):
                 continue
             if cache.has(mineral):
                 orders = cache.get(mineral)
@@ -705,8 +776,10 @@ class MineralMind:
                             minimum = self.ro_last_sold_at_mem()[mineral] * 0.15
                         else:
                             minimum = self.ro_last_sold_at_mem()[mineral] * 0.3
-                    else:
+                    elif tier_one_minerals.includes(mineral):
                         minimum = 0.1
+                    else:
+                        minimum = (bottom_prices[mineral] + sell_at_prices[mineral]) / 2
                     if best_gain < minimum:
                         if best_order.price > 0.2:
                             print("[{}][minerals] Best buy order for {} is at price {}."
