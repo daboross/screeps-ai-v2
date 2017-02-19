@@ -332,7 +332,7 @@ def main():
                 print("[{}] Room no longer visible? skipping re-running creeps skipped last turn from this room."
                       .format(room_name))
                 continue
-            run_room(targets, creeps_skipped, room)
+            try_thing(run_room, targets, creeps_skipped, room)
         del Memory.skipped_last_turn
     else:
         rooms = hive.my_rooms
@@ -341,7 +341,7 @@ def main():
             rooms = rooms[:len(rooms) - 1]
         used_start = Game.cpu.getUsed()
         for room in rooms:
-            run_room(targets, creeps_skipped, room)
+            try_thing(run_room, targets, creeps_skipped, room)
             if Game.cpu.getUsed() - used_start >= 400:
                 print("[main] Used >= 400 CPU this tick! Skipping everything else.")
                 return
