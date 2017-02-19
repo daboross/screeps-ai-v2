@@ -159,7 +159,24 @@ def complete_refresh(hive):
         for key in Object.keys(mem):
             if key.startsWith('oss-'):
                 del mem[key]
+        if rmem_key_mineral_mind_storage in mem:
+            mineral_mind_mem = mem[rmem_key_mineral_mind_storage]
+            for sub_key in Object.keys(mineral_mind_mem):
+                sub_mem = mineral_mind_mem[sub_key]
+                if (_.isObject(sub_mem) and _.isEmpty(sub_mem)) or sub_mem is 0:
+                    print('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'
+                          .format(name, rmem_key_mineral_mind_storage, sub_key))
+                    del mineral_mind_mem[sub_key]
+                if sub_key == 'mineral_hauler' and sub_mem not in Game.creeps:
+                    print('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'
+                          .format(name, rmem_key_mineral_mind_storage, sub_key))
+                    del mineral_mind_mem[sub_key]
+            if _.isEmpty(mineral_mind_mem):
+                print('[consistency] Deleting empty memory path Memory.rooms.{}.{}'
+                      .format(name, rmem_key_mineral_mind_storage))
+                del mem[rmem_key_mineral_mind_storage]
         if _.isEmpty(mem):
+            print('[consistency] Deleting empty memory path Memory.rooms.{}'.format(name))
             del Memory.rooms[name]
     if Memory.reserving:
         for name in Object.keys(Memory.reserving):
