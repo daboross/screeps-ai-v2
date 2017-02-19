@@ -143,7 +143,7 @@ class SquadTactics:
                     targets.append(flag)
         else:
             cached = []
-            for flag in flags.find_flags_global_multitype_shared_first([
+            for flag in flags.find_flags_global_multitype_shared_primary([
                 SQUAD_KITING_PAIR,
                 SQUAD_DUAL_SCOUTS,
                 SQUAD_4_SCOUTS,

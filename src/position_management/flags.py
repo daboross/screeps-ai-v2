@@ -133,6 +133,7 @@ __pragma__('noalias', 'update')
 # Building main: 10*
 MAIN_BUILD = 100
 MAIN_DESTRUCT = 101
+MAIN_SQUAD = 102
 # Building owned structures: 11*
 SUB_RAMPART = 110
 SUB_SPAWN = 111
@@ -179,16 +180,11 @@ flag_definitions = {
 }
 
 reverse_definitions = {}
-for name in Object.keys(flag_definitions):
-    primary, secondary = flag_definitions[name]
-    if primary in reverse_definitions:
-        reverse_definitions[primary][secondary] = name
-    else:
-        reverse_definitions[primary] = {secondary: name}
 
 main_to_flag_primary = {
     MAIN_DESTRUCT: COLOR_RED,
     MAIN_BUILD: COLOR_PURPLE,
+    MAIN_SQUAD: COLOR_ORANGE,
 }
 
 sub_to_flag_secondary = {
@@ -204,18 +200,8 @@ sub_to_flag_secondary = {
     SUB_ROAD: COLOR_WHITE,
     SUB_TERMINAL: COLOR_GREY,
 }
-flag_secondary_to_sub = {
-    COLOR_RED: SUB_WALL,
-    COLOR_PURPLE: SUB_RAMPART,
-    COLOR_BLUE: SUB_EXTENSION,
-    COLOR_CYAN: SUB_SPAWN,
-    COLOR_GREEN: SUB_TOWER,
-    COLOR_YELLOW: SUB_STORAGE,
-    COLOR_ORANGE: SUB_LINK,
-    COLOR_BROWN: SUB_EXTRACTOR,
-    COLOR_GREY: SUB_TERMINAL,
-    COLOR_WHITE: SUB_ROAD,
-}
+flag_secondary_to_sub = {}
+
 flag_sub_to_structure_type = {
     SUB_SPAWN: STRUCTURE_SPAWN,
     SUB_EXTENSION: STRUCTURE_EXTENSION,
@@ -229,49 +215,118 @@ flag_sub_to_structure_type = {
     SUB_ROAD: STRUCTURE_ROAD,
     SUB_TERMINAL: STRUCTURE_TERMINAL,
 }
-structure_type_to_flag_sub = {
-    STRUCTURE_SPAWN: SUB_SPAWN,
-    STRUCTURE_EXTENSION: SUB_EXTENSION,
-    STRUCTURE_RAMPART: SUB_RAMPART,
-    STRUCTURE_WALL: SUB_WALL,
-    STRUCTURE_STORAGE: SUB_STORAGE,
-    STRUCTURE_TOWER: SUB_TOWER,
-    STRUCTURE_LINK: SUB_LINK,
-    STRUCTURE_EXTRACTOR: SUB_EXTRACTOR,
-    STRUCTURE_CONTAINER: SUB_CONTAINER,
-    STRUCTURE_ROAD: SUB_ROAD,
-    STRUCTURE_TERMINAL: SUB_TERMINAL,
-}
+structure_type_to_flag_sub = {}
+
+
+def define_reverse_maps():
+    for flag_type in Object.keys(flag_definitions):
+        primary, secondary = flag_definitions[flag_type]
+        if primary in reverse_definitions:
+            reverse_definitions[primary][secondary] = int(flag_type)
+        else:
+            reverse_definitions[primary] = {secondary: int(flag_type)}
+    for sub_type in Object.keys(sub_to_flag_secondary):
+        if sub_type != SUB_CONTAINER:
+            flag_secondary_to_sub[sub_to_flag_secondary[sub_type]] = int(sub_type)
+    for sub_type in Object.keys(flag_sub_to_structure_type):
+        structure_type_to_flag_sub[flag_sub_to_structure_type[sub_type]] = int(sub_type)
+
+
+define_reverse_maps()
 
 _REFRESH_EVERY = 50
 
 _last_flag_len = 0
 _last_checked_flag_len = 0
 
+_cache_refresh_time = 0
+
+_flag_type_to_flags = new_map()
+_flag_color_to_flag_secondary_color_to_flags = new_map()
+_room_name_to_flag_type_to_flags = new_map()
+_room_name_to_color_to_secondary_to_flags = new_map()
+
+_ALL_OF_PRIMARY = '__all__'
+
 
 def refresh_flag_caches():
-    global _last_flag_len, _last_checked_flag_len
-    global _room_flag_cache, _room_flag_refresh_time
-    global _global_flag_refresh_time, _global_flag_cache
-    global _closest_flag_refresh_time, _closest_flag_cache
-    refresh_time = Game.time + _REFRESH_EVERY
-    _room_flag_cache = new_map()
-    _room_flag_refresh_time = refresh_time
-    _global_flag_cache = new_map()
-    _global_flag_refresh_time = refresh_time
-    _closest_flag_cache = new_map()
-    _closest_flag_refresh_time = refresh_time
-    _last_flag_len = _.size(Game.flags)
+    global _last_flag_len, _last_checked_flag_len, _cache_refresh_time, \
+        _room_name_to_flag_type_to_flags, _flag_type_to_flags, _flag_color_to_flag_secondary_color_to_flags
+
+    game_flag_names = Object.keys(Game.flags)
+
+    _cache_refresh_time = Game.time + _REFRESH_EVERY
+    _last_flag_len = len(game_flag_names)
+
+    _room_name_to_flag_type_to_flags = new_map()
+    _flag_type_to_flags = new_map()
+    _flag_color_to_flag_secondary_color_to_flags = new_map()
+
+    possible_flag_mains = _.values(main_to_flag_primary)
+
+    for flag_name in game_flag_names:
+        flag = Game.flags[flag_name]
+        if possible_flag_mains.includes(flag.color):
+            if _flag_color_to_flag_secondary_color_to_flags.has(flag.color):
+                flag_secondary_to_flags = _flag_color_to_flag_secondary_color_to_flags.get(flag.color)
+            else:
+                flag_secondary_to_flags = new_map()
+                _flag_color_to_flag_secondary_color_to_flags.set(flag.color, flag_secondary_to_flags)
+            if flag_secondary_to_flags.has(flag.secondaryColor):
+                flag_secondary_to_flags.get(flag.secondaryColor).push(flag)
+            else:
+                flag_secondary_to_flags.set(flag.secondaryColor, [flag])
+
+            if flag_secondary_to_flags.has(_ALL_OF_PRIMARY):
+                flag_secondary_to_flags.get(_ALL_OF_PRIMARY).push(flag)
+            else:
+                flag_secondary_to_flags.set(_ALL_OF_PRIMARY, [flag])
+
+            if _room_name_to_color_to_secondary_to_flags.has(flag.pos.roomName):
+                in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get(flag.pos.roomName)
+            else:
+                in_room_color_to_secondary_to_flags = new_map()
+                _room_name_to_color_to_secondary_to_flags.set(flag.pos.roomName, in_room_color_to_secondary_to_flags)
+
+            if in_room_color_to_secondary_to_flags.has(flag.color):
+                in_room_flag_secondary_to_flags = in_room_color_to_secondary_to_flags.get(flag.color)
+            else:
+                in_room_flag_secondary_to_flags = new_map()
+                in_room_color_to_secondary_to_flags.set(flag.color, in_room_flag_secondary_to_flags)
+            if in_room_flag_secondary_to_flags.has(flag.secondaryColor):
+                in_room_flag_secondary_to_flags.get(flag.secondaryColor).push(flag)
+            else:
+                in_room_flag_secondary_to_flags.set(flag.secondaryColor, [flag])
+
+            if in_room_flag_secondary_to_flags.has(_ALL_OF_PRIMARY):
+                in_room_flag_secondary_to_flags.get(_ALL_OF_PRIMARY).push(flag)
+            else:
+                in_room_flag_secondary_to_flags.set(_ALL_OF_PRIMARY, [flag])
+
+        if _flag_type_to_flags.has(flag.hint):
+            _flag_type_to_flags.get(flag.hint).push(flag)
+        else:
+            _flag_type_to_flags.set(flag.hint, [flag])
+
+        if _room_name_to_flag_type_to_flags.has(flag.pos.roomName):
+            in_room_flag_type_to_flags = _room_name_to_flag_type_to_flags.get(flag.pos.roomName)
+        else:
+            in_room_flag_type_to_flags = new_map()
+            _room_name_to_flag_type_to_flags.set(flag.pos.roomName, in_room_flag_type_to_flags)
+        if in_room_flag_type_to_flags.has(flag.hint):
+            in_room_flag_type_to_flags.get(flag.hint).push(flag)
+        else:
+            in_room_flag_type_to_flags.set(flag.hint, [flag])
 
 
 def __check_new_flags():
     global _last_flag_len, _last_checked_flag_len
-    global _room_flag_cache, _room_flag_refresh_time
-    global _global_flag_refresh_time, _global_flag_cache
-    global _closest_flag_refresh_time, _closest_flag_cache
     if _last_checked_flag_len < Game.time:
+        _last_checked_flag_len = Game.time + 1  # check every 2 ticks
         length = _.size(Game.flags)
         if _last_flag_len != length:
+            refresh_flag_caches()
+        elif _cache_refresh_time < Game.time:
             refresh_flag_caches()
 
 
@@ -284,247 +339,148 @@ def move_flags():
         del Memory.flags_to_move
 
 
-def is_def(flag, flag_type):
-    flag_def = flag_definitions[flag_type]
-    return flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]
-
-
-_room_flag_cache = new_map()
-_room_flag_refresh_time = Game.time + _REFRESH_EVERY
-
-
-def __get_room_and_name(room):
+def __get_room_name(room):
     if room.room:
         room = room.room
     if room.name:
-        return room, room.name
+        return room.name
     else:
-        return Game.rooms[room], room
-
-
-def __get_cache(room_name, flag_type):
-    global _room_flag_refresh_time, _room_flag_cache
-    __check_new_flags()
-    if Game.time > _room_flag_refresh_time:
-        _room_flag_refresh_time = Game.time + _REFRESH_EVERY
-        _room_flag_cache = new_map()
-
-    if _room_flag_cache.has(room_name) and _room_flag_cache.get(room_name).has(flag_type):
-        return _room_flag_cache.get(room_name).get(flag_type)
-    else:
-        return None
+        return str(room)
 
 
 def find_flags(room, flag_type):
-    room, room_name = __get_room_and_name(room)
-    cached = __get_cache(room_name, flag_type)
-    if cached:
-        return cached
-    flag_def = flag_definitions[flag_type]
-    if room:
-        flag_list = room.find(FIND_FLAGS, {
-            "filter": {"color": flag_def[0], "secondaryColor": flag_def[1]}
-        })
+    room_name = __get_room_name(room)
+
+    __check_new_flags()
+
+    flag_type_to_flags = _room_name_to_flag_type_to_flags.get(room_name)
+    if flag_type_to_flags is undefined:
+        return []
+    flags = flag_type_to_flags.get(flag_type)
+    if flags:
+        return flags
     else:
-        flag_list = []
-        for flag_name in Object.keys(Game.flags):
-            flag = Game.flags[flag_name]
-            if flag.pos.roomName == room_name and flag.color == flag_def[0] \
-                    and flag.secondaryColor == flag_def[1]:
-                flag_list.append(flag)
-    if _room_flag_cache.has(room_name):
-        _room_flag_cache.get(room_name).set(flag_type, flag_list)
-    else:
-        _room_flag_cache.set(room_name, new_map([[flag_type, flag_list]]))
-    return flag_list
+        return []
 
 
 def find_by_main_with_sub(room, main_type):
-    room, room_name = __get_room_and_name(room)
-    # we're assuming that no MAIN type has the same identity as any full type
-    cached = __get_cache(room_name, main_type)
-    if cached:
-        return cached
+    room_name = __get_room_name(room)
 
-    flag_primary = main_to_flag_primary[main_type]
+    __check_new_flags()
 
-    if room:
-        flag_list = []
-        for flag in room.find(FIND_FLAGS, {"filter": {"color": flag_primary}}):
-            flag_list.append((flag, flag_secondary_to_sub[flag.secondaryColor]))
-    else:
-        flag_list = []
-        for name in Object.keys(Game.flags):
-            flag = Game.flags[name]
-            if flag.pos.roomName == room_name and flag.color == flag_primary:
-                secondary = flag_secondary_to_sub[flag.secondaryColor]
-                if secondary:  # don't pick flags which don't match any of the secondary colors
-                    flag_list.append([flag, secondary])
+    in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get(room_name)
+    if not in_room_color_to_secondary_to_flags:
+        return []
 
-    if _room_flag_cache.has(room_name):
-        _room_flag_cache.get(room_name).set(main_type, flag_list)
-    else:
-        _room_flag_cache.set(room_name, new_map([[main_type, flag_list]]))
-    return flag_list
+    of_this_main = in_room_color_to_secondary_to_flags.get(main_to_flag_primary[main_type])
+    if not of_this_main:
+        return []
+
+    result = []
+    for flag in of_this_main.get(_ALL_OF_PRIMARY):
+        sub_type = flag_secondary_to_sub[flag.secondaryColor]
+        if sub_type:
+            result.append([flag, sub_type])
+
+    return result
 
 
 def find_ms_flags(room, main_type, sub_type):
-    type_name = "{}_{}".format(main_type, sub_type)
-    room, room_name = __get_room_and_name(room)
-    cached = __get_cache(room_name, "{}_{}".format(main_type, sub_type))
-    if cached:
-        return cached
-    primary = main_to_flag_primary[main_type]
-    secondary = sub_to_flag_secondary[sub_type]
-    if room:
-        flag_list = room.find(FIND_FLAGS, {
-            "filter": {"color": primary, "secondaryColor": secondary}
-        })
-    else:
-        flag_list = []
-        for flag_name in Object.keys(Game.flags):
-            flag = Game.flags[flag_name]
-            if flag.pos.roomName == room_name and flag.color == primary \
-                    and flag.secondaryColor == secondary:
-                flag_list.append(flag)
-    if _room_flag_cache.has(room_name):
-        _room_flag_cache.get(room_name).set(type_name, flag_list)
-    else:
-        _room_flag_cache.set(room_name, new_map([[type_name, flag_list]]))
-    return flag_list
+    room_name = __get_room_name(room)
 
-
-_global_flag_cache = new_map()
-_global_flag_refresh_time = Game.time + _REFRESH_EVERY
-
-
-def find_flags_global(flag_type, reload=False):
-    global _global_flag_refresh_time, _global_flag_cache
     __check_new_flags()
-    if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
-        _global_flag_cache = new_map()
-    if _global_flag_cache.has(flag_type) and not reload:
-        return _global_flag_cache.get(flag_type)
-    flag_def = flag_definitions[flag_type]
-    flag_list = []
-    for name in Object.keys(Game.flags):
-        flag = Game.flags[name]
-        if flag.color == flag_def[0] and flag.secondaryColor == flag_def[1]:
-            flag_list.append(flag)
-    _global_flag_cache.set(flag_type, flag_list)
-    return flag_list
+
+    in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get(room_name)
+    if not in_room_color_to_secondary_to_flags:
+        return []
+
+    of_this_main = in_room_color_to_secondary_to_flags.get(main_to_flag_primary[main_type])
+    if not of_this_main:
+        return []
+
+    result = of_this_main.get(sub_to_flag_secondary[sub_type])
+
+    if result:
+        return result
+    else:
+        return []
 
 
-def find_flags_global_multitype_shared_first(flag_types, reload=False):
-    global _global_flag_refresh_time, _global_flag_cache
+def find_flags_global(flag_type):
     __check_new_flags()
-    if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
-        _global_flag_cache = new_map()
-    cache_key = '|'.join(flag_types)
-    if _global_flag_cache.has(cache_key) and not reload:
-        return _global_flag_cache.get(cache_key)
-    shared_first = None
-    seconds = []
+
+    result = _flag_type_to_flags.get(flag_type)
+
+    if result:
+        return result
+    else:
+        return []
+
+
+def find_flags_global_multitype_shared_primary(flag_types):
+    __check_new_flags()
+
+    shared_primary_color = None
+    secondary_colors = []
     for flag_type in flag_types:
         definition = flag_definitions[flag_type]
-        if shared_first is None:
-            shared_first = definition[0]
-        elif shared_first != definition[0]:
+        if shared_primary_color is None:
+            shared_primary_color = definition[0]
+        elif shared_primary_color != definition[0]:
             print('[flags][find_flags_global_multitype_shared_first] Called with diverse firsts! {}'.format(flag_types))
             return None
-        seconds.append(definition[1])
-    flag_list = []
-    for name in Object.keys(Game.flags):
-        flag = Game.flags[name]
-        if shared_first == flag.color and seconds.includes(flag.secondaryColor):
-            flag_list.append(flag)
-    _global_flag_cache.set(cache_key, flag_list)
-    return flag_list
+        secondary_colors.append(definition[1])
+
+    result = []
+
+    of_this_main = _flag_color_to_flag_secondary_color_to_flags.get(shared_primary_color)
+
+    if not of_this_main:
+        return result
+
+    for flag in of_this_main.get(_ALL_OF_PRIMARY):
+        if secondary_colors.includes(flag.secondaryColor):
+            result.append(flag)
+    return result
 
 
-def find_flags_ms_global(main_type, sub_type, reload=False):
-    type_name = "{}_{}".format(main_type, sub_type)
-    global _global_flag_refresh_time, _global_flag_cache
+def find_flags_ms_global(main_type, sub_type):
     __check_new_flags()
-    if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
-        _global_flag_cache = new_map()
-    if _global_flag_cache.has(type_name) and not reload:
-        return _global_flag_cache.get(type_name)
-    primary = main_to_flag_primary[main_type]
-    secondary = sub_to_flag_secondary[sub_type]
-    flag_list = []
-    for name in Object.keys(Game.flags):
-        flag = Game.flags[name]
-        if flag.color == primary and flag.secondaryColor == secondary:
-            flag_list.append(flag)
-    _global_flag_cache.set(type_name, flag_list)
-    return flag_list
+
+    of_this_main = _flag_color_to_flag_secondary_color_to_flags.get(main_to_flag_primary[main_type])
+    if not of_this_main:
+        return []
+
+    result = of_this_main.get(sub_to_flag_secondary[sub_type])
+
+    if result:
+        return result
+    else:
+        return []
 
 
-def find_by_main_with_sub_global(main_type, reload=False):
-    global _global_flag_refresh_time, _global_flag_cache
+def find_by_main_with_sub_global(main_type):
     __check_new_flags()
-    if Game.time > _global_flag_refresh_time:
-        _global_flag_refresh_time = Game.time + _REFRESH_EVERY
-        _global_flag_cache = new_map()
-    # we're assuming that no MAIN type has the same identity as any full type
-    if _global_flag_cache.has(main_type) and not reload:
-        return _global_flag_cache.get(main_type)
-    primary = main_to_flag_primary[main_type]
-    flag_list = []
-    for name in Object.keys(Game.flags):
-        flag = Game.flags[name]
-        if flag.color == primary:
-            secondary = flag_secondary_to_sub[flag.secondaryColor]
-            if secondary:  # don't pick flags which don't match any of the secondary colors
-                flag_list.append([flag, secondary])
-    _global_flag_cache.set(main_type, flag_list)
-    return flag_list
+
+    of_this_main = _flag_color_to_flag_secondary_color_to_flags.get(main_to_flag_primary[main_type])
+    if not of_this_main:
+        return []
+
+    result = []
+    for flag in of_this_main.get(_ALL_OF_PRIMARY):
+        sub_type = flag_secondary_to_sub[flag.secondaryColor]
+        if sub_type:
+            result.append([flag, sub_type])
+
+    return result
 
 
-_closest_flag_cache = new_map()
-_closest_flag_refresh_time = Game.time + _REFRESH_EVERY
-
-
-def squared_distance(x1, y1, x2, y2):
-    """
-    TODO: this is duplicated in movement.py - currently necessary to avoid circular imports though.
-    Gets the squared distance between two x, y positions
-    :return: an integer, the squared linear distance
-    """
-    x_diff = (x1 - x2)
-    y_diff = (y1 - y2)
-    return x_diff * x_diff + y_diff * y_diff
-
-
-def find_closest_in_room(pos, flag_type):
-    global _closest_flag_refresh_time, _closest_flag_cache
-    __check_new_flags()
-    if Game.time > _closest_flag_refresh_time:
-        _closest_flag_refresh_time = Game.time + 50
-        _closest_flag_cache = new_map()
-    key = "{}_{}_{}_{}".format(pos.roomName, pos.x, pos.y, flag_type)
-    if _closest_flag_cache.has(key):
-        return _closest_flag_cache.get(key)
-    closest_distance = Infinity
-    closest_flag = None
-    for flag in find_flags(pos.roomName, flag_type):
-        distance = squared_distance(pos.x, pos.y, flag.pos.x, flag.pos.y)
-        if distance < closest_distance:
-            closest_distance = distance
-            closest_flag = flag
-    _closest_flag_cache.set(key, closest_flag)
-
-    return closest_flag
-
-
-def __create_flag(position, flag_type, primary, secondary):
+def __create_flag(position, flag_type, primary, secondary, name_prefix):
     if position.pos:
         position = position.pos
     name = "{}_{}".format(flag_type, naming.random_digits())
+    if name_prefix:
+        name = "{}_{}".format(name_prefix, name)
     # TODO: Make some sort of utility for finding a visible position, so we can do this
     # even if all our spawns are dead!
     room = Game.rooms[position.roomName]
@@ -542,13 +498,14 @@ def __create_flag(position, flag_type, primary, secondary):
         return flag_name
 
 
-def create_flag(position, flag_type):
+def create_flag(position, flag_type, sponsor=None):
     flag_def = flag_definitions[flag_type]
-    return __create_flag(position, flag_type, flag_def[0], flag_def[1])
+    return __create_flag(position, flag_type, flag_def[0], flag_def[1], sponsor)
 
 
 def create_ms_flag(position, main, sub):
-    return __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub])
+    return __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub],
+                         None)
 
 
 def rename_flags():
@@ -585,6 +542,9 @@ def rename_flags():
 def look_for(room, position, main, sub=None):
     """
     :type room: rooms.room_mind.RoomMind
+    :type position: RoomPosition
+    :type main: int
+    :type sub: int
     """
     if not room.look_at:
         raise ValueError("Invalid room argument")
@@ -635,10 +595,12 @@ def flag_sponsor(flag, backup_search_by=None):
 
 def _flag_hint():
     reverse_primary = reverse_definitions[this.color]
+    result = None
     if reverse_primary:
         if this.secondaryColor in reverse_primary:
-            return reverse_primary[this.secondaryColor]
-    return None
+            result = reverse_primary[this.secondaryColor]
+    Object.defineProperty(this, 'hint', {'value': result})
+    return result
 
 
 Object.defineProperty(Flag.prototype, 'hint', {'get': _flag_hint})
