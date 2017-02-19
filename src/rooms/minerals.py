@@ -443,7 +443,7 @@ class MineralMind:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
             else:
                 min_via_empty_to = 0
-            if 'ten_without_self_orders' not in self.mem:
+            if 'total_energy_needed' not in self.mem:
                 self.recalculate_energy_needed()
             min_via_fulfillment = min(currently_have - 120 * 1000, self.mem['total_energy_needed'])
             spending_state = self.room.get_spending_target()
