@@ -19,6 +19,7 @@ _inject_check = (
         <script>
             if (!window['_SPECIFIC_KEY']) {
                 $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');
+                window['_SPECIFIC_KEY'] = _VERSION;
             }
         </script>
     """.replace('_VERSION', str(_VERSION)).replace(_whitespace_regex, '')
