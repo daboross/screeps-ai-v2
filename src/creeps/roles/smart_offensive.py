@@ -72,15 +72,16 @@ def kiting_cost_matrix(room_name):
                 set_in_range(mineral.pos, 4, 255, 0)
     else:
         data = stored_data.get_data(room_name)
-        for obstacle in data.structures:
-            if obstacle.type == StoredStructureType.ROAD:
-                cost_matrix.set(obstacle.x, obstacle.y, 1)
-            elif obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR \
-                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
-                    or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
-                set_in_range(obstacle, 4, 255, 0)
-            else:
-                cost_matrix.set(obstacle.x, obstacle.y, 255)
+        if data:
+            for obstacle in data.structures:
+                if obstacle.type == StoredStructureType.ROAD:
+                    cost_matrix.set(obstacle.x, obstacle.y, 1)
+                elif obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR \
+                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
+                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                    set_in_range(obstacle, 4, 255, 0)
+                else:
+                    cost_matrix.set(obstacle.x, obstacle.y, 255)
 
     for info in defense.stored_hostiles_in(room_name):
         x, y = positions.deserialize_xy(info.pos)
