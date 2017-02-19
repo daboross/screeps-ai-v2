@@ -21,26 +21,29 @@ class LinkingMind:
     """
     :type room: rooms.room_mind.RoomMind
     :type link_creep: roles.utility.LinkManager
+
     """
 
     def __init__(self, room):
         self.room = room
-        self._links = None
-        self._main_link = None
-        self.link_creep = None
+        __pragma__('skip')
+        self._links = undefined
+        self._main_link = undefined
+        self.link_creep = undefined
+        __pragma__('noskip')
         self.enabled_last_turn = room.get_cached_property("links_enabled") or False
 
     def _get_links(self):
         """
         :rtype: list[StructureLink]
         """
-        if self._links is None:
+        if self._links is undefined:
             self._links = _.filter(self.room.find(FIND_MY_STRUCTURES),
                                    {"structureType": STRUCTURE_LINK})
         return self._links
 
     def get_main_link(self):
-        if self._main_link is None:
+        if self._main_link is undefined:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
                 self._main_link = _.min(self._links,
                                         lambda l: movement.chebyshev_distance_room_pos(self.room.room.storage, l))
@@ -108,7 +111,7 @@ class LinkingMind:
         :type creep: roles.utility.LinkManager
         :param creep: Link manager
         """
-        if self.link_creep is not None:
+        if self.link_creep is not undefined:
             creep1 = self.link_creep
             creep2 = creep
 
