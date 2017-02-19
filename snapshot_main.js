@@ -1693,7 +1693,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-18 16:23:50
+// Transcrypt'ed from Python, 2017-02-19 13:10:02
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -4122,26 +4122,63 @@ function main () {
                                     delete mem [key];
                                 }
                             }
+                            if ((rmem_key_mineral_mind_storage in mem)) {
+                                var mineral_mind_mem = mem [rmem_key_mineral_mind_storage];
+                                var __iterable1__ = Object.keys (mineral_mind_mem);
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var sub_key = __iterable1__ [__index1__];
+                                    var sub_mem = mineral_mind_mem [sub_key];
+                                    if (_.isObject (sub_mem) && _.isEmpty (sub_mem) || sub_mem === 0) {
+                                        print ('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'.format (name, rmem_key_mineral_mind_storage, sub_key));
+                                        delete mineral_mind_mem [sub_key];
+                                    }
+                                    if (sub_key == 'mineral_hauler' && !(sub_mem in Game.creeps)) {
+                                        print ('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'.format (name, rmem_key_mineral_mind_storage, sub_key));
+                                        delete mineral_mind_mem [sub_key];
+                                    }
+                                }
+                                if (_.isEmpty (mineral_mind_mem)) {
+                                    print ('[consistency] Deleting empty memory path Memory.rooms.{}.{}'.format (name, rmem_key_mineral_mind_storage));
+                                    delete mem [rmem_key_mineral_mind_storage];
+                                }
+                            }
                             if (_.isEmpty (mem)) {
+                                print ('[consistency] Deleting empty memory path Memory.rooms.{}'.format (name));
                                 delete Memory.rooms [name];
                             }
                         }
-                        var __iterable0__ = Object.keys (Memory.reserving);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            if (!(Memory.reserving [name] in Game.creeps)) {
-                                delete Memory.reserving [name];
+                        if (Memory.reserving) {
+                            var __iterable0__ = Object.keys (Memory.reserving);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var name = __iterable0__ [__index0__];
+                                if (!(Memory.reserving [name] in Game.creeps)) {
+                                    delete Memory.reserving [name];
+                                }
                             }
                         }
-                        var __iterable0__ = Object.keys (Memory.flags);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            var mem = Memory.flags [name];
-                            if (('remote_miner_targeting' in mem)) {
-                                delete mem ['remote_miner_targeting'];
+                        if (Memory.flags) {
+                            var __iterable0__ = Object.keys (Memory.flags);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var name = __iterable0__ [__index0__];
+                                var mem = Memory.flags [name];
+                                if (('remote_miner_targeting' in mem)) {
+                                    delete mem ['remote_miner_targeting'];
+                                }
+                                if (_.isEmpty (mem)) {
+                                    delete Memory.flags [name];
+                                }
                             }
-                            if (_.isEmpty (mem)) {
-                                delete Memory.flags [name];
+                        }
+                        if (Memory.spawns) {
+                            var __iterable0__ = Object.keys (Memory.spawns);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var name = __iterable0__ [__index0__];
+                                if (_.isEmpty (Memory.spawns [name])) {
+                                    delete Memory.spawns [name];
+                                }
+                            }
+                            if (_.isEmpty (Memory.spawns)) {
+                                delete Memory.spawns;
                             }
                         }
                     };
@@ -4518,9 +4555,10 @@ function main () {
             __all__: {
                 __inited__: false,
                 __init__: function (__all__) {
+                    var naming = __init__ (__world__.utilities.naming);
                     var _VERSION = 8;
                     var _whitespace_regex = new RegExp ('\\s+');
-                    var _inject_check = "\n        <script>\n            var date = Date.now();\n            if (window._ij != _VERSION || !(window._lij > date)) {\n                $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');\n                window._lij = date + 18e5;\n            }\n        </script>\n    ".py_replace ('_VERSION', str (_VERSION)).py_replace (_whitespace_regex, '');
+                    var _inject_check = "\n        <script>\n            if (!window['_SPECIFIC_KEY']) {\n                $('body').injector().get('Connection').sendConsoleCommand('_inject(' + (window._ij == _VERSION) + ')');\n                window['_SPECIFIC_KEY'] = _VERSION;\n            }\n        </script>\n    ".py_replace ('_VERSION', str (_VERSION)).py_replace (_whitespace_regex, '');
                     var _full_injection = '\n    <script>\n        if (window._ij != _VERSION) {\n            window._ij = _VERSION;\n            var ijSendCommand = function (cmd, arg) {\n                console.log(`Sending command (cmd: ${cmd}, arg: ${arg}).`);\n                $(\'body\').injector().get(\'Connection\').sendConsoleCommand(\'_inject("\' + cmd + \'", "\' + arg + \'")\');\n            };\n            var text = `\n            <app:aside-block heading="Nyxr Options"\n                    visibility-model="Room.asidePanels.options"\n                    class="ij-options ng-isolate-scope ng-scope">\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'enable-visuals\')">\n                    Enable Visualizations\n                </button>\n                <br>\n                <button class="md-raised md-button md-ink-ripple"\n                        type="button"\n                        md-ink-ripple="#FF0000"\n                        ng-click="ijSend(\'disable-visuals\')">\n                    Disable Visualizations\n                </button>\n            </app:aside-block>\n            `;\n            function addOptions(ij_options, aside_content) {\n                ij_options.remove();\n                aside_content.each(function () {\n                    var aside = $(this);\n                    aside.injector().invoke([\'$compile\', function ($compile) {\n                        var scope = aside.scope();\n                        scope.ijSend = (cmd) => ijSendCommand(cmd, scope.Room.roomName);\n                        aside.append($compile(text)(scope));\n                    }]);\n                });\n            }\n            addOptions($(".ij-options"), $(\'.aside-content\'));\n            var timeoutID = setInterval(function () {\n                if (window._ij != _VERSION) {\n                    clearInterval(timeoutID);\n                    return;\n                }\n                var ij_options = $(\'.ij-options\');\n                if (ij_options.length == 0) {\n                    var aside_content = $(\'.aside-content\');\n                    if (aside_content.length > 0) {\n                        addOptions(ij_options, aside_content);\n                    }\n                }\n            }, 1000);\n        }\n    </script>\n    '.py_replace (_whitespace_regex, ' ').py_replace ('_VERSION', str (_VERSION));
                     var injection_command = function (command, room_name) {
                         if (!(command)) {
@@ -4589,13 +4627,14 @@ function main () {
                                     delete Memory ['nyxr_options'];
                                 }
                             }
-                            print ('Trying injection. (tick: {})'.format (Game.time));
-                            print (_inject_check);
+                            var specific_key = naming.random_digits ();
+                            print (_inject_check.py_replace ('_SPECIFIC_KEY', specific_key));
                         }
                     };
                     global._inject = injection_command;
                     __pragma__ ('<use>' +
                         'jstools.screeps' +
+                        'utilities.naming' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__._VERSION = _VERSION;
@@ -4604,6 +4643,7 @@ function main () {
                         __all__._whitespace_regex = _whitespace_regex;
                         __all__.injection_check = injection_check;
                         __all__.injection_command = injection_command;
+                        __all__.naming = naming;
                     __pragma__ ('</all>')
                 }
             }
@@ -5072,6 +5112,7 @@ function main () {
                     var mem_key_there_might_be_energy_lying_around = 'tons';
                     var mem_key_now_supporting = 's';
                     var mem_key_alive_squads = 'st';
+                    var mem_key_urgency = 'urgency';
                     var cache_key_spending_now = 'ss';
                     var cache_key_squads = 'sqds';
                     var cache_key_squad_prefix = 'sq&';
@@ -5110,6 +5151,7 @@ function main () {
                         __all__.mem_key_there_might_be_energy_lying_around = mem_key_there_might_be_energy_lying_around;
                         __all__.mem_key_total_open_source_spaces = mem_key_total_open_source_spaces;
                         __all__.mem_key_upgrading_paused = mem_key_upgrading_paused;
+                        __all__.mem_key_urgency = mem_key_urgency;
                         __all__.mem_key_work_parts_by_role = mem_key_work_parts_by_role;
                     __pragma__ ('</all>')
                 }
@@ -8364,6 +8406,7 @@ function main () {
                     var math = {};
                     __nest__ (math, '', __init__ (__world__.math));
                     var DEPOT = __init__ (__world__.constants).DEPOT;
+                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var recycle_time = __init__ (__world__.constants).recycle_time;
                     var role_miner = __init__ (__world__.constants).role_miner;
                     var role_recycling = __init__ (__world__.constants).role_recycling;
@@ -8371,7 +8414,6 @@ function main () {
                     var role_tower_fill = __init__ (__world__.constants).role_tower_fill;
                     var target_closest_energy_site = __init__ (__world__.constants).target_closest_energy_site;
                     var target_source = __init__ (__world__.constants).target_source;
-                    var basic_reuse_path = __init__ (__world__.constants).basic_reuse_path;
                     var walkby_move = __init__ (__world__.creep_management.walkby_move);
                     var flags = __init__ (__world__.position_management.flags);
                     var movement = __init__ (__world__.utilities.movement);
@@ -8726,7 +8768,9 @@ function main () {
                                 self.home.building.place_depot_flag ();
                                 var depots = flags.find_flags_global (DEPOT);
                                 if (len (depots)) {
-                                    var depot = depots [0].pos;
+                                    var depot = _.min (depots, (function __lambda__ (d) {
+                                        return movement.chebyshev_distance_room_pos (self, d);
+                                    })).pos;
                                 }
                                 else if (self.home.spawn) {
                                     var depot = self.home.spawn.pos;
@@ -9750,6 +9794,7 @@ function main () {
                 __init__: function (__all__) {
                     var role_hauler = __init__ (__world__.constants).role_hauler;
                     var role_miner = __init__ (__world__.constants).role_miner;
+                    var role_recycling = __init__ (__world__.constants).role_recycling;
                     var RoleBase = __init__ (__world__.creeps.base).RoleBase;
                     var honey = __init__ (__world__.empire.honey);
                     var movement = __init__ (__world__.utilities.movement);
@@ -10045,6 +10090,10 @@ function main () {
                                         }
                                         else {
                                             self.log ("WARNING: Transport creep off path, with no positions to return to. I'm at {}, going from {} to {}. All positions: {}!".format (self.pos, origin, target, all_positions));
+                                            if (mine && self.home.mining.is_mine_linked (mine)) {
+                                                self.log ("I'm a hauler for a linked mine! Suiciding.");
+                                                self.memory.role = role_recycling;
+                                            }
                                             if (!(len (all_positions))) {
                                                 if (__mod__ (Game.time, 20) == 10) {
                                                     honey.clear_cached_path (origin, target);
@@ -10150,6 +10199,7 @@ function main () {
                         __all__.movement = movement;
                         __all__.role_hauler = role_hauler;
                         __all__.role_miner = role_miner;
+                        __all__.role_recycling = role_recycling;
                     __pragma__ ('</all>')
                 }
             }
@@ -12513,8 +12563,8 @@ function main () {
                                 self.memory.last_role = role_miner;
                                 return false;
                             }
-                            if (source_flag.memory.sponsor && source_flag.memory.sponsor != self.home.name) {
-                                self.memory.home = source_flag.memory.sponsor;
+                            if (__mod__ (Game.time, 10) == 7 && flags.flag_sponsor (source_flag) != self.home.name) {
+                                self.memory.home = flags.flag_sponsor (source_flag);
                             }
                             if (self.creep.hits < self.creep.hitsMax) {
                                 if (!(len (flags.find_flags (self, RANGED_DEFENSE))) || !(_.some (self.room.find (FIND_CREEPS), (function __lambda__ (creep) {
@@ -13796,17 +13846,19 @@ function main () {
                         }
                         else {
                             var data = stored_data.get_data (room_name);
-                            var __iterable0__ = data.structures;
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var obstacle = __iterable0__ [__index0__];
-                                if (obstacle.type == StoredStructureType.ROAD) {
-                                    cost_matrix.set (obstacle.x, obstacle.y, 1);
-                                }
-                                else if (obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR || obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
-                                    set_in_range (obstacle, 4, 255, 0);
-                                }
-                                else {
-                                    cost_matrix.set (obstacle.x, obstacle.y, 255);
+                            if (data) {
+                                var __iterable0__ = data.structures;
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var obstacle = __iterable0__ [__index0__];
+                                    if (obstacle.type == StoredStructureType.ROAD) {
+                                        cost_matrix.set (obstacle.x, obstacle.y, 1);
+                                    }
+                                    else if (obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR || obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                        set_in_range (obstacle, 4, 255, 0);
+                                    }
+                                    else {
+                                        cost_matrix.set (obstacle.x, obstacle.y, 255);
+                                    }
                                 }
                             }
                         }
@@ -16234,6 +16286,7 @@ function main () {
                                 return false;
                             }
                             if (!('station_pos' in self.memory)) {
+                                var secondary = self.home.links.secondary_link;
                                 var best_priority = 0;
                                 var best = null;
                                 for (var x = link.pos.x - 1; x < link.pos.x + 2; x++) {
@@ -16257,6 +16310,9 @@ function main () {
                                             }
                                             var pos = new RoomPosition (x, y, self.home.name);
                                             var priority = 1;
+                                            if (secondary && movement.chebyshev_distance_xy (secondary.pos.x, secondary.pos.y, x, y) <= 1) {
+                                                priority += 20;
+                                            }
                                             if ((link.pos.x == storage.pos.x && storage.pos.x == pos.x)) {
                                                 priority += 5;
                                             }
@@ -16286,11 +16342,20 @@ function main () {
                             }
                             if (self.creep.carry.energy != self.creep.carryCapacity / 2) {
                                 if (self.creep.carry.energy > self.creep.carryCapacity / 2) {
-                                    var result = self.creep.transfer (storage, RESOURCE_ENERGY, self.creep.carry.energy - self.creep.carryCapacity / 2);
+                                    var target = storage;
+                                    var result = self.creep.transfer (target, RESOURCE_ENERGY, self.creep.carry.energy - self.creep.carryCapacity / 2);
                                     if (result == ERR_FULL) {
-                                        var result = self.creep.transfer (self.home.links.main_link, RESOURCE_ENERGY, self.creep.carry.energy - self.creep.carryCapacity / 2);
+                                        var target = self.home.links.main_link;
+                                        var result = self.creep.transfer (target, RESOURCE_ENERGY, self.creep.carry.energy - self.creep.carryCapacity / 2);
+                                        if (result == ERR_FULL) {
+                                            var secondary = self.home.links.secondary_link;
+                                            if (secondary) {
+                                                var target = secondary;
+                                                var result = self.creep.transfer (target, RESOURCE_ENERGY, self.creep.carry.energy - self.creep.carryCapacity / 2);
+                                            }
+                                        }
                                     }
-                                    self.ensure_ok (result, 'transfer', storage, RESOURCE_ENERGY);
+                                    self.ensure_ok (result, 'transfer', target, RESOURCE_ENERGY);
                                 }
                                 else {
                                     var target = storage;
@@ -16298,6 +16363,13 @@ function main () {
                                     if (result == ERR_NOT_ENOUGH_RESOURCES) {
                                         var target = self.home.links.main_link;
                                         var result = self.creep.withdraw (target, RESOURCE_ENERGY, self.creep.carryCapacity / 2 - self.creep.carry.energy);
+                                        if (result == ERR_NOT_ENOUGH_RESOURCES) {
+                                            var secondary = self.home.links.secondary_link;
+                                            if (secondary) {
+                                                var target = secondary;
+                                                var result = self.creep.withdraw (target, RESOURCE_ENERGY, self.creep.carryCapacity / 2 - self.creep.carry.energy);
+                                            }
+                                        }
                                     }
                                     self.ensure_ok (result, 'withdraw', target, RESOURCE_ENERGY);
                                 }
@@ -16306,9 +16378,17 @@ function main () {
                             self.home.links.note_link_manager (self);
                             return false;
                         });},
-                        get ensure_ok () {return __get__ (this, function (self, result, action, p1, p2) {
+                        get ensure_ok () {return __get__ (this, function (self, result, action, p1, p2, p3) {
+                            if (typeof p3 == 'undefined' || (p3 != null && p3 .hasOwnProperty ("__kwargtrans__"))) {;
+                                var p3 = null;
+                            };
                             if (result != OK) {
-                                self.log ('ERROR: Unknown result from link creep.{}({},{}): {}!'.format (action, p1, p2, result));
+                                if (p3) {
+                                    self.log ('ERROR: Unknown result from link creep.{}({},{},{}): {}!'.format (action, p1, p2, p3, result));
+                                }
+                                else {
+                                    self.log ('ERROR: Unknown result from link creep.{}({},{}): {}!'.format (action, p1, p2, result));
+                                }
                             }
                         });},
                         get ensure_no_minerals () {return __get__ (this, function (self) {
@@ -16325,12 +16405,11 @@ function main () {
                             }
                             return false;
                         });},
-                        get send_to_link () {return __get__ (this, function (self, amount) {
+                        get send_to_link () {return __get__ (this, function (self, link, amount) {
                             if (typeof amount == 'undefined' || (amount != null && amount .hasOwnProperty ("__kwargtrans__"))) {;
                                 var amount = null;
                             };
                             var storage = self.home.room.storage;
-                            var link = self.home.links.main_link;
                             if (!(amount) || amount > self.creep.carryCapacity / 2) {
                                 var amount = self.creep.carryCapacity / 2;
                             }
@@ -16341,14 +16420,13 @@ function main () {
                                 return ;
                             }
                             self.ensure_ok (self.creep.transfer (link, RESOURCE_ENERGY, amount), 'transfer', link, RESOURCE_ENERGY);
-                            self.ensure_ok (self.creep.withdraw (storage, RESOURCE_ENERGY, amount), 'withdraw', link, RESOURCE_ENERGY);
+                            self.ensure_ok (self.creep.withdraw (storage, RESOURCE_ENERGY, amount), 'withdraw', storage, RESOURCE_ENERGY);
                         });},
-                        get send_from_link () {return __get__ (this, function (self, amount) {
+                        get send_from_link () {return __get__ (this, function (self, link, amount) {
                             if (typeof amount == 'undefined' || (amount != null && amount .hasOwnProperty ("__kwargtrans__"))) {;
                                 var amount = null;
                             };
                             var storage = self.home.room.storage;
-                            var link = self.home.links.main_link;
                             if (!(amount) || amount > self.creep.carryCapacity / 2) {
                                 var amount = self.creep.carryCapacity / 2;
                             }
@@ -16359,7 +16437,7 @@ function main () {
                                 return ;
                             }
                             self.ensure_ok (self.creep.withdraw (link, RESOURCE_ENERGY, amount), 'withdraw', link, RESOURCE_ENERGY);
-                            self.ensure_ok (self.creep.transfer (storage, RESOURCE_ENERGY, amount), 'transfer', link, RESOURCE_ENERGY);
+                            self.ensure_ok (self.creep.transfer (storage, RESOURCE_ENERGY, amount), 'transfer', storage, RESOURCE_ENERGY);
                         });},
                         get _calculate_time_to_replace () {return __get__ (this, function (self) {
                             var link = self.home.links.main_link;
@@ -16766,9 +16844,6 @@ function main () {
                                     flag.remove ();
                                 }
                                 else {
-                                    if (!(flag.name in Memory.flags) || !(flag.memory.active)) {
-                                        continue;
-                                    }
                                     var sponsor = flags.flag_sponsor (flag);
                                     if (!(sponsor)) {
                                         print ("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format (flag.name, flag.memory.sponsor));
@@ -20789,6 +20864,7 @@ function main () {
                     var naming = __init__ (__world__.utilities.naming);
                     var MAIN_BUILD = 100;
                     var MAIN_DESTRUCT = 101;
+                    var MAIN_SQUAD = 102;
                     var SUB_RAMPART = 110;
                     var SUB_SPAWN = 111;
                     var SUB_EXTENSION = 112;
@@ -20802,41 +20878,136 @@ function main () {
                     var SUB_CONTAINER = 122;
                     var flag_definitions = {[LOCAL_MINE]: [COLOR_BLUE, COLOR_PURPLE], [DEPOT]: [COLOR_BLUE, COLOR_BLUE], [SPAWN_FILL_WAIT]: [COLOR_BLUE, COLOR_CYAN], [UPGRADER_SPOT]: [COLOR_BLUE, COLOR_GREEN], [SLIGHTLY_AVOID]: [COLOR_BLUE, COLOR_GREY], [SK_LAIR_SOURCE_NOTED]: [COLOR_BLUE, COLOR_WHITE], [TD_H_H_STOP]: [COLOR_CYAN, COLOR_RED], [TD_H_D_STOP]: [COLOR_CYAN, COLOR_PURPLE], [TD_D_GOAD]: [COLOR_CYAN, COLOR_BLUE], [ATTACK_DISMANTLE]: [COLOR_CYAN, COLOR_GREEN], [RAID_OVER]: [COLOR_CYAN, COLOR_YELLOW], [ENERGY_GRAB]: [COLOR_CYAN, COLOR_ORANGE], [SCOUT]: [COLOR_CYAN, COLOR_BROWN], [RANGED_DEFENSE]: [COLOR_CYAN, COLOR_CYAN], [ATTACK_POWER_BANK]: [COLOR_CYAN, COLOR_GREY], [REAP_POWER_BANK]: [COLOR_CYAN, COLOR_WHITE], [REMOTE_MINE]: [COLOR_GREEN, COLOR_CYAN], [CLAIM_LATER]: [COLOR_GREEN, COLOR_PURPLE], [RESERVE_NOW]: [COLOR_GREEN, COLOR_GREY], [RAMPART_DEFENSE]: [COLOR_GREEN, COLOR_GREEN], [REROUTE]: [COLOR_WHITE, COLOR_GREEN], [REROUTE_DESTINATION]: [COLOR_WHITE, COLOR_YELLOW], [SQUAD_KITING_PAIR]: [COLOR_ORANGE, COLOR_RED], [SQUAD_DUAL_SCOUTS]: [COLOR_ORANGE, COLOR_PURPLE], [SQUAD_4_SCOUTS]: [COLOR_ORANGE, COLOR_BLUE], [SQUAD_DUAL_ATTACK]: [COLOR_ORANGE, COLOR_CYAN], [SQUAD_DISMANTLE_RANGED]: [COLOR_ORANGE, COLOR_GREEN], [SQUAD_TOWER_DRAIN]: [COLOR_ORANGE, COLOR_YELLOW]};
                     var reverse_definitions = {};
-                    var __iterable0__ = Object.keys (flag_definitions);
-                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                        var name = __iterable0__ [__index0__];
-                        var __left0__ = flag_definitions [name];
-                        var primary = __left0__ [0];
-                        var secondary = __left0__ [1];
-                        if ((primary in reverse_definitions)) {
-                            reverse_definitions [primary] [secondary] = name;
-                        }
-                        else {
-                            reverse_definitions [primary] = {[secondary]: name};
-                        }
-                    }
-                    var main_to_flag_primary = {[MAIN_DESTRUCT]: COLOR_RED, [MAIN_BUILD]: COLOR_PURPLE};
+                    var main_to_flag_primary = {[MAIN_DESTRUCT]: COLOR_RED, [MAIN_BUILD]: COLOR_PURPLE, [MAIN_SQUAD]: COLOR_ORANGE};
                     var sub_to_flag_secondary = {[SUB_WALL]: COLOR_RED, [SUB_RAMPART]: COLOR_PURPLE, [SUB_EXTENSION]: COLOR_BLUE, [SUB_SPAWN]: COLOR_CYAN, [SUB_TOWER]: COLOR_GREEN, [SUB_STORAGE]: COLOR_YELLOW, [SUB_LINK]: COLOR_ORANGE, [SUB_EXTRACTOR]: COLOR_BROWN, [SUB_CONTAINER]: COLOR_BROWN, [SUB_ROAD]: COLOR_WHITE, [SUB_TERMINAL]: COLOR_GREY};
-                    var flag_secondary_to_sub = {[COLOR_RED]: SUB_WALL, [COLOR_PURPLE]: SUB_RAMPART, [COLOR_BLUE]: SUB_EXTENSION, [COLOR_CYAN]: SUB_SPAWN, [COLOR_GREEN]: SUB_TOWER, [COLOR_YELLOW]: SUB_STORAGE, [COLOR_ORANGE]: SUB_LINK, [COLOR_BROWN]: SUB_EXTRACTOR, [COLOR_GREY]: SUB_TERMINAL, [COLOR_WHITE]: SUB_ROAD};
+                    var flag_secondary_to_sub = {};
                     var flag_sub_to_structure_type = {[SUB_SPAWN]: STRUCTURE_SPAWN, [SUB_EXTENSION]: STRUCTURE_EXTENSION, [SUB_RAMPART]: STRUCTURE_RAMPART, [SUB_WALL]: STRUCTURE_WALL, [SUB_STORAGE]: STRUCTURE_STORAGE, [SUB_TOWER]: STRUCTURE_TOWER, [SUB_LINK]: STRUCTURE_LINK, [SUB_EXTRACTOR]: STRUCTURE_EXTRACTOR, [SUB_CONTAINER]: STRUCTURE_CONTAINER, [SUB_ROAD]: STRUCTURE_ROAD, [SUB_TERMINAL]: STRUCTURE_TERMINAL};
-                    var structure_type_to_flag_sub = {[STRUCTURE_SPAWN]: SUB_SPAWN, [STRUCTURE_EXTENSION]: SUB_EXTENSION, [STRUCTURE_RAMPART]: SUB_RAMPART, [STRUCTURE_WALL]: SUB_WALL, [STRUCTURE_STORAGE]: SUB_STORAGE, [STRUCTURE_TOWER]: SUB_TOWER, [STRUCTURE_LINK]: SUB_LINK, [STRUCTURE_EXTRACTOR]: SUB_EXTRACTOR, [STRUCTURE_CONTAINER]: SUB_CONTAINER, [STRUCTURE_ROAD]: SUB_ROAD, [STRUCTURE_TERMINAL]: SUB_TERMINAL};
+                    var structure_type_to_flag_sub = {};
+                    var define_reverse_maps = function () {
+                        var __iterable0__ = Object.keys (flag_definitions);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var flag_type = __iterable0__ [__index0__];
+                            var __left0__ = flag_definitions [flag_type];
+                            var primary = __left0__ [0];
+                            var secondary = __left0__ [1];
+                            if ((primary in reverse_definitions)) {
+                                reverse_definitions [primary] [secondary] = int (flag_type);
+                            }
+                            else {
+                                reverse_definitions [primary] = {[secondary]: int (flag_type)};
+                            }
+                        }
+                        var __iterable0__ = Object.keys (sub_to_flag_secondary);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var sub_type = __iterable0__ [__index0__];
+                            if (sub_type != SUB_CONTAINER) {
+                                flag_secondary_to_sub [sub_to_flag_secondary [sub_type]] = int (sub_type);
+                            }
+                        }
+                        var __iterable0__ = Object.keys (flag_sub_to_structure_type);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var sub_type = __iterable0__ [__index0__];
+                            structure_type_to_flag_sub [flag_sub_to_structure_type [sub_type]] = int (sub_type);
+                        }
+                    };
+                    define_reverse_maps ();
                     var _REFRESH_EVERY = 50;
                     var _last_flag_len = 0;
                     var _last_checked_flag_len = 0;
+                    var _cache_refresh_time = 0;
+                    var _flag_type_to_flags = new_map ();
+                    var _flag_color_to_flag_secondary_color_to_flags = new_map ();
+                    var _room_name_to_flag_type_to_flags = new_map ();
+                    var _room_name_to_color_to_secondary_to_flags = new_map ();
+                    var _ALL_OF_PRIMARY = '__all__';
                     var refresh_flag_caches = function () {
-                        var refresh_time = Game.time + _REFRESH_EVERY;
-                        _room_flag_cache = new_map ();
-                        _room_flag_refresh_time = refresh_time;
-                        _global_flag_cache = new_map ();
-                        _global_flag_refresh_time = refresh_time;
-                        _closest_flag_cache = new_map ();
-                        _closest_flag_refresh_time = refresh_time;
-                        _last_flag_len = _.size (Game.flags);
+                        var game_flag_names = Object.keys (Game.flags);
+                        _cache_refresh_time = Game.time + _REFRESH_EVERY;
+                        _last_flag_len = len (game_flag_names);
+                        _room_name_to_flag_type_to_flags = new_map ();
+                        _flag_type_to_flags = new_map ();
+                        _flag_color_to_flag_secondary_color_to_flags = new_map ();
+                        var possible_flag_mains = _.values (main_to_flag_primary);
+                        var __iterable0__ = game_flag_names;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var flag_name = __iterable0__ [__index0__];
+                            var flag = Game.flags [flag_name];
+                            if (possible_flag_mains.includes (flag.color)) {
+                                if (_flag_color_to_flag_secondary_color_to_flags.has (flag.color)) {
+                                    var flag_secondary_to_flags = _flag_color_to_flag_secondary_color_to_flags.get (flag.color);
+                                }
+                                else {
+                                    var flag_secondary_to_flags = new_map ();
+                                    _flag_color_to_flag_secondary_color_to_flags.set (flag.color, flag_secondary_to_flags);
+                                }
+                                if (flag_secondary_to_flags.has (flag.secondaryColor)) {
+                                    flag_secondary_to_flags.get (flag.secondaryColor).push (flag);
+                                }
+                                else {
+                                    flag_secondary_to_flags.set (flag.secondaryColor, [flag]);
+                                }
+                                if (flag_secondary_to_flags.has (_ALL_OF_PRIMARY)) {
+                                    flag_secondary_to_flags.get (_ALL_OF_PRIMARY).push (flag);
+                                }
+                                else {
+                                    flag_secondary_to_flags.set (_ALL_OF_PRIMARY, [flag]);
+                                }
+                                if (_room_name_to_color_to_secondary_to_flags.has (flag.pos.roomName)) {
+                                    var in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get (flag.pos.roomName);
+                                }
+                                else {
+                                    var in_room_color_to_secondary_to_flags = new_map ();
+                                    _room_name_to_color_to_secondary_to_flags.set (flag.pos.roomName, in_room_color_to_secondary_to_flags);
+                                }
+                                if (in_room_color_to_secondary_to_flags.has (flag.color)) {
+                                    var in_room_flag_secondary_to_flags = in_room_color_to_secondary_to_flags.get (flag.color);
+                                }
+                                else {
+                                    var in_room_flag_secondary_to_flags = new_map ();
+                                    in_room_color_to_secondary_to_flags.set (flag.color, in_room_flag_secondary_to_flags);
+                                }
+                                if (in_room_flag_secondary_to_flags.has (flag.secondaryColor)) {
+                                    in_room_flag_secondary_to_flags.get (flag.secondaryColor).push (flag);
+                                }
+                                else {
+                                    in_room_flag_secondary_to_flags.set (flag.secondaryColor, [flag]);
+                                }
+                                if (in_room_flag_secondary_to_flags.has (_ALL_OF_PRIMARY)) {
+                                    in_room_flag_secondary_to_flags.get (_ALL_OF_PRIMARY).push (flag);
+                                }
+                                else {
+                                    in_room_flag_secondary_to_flags.set (_ALL_OF_PRIMARY, [flag]);
+                                }
+                            }
+                            if (_flag_type_to_flags.has (flag.hint)) {
+                                _flag_type_to_flags.get (flag.hint).push (flag);
+                            }
+                            else {
+                                _flag_type_to_flags.set (flag.hint, [flag]);
+                            }
+                            if (_room_name_to_flag_type_to_flags.has (flag.pos.roomName)) {
+                                var in_room_flag_type_to_flags = _room_name_to_flag_type_to_flags.get (flag.pos.roomName);
+                            }
+                            else {
+                                var in_room_flag_type_to_flags = new_map ();
+                                _room_name_to_flag_type_to_flags.set (flag.pos.roomName, in_room_flag_type_to_flags);
+                            }
+                            if (in_room_flag_type_to_flags.has (flag.hint)) {
+                                in_room_flag_type_to_flags.get (flag.hint).push (flag);
+                            }
+                            else {
+                                in_room_flag_type_to_flags.set (flag.hint, [flag]);
+                            }
+                        }
                     };
                     var __check_new_flags = function () {
                         if (_last_checked_flag_len < Game.time) {
+                            _last_checked_flag_len = Game.time + 1;
                             var length = _.size (Game.flags);
                             if (_last_flag_len != length) {
+                                refresh_flag_caches ();
+                            }
+                            else if (_cache_refresh_time < Game.time) {
                                 refresh_flag_caches ();
                             }
                         }
@@ -20855,297 +21026,153 @@ function main () {
                             delete Memory.flags_to_move;
                         }
                     };
-                    var is_def = function (flag, flag_type) {
-                        var flag_def = flag_definitions [flag_type];
-                        return flag.color == flag_def [0] && flag.secondaryColor == flag_def [1];
-                    };
-                    var _room_flag_cache = new_map ();
-                    var _room_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                    var __get_room_and_name = function (room) {
+                    var __get_room_name = function (room) {
                         if (room.room) {
                             var room = room.room;
                         }
                         if (room.name) {
-                            return [room, room.name];
+                            return room.name;
                         }
                         else {
-                            return [Game.rooms [room], room];
-                        }
-                    };
-                    var __get_cache = function (room_name, flag_type) {
-                        __check_new_flags ();
-                        if (Game.time > _room_flag_refresh_time) {
-                            _room_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                            _room_flag_cache = new_map ();
-                        }
-                        if (_room_flag_cache.has (room_name) && _room_flag_cache.get (room_name).has (flag_type)) {
-                            return _room_flag_cache.get (room_name).get (flag_type);
-                        }
-                        else {
-                            return null;
+                            return str (room);
                         }
                     };
                     var find_flags = function (room, flag_type) {
-                        var __left0__ = __get_room_and_name (room);
-                        var room = __left0__ [0];
-                        var room_name = __left0__ [1];
-                        var cached = __get_cache (room_name, flag_type);
-                        if (cached) {
-                            return cached;
+                        var room_name = __get_room_name (room);
+                        __check_new_flags ();
+                        var flag_type_to_flags = _room_name_to_flag_type_to_flags.get (room_name);
+                        if (flag_type_to_flags === undefined) {
+                            return [];
                         }
-                        var flag_def = flag_definitions [flag_type];
-                        if (room) {
-                            var flag_list = room.find (FIND_FLAGS, {'filter': {'color': flag_def [0], 'secondaryColor': flag_def [1]}});
-                        }
-                        else {
-                            var flag_list = [];
-                            var __iterable0__ = Object.keys (Game.flags);
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var flag_name = __iterable0__ [__index0__];
-                                var flag = Game.flags [flag_name];
-                                if (flag.pos.roomName == room_name && flag.color == flag_def [0] && flag.secondaryColor == flag_def [1]) {
-                                    flag_list.append (flag);
-                                }
-                            }
-                        }
-                        if (_room_flag_cache.has (room_name)) {
-                            _room_flag_cache.get (room_name).set (flag_type, flag_list);
+                        var flags = flag_type_to_flags.get (flag_type);
+                        if (flags) {
+                            return flags;
                         }
                         else {
-                            _room_flag_cache.set (room_name, new_map ([[flag_type, flag_list]]));
+                            return [];
                         }
-                        return flag_list;
                     };
                     var find_by_main_with_sub = function (room, main_type) {
-                        var __left0__ = __get_room_and_name (room);
-                        var room = __left0__ [0];
-                        var room_name = __left0__ [1];
-                        var cached = __get_cache (room_name, main_type);
-                        if (cached) {
-                            return cached;
+                        var room_name = __get_room_name (room);
+                        __check_new_flags ();
+                        var in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get (room_name);
+                        if (!(in_room_color_to_secondary_to_flags)) {
+                            return [];
                         }
-                        var flag_primary = main_to_flag_primary [main_type];
-                        if (room) {
-                            var flag_list = [];
-                            var __iterable0__ = room.find (FIND_FLAGS, {'filter': {'color': flag_primary}});
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var flag = __iterable0__ [__index0__];
-                                flag_list.append ([flag, flag_secondary_to_sub [flag.secondaryColor]]);
+                        var of_this_main = in_room_color_to_secondary_to_flags.get (main_to_flag_primary [main_type]);
+                        if (!(of_this_main)) {
+                            return [];
+                        }
+                        var result = [];
+                        var __iterable0__ = of_this_main.get (_ALL_OF_PRIMARY);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var flag = __iterable0__ [__index0__];
+                            var sub_type = flag_secondary_to_sub [flag.secondaryColor];
+                            if (sub_type) {
+                                result.append ([flag, sub_type]);
                             }
                         }
-                        else {
-                            var flag_list = [];
-                            var __iterable0__ = Object.keys (Game.flags);
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var name = __iterable0__ [__index0__];
-                                var flag = Game.flags [name];
-                                if (flag.pos.roomName == room_name && flag.color == flag_primary) {
-                                    var secondary = flag_secondary_to_sub [flag.secondaryColor];
-                                    if (secondary) {
-                                        flag_list.append ([flag, secondary]);
-                                    }
-                                }
-                            }
-                        }
-                        if (_room_flag_cache.has (room_name)) {
-                            _room_flag_cache.get (room_name).set (main_type, flag_list);
-                        }
-                        else {
-                            _room_flag_cache.set (room_name, new_map ([[main_type, flag_list]]));
-                        }
-                        return flag_list;
+                        return result;
                     };
                     var find_ms_flags = function (room, main_type, sub_type) {
-                        var type_name = '{}_{}'.format (main_type, sub_type);
-                        var __left0__ = __get_room_and_name (room);
-                        var room = __left0__ [0];
-                        var room_name = __left0__ [1];
-                        var cached = __get_cache (room_name, '{}_{}'.format (main_type, sub_type));
-                        if (cached) {
-                            return cached;
+                        var room_name = __get_room_name (room);
+                        __check_new_flags ();
+                        var in_room_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags.get (room_name);
+                        if (!(in_room_color_to_secondary_to_flags)) {
+                            return [];
                         }
-                        var primary = main_to_flag_primary [main_type];
-                        var secondary = sub_to_flag_secondary [sub_type];
-                        if (room) {
-                            var flag_list = room.find (FIND_FLAGS, {'filter': {'color': primary, 'secondaryColor': secondary}});
+                        var of_this_main = in_room_color_to_secondary_to_flags.get (main_to_flag_primary [main_type]);
+                        if (!(of_this_main)) {
+                            return [];
+                        }
+                        var result = of_this_main.get (sub_to_flag_secondary [sub_type]);
+                        if (result) {
+                            return result;
                         }
                         else {
-                            var flag_list = [];
-                            var __iterable0__ = Object.keys (Game.flags);
-                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                var flag_name = __iterable0__ [__index0__];
-                                var flag = Game.flags [flag_name];
-                                if (flag.pos.roomName == room_name && flag.color == primary && flag.secondaryColor == secondary) {
-                                    flag_list.append (flag);
-                                }
-                            }
+                            return [];
                         }
-                        if (_room_flag_cache.has (room_name)) {
-                            _room_flag_cache.get (room_name).set (type_name, flag_list);
+                    };
+                    var find_flags_global = function (flag_type) {
+                        __check_new_flags ();
+                        var result = _flag_type_to_flags.get (flag_type);
+                        if (result) {
+                            return result;
                         }
                         else {
-                            _room_flag_cache.set (room_name, new_map ([[type_name, flag_list]]));
+                            return [];
                         }
-                        return flag_list;
                     };
-                    var _global_flag_cache = new_map ();
-                    var _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                    var find_flags_global = function (flag_type, reload) {
-                        if (typeof reload == 'undefined' || (reload != null && reload .hasOwnProperty ("__kwargtrans__"))) {;
-                            var reload = false;
-                        };
+                    var find_flags_global_multitype_shared_primary = function (flag_types) {
                         __check_new_flags ();
-                        if (Game.time > _global_flag_refresh_time) {
-                            _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                            _global_flag_cache = new_map ();
-                        }
-                        if (_global_flag_cache.has (flag_type) && !(reload)) {
-                            return _global_flag_cache.get (flag_type);
-                        }
-                        var flag_def = flag_definitions [flag_type];
-                        var flag_list = [];
-                        var __iterable0__ = Object.keys (Game.flags);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            var flag = Game.flags [name];
-                            if (flag.color == flag_def [0] && flag.secondaryColor == flag_def [1]) {
-                                flag_list.append (flag);
-                            }
-                        }
-                        _global_flag_cache.set (flag_type, flag_list);
-                        return flag_list;
-                    };
-                    var find_flags_global_multitype_shared_first = function (flag_types, reload) {
-                        if (typeof reload == 'undefined' || (reload != null && reload .hasOwnProperty ("__kwargtrans__"))) {;
-                            var reload = false;
-                        };
-                        __check_new_flags ();
-                        if (Game.time > _global_flag_refresh_time) {
-                            _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                            _global_flag_cache = new_map ();
-                        }
-                        var cache_key = '|'.join (flag_types);
-                        if (_global_flag_cache.has (cache_key) && !(reload)) {
-                            return _global_flag_cache.get (cache_key);
-                        }
-                        var shared_first = null;
-                        var seconds = [];
+                        var shared_primary_color = null;
+                        var secondary_colors = [];
                         var __iterable0__ = flag_types;
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var flag_type = __iterable0__ [__index0__];
                             var definition = flag_definitions [flag_type];
-                            if (shared_first === null) {
-                                var shared_first = definition [0];
+                            if (shared_primary_color === null) {
+                                var shared_primary_color = definition [0];
                             }
-                            else if (shared_first != definition [0]) {
+                            else if (shared_primary_color != definition [0]) {
                                 print ('[flags][find_flags_global_multitype_shared_first] Called with diverse firsts! {}'.format (flag_types));
                                 return null;
                             }
-                            seconds.append (definition [1]);
+                            secondary_colors.append (definition [1]);
                         }
-                        var flag_list = [];
-                        var __iterable0__ = Object.keys (Game.flags);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            var flag = Game.flags [name];
-                            if (shared_first == flag.color && seconds.includes (flag.secondaryColor)) {
-                                flag_list.append (flag);
-                            }
+                        var result = [];
+                        var of_this_main = _flag_color_to_flag_secondary_color_to_flags.get (shared_primary_color);
+                        if (!(of_this_main)) {
+                            return result;
                         }
-                        _global_flag_cache.set (cache_key, flag_list);
-                        return flag_list;
-                    };
-                    var find_flags_ms_global = function (main_type, sub_type, reload) {
-                        if (typeof reload == 'undefined' || (reload != null && reload .hasOwnProperty ("__kwargtrans__"))) {;
-                            var reload = false;
-                        };
-                        var type_name = '{}_{}'.format (main_type, sub_type);
-                        __check_new_flags ();
-                        if (Game.time > _global_flag_refresh_time) {
-                            _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                            _global_flag_cache = new_map ();
-                        }
-                        if (_global_flag_cache.has (type_name) && !(reload)) {
-                            return _global_flag_cache.get (type_name);
-                        }
-                        var primary = main_to_flag_primary [main_type];
-                        var secondary = sub_to_flag_secondary [sub_type];
-                        var flag_list = [];
-                        var __iterable0__ = Object.keys (Game.flags);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            var flag = Game.flags [name];
-                            if (flag.color == primary && flag.secondaryColor == secondary) {
-                                flag_list.append (flag);
-                            }
-                        }
-                        _global_flag_cache.set (type_name, flag_list);
-                        return flag_list;
-                    };
-                    var find_by_main_with_sub_global = function (main_type, reload) {
-                        if (typeof reload == 'undefined' || (reload != null && reload .hasOwnProperty ("__kwargtrans__"))) {;
-                            var reload = false;
-                        };
-                        __check_new_flags ();
-                        if (Game.time > _global_flag_refresh_time) {
-                            _global_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                            _global_flag_cache = new_map ();
-                        }
-                        if (_global_flag_cache.has (main_type) && !(reload)) {
-                            return _global_flag_cache.get (main_type);
-                        }
-                        var primary = main_to_flag_primary [main_type];
-                        var flag_list = [];
-                        var __iterable0__ = Object.keys (Game.flags);
-                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                            var name = __iterable0__ [__index0__];
-                            var flag = Game.flags [name];
-                            if (flag.color == primary) {
-                                var secondary = flag_secondary_to_sub [flag.secondaryColor];
-                                if (secondary) {
-                                    flag_list.append ([flag, secondary]);
-                                }
-                            }
-                        }
-                        _global_flag_cache.set (main_type, flag_list);
-                        return flag_list;
-                    };
-                    var _closest_flag_cache = new_map ();
-                    var _closest_flag_refresh_time = Game.time + _REFRESH_EVERY;
-                    var squared_distance = function (x1, y1, x2, y2) {
-                        var x_diff = x1 - x2;
-                        var y_diff = y1 - y2;
-                        return x_diff * x_diff + y_diff * y_diff;
-                    };
-                    var find_closest_in_room = function (pos, flag_type) {
-                        __check_new_flags ();
-                        if (Game.time > _closest_flag_refresh_time) {
-                            _closest_flag_refresh_time = Game.time + 50;
-                            _closest_flag_cache = new_map ();
-                        }
-                        var key = '{}_{}_{}_{}'.format (pos.roomName, pos.x, pos.y, flag_type);
-                        if (_closest_flag_cache.has (key)) {
-                            return _closest_flag_cache.get (key);
-                        }
-                        var closest_distance = Infinity;
-                        var closest_flag = null;
-                        var __iterable0__ = find_flags (pos.roomName, flag_type);
+                        var __iterable0__ = of_this_main.get (_ALL_OF_PRIMARY);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var flag = __iterable0__ [__index0__];
-                            var distance = squared_distance (pos.x, pos.y, flag.pos.x, flag.pos.y);
-                            if (distance < closest_distance) {
-                                var closest_distance = distance;
-                                var closest_flag = flag;
+                            if (secondary_colors.includes (flag.secondaryColor)) {
+                                result.append (flag);
                             }
                         }
-                        _closest_flag_cache.set (key, closest_flag);
-                        return closest_flag;
+                        return result;
                     };
-                    var __create_flag = function (position, flag_type, primary, secondary) {
+                    var find_flags_ms_global = function (main_type, sub_type) {
+                        __check_new_flags ();
+                        var of_this_main = _flag_color_to_flag_secondary_color_to_flags.get (main_to_flag_primary [main_type]);
+                        if (!(of_this_main)) {
+                            return [];
+                        }
+                        var result = of_this_main.get (sub_to_flag_secondary [sub_type]);
+                        if (result) {
+                            return result;
+                        }
+                        else {
+                            return [];
+                        }
+                    };
+                    var find_by_main_with_sub_global = function (main_type) {
+                        __check_new_flags ();
+                        var of_this_main = _flag_color_to_flag_secondary_color_to_flags.get (main_to_flag_primary [main_type]);
+                        if (!(of_this_main)) {
+                            return [];
+                        }
+                        var result = [];
+                        var __iterable0__ = of_this_main.get (_ALL_OF_PRIMARY);
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var flag = __iterable0__ [__index0__];
+                            var sub_type = flag_secondary_to_sub [flag.secondaryColor];
+                            if (sub_type) {
+                                result.append ([flag, sub_type]);
+                            }
+                        }
+                        return result;
+                    };
+                    var __create_flag = function (position, flag_type, primary, secondary, name_prefix) {
                         if (position.pos) {
                             var position = position.pos;
                         }
                         var name = '{}_{}'.format (flag_type, naming.random_digits ());
+                        if (name_prefix) {
+                            var name = '{}_{}'.format (name_prefix, name);
+                        }
                         var room = Game.rooms [position.roomName];
                         if (room) {
                             var flag_name = room.createFlag (position, name, primary, secondary);
@@ -21164,12 +21191,15 @@ function main () {
                             return flag_name;
                         }
                     };
-                    var create_flag = function (position, flag_type) {
+                    var create_flag = function (position, flag_type, sponsor) {
+                        if (typeof sponsor == 'undefined' || (sponsor != null && sponsor .hasOwnProperty ("__kwargtrans__"))) {;
+                            var sponsor = null;
+                        };
                         var flag_def = flag_definitions [flag_type];
-                        return __create_flag (position, flag_type, flag_def [0], flag_def [1]);
+                        return __create_flag (position, flag_type, flag_def [0], flag_def [1], sponsor);
                     };
                     var create_ms_flag = function (position, main, sub) {
-                        return __create_flag (position, '{}_{}'.format (main, sub), main_to_flag_primary [main], sub_to_flag_secondary [sub]);
+                        return __create_flag (position, '{}_{}'.format (main, sub), main_to_flag_primary [main], sub_to_flag_secondary [sub], null);
                     };
                     var rename_flags = function () {
                         refresh_flag_caches ();
@@ -21278,12 +21308,14 @@ function main () {
                     };
                     var _flag_hint = function () {
                         var reverse_primary = reverse_definitions [this.color];
+                        var result = null;
                         if (reverse_primary) {
                             if ((this.secondaryColor in reverse_primary)) {
-                                return reverse_primary [this.secondaryColor];
+                                var result = reverse_primary [this.secondaryColor];
                             }
                         }
-                        return null;
+                        Object.defineProperty (this, 'hint', {'value': result});
+                        return result;
                     };
                     Object.defineProperty (Flag.prototype, 'hint', {'get': _flag_hint});
                     __pragma__ ('<use>' +
@@ -21301,6 +21333,7 @@ function main () {
                         __all__.LOCAL_MINE = LOCAL_MINE;
                         __all__.MAIN_BUILD = MAIN_BUILD;
                         __all__.MAIN_DESTRUCT = MAIN_DESTRUCT;
+                        __all__.MAIN_SQUAD = MAIN_SQUAD;
                         __all__.RAID_OVER = RAID_OVER;
                         __all__.RAMPART_DEFENSE = RAMPART_DEFENSE;
                         __all__.RANGED_DEFENSE = RANGED_DEFENSE;
@@ -21334,48 +21367,42 @@ function main () {
                         __all__.TD_H_D_STOP = TD_H_D_STOP;
                         __all__.TD_H_H_STOP = TD_H_H_STOP;
                         __all__.UPGRADER_SPOT = UPGRADER_SPOT;
+                        __all__._ALL_OF_PRIMARY = _ALL_OF_PRIMARY;
                         __all__._REFRESH_EVERY = _REFRESH_EVERY;
                         __all__.__check_new_flags = __check_new_flags;
                         __all__.__create_flag = __create_flag;
-                        __all__.__get_cache = __get_cache;
-                        __all__.__get_room_and_name = __get_room_and_name;
-                        __all__._closest_flag_cache = _closest_flag_cache;
-                        __all__._closest_flag_refresh_time = _closest_flag_refresh_time;
+                        __all__.__get_room_name = __get_room_name;
+                        __all__._cache_refresh_time = _cache_refresh_time;
+                        __all__._flag_color_to_flag_secondary_color_to_flags = _flag_color_to_flag_secondary_color_to_flags;
                         __all__._flag_hint = _flag_hint;
                         __all__._flag_sponsor_regex = _flag_sponsor_regex;
-                        __all__._global_flag_cache = _global_flag_cache;
-                        __all__._global_flag_refresh_time = _global_flag_refresh_time;
+                        __all__._flag_type_to_flags = _flag_type_to_flags;
                         __all__._last_checked_flag_len = _last_checked_flag_len;
                         __all__._last_flag_len = _last_flag_len;
-                        __all__._room_flag_cache = _room_flag_cache;
-                        __all__._room_flag_refresh_time = _room_flag_refresh_time;
+                        __all__._room_name_to_color_to_secondary_to_flags = _room_name_to_color_to_secondary_to_flags;
+                        __all__._room_name_to_flag_type_to_flags = _room_name_to_flag_type_to_flags;
                         __all__.create_flag = create_flag;
                         __all__.create_ms_flag = create_ms_flag;
+                        __all__.define_reverse_maps = define_reverse_maps;
                         __all__.find_by_main_with_sub = find_by_main_with_sub;
                         __all__.find_by_main_with_sub_global = find_by_main_with_sub_global;
-                        __all__.find_closest_in_room = find_closest_in_room;
                         __all__.find_flags = find_flags;
                         __all__.find_flags_global = find_flags_global;
-                        __all__.find_flags_global_multitype_shared_first = find_flags_global_multitype_shared_first;
+                        __all__.find_flags_global_multitype_shared_primary = find_flags_global_multitype_shared_primary;
                         __all__.find_flags_ms_global = find_flags_ms_global;
                         __all__.find_ms_flags = find_ms_flags;
                         __all__.flag_definitions = flag_definitions;
                         __all__.flag_secondary_to_sub = flag_secondary_to_sub;
                         __all__.flag_sponsor = flag_sponsor;
                         __all__.flag_sub_to_structure_type = flag_sub_to_structure_type;
-                        __all__.is_def = is_def;
                         __all__.look_for = look_for;
                         __all__.main_to_flag_primary = main_to_flag_primary;
                         __all__.move_flags = move_flags;
-                        __all__.name = name;
                         __all__.naming = naming;
                         __all__.new_map = new_map;
-                        __all__.primary = primary;
                         __all__.refresh_flag_caches = refresh_flag_caches;
                         __all__.rename_flags = rename_flags;
                         __all__.reverse_definitions = reverse_definitions;
-                        __all__.secondary = secondary;
-                        __all__.squared_distance = squared_distance;
                         __all__.structure_type_to_flag_sub = structure_type_to_flag_sub;
                         __all__.sub_to_flag_secondary = sub_to_flag_secondary;
                     __pragma__ ('</all>')
@@ -23934,33 +23961,45 @@ function main () {
                     var LinkingMind = __class__ ('LinkingMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
-                            self._links = null;
-                            self._main_link = null;
-                            self.link_creep = null;
                             self.enabled_last_turn = room.get_cached_property ('links_enabled') || false;
                         }, '__init__');},
                         get _get_links () {return __get__ (this, function (self) {
-                            if (self._links === null) {
+                            if (self._links === undefined) {
                                 self._links = _.filter (self.room.find (FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LINK});
                             }
                             return self._links;
                         }, '_get_links');},
                         get get_main_link () {return __get__ (this, function (self) {
-                            if (self._main_link === null) {
+                            if (self._main_link === undefined) {
                                 if (self.room.my && self.room.room.storage && len (self.links) >= 2) {
-                                    self._main_link = _.min (self._links, (function __lambda__ (l) {
-                                        return movement.chebyshev_distance_room_pos (self.room.room.storage, l);
-                                    }));
-                                    if (movement.chebyshev_distance_room_pos (self._main_link, self.room.room.storage) > 2) {
-                                        self._main_link = null;
+                                    var __iterable0__ = self.links;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var link = __iterable0__ [__index0__];
+                                        if (movement.chebyshev_distance_room_pos (self.room.room.storage, link) <= 2) {
+                                            if (self._main_link === undefined) {
+                                                self._main_link = link;
+                                            }
+                                            else {
+                                                self._second_link = link;
+                                            }
+                                        }
                                     }
                                 }
-                                else {
+                                if (self._main_link === undefined) {
                                     self._main_link = null;
+                                }
+                                if (self._second_link === undefined) {
+                                    self._second_link = null;
                                 }
                             }
                             return self._main_link;
                         }, 'get_main_link');},
+                        get get_second_main_link () {return __get__ (this, function (self) {
+                            if (self._main_link === undefined) {
+                                self.get_main_link ();
+                            }
+                            return self._second_link;
+                        }, 'get_second_main_link');},
                         get link_mem () {return __get__ (this, function (self, link) {
                             if (link.id) {
                                 var link = link.id;
@@ -24004,19 +24043,19 @@ function main () {
                             self.link_mem (target).last_deposit = Game.time;
                         }, 'register_target_deposit');},
                         get note_link_manager () {return __get__ (this, function (self, creep) {
-                            if (self.link_creep !== null) {
+                            if (self.link_creep !== undefined) {
                                 var creep1 = self.link_creep;
                                 var creep2 = creep;
-                                var send_to_link = function (amount) {
-                                    creep1.send_to_link (amount);
+                                var send_to_link = function (link, amount) {
+                                    creep1.send_to_link (link, amount);
                                     if (amount > creep1.creep.carryCapacity / 2) {
-                                        creep2.send_to_link (amount - creep1.creep.carryCapacity / 2);
+                                        creep2.send_to_link (link, amount - creep1.creep.carryCapacity / 2);
                                     }
                                 };
-                                var send_from_link = function (amount) {
-                                    creep1.send_from_link (amount);
+                                var send_from_link = function (link, amount) {
+                                    creep1.send_from_link (link, amount);
                                     if (amount > creep1.creep.carryCapacity / 2) {
-                                        creep2.send_to_link (amount - creep1.creep.carryCapacity / 2);
+                                        creep2.send_to_link (link, amount - creep1.creep.carryCapacity / 2);
                                     }
                                 };
                                 self.link_creep = {'send_to_link': send_to_link, 'send_from_link': send_from_link, 'creep': {'carryCapacity': creep1.creep.carryCapacity + creep2.creep.carryCapacity}};
@@ -24027,7 +24066,8 @@ function main () {
                             if (!(self.enabled_this_turn ())) {
                                 return ;
                             }
-                            var main_link = self.get_main_link ();
+                            var main_link = self.main_link;
+                            var secondary_link = self.secondary_link;
                             var current_output_links = [];
                             var current_input_links = [];
                             var future_output_links = [];
@@ -24035,7 +24075,7 @@ function main () {
                             var __iterable0__ = self.links;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var link = __iterable0__ [__index0__];
-                                if (link.id == main_link.id) {
+                                if (link.id == main_link.id || secondary_link && link.id == secondary_link.id) {
                                     continue;
                                 }
                                 var mem = self.link_mem (link);
@@ -24156,23 +24196,34 @@ function main () {
                             }
                             if (len (current_output_links) && (!(len (current_input_links)) || __mod__ (Game.time, 12) >= 6)) {
                                 if (main_link.energy < main_link.energyCapacity) {
-                                    self.link_creep.send_to_link (main_link.energyCapacity - main_link.energy);
+                                    self.link_creep.send_to_link (main_link, main_link.energyCapacity - main_link.energy);
                                 }
-                                if (main_link.cooldown == 0) {
-                                    if (main_link.energy >= current_output_links [0].link.energyCapacity - current_output_links [0].link.energy) {
-                                        self.main_link.transferEnergy (current_output_links [0].link);
-                                    }
+                                else if (secondary_link && secondary_link.energy < secondary_link.energyCapacity) {
+                                    self.link_creep.send_to_link (secondary_link, secondary_link.energyCapacity - secondary_link.energy);
                                 }
-                                else if (len (current_input_links)) {
-                                    current_input_links [0].link.transferEnergy (current_output_links [0].link);
+                                var next_output_index = 0;
+                                var priority_output = current_output_links [next_output_index];
+                                next_output_index++;
+                                if (main_link.cooldown == 0 && main_link.energy * (1 - LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy) {
+                                    main_link.transferEnergy (priority_output.link);
+                                    var priority_output = current_output_links [next_output_index];
+                                    next_output_index++;
                                 }
-                                else if (len (future_input_links)) {
-                                    future_input_links [0].link.transferEnergy (current_output_links [0].link);
+                                if (priority_output && secondary_link && secondary_link.cooldown == 0 && (priority_output.link.energy == 0 && secondary_link.energy == secondary_link.energyCapacity || (secondary_link.energy == secondary_link.energyCapacity || secondary_link.energy * (1 + LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy))) {
+                                    secondary_link.transferEnergy (priority_output.link);
+                                    var priority_output = current_output_links [next_output_index];
+                                    next_output_index++;
+                                }
+                                if (priority_output && len (current_input_links)) {
+                                    current_input_links [0].link.transferEnergy (priority_output.link);
+                                }
+                                else if (priority_output && len (future_input_links)) {
+                                    future_input_links [0].link.transferEnergy (priority_output.link);
                                 }
                             }
                             else if (len (current_input_links)) {
                                 if (main_link.energy > 0) {
-                                    self.link_creep.send_from_link (main_link.energy);
+                                    self.link_creep.send_from_link (main_link, main_link.energy);
                                 }
                                 else {
                                     var __iterable0__ = current_input_links;
@@ -24187,7 +24238,7 @@ function main () {
                             }
                             else if (len (future_input_links)) {
                                 if (main_link.energyCapacity - main_link.energy < future_input_links [0].link.energy) {
-                                    self.link_creep.send_from_link (main_link.energy);
+                                    self.link_creep.send_from_link (main_link, main_link.energy);
                                 }
                                 else {
                                     future_input_links [0].link.transferEnergy (main_link);
@@ -24195,23 +24246,27 @@ function main () {
                             }
                             else if (len (future_output_links)) {
                                 if (main_link.energy < future_output_links [0].amount - future_output_links [0].link.energy) {
-                                    self.link_creep.send_to_link ((future_output_links [0].amount - future_output_links [0].link.energy) - main_link.energy);
+                                    self.link_creep.send_to_link (main_link, (future_output_links [0].amount - future_output_links [0].link.energy) - main_link.energy);
                                 }
                                 else {
                                     self.main_link.transferEnergy (future_output_links [0].link);
                                 }
                             }
-                            else if (main_link.energy != main_link.energyCapacity * 2) {
-                                if (main_link.energy > main_link.energyCapacity * 2) {
-                                    self.link_creep.send_from_link (main_link.energy - main_link.energyCapacity * 2);
+                            else if (main_link.energy != main_link.energyCapacity / 2) {
+                                if (main_link.energy > main_link.energyCapacity / 2) {
+                                    self.link_creep.send_from_link (main_link, main_link.energy - main_link.energyCapacity / 2);
                                 }
                                 else {
-                                    self.link_creep.send_to_link (main_link.energyCapacity * 2 - main_link.energy);
+                                    self.link_creep.send_to_link (main_link, main_link.energyCapacity / 2 - main_link.energy);
                                 }
+                            }
+                            else if (secondary_link && secondary_link.energy < secondary_link.energyCapacity) {
+                                self.link_creep.send_to_link (secondary_link, secondary_link.energyCapacity - secondary_link.energy);
                             }
                         }, 'tick_links');}
                     });
                     Object.defineProperty (LinkingMind, 'main_link', property.call (LinkingMind, LinkingMind.get_main_link));;
+                    Object.defineProperty (LinkingMind, 'secondary_link', property.call (LinkingMind, LinkingMind.get_second_main_link));;
                     Object.defineProperty (LinkingMind, 'links', property.call (LinkingMind, LinkingMind._get_links));;
                     Object.defineProperty (LinkingMind, 'enabled', property.call (LinkingMind, LinkingMind._enabled));;
                     __pragma__ ('<use>' +
@@ -24256,14 +24311,56 @@ function main () {
                     var room_spending_state_supporting = __init__ (__world__.rooms.room_constants).room_spending_state_supporting;
                     var room_spending_state_supporting_sieged = __init__ (__world__.rooms.room_constants).room_spending_state_supporting_sieged;
                     var movement = __init__ (__world__.utilities.movement);
-                    var _SINGLE_MINERAL_FULFILLMENT_MAX = 50 * 1000;
+                    var _SINGLE_MINERAL_FULFILLMENT_MAX = math.floor (TERMINAL_CAPACITY / 6);
                     var _SELL_ORDER_SIZE = 10 * 1000;
-                    var _KEEP_IN_TERMINAL_MY_MINERAL = TERMINAL_CAPACITY * 0.4;
+                    var _KEEP_IN_TERMINAL_MY_MINERAL = math.floor (TERMINAL_CAPACITY * 0.4);
                     var _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = energy_for_terminal_when_selling;
+                    var _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS = math.floor (TERMINAL_CAPACITY / 20);
                     var _KEEP_IN_TERMINAL_ENERGY = 0;
-                    var sell_at_prices = {[RESOURCE_OXYGEN]: 1.0, [RESOURCE_HYDROGEN]: 1.0, [RESOURCE_ZYNTHIUM]: 0.7, [RESOURCE_UTRIUM]: 0.7, [RESOURCE_LEMERGIUM]: 0.7, [RESOURCE_KEANIUM]: 0.7};
-                    var bottom_prices = {[RESOURCE_OXYGEN]: 0.4, [RESOURCE_HYDROGEN]: 0.4, [RESOURCE_KEANIUM]: 0.2, [RESOURCE_ZYNTHIUM]: 0.2, [RESOURCE_UTRIUM]: 0.2, [RESOURCE_LEMERGIUM]: 0.2};
+                    var sell_at_prices = {[RESOURCE_OXYGEN]: 0.5, [RESOURCE_HYDROGEN]: 0.5, [RESOURCE_ZYNTHIUM]: 0.7, [RESOURCE_UTRIUM]: 0.7, [RESOURCE_LEMERGIUM]: 0.7, [RESOURCE_KEANIUM]: 0.7, [RESOURCE_CATALYST]: 0.9, [RESOURCE_ENERGY]: 0.1, [RESOURCE_POWER]: 3.0, [RESOURCE_GHODIUM]: 2.0};
+                    var bottom_prices = {[RESOURCE_OXYGEN]: 0.4, [RESOURCE_HYDROGEN]: 0.4, [RESOURCE_KEANIUM]: 0.2, [RESOURCE_ZYNTHIUM]: 0.2, [RESOURCE_UTRIUM]: 0.2, [RESOURCE_LEMERGIUM]: 0.2, [RESOURCE_CATALYST]: 0.2, [RESOURCE_ENERGY]: 0.01, [RESOURCE_POWER]: 1.0, [RESOURCE_GHODIUM]: 0.5};
+                    var tier_one_minerals = [RESOURCE_OXYGEN, RESOURCE_HYDROGEN, RESOURCE_ZYNTHIUM, RESOURCE_UTRIUM, RESOURCE_LEMERGIUM, RESOURCE_KEANIUM, RESOURCE_CATALYST];
+                    var add_reaction_prices = function () {
+                        for (var i = 0; i < 10; i++) {
+                            var any_added = false;
+                            var __iterable0__ = Object.keys (REACTIONS);
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var resource_1 = __iterable0__ [__index0__];
+                                if (!(resource_1 in sell_at_prices)) {
+                                    continue;
+                                }
+                                var resource_reaction_map = REACTIONS [resource_1];
+                                var __iterable1__ = Object.keys (resource_reaction_map);
+                                for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
+                                    var resource_2 = __iterable1__ [__index1__];
+                                    if (!(resource_2 in sell_at_prices)) {
+                                        continue;
+                                    }
+                                    var result = resource_reaction_map [resource_2];
+                                    if ((result in sell_at_prices)) {
+                                        continue;
+                                    }
+                                    sell_at_prices [result] = sell_at_prices [resource_1] + sell_at_prices [resource_2];
+                                    bottom_prices [result] = bottom_prices [resource_1] + bottom_prices [resource_2];
+                                    var any_added = true;
+                                }
+                            }
+                            if (!(any_added)) {
+                                break;
+                            }
+                        }
+                        var __iterable0__ = RESOURCES_ALL;
+                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                            var resource = __iterable0__ [__index0__];
+                            if (!(resource in sell_at_prices) || !(resource in bottom_prices)) {
+                                print ('[minerals] WARNING: Could not find a price for {}!'.format (resource));
+                            }
+                        }
+                    };
+                    add_reaction_prices ();
                     var minerals_to_keep_on_hand = [RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID, RESOURCE_CATALYZED_UTRIUM_ACID];
+                    var _EMPTY_MEM_OBJ = {};
+                    Object.freeze (_EMPTY_MEM_OBJ);
                     var MineralMind = __class__ ('MineralMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
@@ -24275,26 +24372,78 @@ function main () {
                             if (self.has_no_terminal_or_storage ()) {
                                 return ;
                             }
-                            if (!(rmem_key_mineral_mind_storage in room.mem)) {
-                                room.mem [rmem_key_mineral_mind_storage] = {'total_energy_needed': 0, 'fulfilling': {}};
+                        }, '__init__');},
+                        get ro_mem () {return __get__ (this, function (self) {
+                            if ((rmem_key_mineral_mind_storage in self.room.mem)) {
+                                return self.room.mem [rmem_key_mineral_mind_storage];
                             }
                             else {
-                                if (!('total_energy_needed' in room.mem [rmem_key_mineral_mind_storage])) {
-                                    room.mem [rmem_key_mineral_mind_storage] ['total_energy_needed'] = 0;
-                                }
-                                if (!('fulfilling' in room.mem [rmem_key_mineral_mind_storage])) {
-                                    room.mem [rmem_key_mineral_mind_storage].fulfilling = {};
-                                }
+                                return _EMPTY_MEM_OBJ;
                             }
-                            self.mem = room.mem [rmem_key_mineral_mind_storage];
-                            self.fulfilling = self.mem.fulfilling;
-                            if (!('last_sold' in self.mem)) {
-                                self.mem.last_sold = {};
+                        }, 'ro_mem');},
+                        get ro_last_sold_mem () {return __get__ (this, function (self) {
+                            var mem = self.ro_mem ();
+                            if (('last_sold' in mem)) {
+                                return mem ['last_sold'];
                             }
-                            if (!('last_sold_at' in self.mem)) {
-                                self.mem.last_sold_at = {};
+                            else {
+                                return _EMPTY_MEM_OBJ;
                             }
-                        }, '__init__');},
+                        }, 'ro_last_sold_mem');},
+                        get ro_last_sold_at_mem () {return __get__ (this, function (self) {
+                            var mem = self.ro_mem ();
+                            if (('last_sold_at' in mem)) {
+                                return mem ['last_sold_at'];
+                            }
+                            else {
+                                return _EMPTY_MEM_OBJ;
+                            }
+                        }, 'ro_last_sold_at_mem');},
+                        get ro_fulfilling_mem () {return __get__ (this, function (self) {
+                            var mem = self.ro_mem ();
+                            if (('fulfilling' in mem)) {
+                                return mem ['fulfilling'];
+                            }
+                            else {
+                                return _EMPTY_MEM_OBJ;
+                            }
+                        }, 'ro_fulfilling_mem');},
+                        get ro_total_energy_needed () {return __get__ (this, function (self) {
+                            var mem = self.ro_mem ();
+                            if (('total_energy_needed' in mem)) {
+                                return mem ['total_energy_needed'];
+                            }
+                            else {
+                                return 0;
+                            }
+                        }, 'ro_total_energy_needed');},
+                        get mem () {return __get__ (this, function (self) {
+                            if (!(rmem_key_mineral_mind_storage in self.room.mem)) {
+                                self.room.mem [rmem_key_mineral_mind_storage] = {};
+                            }
+                            return self.room.mem [rmem_key_mineral_mind_storage];
+                        }, 'mem');},
+                        get last_sold_mem () {return __get__ (this, function (self) {
+                            var mem = self.mem ();
+                            if (!('last_sold' in mem)) {
+                                mem ['last_sold'] = {};
+                            }
+                            return mem ['last_sold'];
+                        }, 'last_sold_mem');},
+                        get last_sold_at_mem () {return __get__ (this, function (self) {
+                            var mem = self.mem ();
+                            if (!('last_sold_at' in mem)) {
+                                mem ['last_sold_at'] = {};
+                            }
+                            return mem ['last_sold_at'];
+                        }, 'last_sold_at_mem');},
+                        get fulfilling_mem () {return __get__ (this, function (self) {
+                            var mem = self.mem ();
+                            if (!('fulfilling' in mem)) {
+                                mem ['fulfilling'] = {};
+                            }
+                            return mem ['fulfilling'];
+                        }, 'fulfilling_mem');},
                         get has_no_terminal_or_storage () {return __get__ (this, function (self) {
                             return self._has_no_terminal_or_storage;
                         }, 'has_no_terminal_or_storage');},
@@ -24317,7 +24466,7 @@ function main () {
                             }
                         }, 'storage_terminal_access_pos');},
                         get note_mineral_hauler () {return __get__ (this, function (self, name) {
-                            self.mem.mineral_hauler = name;
+                            self.mem ().mineral_hauler = name;
                         }, 'note_mineral_hauler');},
                         get send_minerals () {return __get__ (this, function (self, target_room, mineral, amount) {
                             self.fulfill_market_order (target_room, mineral, amount, null);
@@ -24349,7 +24498,7 @@ function main () {
                             if (mineral == RESOURCE_ENERGY) {
                                 energy_cost += amount;
                             }
-                            if (energy_cost > self.mem ['total_energy_needed']) {
+                            if (energy_cost > self.ro_total_energy_needed ()) {
                                 self.recalculate_energy_needed ();
                             }
                             if (order_id) {
@@ -24358,11 +24507,12 @@ function main () {
                             else {
                                 var obj = {'room': target_room, 'amount': amount};
                             }
-                            if ((mineral in self.fulfilling)) {
-                                self.fulfilling [mineral].push (obj);
+                            var fulfilling = self.fulfilling_mem ();
+                            if ((mineral in fulfilling)) {
+                                fulfilling [mineral].push (obj);
                             }
                             else {
-                                self.fulfilling [mineral] = [obj];
+                                fulfilling [mineral] = [obj];
                             }
                             self.log ('Now fulfilling: Order for {} {}, sent to {}!'.format (amount, mineral, target_room));
                             if (!(would_have_needed_haulers_before)) {
@@ -24371,7 +24521,7 @@ function main () {
                         }, 'fulfill_market_order');},
                         get recalculate_energy_needed () {return __get__ (this, function (self) {
                             var energy_needed = 0;
-                            var __iterable0__ = _.pairs (self.fulfilling);
+                            var __iterable0__ = _.pairs (self.ro_fulfilling_mem ());
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var mineral = __left0__ [0];
@@ -24389,15 +24539,18 @@ function main () {
                                     var energy_needed = max (energy_needed, needed_here);
                                 }
                             }
-                            self.mem ['total_energy_needed'] = energy_needed;
+                            if (energy_needed > 0) {
+                                self.mem () ['total_energy_needed'] = energy_needed;
+                            }
+                            else if (('total_energy_needed' in self.ro_mem ())) {
+                                delete self.mem () ['total_energy_needed'];
+                            }
                         }, 'recalculate_energy_needed');},
                         get log () {return __get__ (this, function (self, message) {
                             print ('[{}][market] {}'.format (self.room.name, message));
                         }, 'log');},
                         get get_mineral_hauler () {return __get__ (this, function (self) {
-                            if (self.mem) {
-                                return Game.creeps [self.mem.mineral_hauler];
-                            }
+                            return Game.creeps [self.ro_mem ().mineral_hauler];
                         }, 'get_mineral_hauler');},
                         get mineral_hauler_carry () {return __get__ (this, function (self) {
                             var hauler = self.get_mineral_hauler ();
@@ -24414,7 +24567,7 @@ function main () {
                                 var __iterable0__ = self.room.find (FIND_MINERALS);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var deposit = __iterable0__ [__index0__];
-                                    if (_.find (self.room.look_at (LOOK_STRUCTURES, deposit), {'my': true, 'structureType': STRUCTURE_EXTRACTOR})) {
+                                    if (_.some (self.room.look_at (LOOK_STRUCTURES, deposit), {'my': true, 'structureType': STRUCTURE_EXTRACTOR})) {
                                         result.append (deposit.mineralType);
                                     }
                                 }
@@ -24422,26 +24575,82 @@ function main () {
                             }
                             return self._my_mineral_deposit_minerals;
                         }, 'my_mineral_deposit_minerals');},
+                        get minerals_to_sell () {return __get__ (this, function (self) {
+                            if (!(self._minerals_to_sell)) {
+                                var result = [];
+                                var __iterable0__ = Object.keys (self.get_total_room_resource_counts ());
+                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                    var mineral = __iterable0__ [__index0__];
+                                    if (mineral != RESOURCE_ENERGY && !(minerals_to_keep_on_hand.includes (mineral))) {
+                                        result.append (mineral);
+                                    }
+                                }
+                                self._minerals_to_sell = result;
+                            }
+                            return self._minerals_to_sell;
+                        }, 'minerals_to_sell');},
                         get get_all_terminal_targets () {return __get__ (this, function (self) {
                             if (self._target_mineral_counts !== undefined) {
                                 return self._target_mineral_counts;
                             }
                             var target_counts = {};
                             var counts = self.get_total_room_resource_counts ();
+                            var priorities = {};
                             var __iterable0__ = _.pairs (counts);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var rtype = __left0__ [0];
                                 var have = __left0__ [1];
                                 if (have > 0) {
-                                    var target = self._terminal_target_for_resource (rtype, have);
+                                    var __left0__ = self._terminal_target_for_resource (rtype, have);
+                                    var target = __left0__ [0];
+                                    var priority = __left0__ [1];
                                     if (target > 0) {
                                         target_counts [rtype] = min (target, have);
+                                        if ((priority in priorities)) {
+                                            priorities [priority].push (rtype);
+                                        }
+                                        else {
+                                            priorities [priority] = [rtype];
+                                        }
                                     }
                                 }
                             }
-                            if (_.sum (target_counts) == target_counts [RESOURCE_ENERGY]) {
+                            var total = _.sum (target_counts);
+                            if (total == target_counts [RESOURCE_ENERGY]) {
                                 var target_counts = {};
+                            }
+                            else if (total > TERMINAL_CAPACITY) {
+                                if (priorities [0]) {
+                                    var __iterable0__ = priorities [0];
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var rtype = __iterable0__ [__index0__];
+                                        delete target_counts [rtype];
+                                    }
+                                    var total = _.sum (target_counts);
+                                }
+                                if (total > TERMINAL_CAPACITY) {
+                                    if (priorities [1]) {
+                                        var __iterable0__ = priorities [1];
+                                        for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                            var rtype = __iterable0__ [__index0__];
+                                            delete target_counts [rtype];
+                                        }
+                                        var total = _.sum (target_counts);
+                                    }
+                                }
+                                if (total > TERMINAL_CAPACITY) {
+                                    if (priorities [2]) {
+                                        while (total > TERMINAL_CAPACITY) {
+                                            var __iterable0__ = priorities [2];
+                                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                                var rtype = __iterable0__ [__index0__];
+                                                target_counts [rtype] = math.floor (target_counts [rtype] / 2);
+                                            }
+                                            var total = _.sum (target_counts);
+                                        }
+                                    }
+                                }
                             }
                             self._target_mineral_counts = target_counts;
                             return target_counts;
@@ -24613,7 +24822,7 @@ function main () {
                                 }
                             }
                             if (self.room.rcl >= 6 && self.terminal) {
-                                var __iterable0__ = self.room.find (FIND_MY_STRUCTURES);
+                                var __iterable0__ = self.labs ();
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var lab = __iterable0__ [__index0__];
                                     if (lab.structureType == STRUCTURE_LAB) {
@@ -24623,14 +24832,6 @@ function main () {
                                             }
                                             else {
                                                 counts [lab.mineralType] = lab.mineralAmount;
-                                            }
-                                        }
-                                        if (lab.energy) {
-                                            if ((RESOURCE_ENERGY in counts)) {
-                                                counts [RESOURCE_ENERGY] += lab.energy;
-                                            }
-                                            else {
-                                                counts [RESOURCE_ENERGY] = lab.energy;
                                             }
                                         }
                                     }
@@ -24741,10 +24942,10 @@ function main () {
                         get _terminal_target_for_resource () {return __get__ (this, function (self, mineral, currently_have) {
                             if (mineral == RESOURCE_ENERGY) {
                                 if (currently_have < 50 * 1000) {
-                                    return 0;
+                                    return [0, 0];
                                 }
                                 if (self.room.mem [rmem_key_sell_all_but_empty_resources_to]) {
-                                    return min (_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000);
+                                    return [min (_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000), 2];
                                 }
                                 if (self.room.mem [rmem_key_empty_all_resources_into_room]) {
                                     var min_via_empty_to = self.find_emptying_mineral_and_cost () [1];
@@ -24752,10 +24953,7 @@ function main () {
                                 else {
                                     var min_via_empty_to = 0;
                                 }
-                                if (!('ten_without_self_orders' in self.mem)) {
-                                    self.recalculate_energy_needed ();
-                                }
-                                var min_via_fulfillment = min (currently_have - 120 * 1000, self.mem ['total_energy_needed']);
+                                var min_via_fulfillment = min (currently_have - 120 * 1000, self.ro_total_energy_needed ());
                                 var spending_state = self.room.get_spending_target ();
                                 if (spending_state == room_spending_state_supporting) {
                                     var min_via_spending = currently_have - energy_balance_point_for_rcl8_supporting;
@@ -24769,20 +24967,18 @@ function main () {
                                 else {
                                     var min_via_spending = 0;
                                 }
-                                return min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_spending));
+                                return [min (currently_have - 50 * 1000, max (0, min_via_empty_to, min_via_fulfillment, min_via_spending)), 2];
                             }
-                            else if (_.some (self.get_lab_targets (), (function __lambda__ (t) {
-                                return t [1] == mineral;
-                            }))) {
+                            else if (minerals_to_keep_on_hand.includes (mineral)) {
                                 return 0;
                             }
                             else {
                                 if (self.my_mineral_deposit_minerals ().includes (mineral)) {
-                                    return min (currently_have, _KEEP_IN_TERMINAL_MY_MINERAL);
+                                    return [min (currently_have, _KEEP_IN_TERMINAL_MY_MINERAL), 1];
                                 }
-                                var fulfilling = self.fulfilling [mineral];
+                                var fulfilling = self.ro_fulfilling_mem () [mineral];
                                 if (fulfilling && len (fulfilling)) {
-                                    return min (_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum (fulfilling, 'amount'));
+                                    return [min (_SINGLE_MINERAL_FULFILLMENT_MAX, _.sum (fulfilling, 'amount')), 2];
                                 }
                                 var sell_orders = self.sell_orders_by_mineral () [mineral];
                                 if (sell_orders && len (sell_orders)) {
@@ -24794,14 +24990,9 @@ function main () {
                                             var biggest_order = order.amountRemaining;
                                         }
                                     }
-                                    return biggest_order;
+                                    return [biggest_order, 2];
                                 }
-                                if (self.room.get_spending_target () != room_spending_state_selling && currently_have >= 1000 && (mineral != RESOURCE_POWER || self.room.mem [rmem_key_empty_all_resources_into_room])) {
-                                    return 1000 * min (math.floor (currently_have / 1000), 20);
-                                }
-                                else {
-                                    return 0;
-                                }
+                                return [min (currently_have, _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS), 0];
                             }
                         }, '_terminal_target_for_resource');},
                         get tick_terminal () {return __get__ (this, function (self) {
@@ -24813,7 +25004,7 @@ function main () {
                                 return ;
                             }
                             var py_split = __mod__ (time, 85);
-                            if (py_split == 8 && !(_.isEmpty (self.fulfilling))) {
+                            if (py_split == 8 && !(_.isEmpty (self.ro_fulfilling_mem ()))) {
                                 self.run_fulfillment ();
                             }
                             else if (py_split == 3 && len (self.my_mineral_deposit_minerals ())) {
@@ -24872,13 +25063,13 @@ function main () {
                         }, 'run_empty2');},
                         get run_fulfillment () {return __get__ (this, function (self) {
                             var vmem = volatile_cache.mem ('market');
-                            var __iterable0__ = Object.keys (self.fulfilling);
+                            var __iterable0__ = Object.keys (self.ro_fulfilling_mem ());
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var mineral = __iterable0__ [__index0__];
                                 if ((mineral in self.terminal.store)) {
-                                    var target_list = self.fulfilling [mineral];
+                                    var target_list = self.ro_fulfilling_mem () [mineral];
                                     if (!(len (target_list))) {
-                                        delete self.fulfilling [mineral];
+                                        delete self.fulfilling_mem () [mineral];
                                         continue;
                                     }
                                     if (vmem.get ('market_orders_executed') >= 10) {
@@ -24903,10 +25094,10 @@ function main () {
                                     }
                                 }
                                 else if (!(self.my_mineral_deposit_minerals ().includes (mineral))) {
-                                    if (len (self.fulfilling [mineral])) {
-                                        self.log ('Used up all of our {}: removing {} remaining orders!'.format (mineral, len (self.fulfilling [mineral])));
+                                    if (len (self.ro_fulfilling_mem () [mineral])) {
+                                        self.log ('Used up all of our {}: removing {} remaining orders!'.format (mineral, len (self.ro_fulfilling_mem () [mineral])));
                                     }
-                                    delete self.fulfilling [mineral];
+                                    delete self.fulfilling_mem () [mineral];
                                 }
                             }
                         }, 'run_fulfillment');},
@@ -24971,13 +25162,13 @@ function main () {
                             }
                         }, 'run_support');},
                         get run_execute_buy () {return __get__ (this, function (self) {
-                            var minerals = self.my_mineral_deposit_minerals ();
+                            var minerals = self.minerals_to_sell ();
                             var cache = volatile_cache.mem ('market_orders');
                             var __iterable0__ = minerals;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var mineral = __iterable0__ [__index0__];
                                 var we_have = self.terminal.store [mineral];
-                                if (!(we_have) || we_have < 1000) {
+                                if (!(we_have) || we_have < 1000 && we_have < self.get_total_room_resource_counts () [minerals]) {
                                     continue;
                                 }
                                 if (cache.has (mineral)) {
@@ -25011,16 +25202,19 @@ function main () {
                                         if (self.room.mem [rmem_key_sell_all_but_empty_resources_to]) {
                                             var minimum = -(0.1);
                                         }
-                                        else if (self.mem.last_sold_at [mineral]) {
+                                        else if (self.ro_last_sold_at_mem () [mineral]) {
                                             if (we_have > max_minerals_to_keep * 1.1) {
-                                                var minimum = self.mem.last_sold_at [mineral] * 0.15;
+                                                var minimum = self.ro_last_sold_at_mem () [mineral] * 0.15;
                                             }
                                             else {
-                                                var minimum = self.mem.last_sold_at [mineral] * 0.3;
+                                                var minimum = self.ro_last_sold_at_mem () [mineral] * 0.3;
                                             }
                                         }
-                                        else {
+                                        else if (tier_one_minerals.includes (mineral)) {
                                             var minimum = 0.1;
+                                        }
+                                        else {
+                                            var minimum = (bottom_prices [mineral] + sell_at_prices [mineral]) / 2;
                                         }
                                         if (best_gain < minimum) {
                                             if (best_order.price > 0.2) {
@@ -25062,8 +25256,8 @@ function main () {
                                 var energy_cost = Game.market.calcTransactionCost (amount, self.room.name, target_obj.room);
                             }
                             if (self.terminal.store [RESOURCE_ENERGY] < energy_cost) {
-                                if (energy_cost > self.mem ['total_energy_needed']) {
-                                    self.log ('WARNING: Error correction! Total energy needed should have been at least {},but it was only {}.'.format (energy_cost, self.mem ['total_energy_needed']));
+                                if (energy_cost > self.ro_total_energy_needed ()) {
+                                    self.log ('WARNING: Error correction! Total energy needed should have been at least {},but it was only {}.'.format (energy_cost, self.ro_total_energy_needed ()));
                                     self.recalculate_energy_needed ();
                                 }
                                 return ERR_NOT_ENOUGH_RESOURCES;
@@ -25096,13 +25290,14 @@ function main () {
                                     self.log ('Sent {} {} to {} successfully, {} left to go.'.format (amount, mineral, target_obj.room, target_obj.amount));
                                 }
                                 else {
-                                    var target_index = self.fulfilling [mineral].indexOf (target_obj);
+                                    var fulfilling = self.fulfilling_mem () [mineral];
+                                    var target_index = fulfilling.indexOf (target_obj);
                                     if (target_index < 0) {
                                         self.log ("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}".format (JSON.stringify (target_obj), mineral, self.room.name));
                                     }
-                                    self.fulfilling [mineral].splice (target_index, 1);
-                                    if (!(len (self.fulfilling [mineral]))) {
-                                        delete self.fulfilling [mineral];
+                                    fulfilling.splice (target_index, 1);
+                                    if (!(len (fulfilling))) {
+                                        delete self.fulfilling_mem () [mineral];
                                     }
                                     self.log ('Sent {} {} to {} successfully, finishing the transaction.'.format (amount, mineral, target_obj.room));
                                 }
@@ -25110,14 +25305,15 @@ function main () {
                             }
                             else if (('order_id' in target_obj)) {
                                 if (result == ERR_INVALID_ARGS) {
+                                    var fulfilling = self.fulfilling_mem () [mineral];
                                     self.log ('Removing market deal {} (send {} {} to {}): executed by another player.'.format (target_obj.order_id, target_obj.amount, mineral, target_obj.room));
-                                    var target_index = self.fulfilling [mineral].indexOf (target_obj);
+                                    var target_index = fulfilling.indexOf (target_obj);
                                     if (target_index < 0) {
                                         self.log ("ERROR: Couldn't find indexOf target fulfillment {} for mineral {} in room {}".format (JSON.stringify (target_obj), mineral, self.room.name));
                                     }
-                                    self.fulfilling [mineral].splice (target_index, 1);
-                                    if (!(len (self.fulfilling [mineral]))) {
-                                        delete self.fulfilling [mineral];
+                                    fulfilling.splice (target_index, 1);
+                                    if (!(len (fulfilling))) {
+                                        delete self.fulfilling_mem () [mineral];
                                     }
                                 }
                                 else {
@@ -25130,10 +25326,11 @@ function main () {
                             return result;
                         }, 'fulfill_now');},
                         get check_orders () {return __get__ (this, function (self) {
+                            var ro_fulfilling = self.ro_fulfilling_mem ();
                             var __iterable0__ = self.my_mineral_deposit_minerals ();
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var mineral = __iterable0__ [__index0__];
-                                if ((mineral in self.fulfilling) && len (self.fulfilling [mineral]) || (self.get_total_room_resource_counts () [mineral] || 0) < _SELL_ORDER_SIZE) {
+                                if ((mineral in ro_fulfilling) && len (ro_fulfilling [mineral]) || (self.get_total_room_resource_counts () [mineral] || 0) < _SELL_ORDER_SIZE) {
                                     continue;
                                 }
                                 var current_sell_orders = self.sell_orders_by_mineral () [mineral];
@@ -25144,7 +25341,8 @@ function main () {
                                     var to_check = _.min (current_sell_orders, 'price');
                                     if (to_check.remainingAmount < _SELL_ORDER_SIZE) {
                                         if (to_check.remainingAmount <= _SELL_ORDER_SIZE * 0.2) {
-                                            var price = min (max (bottom_prices [mineral] + (sell_at_prices [mineral] - bottom_prices [mineral]) / 4, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
+                                            var sold_at_mem = self.ro_last_sold_at_mem ();
+                                            var price = min (max (bottom_prices [mineral] + (sell_at_prices [mineral] - bottom_prices [mineral]) / 4, (sold_at_mem [mineral] || 0) + 0.1), sell_at_prices [mineral]);
                                             self.log ('Increasing price on sell order for {} from {} to {}.'.format (mineral, to_check.price, price));
                                             Game.market.changeOrderPrice (to_check.id, price);
                                             Game.market.extendOrder (to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount);
@@ -25153,14 +25351,14 @@ function main () {
                                             self.log ('Extending sell order for {} at price {} from {} to {} minerals.'.format (mineral, to_check.price, to_check.remainingAmount, _SELL_ORDER_SIZE));
                                             Game.market.extendOrder (to_check.id, _SELL_ORDER_SIZE - to_check.remainingAmount);
                                         }
-                                        self.mem.last_sold [mineral] = Game.time;
-                                        self.mem.last_sold_at [mineral] = to_check.price;
+                                        self.last_sold_mem () [mineral] = Game.time;
+                                        self.last_sold_at_mem () [mineral] = to_check.price;
                                     }
-                                    else if (self.mem.last_sold [mineral] < Game.time - 8000 && to_check.price > bottom_prices [mineral] + 0.01) {
+                                    else if ((self.ro_last_sold_mem () [mineral] || 0) < Game.time - 8000 && to_check.price > bottom_prices [mineral] + 0.01) {
                                         var new_price = max (bottom_prices [mineral], to_check.price - 0.1);
                                         self.log ('Reducing price on sell order for {} from {} to {}'.format (mineral, to_check.price, new_price));
                                         Game.market.changeOrderPrice (to_check.id, new_price);
-                                        self.mem.last_sold [mineral] = Game.time;
+                                        self.last_sold_mem () [mineral] = Game.time;
                                     }
                                     else if (to_check.price < bottom_prices [mineral]) {
                                         self.log ('Increasing price on sell order for {} from {} to {}'.format (mineral, to_check.price, bottom_prices [mineral]));
@@ -25168,15 +25366,15 @@ function main () {
                                     }
                                 }
                                 else if ((mineral in sell_at_prices) && Game.market.credits >= (MARKET_FEE * _SELL_ORDER_SIZE) * sell_at_prices [mineral] && len (Game.market.orders) < 50) {
-                                    if ((mineral in self.mem.last_sold_at)) {
-                                        var price = min (max (bottom_prices [mineral] + (sell_at_prices [mineral] - bottom_prices [mineral]) / 4, self.mem.last_sold_at [mineral] + 0.1), sell_at_prices [mineral]);
+                                    if ((mineral in self.ro_last_sold_at_mem ())) {
+                                        var price = min (max (bottom_prices [mineral] + (sell_at_prices [mineral] - bottom_prices [mineral]) / 4, self.ro_last_sold_at_mem () [mineral] + 0.1), sell_at_prices [mineral]);
                                     }
                                     else {
                                         var price = sell_at_prices [mineral];
                                     }
                                     self.log ('Creating new sell order for {} {} at {} credits/{}'.format (_SELL_ORDER_SIZE, mineral, price, mineral));
                                     Game.market.createOrder (ORDER_SELL, mineral, price, _SELL_ORDER_SIZE, self.room.name);
-                                    self.mem.last_sold [mineral] = Game.time;
+                                    self.last_sold_mem () [mineral] = Game.time;
                                 }
                             }
                         }, 'check_orders');},
@@ -25290,7 +25488,7 @@ function main () {
                                 minstrings.append ('{} {}'.format (amount, mineral));
                             }
                             var orderstrings = [];
-                            var __iterable0__ = _.pairs (self.fulfilling);
+                            var __iterable0__ = _.pairs (self.ro_fulfilling_mem ());
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var __left0__ = __iterable0__ [__index0__];
                                 var mineral = __left0__ [0];
@@ -25365,11 +25563,14 @@ function main () {
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.MineralMind = MineralMind;
+                        __all__._EMPTY_MEM_OBJ = _EMPTY_MEM_OBJ;
                         __all__._KEEP_IN_TERMINAL_ENERGY = _KEEP_IN_TERMINAL_ENERGY;
                         __all__._KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING;
                         __all__._KEEP_IN_TERMINAL_MY_MINERAL = _KEEP_IN_TERMINAL_MY_MINERAL;
+                        __all__._MAX_KEEP_IN_TERMINAL_OTHER_MINERALS = _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS;
                         __all__._SELL_ORDER_SIZE = _SELL_ORDER_SIZE;
                         __all__._SINGLE_MINERAL_FULFILLMENT_MAX = _SINGLE_MINERAL_FULFILLMENT_MAX;
+                        __all__.add_reaction_prices = add_reaction_prices;
                         __all__.bottom_prices = bottom_prices;
                         __all__.energy_balance_point_for_rcl8_selling = energy_balance_point_for_rcl8_selling;
                         __all__.energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_supporting;
@@ -25390,6 +25591,7 @@ function main () {
                         __all__.room_spending_state_supporting = room_spending_state_supporting;
                         __all__.room_spending_state_supporting_sieged = room_spending_state_supporting_sieged;
                         __all__.sell_at_prices = sell_at_prices;
+                        __all__.tier_one_minerals = tier_one_minerals;
                         __all__.volatile_cache = volatile_cache;
                     __pragma__ ('</all>')
                 }
@@ -25427,6 +25629,9 @@ function main () {
                     var flags = __init__ (__world__.position_management.flags);
                     var defense = __init__ (__world__.rooms.defense);
                     var movement = __init__ (__world__.utilities.movement);
+                    var is_sk = function (flag) {
+                        return (flag.name in Memory.flags) && flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName];
+                    };
                     var MiningMind = __class__ ('MiningMind', [object], {
                         get __init__ () {return __get__ (this, function (self, room) {
                             self.room = room;
@@ -25508,7 +25713,7 @@ function main () {
                             if (flag.pos.roomName == self.room.name) {
                                 priority -= 50;
                             }
-                            if (flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName]) {
+                            if (is_sk (flag)) {
                                 priority -= 40;
                             }
                             else if (self.should_reserve (flag.pos.roomName)) {
@@ -25541,7 +25746,7 @@ function main () {
                             if (room && room.controller && room.controller.my) {
                                 var mining_per_tick = SOURCE_ENERGY_CAPACITY / ENERGY_REGEN_TIME;
                             }
-                            else if (flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName]) {
+                            else if (is_sk (flag)) {
                                 var mining_per_tick = SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME;
                             }
                             else if (self.should_reserve (flag.pos.roomName)) {
@@ -25566,12 +25771,15 @@ function main () {
                             var __iterable0__ = self.available_mines;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var flag = __iterable0__ [__index0__];
+                                if (!(flag.name in Memory.flags)) {
+                                    continue;
+                                }
                                 if (('sitting' in flag.memory) && flag.memory.sitting < Game.time - flag.memory.sitting_set && Game.time - flag.memory.sitting_set > 10) {
                                     delete flag.memory.sitting;
                                     delete flag.memory.sitting_set;
-                                    if (!(len (flag.memory))) {
-                                        delete Memory.flags [flag.name];
-                                    }
+                                }
+                                if (!(len (flag.memory))) {
+                                    delete Memory.flags [flag.name];
                                 }
                             }
                         }, 'cleanup_old_flag_sitting_values');},
@@ -25599,7 +25807,7 @@ function main () {
                                     var source = __iterable0__ [__index0__];
                                     var flag = flags.look_for (self.room, source, LOCAL_MINE);
                                     if (!(flag)) {
-                                        var name = flags.create_flag (source, LOCAL_MINE);
+                                        var name = flags.create_flag (source, LOCAL_MINE, self.room.name);
                                         if (!(name)) {
                                             print ("[{}][mining] Warning: Couldn't create local mining flag!".format (self.room.name));
                                             continue;
@@ -25609,10 +25817,6 @@ function main () {
                                             print ("[{}][mining] Warning: Couldn't find local mining flag with name {}!".format (self.room.name, name));
                                             continue;
                                         }
-                                    }
-                                    if (!('sponsor' in flag.memory)) {
-                                        flag.memory.sponsor = self.room.name;
-                                        flag.memory.active = true;
                                     }
                                     result.append (flag);
                                 }
@@ -25677,19 +25881,15 @@ function main () {
                             if (self.room.room.energyCapacityAvailable < (BODYPART_COST [CLAIM] + BODYPART_COST [MOVE]) * 2) {
                                 return false;
                             }
-                            var flag_list = _.filter (flags.find_flags (room_name, REMOTE_MINE), (function __lambda__ (f) {
-                                return (f.name in Memory.flags) && f.memory.active;
-                            }));
-                            if (_.find (flag_list, (function __lambda__ (f) {
-                                return f.memory.sk_room;
-                            }))) {
-                                return false;
-                            }
                             if (Memory.no_controller && Memory.no_controller [room_name]) {
                                 return false;
                             }
-                            if (_.find (flag_list, (function __lambda__ (f) {
-                                return f.memory.do_reserve;
+                            var flag_list = flags.find_flags (room_name, REMOTE_MINE);
+                            if (_.some (flag_list, is_sk)) {
+                                return false;
+                            }
+                            if (_.some (flag_list, (function __lambda__ (f) {
+                                return (f.name in Memory.flags) && f.memory.do_reserve;
                             }))) {
                                 return true;
                             }
@@ -25720,7 +25920,7 @@ function main () {
                         }, 'open_spaces_around');},
                         get reserver_needed () {return __get__ (this, function (self, flag) {
                             var room_name = flag.pos.roomName;
-                            if (flag.memory.sk_room || Memory.no_controller && Memory.no_controller [room_name] || !(self.should_reserve (room_name))) {
+                            if (!(self.should_reserve (room_name))) {
                                 return null;
                             }
                             if ((room_name in Game.rooms)) {
@@ -25766,7 +25966,7 @@ function main () {
                             }
                         }, 'reserver_needed');},
                         get get_ideal_miner_workmass_for () {return __get__ (this, function (self, flag) {
-                            if (flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName]) {
+                            if (is_sk (flag)) {
                                 return math.ceil ((SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER);
                             }
                             else if (flag.pos.roomName == self.room.name || self.should_reserve (flag.pos.roomName)) {
@@ -25858,7 +26058,7 @@ function main () {
                                     var base = creep_base_carry3000miner;
                                     var num_sections = min (5, spawning.max_sections_of (self.room, base));
                                 }
-                                else if (flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName]) {
+                                else if (is_sk (flag)) {
                                     var base = creep_base_4000miner;
                                     var num_sections = min (7, spawning.max_sections_of (self.room, base));
                                 }
@@ -25982,6 +26182,7 @@ function main () {
                         __all__.defense = defense;
                         __all__.fit_num_sections = fit_num_sections;
                         __all__.flags = flags;
+                        __all__.is_sk = is_sk;
                         __all__.movement = movement;
                         __all__.role_hauler = role_hauler;
                         __all__.role_miner = role_miner;
@@ -26021,11 +26222,20 @@ function main () {
                     var energy_to_keep_always_in_reserve = STORAGE_CAPACITY / 2;
                     var energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve * 0.25;
                     var energy_pre_rcl8_scaling_balance_point = energy_to_keep_always_in_reserve * 1.1;
+                    var energy_pre_rcl8_building_when_upgrading_balance_point = energy_pre_rcl8_scaling_balance_point * 1.5;
                     var energy_balance_point_for_rcl8_upgrading = energy_to_keep_always_in_reserve * 1.1;
                     var energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_upgrading * 1.1;
                     var energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_upgrading * 1.1;
                     var energy_balance_point_for_rcl8_selling = energy_to_keep_always_in_reserve * 0.6;
                     var energy_at_which_to_stop_supporting = energy_to_keep_always_in_reserve * 1.5;
+                    var energy_to_keep_always_in_reserve_urgent = STORAGE_CAPACITY / 8;
+                    var energy_to_keep_always_in_reserve_when_supporting_sieged_urgent = energy_to_keep_always_in_reserve_urgent * 0.25;
+                    var energy_pre_rcl8_scaling_balance_point_urgent = energy_to_keep_always_in_reserve_urgent * 1.1;
+                    var energy_balance_point_for_rcl8_upgrading_urgent = energy_to_keep_always_in_reserve_urgent * 1.1;
+                    var energy_balance_point_for_rcl8_building_urgent = energy_balance_point_for_rcl8_upgrading_urgent * 1.1;
+                    var energy_balance_point_for_rcl8_supporting_urgent = energy_balance_point_for_rcl8_upgrading_urgent * 1.1;
+                    var energy_balance_point_for_rcl8_selling_urgent = energy_to_keep_always_in_reserve_urgent * 0.6;
+                    var energy_at_which_to_stop_supporting_urgent = energy_to_keep_always_in_reserve_urgent * 1.5;
                     var max_minerals_to_keep = STORAGE_CAPACITY / 4;
                     var energy_for_terminal_when_selling = TERMINAL_CAPACITY / 2;
                     var room_spending_state_building = 'b';
@@ -26046,14 +26256,23 @@ function main () {
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.energy_at_which_to_stop_supporting = energy_at_which_to_stop_supporting;
+                        __all__.energy_at_which_to_stop_supporting_urgent = energy_at_which_to_stop_supporting_urgent;
                         __all__.energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_building;
+                        __all__.energy_balance_point_for_rcl8_building_urgent = energy_balance_point_for_rcl8_building_urgent;
                         __all__.energy_balance_point_for_rcl8_selling = energy_balance_point_for_rcl8_selling;
+                        __all__.energy_balance_point_for_rcl8_selling_urgent = energy_balance_point_for_rcl8_selling_urgent;
                         __all__.energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_supporting;
+                        __all__.energy_balance_point_for_rcl8_supporting_urgent = energy_balance_point_for_rcl8_supporting_urgent;
                         __all__.energy_balance_point_for_rcl8_upgrading = energy_balance_point_for_rcl8_upgrading;
+                        __all__.energy_balance_point_for_rcl8_upgrading_urgent = energy_balance_point_for_rcl8_upgrading_urgent;
                         __all__.energy_for_terminal_when_selling = energy_for_terminal_when_selling;
+                        __all__.energy_pre_rcl8_building_when_upgrading_balance_point = energy_pre_rcl8_building_when_upgrading_balance_point;
                         __all__.energy_pre_rcl8_scaling_balance_point = energy_pre_rcl8_scaling_balance_point;
+                        __all__.energy_pre_rcl8_scaling_balance_point_urgent = energy_pre_rcl8_scaling_balance_point_urgent;
                         __all__.energy_to_keep_always_in_reserve = energy_to_keep_always_in_reserve;
+                        __all__.energy_to_keep_always_in_reserve_urgent = energy_to_keep_always_in_reserve_urgent;
                         __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
+                        __all__.energy_to_keep_always_in_reserve_when_supporting_sieged_urgent = energy_to_keep_always_in_reserve_when_supporting_sieged_urgent;
                         __all__.energy_to_pause_building = energy_to_pause_building;
                         __all__.energy_to_pause_upgrading = energy_to_pause_upgrading;
                         __all__.energy_to_resume_building = energy_to_resume_building;
@@ -26304,6 +26523,7 @@ function main () {
                     var mem_key_there_might_be_energy_lying_around = __init__ (__world__.constants.memkeys.room).mem_key_there_might_be_energy_lying_around;
                     var mem_key_total_open_source_spaces = __init__ (__world__.constants.memkeys.room).mem_key_total_open_source_spaces;
                     var mem_key_upgrading_paused = __init__ (__world__.constants.memkeys.room).mem_key_upgrading_paused;
+                    var mem_key_urgency = __init__ (__world__.constants.memkeys.room).mem_key_urgency;
                     var mem_key_work_parts_by_role = __init__ (__world__.constants.memkeys.room).mem_key_work_parts_by_role;
                     var creep_wrappers = __init__ (__world__.creep_management.creep_wrappers);
                     var spawning = __init__ (__world__.creep_management.spawning);
@@ -26318,14 +26538,23 @@ function main () {
                     var MineralMind = __init__ (__world__.rooms.minerals).MineralMind;
                     var MiningMind = __init__ (__world__.rooms.mining).MiningMind;
                     var energy_at_which_to_stop_supporting = __init__ (__world__.rooms.room_constants).energy_at_which_to_stop_supporting;
+                    var energy_at_which_to_stop_supporting_urgent = __init__ (__world__.rooms.room_constants).energy_at_which_to_stop_supporting_urgent;
                     var energy_balance_point_for_rcl8_building = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_building;
+                    var energy_balance_point_for_rcl8_building_urgent = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_building_urgent;
                     var energy_balance_point_for_rcl8_selling = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_selling;
+                    var energy_balance_point_for_rcl8_selling_urgent = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_selling_urgent;
                     var energy_balance_point_for_rcl8_supporting = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_supporting;
+                    var energy_balance_point_for_rcl8_supporting_urgent = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_supporting_urgent;
                     var energy_balance_point_for_rcl8_upgrading = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_upgrading;
+                    var energy_balance_point_for_rcl8_upgrading_urgent = __init__ (__world__.rooms.room_constants).energy_balance_point_for_rcl8_upgrading_urgent;
                     var energy_for_terminal_when_selling = __init__ (__world__.rooms.room_constants).energy_for_terminal_when_selling;
+                    var energy_pre_rcl8_building_when_upgrading_balance_point = __init__ (__world__.rooms.room_constants).energy_pre_rcl8_building_when_upgrading_balance_point;
                     var energy_pre_rcl8_scaling_balance_point = __init__ (__world__.rooms.room_constants).energy_pre_rcl8_scaling_balance_point;
+                    var energy_pre_rcl8_scaling_balance_point_urgent = __init__ (__world__.rooms.room_constants).energy_pre_rcl8_scaling_balance_point_urgent;
                     var energy_to_keep_always_in_reserve = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve;
+                    var energy_to_keep_always_in_reserve_urgent = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve_urgent;
                     var energy_to_keep_always_in_reserve_when_supporting_sieged = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve_when_supporting_sieged;
+                    var energy_to_keep_always_in_reserve_when_supporting_sieged_urgent = __init__ (__world__.rooms.room_constants).energy_to_keep_always_in_reserve_when_supporting_sieged_urgent;
                     var energy_to_pause_building = __init__ (__world__.rooms.room_constants).energy_to_pause_building;
                     var energy_to_pause_upgrading = __init__ (__world__.rooms.room_constants).energy_to_pause_upgrading;
                     var energy_to_resume_building = __init__ (__world__.rooms.room_constants).energy_to_resume_building;
@@ -26495,6 +26724,10 @@ function main () {
                                 else {
                                     return [];
                                 }
+                            }
+                            if ((x > (49 | x) && (49 | x) < (0 | y) && (0 | y) > (49 | y) && (49 | y) < 0)) {
+                                print ('[{}] warning: looked for {} at {}, {},{}'.format (self.name, look_type, self.name, x, y));
+                                return [];
                             }
                             var result = self.room.lookForAt (look_type, x, y);
                             return result;
@@ -26925,6 +27158,52 @@ function main () {
                         get reassign_roles () {return __get__ (this, function (self) {
                             return consistency.reassign_room_roles (self);
                         }, 'reassign_roles');},
+                        get is_urgent () {return __get__ (this, function (self) {
+                            return self.mem.urgency > 0;
+                        }, 'is_urgent');},
+                        get constant_energy_to_keep_in_reserve () {return __get__ (this, function (self) {
+                            if (self.is_urgent ()) {
+                                return energy_to_keep_always_in_reserve_urgent;
+                            }
+                            else {
+                                return energy_to_keep_always_in_reserve;
+                            }
+                        }, 'constant_energy_to_keep_in_reserve');},
+                        get constant_pre_rcl8_energy_balance_point () {return __get__ (this, function (self) {
+                            if (self.is_urgent ()) {
+                                return energy_pre_rcl8_scaling_balance_point_urgent;
+                            }
+                            else {
+                                return energy_pre_rcl8_scaling_balance_point;
+                            }
+                        }, 'constant_pre_rcl8_energy_balance_point');},
+                        get constant_balance_point_for_rcl8_upgrading_energy () {return __get__ (this, function (self) {
+                            if (self.is_urgent ()) {
+                                return energy_balance_point_for_rcl8_upgrading_urgent;
+                            }
+                            else {
+                                return energy_balance_point_for_rcl8_upgrading;
+                            }
+                        }, 'constant_balance_point_for_rcl8_upgrading_energy');},
+                        get constant_balance_point_for_rcl8_building_energy () {return __get__ (this, function (self) {
+                            if (self.is_urgent ()) {
+                                return energy_balance_point_for_rcl8_building_urgent;
+                            }
+                            else {
+                                return energy_balance_point_for_rcl8_building;
+                            }
+                        }, 'constant_balance_point_for_rcl8_building_energy');},
+                        get constant_balance_point_for_rcl8_supporting_energy () {return __get__ (this, function (self) {
+                            if (self.is_urgent ()) {
+                                return energy_balance_point_for_rcl8_supporting_urgent;
+                            }
+                            else {
+                                return energy_balance_point_for_rcl8_supporting;
+                            }
+                        }, 'constant_balance_point_for_rcl8_supporting_energy');},
+                        get constant_balance_point_for_pre_rcl8_backup_energy_spending () {return __get__ (this, function (self) {
+                            return energy_pre_rcl8_building_when_upgrading_balance_point;
+                        }, 'constant_balance_point_for_pre_rcl8_backup_energy_spending');},
                         get paving () {return __get__ (this, function (self) {
                             if (!('_paving' in self)) {
                                 if (!(self.my)) {
@@ -27056,10 +27335,10 @@ function main () {
                         }, 'mining_ops_paused');},
                         get upgrading_paused () {return __get__ (this, function (self) {
                             if (!('_upgrading_paused' in self)) {
-                                if (self.rcl < 4 || !(self.room.storage) || self.room.storage.storeCapacity <= 0) {
+                                if (self.rcl < 4 || !(self.room.storage) || self.room.storage.storeCapacity <= 0 || self.being_bootstrapped ()) {
                                     self._upgrading_paused = false;
                                 }
-                                else if (self.conducting_siege () && (self.room.storage.store.energy < 100 * 1000 || self.rcl < 7 && self.room.storage.store.energy < 500 * 1000)) {
+                                else if (self.conducting_siege () && (self.room.storage.store.energy < self.constant_energy_to_keep_in_reserve () / 4 || self.rcl < 7 && self.room.storage.store.energy < self.constant_energy_to_keep_in_reserve ())) {
                                     self._upgrading_paused = true;
                                 }
                                 else {
@@ -27130,7 +27409,7 @@ function main () {
                             if (deprioritized !== null) {
                                 return deprioritized;
                             }
-                            var deprioritized = !(!((self.upgrading_paused () || self.rcl < 4 && len (self.subsidiaries) && !(self.being_bootstrapped ()) || !(self.spawn) && !(self.being_bootstrapped ()) || self.under_siege () && (!(self.room.storage) || self.room.storage.storeCapacity)) && self.room.controller.ticksToDowngrade >= 1000 && (!(self.room.storage) || self.room.storage.store.energy < 700 * 1000)));
+                            var deprioritized = !(!((self.upgrading_paused () || self.rcl < 4 && len (self.subsidiaries) && !(self.being_bootstrapped ()) || !(self.spawn) && !(self.being_bootstrapped ()) || self.under_siege () && (!(self.room.storage) || self.room.storage.storeCapacity)) && self.room.controller.ticksToDowngrade >= 1000 && (!(self.room.storage) || self.room.storage.store.energy < STORAGE_CAPACITY * 0.7)));
                             self.store_cached_property ('upgrading_deprioritized', deprioritized, 15);
                             return deprioritized;
                         }, 'upgrading_deprioritized');},
@@ -27343,18 +27622,18 @@ function main () {
                                     }
                                     else {
                                         var energy = self.minerals.get_estimate_total_energy ();
-                                        if (energy < energy_to_keep_always_in_reserve / 2) {
+                                        if (energy < self.constant_energy_to_keep_in_reserve () / 2) {
                                             var state = room_spending_state_saving;
                                         }
                                         else if (self.room.terminal && self.minerals.get_estimate_total_non_energy () > max_minerals_to_keep / 2) {
-                                            if (energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling) {
+                                            if (energy > self.constant_energy_to_keep_in_reserve () + energy_for_terminal_when_selling) {
                                                 var state = room_spending_state_selling_and_supporting;
                                             }
                                             else {
                                                 var state = room_spending_state_selling;
                                             }
                                         }
-                                        else if (energy < energy_to_keep_always_in_reserve) {
+                                        else if (energy < self.constant_energy_to_keep_in_reserve ()) {
                                             var state = room_spending_state_saving;
                                         }
                                         else {
@@ -27366,11 +27645,11 @@ function main () {
                             if (state === null) {
                                 var energy = self.minerals.get_estimate_total_energy ();
                                 var non_energy = self.room.terminal && self.minerals.get_estimate_total_non_energy ();
-                                if (energy < energy_to_keep_always_in_reserve / 2) {
+                                if (energy < self.constant_energy_to_keep_in_reserve () / 2) {
                                     var state = room_spending_state_saving;
                                 }
                                 else if (self.room.terminal && non_energy > max_minerals_to_keep) {
-                                    if (energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling) {
+                                    if (energy > self.constant_energy_to_keep_in_reserve () + energy_for_terminal_when_selling) {
                                         if (self.rcl >= 8) {
                                             var state = room_spending_state_selling_and_rcl8building;
                                         }
@@ -27391,11 +27670,11 @@ function main () {
                                         var state = room_spending_state_selling;
                                     }
                                 }
-                                else if (energy < energy_to_keep_always_in_reserve) {
+                                else if (energy < self.constant_energy_to_keep_in_reserve ()) {
                                     var state = room_spending_state_saving;
                                 }
                                 else if (self.room.terminal && non_energy > max_minerals_to_keep / 2) {
-                                    if (energy > energy_to_keep_always_in_reserve + energy_for_terminal_when_selling) {
+                                    if (energy > self.constant_energy_to_keep_in_reserve () + energy_for_terminal_when_selling) {
                                         if (self.rcl >= 8) {
                                             var state = room_spending_state_selling_and_rcl8building;
                                         }
@@ -27711,7 +27990,7 @@ function main () {
                             if (self.full_storage_use) {
                                 var spending = self.get_spending_target ();
                                 if (spending == room_spending_state_building) {
-                                    var extra = self.minerals.get_estimate_total_energy () - energy_pre_rcl8_scaling_balance_point;
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_pre_rcl8_energy_balance_point ();
                                     var wm = spawning.max_sections_of (self, creep_base_worker);
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2500);
@@ -27719,7 +27998,7 @@ function main () {
                                     var wm = min (wm, self.building.get_max_builder_work_parts ());
                                 }
                                 else if (spending == room_spending_state_selling_and_building) {
-                                    var extra = (self.minerals.get_estimate_total_energy () - energy_pre_rcl8_scaling_balance_point) - energy_for_terminal_when_selling;
+                                    var extra = (self.minerals.get_estimate_total_energy () - self.constant_pre_rcl8_energy_balance_point ()) - energy_for_terminal_when_selling;
                                     var wm = spawning.max_sections_of (self, creep_base_worker);
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2500);
@@ -27727,7 +28006,7 @@ function main () {
                                     var wm = min (wm, self.building.get_max_builder_work_parts ());
                                 }
                                 else if (spending == room_spending_state_rcl8_building) {
-                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_building_energy ();
                                     var wm = min (4, spawning.max_sections_of (self, creep_base_worker));
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2500);
@@ -27735,7 +28014,7 @@ function main () {
                                     var wm = min (wm, self.building.get_max_builder_work_parts ());
                                 }
                                 else if (spending == room_spending_state_selling_and_rcl8building) {
-                                    var extra = (self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building) - energy_for_terminal_when_selling;
+                                    var extra = (self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_building_energy ()) - energy_for_terminal_when_selling;
                                     var wm = min (4, spawning.max_sections_of (self, creep_base_worker));
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2500);
@@ -27746,11 +28025,11 @@ function main () {
                                     var wm = self.building.get_max_builder_work_parts_urgent ();
                                 }
                                 else if (spending == room_spending_state_under_siege) {
-                                    if (self.minerals.get_estimate_total_energy () < energy_to_keep_always_in_reserve / 2) {
+                                    if (self.minerals.get_estimate_total_energy () < self.constant_energy_to_keep_in_reserve () / 2) {
                                         var wm = self.building.get_max_builder_work_parts_urgent ();
                                     }
                                     else {
-                                        var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_building;
+                                        var extra = self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_building_energy ();
                                         var wm = spawning.max_sections_of (self, creep_base_worker) * 3;
                                         if (extra > 0) {
                                             wm += math.floor (extra / 2500);
@@ -27759,7 +28038,13 @@ function main () {
                                     }
                                 }
                                 else {
-                                    var wm = min (spawning.max_sections_of (self, creep_base_worker) * 3, self.building.get_max_builder_work_parts_noextra ());
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_pre_rcl8_backup_energy_spending ();
+                                    if (extra > 0) {
+                                        var wm = min (min (4, spawning.max_sections_of (self, creep_base_worker)) + math.floor (extra / 2500), self.building.get_max_builder_work_parts ());
+                                    }
+                                    else {
+                                        var wm = min (spawning.max_sections_of (self, creep_base_worker) * 3, self.building.get_max_builder_work_parts_noextra ());
+                                    }
                                 }
                             }
                             else if (self.trying_to_get_full_storage_use) {
@@ -27831,11 +28116,11 @@ function main () {
                                 self._target_upgrader_work_mass = wm;
                                 return wm;
                             }
-                            else if (self.get_full_storage_use ()) {
+                            else if (self.full_storage_use) {
                                 var spending = self.get_spending_target ();
                                 if (spending == room_spending_state_upgrading) {
                                     var wm = 4;
-                                    var extra = self.minerals.get_estimate_total_energy () - energy_to_keep_always_in_reserve;
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_energy_to_keep_in_reserve ();
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2000);
                                         if (extra >= STORAGE_CAPACITY / 5) {
@@ -27845,7 +28130,7 @@ function main () {
                                 }
                                 else if (spending == room_spending_state_selling_and_upgrading) {
                                     var wm = 4;
-                                    var extra = (self.minerals.get_estimate_total_energy () - energy_to_keep_always_in_reserve) - energy_for_terminal_when_selling;
+                                    var extra = (self.minerals.get_estimate_total_energy () - self.constant_energy_to_keep_in_reserve ()) - energy_for_terminal_when_selling;
                                     if (extra > 0) {
                                         wm += math.floor (extra / 2000);
                                         if (extra >= STORAGE_CAPACITY / 5) {
@@ -27854,7 +28139,7 @@ function main () {
                                     }
                                 }
                                 else if (spending == room_spending_state_rcl8_building) {
-                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_upgrading;
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_upgrading_energy ();
                                     if (extra < 0) {
                                         var wm = 4;
                                     }
@@ -27863,7 +28148,7 @@ function main () {
                                     }
                                 }
                                 else if (spending == room_spending_state_selling_and_rcl8building) {
-                                    var extra = (self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_upgrading) - energy_for_terminal_when_selling;
+                                    var extra = (self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_upgrading_energy ()) - energy_for_terminal_when_selling;
                                     if (extra < 0) {
                                         var wm = 4;
                                     }
@@ -27872,7 +28157,7 @@ function main () {
                                     }
                                 }
                                 else if (spending == room_spending_state_supporting) {
-                                    var extra = self.minerals.get_estimate_total_energy () - energy_balance_point_for_rcl8_upgrading;
+                                    var extra = self.minerals.get_estimate_total_energy () - self.constant_balance_point_for_rcl8_upgrading_energy ();
                                     if (extra < 0) {
                                         var wm = 4;
                                     }
@@ -27927,7 +28212,12 @@ function main () {
                                 var energy_struct = self.get_upgrader_energy_struct ();
                                 if (energy_struct && energy_struct.structureType == STRUCTURE_LINK) {
                                     var distance = movement.chebyshev_distance_room_pos (self.links.main_link, energy_struct);
-                                    var wm = min (wm, math.ceil ((LINK_CAPACITY * (1 - LINK_LOSS_RATIO)) / distance));
+                                    var total_throughput = (LINK_CAPACITY * (1 - LINK_LOSS_RATIO)) / distance;
+                                    if (self.links.secondary_link) {
+                                        var secondary_distance = movement.chebyshev_distance_room_pos (self.links.secondary_link, energy_struct);
+                                        total_throughput += (LINK_CAPACITY * (1 - LINK_LOSS_RATIO)) / secondary_distance;
+                                    }
+                                    var wm = min (wm, math.ceil (total_throughput));
                                 }
                             }
                             self._target_upgrader_work_mass = wm;
@@ -28540,14 +28830,23 @@ function main () {
                         __all__.creep_wrappers = creep_wrappers;
                         __all__.default_roles = default_roles;
                         __all__.energy_at_which_to_stop_supporting = energy_at_which_to_stop_supporting;
+                        __all__.energy_at_which_to_stop_supporting_urgent = energy_at_which_to_stop_supporting_urgent;
                         __all__.energy_balance_point_for_rcl8_building = energy_balance_point_for_rcl8_building;
+                        __all__.energy_balance_point_for_rcl8_building_urgent = energy_balance_point_for_rcl8_building_urgent;
                         __all__.energy_balance_point_for_rcl8_selling = energy_balance_point_for_rcl8_selling;
+                        __all__.energy_balance_point_for_rcl8_selling_urgent = energy_balance_point_for_rcl8_selling_urgent;
                         __all__.energy_balance_point_for_rcl8_supporting = energy_balance_point_for_rcl8_supporting;
+                        __all__.energy_balance_point_for_rcl8_supporting_urgent = energy_balance_point_for_rcl8_supporting_urgent;
                         __all__.energy_balance_point_for_rcl8_upgrading = energy_balance_point_for_rcl8_upgrading;
+                        __all__.energy_balance_point_for_rcl8_upgrading_urgent = energy_balance_point_for_rcl8_upgrading_urgent;
                         __all__.energy_for_terminal_when_selling = energy_for_terminal_when_selling;
+                        __all__.energy_pre_rcl8_building_when_upgrading_balance_point = energy_pre_rcl8_building_when_upgrading_balance_point;
                         __all__.energy_pre_rcl8_scaling_balance_point = energy_pre_rcl8_scaling_balance_point;
+                        __all__.energy_pre_rcl8_scaling_balance_point_urgent = energy_pre_rcl8_scaling_balance_point_urgent;
                         __all__.energy_to_keep_always_in_reserve = energy_to_keep_always_in_reserve;
+                        __all__.energy_to_keep_always_in_reserve_urgent = energy_to_keep_always_in_reserve_urgent;
                         __all__.energy_to_keep_always_in_reserve_when_supporting_sieged = energy_to_keep_always_in_reserve_when_supporting_sieged;
+                        __all__.energy_to_keep_always_in_reserve_when_supporting_sieged_urgent = energy_to_keep_always_in_reserve_when_supporting_sieged_urgent;
                         __all__.energy_to_pause_building = energy_to_pause_building;
                         __all__.energy_to_pause_upgrading = energy_to_pause_upgrading;
                         __all__.energy_to_resume_building = energy_to_resume_building;
@@ -28598,6 +28897,7 @@ function main () {
                         __all__.mem_key_there_might_be_energy_lying_around = mem_key_there_might_be_energy_lying_around;
                         __all__.mem_key_total_open_source_spaces = mem_key_total_open_source_spaces;
                         __all__.mem_key_upgrading_paused = mem_key_upgrading_paused;
+                        __all__.mem_key_urgency = mem_key_urgency;
                         __all__.mem_key_work_parts_by_role = mem_key_work_parts_by_role;
                         __all__.min_energy_enable_full_storage_use = min_energy_enable_full_storage_use;
                         __all__.min_energy_pause_remote_mining = min_energy_pause_remote_mining;
@@ -28877,7 +29177,7 @@ function main () {
                             }
                             else {
                                 var cached = [];
-                                var __iterable0__ = flags.find_flags_global_multitype_shared_first ([SQUAD_KITING_PAIR, SQUAD_DUAL_SCOUTS, SQUAD_4_SCOUTS, SQUAD_DUAL_ATTACK, SQUAD_DISMANTLE_RANGED, SQUAD_TOWER_DRAIN]);
+                                var __iterable0__ = flags.find_flags_global_multitype_shared_primary ([SQUAD_KITING_PAIR, SQUAD_DUAL_SCOUTS, SQUAD_4_SCOUTS, SQUAD_DUAL_ATTACK, SQUAD_DISMANTLE_RANGED, SQUAD_TOWER_DRAIN]);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var flag = __iterable0__ [__index0__];
                                     if (flags.flag_sponsor (flag) == self.room.name) {
@@ -30553,7 +30853,7 @@ function main () {
                         print ('[{}] Room no longer visible? skipping re-running creeps skipped last turn from this room.'.format (room_name));
                         continue;
                     }
-                    run_room (targets, creeps_skipped, room);
+                    try_thing (run_room, targets, creeps_skipped, room);
                 }
                 delete Memory.skipped_last_turn;
             }
@@ -30569,7 +30869,7 @@ function main () {
                 var __iterable0__ = rooms;
                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                     var room = __iterable0__ [__index0__];
-                    run_room (targets, creeps_skipped, room);
+                    try_thing (run_room, targets, creeps_skipped, room);
                     if (Game.cpu.getUsed () - used_start >= 400) {
                         print ('[main] Used >= 400 CPU this tick! Skipping everything else.');
                         return ;
@@ -30641,7 +30941,7 @@ function main () {
             return context.hive ().get_room (name);
         }), 'get_creep': (function __lambda__ (name) {
             return ((name in Game.creeps) ? wrap_creep (context.hive (), context.hive ().targets, context.hive ().get_room (Memory.creeps [name].home), Game.creeps [name]) : null);
-        }), 'cc': global_cache.clear_values_matching, 'full_refresh': (function __lambda__ () {
+        }), 'repave': building.repave, 'cc': global_cache.clear_values_matching, 'full_refresh': (function __lambda__ () {
             return consistency.complete_refresh (context.hive ());
         }), 'analyse_mem': (function __lambda__ (path) {
             return memory_info.analyse_memory (path);
