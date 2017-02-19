@@ -1,4 +1,4 @@
-from constants import role_hauler, role_miner
+from constants import role_hauler, role_miner, role_recycling
 from creeps.base import RoleBase
 from empire import honey
 from jstools.screeps import *
@@ -252,6 +252,9 @@ class TransportPickup(RoleBase):
                         self.log("WARNING: Transport creep off path, with no positions to return to. I'm at {}, going"
                                  " from {} to {}. All positions: {}!"
                                  .format(self.pos, origin, target, all_positions))
+                        if mine and self.home.mining.is_mine_linked(mine):
+                            self.log("I'm a hauler for a linked mine! Suiciding.")
+                            self.memory.role = role_recycling
                         if not len(all_positions):
                             if Game.time % 20 == 10:
                                 honey.clear_cached_path(origin, target)
