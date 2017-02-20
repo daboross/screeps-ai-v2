@@ -780,6 +780,8 @@ class MineralMind:
                         minimum = 0.1
                     else:
                         minimum = (bottom_prices[mineral] + sell_at_prices[mineral]) / 2
+                        if self.get_total_room_resource_counts()[mineral] < 1000:
+                            minimum /= 2
                     if best_gain < minimum:
                         if best_order.price > 0.2:
                             print("[{}][minerals] Best buy order for {} is at price {}."
