@@ -646,13 +646,13 @@ class ConstructionMind:
 
         honey = self.hive.honey
         if deposit_point.pos.isNearTo(mine_flag):
-            route_to_mine = honey.get_serialized_path_obj(self.room.spawn, deposit_point, {
+            route_to_mine = honey.get_serialized_path_obj(self.room.spawn, mine_flag, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
             check_route(route_to_mine, None, None)
 
-            all_positions = honey.list_of_room_positions_in_path(self.room.spawn, deposit_point, {
+            all_positions = honey.list_of_room_positions_in_path(self.room.spawn, mine_flag, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
