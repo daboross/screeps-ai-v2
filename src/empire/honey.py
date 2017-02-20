@@ -711,8 +711,10 @@ class HoneyTrails:
                     set_matrix(mineral.pos.x, mineral.pos.y, StoredObstacleType.MINERAL, False, None)
             for flag in spawn_fill_wait_flags:
                 matrix.set_impassable(flag.pos.x, flag.pos.y)
-            for flag in upgrader_wait_flags:
-                matrix.set_impassable(flag.pos.x, flag.pos.y)
+            controller = room.controller
+            if not controller or destination.roomName != room_name or destination.x != controller.pos.x or destination.y != controller.pos.y:
+                for flag in upgrader_wait_flags:
+                    matrix.set_impassable(flag.pos.x, flag.pos.y)
             # Link manager creep position
             if room.my and room.room.storage and room.links.main_link:
                 ml = room.links.main_link

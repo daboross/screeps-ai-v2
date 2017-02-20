@@ -78,7 +78,7 @@ class Upgrader(RoleBase):
         self.harvest_from(link)
 
         spot = self.targets.get_new_target(self, target_home_flag, UPGRADER_SPOT)
-        if spot and self.home.role_count(role_upgrader) <= len(flags.find_flags(self.home, UPGRADER_SPOT)):
+        if spot:
             if self.pos.isEqualTo(spot.pos):
                 self.memory.set_till = Game.time + 30
             else:
