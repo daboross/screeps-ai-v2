@@ -38,7 +38,7 @@ def _deserialize_data(data):
     # NOTE: this cache is only ever reset as a last resort, in normal operation the server should reset the global
     # before this is reached.
     global _cached_data, _cache_created
-    if Game.time - _cache_created > 100:
+    if Game.time - _cache_created > 1000:
         _cached_data = new_map()
         _cache_created = Game.time
     deserialized = _cached_data.get(data)
@@ -47,6 +47,14 @@ def _deserialize_data(data):
     deserialized = StoredRoom.decode(data)
     _cached_data.set(data, deserialized)
     return deserialized
+
+
+def _set_new_data(room_name, data):
+    _mem()[room_name] = encoded = data.encode()
+    _cached_data.set(encoded, data)
+    if not len(encoded):
+        print("[storage] Warning: would have set empty data for room {}!".format(room_name))
+        del _mem()[room_name]
 
 
 _my_username = None
@@ -60,7 +68,7 @@ def _find_my_username():
     return _my_username
 
 
-def _find_structures(room):
+def _find_obstacles(room):
     """
     :type room: Room
     :rtype: list[StoredObstacle]
@@ -188,12 +196,11 @@ def update_data(room):
         data = StoredRoom.decode(serialized)
     else:
         data = __new__(StoredRoom())
-    data.obstacles = _find_structures(room)
+    data.obstacles = _find_obstacles(room)
     data.last_updated = Game.time
     data.owner = _find_room_owner(room)
     data.reservation_end = _find_room_reservation_end(room)
-    _mem()[room_name] = encoded = data.encode()
-    _cached_data.set(encoded, data)
+    _set_new_data(room_name, data)
 
 
 def get_data(room_name):
@@ -252,8 +259,7 @@ def set_reservation_time(room_name, reservation_time):
     else:
         data = __new__(StoredRoom())
     data.reservation_end = Game.time + reservation_time
-    _mem()[room_name] = encoded = data.encode()
-    _cached_data.set(encoded, data)
+    _set_new_data(room_name, data)
 
 
 def migrate_old_data():
@@ -290,8 +296,7 @@ def migrate_old_data():
                     print('[storage] Successfully migrated SK flag in {} at {},{} to data storage.'
                           .format(room_name, flag.pos.x, flag.pos.y))
             if len(new_stored):
-                _mem()[room_name] = encoded = data.encode()
-                _cached_data.set(encoded, data)
+                _set_new_data(room_name, data)
             for flag in flags_here:
                 print('[storage] Removing migrated SK flag {} in {} at {},{}.'
                       .format(flag.name, flag.pos.roomName, flag.pos.x, flag.pos.y))
@@ -310,6 +315,5 @@ def set_as_enemy(room_name, username=None):
     else:
         new_data = __new__(StoredRoom())
     new_data.owner = __new__(StoredEnemyRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
-    _mem()[room_name] = encoded = new_data.encode()
-    _cached_data.set(encoded, new_data)
     print("[storage] Successfully added {} as an enemy room.".format(room_name))
+    _set_new_data(room_name, new_data)
