@@ -731,7 +731,7 @@ function defineRoomMetadataPrototypes() {
         }
     };
 
-    var StoredStructureType = global.StoredStructureType = {
+    var StoredObstacleType = global.StoredObstacleType = {
         "OTHER_IMPASSABLE": 0,
         "ROAD": 1,
         "CONTROLLER": 2,
@@ -746,9 +746,10 @@ function defineRoomMetadataPrototypes() {
         "FULLY_FUNCTIONAL": 0,
         "RESERVED": 1,
         "JUST_MINING": 2,
-        "OWNED_DEAD": 3,
+        "OWNED_DEAD": 3
     };
-    var ReverseStoredStructureType = [
+
+    var ReverseStoredObstacleType = [
         "OTHER_IMPASSABLE",
         "ROAD",
         "CONTROLLER",
@@ -766,9 +767,10 @@ function defineRoomMetadataPrototypes() {
         "OWNED_DEAD"
     ];
 
-    // StoredStructure ========================================
+    // StoredObstacle ========================================
 
-    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0, source_capacity = undefined) {
+    var StoredObstacle = global.StoredObstacle = function StoredObstacle(x = 0, y = 0, type = 0,
+                                                                         source_capacity = undefined) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -776,54 +778,54 @@ function defineRoomMetadataPrototypes() {
             this.source_capacity = source_capacity;
         }
     };
-    StoredStructure.prototype.toString = function () {
+    StoredObstacle.prototype.toString = function () {
         return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}]`;
     };
 
-    StoredStructure.read = function (pbf, end) {
-        return pbf.readFields(StoredStructure._readField, new StoredStructure(), end);
+    StoredObstacle.read = function (pbf, end) {
+        return pbf.readFields(StoredObstacle._readField, {type: 0, x: 0, y: 0, source_capacity: 0}, end);
     };
-    StoredStructure._readField = function (tag, obj, pbf) {
+    StoredObstacle._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.type = pbf.readVarint();
         else if (tag === 2) obj.x = pbf.readVarint();
         else if (tag === 3) obj.y = pbf.readVarint();
         else if (tag === 4) obj.source_capacity = pbf.readVarint();
     };
-    StoredStructure.write = function (obj, pbf) {
+    StoredObstacle.write = function (obj, pbf) {
         if (obj.type) pbf.writeVarintField(1, obj.type);
         if (obj.x) pbf.writeVarintField(2, obj.x);
         if (obj.y) pbf.writeVarintField(3, obj.y);
         if (obj.source_capacity) pbf.writeVarintField(4, obj.source_capacity);
     };
 
-    // RoomOwner ========================================
+    // StoredEnemyRoomOwner ========================================
 
-    var StoredRoomOwner = global.StoredRoomOwner = function StoredRoomOwner(name = "", state = 0) {
+    var StoredEnemyRoomOwner = global.StoredEnemyRoomOwner = function StoredEnemyRoomOwner(name = "", state = 0) {
         this.name = name;
         this.state = state;
     };
-    StoredRoomOwner.prototype.toString = function () {
+    StoredEnemyRoomOwner.prototype.toString = function () {
         return `[${this.name}, ${ReverseStoredEnemyRoomState[this.state] || this.state}]`;
     };
 
-    StoredRoomOwner.read = function (pbf, end) {
-        return pbf.readFields(StoredRoomOwner._readField, new StoredRoomOwner(), end);
+    StoredEnemyRoomOwner.read = function (pbf, end) {
+        return pbf.readFields(StoredEnemyRoomOwner._readField, new StoredEnemyRoomOwner(), end);
     };
-    StoredRoomOwner._readField = function (tag, obj, pbf) {
+    StoredEnemyRoomOwner._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.name = pbf.readString();
         else if (tag === 2) obj.state = pbf.readVarint();
     };
-    StoredRoomOwner.write = function (obj, pbf) {
+    StoredEnemyRoomOwner.write = function (obj, pbf) {
         if (obj.name) pbf.writeStringField(1, obj.name);
         if (obj.state) pbf.writeVarintField(2, obj.state);
     };
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(structures = [], structures_last_updated = 0, reservation_end = 0, owner = undefined) {
-        this.structures = structures;
+    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], last_updated = 0, reservation_end = 0, owner = undefined) {
+        this.obstacles = obstacles;
         this.reservation_end = reservation_end;
-        this.structures_last_updated = structures_last_updated;
+        this.last_updated = last_updated;
         if (owner !== undefined) {
             this.owner = owner;
         }
@@ -837,8 +839,8 @@ function defineRoomMetadataPrototypes() {
         if (this.reservation_end) {
             values.push(`[reservation_ends ${this.reservation_end}]`);
         }
-        if (this.structures_last_updated) {
-            values.push(`[structures_updated ${this.structures_last_updated}]`);
+        if (this.last_updated) {
+            values.push(`[structures_updated ${this.last_updated}]`);
         }
         if (this.structures) {
             values.push(...this.structures);
@@ -885,16 +887,16 @@ function defineRoomMetadataPrototypes() {
         return pbf.readFields(StoredRoom._readField, new StoredRoom(), end);
     };
     StoredRoom._readField = function (tag, obj, pbf) {
-        if (tag === 1) obj.structures.push(StoredStructure.read(pbf, pbf.readVarint() + pbf.pos));
-        else if (tag === 2) obj.structures_last_updated = pbf.readVarint();
+        if (tag === 1) obj.obstacles.push(StoredObstacle.read(pbf, pbf.readVarint() + pbf.pos));
+        else if (tag === 2) obj.last_updated = pbf.readVarint();
         else if (tag === 3) obj.reservation_end = pbf.readVarint();
-        else if (tag === 4) obj.owner = StoredRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
+        else if (tag === 4) obj.owner = StoredEnemyRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
     };
     StoredRoom.write = function (obj, pbf) {
-        if (obj.structures) for (var i = 0; i < obj.structures.length; i++) pbf.writeMessage(1, StoredStructure.write, obj.structures[i]);
-        if (obj.structures_last_updated) pbf.writeVarintField(2, obj.structures_last_updated);
+        if (obj.obstacles) for (var i = 0; i < obj.obstacles.length; i++) pbf.writeMessage(1, StoredObstacle.write, obj.obstacles[i]);
+        if (obj.last_updated) pbf.writeVarintField(2, obj.last_updated);
         if (obj.reservation_end) pbf.writeVarintField(3, obj.reservation_end);
-        if (obj.owner) pbf.writeMessage(4, StoredRoomOwner.write, obj.owner);
+        if (obj.owner) pbf.writeMessage(4, StoredEnemyRoomOwner.write, obj.owner);
     };
 
     StoredRoom.prototype.encode = function () {

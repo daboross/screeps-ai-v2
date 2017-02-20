@@ -387,10 +387,10 @@ __all__ = [
     "__except0__",
 
     # metadata
-    "StoredStructureType",
+    "StoredObstacleType",
     "StoredEnemyRoomState",
-    "StoredStructure",
-    "StoredRoomOwner",
+    "StoredObstacle",
+    "StoredEnemyRoomOwner",
     "StoredRoom",
 ]
 

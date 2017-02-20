@@ -63,7 +63,7 @@ def _find_my_username():
 def _find_structures(room):
     """
     :type room: Room
-    :rtype: list[StoredStructure]
+    :rtype: list[StoredObstacle]
     """
     result = []
     any_lairs = False
@@ -74,27 +74,27 @@ def _find_structures(room):
         elif orig_type == STRUCTURE_RAMPART and structure.my:
             continue
         elif orig_type == STRUCTURE_ROAD:
-            stored_type = StoredStructureType.ROAD
+            stored_type = StoredObstacleType.ROAD
         elif orig_type == STRUCTURE_CONTROLLER:
-            stored_type = StoredStructureType.CONTROLLER
+            stored_type = StoredObstacleType.CONTROLLER
         elif orig_type == STRUCTURE_KEEPER_LAIR:
-            stored_type = StoredStructureType.SOURCE_KEEPER_LAIR
+            stored_type = StoredObstacleType.SOURCE_KEEPER_LAIR
             any_lairs = True
         else:
-            stored_type = StoredStructureType.OTHER_IMPASSABLE
-        result.append(__new__(StoredStructure(structure.pos.x, structure.pos.y, stored_type)))
+            stored_type = StoredObstacleType.OTHER_IMPASSABLE
+        result.append(__new__(StoredObstacle(structure.pos.x, structure.pos.y, stored_type)))
     for source in room.find(FIND_SOURCES):
         if any_lairs:
-            stored_type = StoredStructureType.SOURCE_KEEPER_SOURCE
+            stored_type = StoredObstacleType.SOURCE_KEEPER_SOURCE
         else:
-            stored_type = StoredStructureType.SOURCE
-        result.append(__new__(StoredStructure(source.pos.x, source.pos.y, stored_type, source.energyCapacity)))
+            stored_type = StoredObstacleType.SOURCE
+        result.append(__new__(StoredObstacle(source.pos.x, source.pos.y, stored_type, source.energyCapacity)))
     for mineral in room.find(FIND_MINERALS):
         if any_lairs:
-            stored_type = StoredStructureType.SOURCE_KEEPER_MINERAL
+            stored_type = StoredObstacleType.SOURCE_KEEPER_MINERAL
         else:
-            stored_type = StoredStructureType.MINERAL
-        result.append(__new__(StoredStructure(mineral.pos.x, mineral.pos.y, stored_type)))
+            stored_type = StoredObstacleType.MINERAL
+        result.append(__new__(StoredObstacle(mineral.pos.x, mineral.pos.y, stored_type)))
     return result
 
 
@@ -112,7 +112,7 @@ def _find_room_reservation_end(room):
 def _find_room_owner(room):
     """
     :type room: Room
-    :rtype: StoredRoomOwner
+    :rtype: StoredEnemyRoomOwner
     """
     name = None
     state = None
@@ -141,7 +141,7 @@ def _find_room_owner(room):
     if state is None:
         return None
     else:
-        return __new__(StoredRoomOwner(name, state))
+        return __new__(StoredEnemyRoomOwner(name, state))
 
 
 def update_data_for_visible_rooms():
@@ -188,8 +188,8 @@ def update_data(room):
         data = StoredRoom.decode(serialized)
     else:
         data = __new__(StoredRoom())
-    data.structures = _find_structures(room)
-    data.structures_last_updated = Game.time
+    data.obstacles = _find_structures(room)
+    data.last_updated = Game.time
     data.owner = _find_room_owner(room)
     data.reservation_end = _find_room_reservation_end(room)
     _mem()[room_name] = encoded = data.encode()
@@ -232,7 +232,7 @@ def get_last_updated_tick(room_name):
     """
     data = get_data(room_name)
     if data:
-        return data.structures_last_updated
+        return data.last_updated
     else:
         return 0
 
@@ -275,17 +275,17 @@ def migrate_old_data():
             else:
                 data = __new__(StoredRoom())
             already_existing = new_set()
-            for structure in data.structures:
-                if structure.type == StoredStructureType.SOURCE_KEEPER_LAIR \
-                        or structure.type == StoredStructureType.SOURCE_KEEPER_MINERAL \
-                        or structure.type == StoredStructureType.SOURCE_KEEPER_SOURCE:
-                    already_existing.add(positions.serialize_pos_xy(structure))
+            for obstacle in data.obstacles:
+                if obstacle.type == StoredObstacleType.SOURCE_KEEPER_LAIR \
+                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL \
+                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE:
+                    already_existing.add(positions.serialize_pos_xy(obstacle))
             new_stored = []
             for flag in flags_here:
                 serialized = positions.serialize_pos_xy(flag)
                 if not already_existing.has(serialized):
-                    new_stored.append(__new__(StoredStructure(
-                        flag.pos.x, flag.pos.y, StoredStructureType.SOURCE_KEEPER_LAIR)))
+                    new_stored.append(__new__(StoredObstacle(
+                        flag.pos.x, flag.pos.y, StoredObstacleType.SOURCE_KEEPER_LAIR)))
                     already_existing.add(serialized)
                     print('[storage] Successfully migrated SK flag in {} at {},{} to data storage.'
                           .format(room_name, flag.pos.x, flag.pos.y))
@@ -303,13 +303,13 @@ def set_as_enemy(room_name, username=None):
         username = "Manually set"
     stored = get_data(room_name)
     if stored:
-        if stored.owner and stored.owner.state in [
-                    StoredEnemyRoomState.FULLY_FUNCTIONAL or StoredEnemyRoomState.RESERVED]:
+        if stored.owner and (stored.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL
+                             or stored.owner.state is StoredEnemyRoomState.RESERVED):
             return
         new_data = StoredRoom.decode(_get_serialized_data(room_name))
     else:
         new_data = __new__(StoredRoom())
-    new_data.owner = __new__(StoredRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
+    new_data.owner = __new__(StoredEnemyRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
     _mem()[room_name] = encoded = new_data.encode()
     _cached_data.set(encoded, new_data)
     print("[storage] Successfully added {} as an enemy room.".format(room_name))

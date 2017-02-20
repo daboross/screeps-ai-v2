@@ -163,13 +163,13 @@ def dismantle_pathfinder_callback(room_name):
         data = stored_data.get_data(room_name)
         if not data:
             return matrix
-        for obstacle in data.structures:
-            if obstacle.type == StoredStructureType.ROAD:
+        for obstacle in data.obstacles:
+            if obstacle.type == StoredObstacleType.ROAD:
                 if matrix.get(obstacle.x, obstacle.y) == 0:
                     matrix.set(obstacle.x, obstacle.y, 1)
             else:
-                if obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
-                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                if obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE \
+                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL:
                     for x in range(obstacle.x - 4, obstacle.x + 5):
                         for y in range(obstacle.y - 4, obstacle.y + 5):
                             matrix.set(x, y, 200)

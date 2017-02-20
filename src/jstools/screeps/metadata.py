@@ -1,4 +1,4 @@
-class StoredStructureType:
+class StoredObstacleType:
     OTHER_IMPASSABLE = 0
     ROAD = 1
     CONTROLLER = 2
@@ -16,7 +16,7 @@ class StoredEnemyRoomState:
     OWNED_DEAD = 3
 
 
-class StoredStructure:
+class StoredObstacle:
     """
     :type x: int
     :type y: int
@@ -31,7 +31,7 @@ class StoredStructure:
         self.source_capacity = source_capacity
 
 
-class StoredRoomOwner:
+class StoredEnemyRoomOwner:
     """
     :type name: str
     :type state: int
@@ -44,21 +44,21 @@ class StoredRoomOwner:
 
 class StoredRoom:
     """
-    :type structures: list[StoredStructure]
-    :type structures_last_updated: int
+    :type obstacles: list[StoredObstacle]
+    :type last_updated: int
     :type reservation_end: int
-    :type owner: StoredRoomOwner
+    :type owner: StoredEnemyRoomOwner
     """
 
-    def __init__(self, structures=None, structures_last_updated=None, reservation_end=None, owner=None):
-        if structures is None:
-            structures = []
-        if structures_last_updated is None:
-            structures_last_updated = 0
+    def __init__(self, obstacles=None, last_updated=None, reservation_end=None, owner=None):
+        if obstacles is None:
+            obstacles = []
+        if last_updated is None:
+            last_updated = 0
         if reservation_end is None:
             reservation_end = 0
-        self.structures = structures
-        self.structures_last_updated = structures_last_updated
+        self.obstacles = obstacles
+        self.last_updated = last_updated
         self.reservation_end = reservation_end
         self.owner = owner
 

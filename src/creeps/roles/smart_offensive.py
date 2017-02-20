@@ -73,12 +73,12 @@ def kiting_cost_matrix(room_name):
     else:
         data = stored_data.get_data(room_name)
         if data:
-            for obstacle in data.structures:
-                if obstacle.type == StoredStructureType.ROAD:
+            for obstacle in data.obstacles:
+                if obstacle.type == StoredObstacleType.ROAD:
                     cost_matrix.set(obstacle.x, obstacle.y, 1)
-                elif obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR \
-                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE \
-                        or obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL:
+                elif obstacle.type == StoredObstacleType.SOURCE_KEEPER_LAIR \
+                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE \
+                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL:
                     set_in_range(obstacle, 4, 255, 0)
                 else:
                     cost_matrix.set(obstacle.x, obstacle.y, 255)
