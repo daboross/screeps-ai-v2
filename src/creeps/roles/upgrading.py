@@ -103,7 +103,7 @@ class Upgrader(RoleBase):
                                 self.home.check_all_creeps_next_tick()
                                 break
                             elif creep.getBodyparts(WORK) < self.home.get_upgrader_size() \
-                                    * (0.5 if self.home.get_variable_base(role_upgrader) is creep_base_full_upgrader
+                                    * (2 if self.home.get_variable_base(role_upgrader) is creep_base_full_upgrader
                                        else 1):
                                 small = creep
                     else:
