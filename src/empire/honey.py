@@ -650,8 +650,9 @@ class HoneyTrails:
                 return
 
             if structure_type:
-                if structure_type == STRUCTURE_STORAGE or structure_type == STRUCTURE_LINK \
-                        or structure_type == STRUCTURE_LAB or structure_type == STRUCTURE_TERMINAL:
+                if (structure_type == STRUCTURE_STORAGE or structure_type == STRUCTURE_LINK
+                    or structure_type == STRUCTURE_LAB or structure_type == STRUCTURE_TERMINAL) \
+                        and not paved_for:
                     if (not is_dest_room or abs(x - destination.x) > 3 or abs(y - destination.y) > 3) \
                             and (not is_origin_room or abs(x - origin.x) > 3 or abs(y - origin.y) > 3):
                         for xx in range(x - 1, x + 2):
