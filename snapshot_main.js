@@ -1507,7 +1507,7 @@ function defineRoomMetadataPrototypes() {
         }
     };
 
-    var StoredStructureType = global.StoredStructureType = {
+    var StoredObstacleType = global.StoredObstacleType = {
         "OTHER_IMPASSABLE": 0,
         "ROAD": 1,
         "CONTROLLER": 2,
@@ -1522,9 +1522,10 @@ function defineRoomMetadataPrototypes() {
         "FULLY_FUNCTIONAL": 0,
         "RESERVED": 1,
         "JUST_MINING": 2,
-        "OWNED_DEAD": 3,
+        "OWNED_DEAD": 3
     };
-    var ReverseStoredStructureType = [
+
+    var ReverseStoredObstacleType = [
         "OTHER_IMPASSABLE",
         "ROAD",
         "CONTROLLER",
@@ -1542,9 +1543,10 @@ function defineRoomMetadataPrototypes() {
         "OWNED_DEAD"
     ];
 
-    // StoredStructure ========================================
+    // StoredObstacle ========================================
 
-    var StoredStructure = global.StoredStructure = function StoredStructure(x = 0, y = 0, type = 0, source_capacity = undefined) {
+    var StoredObstacle = global.StoredObstacle = function StoredObstacle(x = 0, y = 0, type = 0,
+                                                                         source_capacity = undefined) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -1552,54 +1554,54 @@ function defineRoomMetadataPrototypes() {
             this.source_capacity = source_capacity;
         }
     };
-    StoredStructure.prototype.toString = function () {
+    StoredObstacle.prototype.toString = function () {
         return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}]`;
     };
 
-    StoredStructure.read = function (pbf, end) {
-        return pbf.readFields(StoredStructure._readField, new StoredStructure(), end);
+    StoredObstacle.read = function (pbf, end) {
+        return pbf.readFields(StoredObstacle._readField, {type: 0, x: 0, y: 0, source_capacity: 0}, end);
     };
-    StoredStructure._readField = function (tag, obj, pbf) {
+    StoredObstacle._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.type = pbf.readVarint();
         else if (tag === 2) obj.x = pbf.readVarint();
         else if (tag === 3) obj.y = pbf.readVarint();
         else if (tag === 4) obj.source_capacity = pbf.readVarint();
     };
-    StoredStructure.write = function (obj, pbf) {
+    StoredObstacle.write = function (obj, pbf) {
         if (obj.type) pbf.writeVarintField(1, obj.type);
         if (obj.x) pbf.writeVarintField(2, obj.x);
         if (obj.y) pbf.writeVarintField(3, obj.y);
         if (obj.source_capacity) pbf.writeVarintField(4, obj.source_capacity);
     };
 
-    // RoomOwner ========================================
+    // StoredEnemyRoomOwner ========================================
 
-    var StoredRoomOwner = global.StoredRoomOwner = function StoredRoomOwner(name = "", state = 0) {
+    var StoredEnemyRoomOwner = global.StoredEnemyRoomOwner = function StoredEnemyRoomOwner(name = "", state = 0) {
         this.name = name;
         this.state = state;
     };
-    StoredRoomOwner.prototype.toString = function () {
+    StoredEnemyRoomOwner.prototype.toString = function () {
         return `[${this.name}, ${ReverseStoredEnemyRoomState[this.state] || this.state}]`;
     };
 
-    StoredRoomOwner.read = function (pbf, end) {
-        return pbf.readFields(StoredRoomOwner._readField, new StoredRoomOwner(), end);
+    StoredEnemyRoomOwner.read = function (pbf, end) {
+        return pbf.readFields(StoredEnemyRoomOwner._readField, new StoredEnemyRoomOwner(), end);
     };
-    StoredRoomOwner._readField = function (tag, obj, pbf) {
+    StoredEnemyRoomOwner._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.name = pbf.readString();
         else if (tag === 2) obj.state = pbf.readVarint();
     };
-    StoredRoomOwner.write = function (obj, pbf) {
+    StoredEnemyRoomOwner.write = function (obj, pbf) {
         if (obj.name) pbf.writeStringField(1, obj.name);
         if (obj.state) pbf.writeVarintField(2, obj.state);
     };
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(structures = [], structures_last_updated = 0, reservation_end = 0, owner = undefined) {
-        this.structures = structures;
+    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], last_updated = 0, reservation_end = 0, owner = undefined) {
+        this.obstacles = obstacles;
         this.reservation_end = reservation_end;
-        this.structures_last_updated = structures_last_updated;
+        this.last_updated = last_updated;
         if (owner !== undefined) {
             this.owner = owner;
         }
@@ -1613,8 +1615,8 @@ function defineRoomMetadataPrototypes() {
         if (this.reservation_end) {
             values.push(`[reservation_ends ${this.reservation_end}]`);
         }
-        if (this.structures_last_updated) {
-            values.push(`[structures_updated ${this.structures_last_updated}]`);
+        if (this.last_updated) {
+            values.push(`[structures_updated ${this.last_updated}]`);
         }
         if (this.structures) {
             values.push(...this.structures);
@@ -1661,16 +1663,16 @@ function defineRoomMetadataPrototypes() {
         return pbf.readFields(StoredRoom._readField, new StoredRoom(), end);
     };
     StoredRoom._readField = function (tag, obj, pbf) {
-        if (tag === 1) obj.structures.push(StoredStructure.read(pbf, pbf.readVarint() + pbf.pos));
-        else if (tag === 2) obj.structures_last_updated = pbf.readVarint();
+        if (tag === 1) obj.obstacles.push(StoredObstacle.read(pbf, pbf.readVarint() + pbf.pos));
+        else if (tag === 2) obj.last_updated = pbf.readVarint();
         else if (tag === 3) obj.reservation_end = pbf.readVarint();
-        else if (tag === 4) obj.owner = StoredRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
+        else if (tag === 4) obj.owner = StoredEnemyRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
     };
     StoredRoom.write = function (obj, pbf) {
-        if (obj.structures) for (var i = 0; i < obj.structures.length; i++) pbf.writeMessage(1, StoredStructure.write, obj.structures[i]);
-        if (obj.structures_last_updated) pbf.writeVarintField(2, obj.structures_last_updated);
+        if (obj.obstacles) for (var i = 0; i < obj.obstacles.length; i++) pbf.writeMessage(1, StoredObstacle.write, obj.obstacles[i]);
+        if (obj.last_updated) pbf.writeVarintField(2, obj.last_updated);
         if (obj.reservation_end) pbf.writeVarintField(3, obj.reservation_end);
-        if (obj.owner) pbf.writeMessage(4, StoredRoomOwner.write, obj.owner);
+        if (obj.owner) pbf.writeMessage(4, StoredEnemyRoomOwner.write, obj.owner);
     };
 
     StoredRoom.prototype.encode = function () {
@@ -1693,7 +1695,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-19 13:10:02
+// Transcrypt'ed from Python, 2017-02-19 19:13:13
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -8059,16 +8061,16 @@ function main () {
                             if (!(data)) {
                                 return matrix;
                             }
-                            var __iterable0__ = data.structures;
+                            var __iterable0__ = data.obstacles;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var obstacle = __iterable0__ [__index0__];
-                                if (obstacle.type == StoredStructureType.ROAD) {
+                                if (obstacle.type == StoredObstacleType.ROAD) {
                                     if (matrix.get (obstacle.x, obstacle.y) == 0) {
                                         matrix.set (obstacle.x, obstacle.y, 1);
                                     }
                                 }
                                 else {
-                                    if (obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                    if (obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL) {
                                         for (var x = obstacle.x - 4; x < obstacle.x + 5; x++) {
                                             for (var y = obstacle.y - 4; y < obstacle.y + 5; y++) {
                                                 matrix.set (x, y, 250);
@@ -13847,13 +13849,13 @@ function main () {
                         else {
                             var data = stored_data.get_data (room_name);
                             if (data) {
-                                var __iterable0__ = data.structures;
+                                var __iterable0__ = data.obstacles;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var obstacle = __iterable0__ [__index0__];
-                                    if (obstacle.type == StoredStructureType.ROAD) {
+                                    if (obstacle.type == StoredObstacleType.ROAD) {
                                         cost_matrix.set (obstacle.x, obstacle.y, 1);
                                     }
-                                    else if (obstacle.type == StoredStructureType.SOURCE_KEEPER_LAIR || obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                    else if (obstacle.type == StoredObstacleType.SOURCE_KEEPER_LAIR || obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL) {
                                         set_in_range (obstacle, 4, 255, 0);
                                     }
                                     else {
@@ -14663,16 +14665,16 @@ function main () {
                             if (!(data)) {
                                 return matrix;
                             }
-                            var __iterable0__ = data.structures;
+                            var __iterable0__ = data.obstacles;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var obstacle = __iterable0__ [__index0__];
-                                if (obstacle.type == StoredStructureType.ROAD) {
+                                if (obstacle.type == StoredObstacleType.ROAD) {
                                     if (matrix.get (obstacle.x, obstacle.y) == 0) {
                                         matrix.set (obstacle.x, obstacle.y, 1);
                                     }
                                 }
                                 else {
-                                    if (obstacle.type == StoredStructureType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredStructureType.SOURCE_KEEPER_MINERAL) {
+                                    if (obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE || obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL) {
                                         for (var x = obstacle.x - 4; x < obstacle.x + 5; x++) {
                                             for (var y = obstacle.y - 4; y < obstacle.y + 5; y++) {
                                                 matrix.set (x, y, 200);
@@ -17792,7 +17794,7 @@ function main () {
                             var is_origin_room = room_name == origin.room_name;
                             var is_dest_room = room_name == destination.room_name;
                             var set_matrix = function (x, y, stored_type, planned, structure_type) {
-                                if (stored_type == StoredStructureType.ROAD) {
+                                if (stored_type == StoredObstacleType.ROAD) {
                                     if (paved_for) {
                                         if (!(planned)) {
                                             var existing = matrix.get_existing (x, y);
@@ -17819,7 +17821,7 @@ function main () {
                                     return ;
                                 }
                                 matrix.set_impassable (x, y);
-                                if (stored_type == StoredStructureType.CONTROLLER) {
+                                if (stored_type == StoredObstacleType.CONTROLLER) {
                                     if (avoid_controller) {
                                         for (var xx = x - 1; xx < x + 1; xx++) {
                                             for (var yy = y - 1; yy < y + 1; yy++) {
@@ -17841,7 +17843,7 @@ function main () {
                                     }
                                     return ;
                                 }
-                                if (stored_type == StoredStructureType.SOURCE) {
+                                if (stored_type == StoredObstacleType.SOURCE) {
                                     if (probably_mining) {
                                         for (var xx = x - 1; xx < x + 2; xx++) {
                                             for (var yy = y - 1; yy < y + 2; yy++) {
@@ -17867,7 +17869,7 @@ function main () {
                                     }
                                     return ;
                                 }
-                                if (stored_type == StoredStructureType.SOURCE_KEEPER_SOURCE || stored_type == StoredStructureType.SOURCE_KEEPER_MINERAL || stored_type == StoredStructureType.SOURCE_KEEPER_LAIR) {
+                                if (stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE || stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL || stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR) {
                                     for (var xx = x - 4; xx < x + 5; xx++) {
                                         for (var yy = y - 4; yy < y + 5; yy++) {
                                             matrix.set_impassable (xx, yy);
@@ -17904,17 +17906,17 @@ function main () {
                                         continue;
                                     }
                                     else if (structure_type == STRUCTURE_ROAD) {
-                                        var sstype = StoredStructureType.ROAD;
+                                        var sstype = StoredObstacleType.ROAD;
                                     }
                                     else if (structure_type == STRUCTURE_CONTROLLER) {
-                                        var sstype = StoredStructureType.CONTROLLER;
+                                        var sstype = StoredObstacleType.CONTROLLER;
                                     }
                                     else if (structure_type == STRUCTURE_KEEPER_LAIR) {
-                                        var sstype = StoredStructureType.SOURCE_KEEPER_LAIR;
+                                        var sstype = StoredObstacleType.SOURCE_KEEPER_LAIR;
                                         var any_lairs = true;
                                     }
                                     else {
-                                        var sstype = StoredStructureType.OTHER_IMPASSABLE;
+                                        var sstype = StoredObstacleType.OTHER_IMPASSABLE;
                                     }
                                     set_matrix (struct.pos.x, struct.pos.y, sstype, false, structure_type);
                                 }
@@ -17926,10 +17928,10 @@ function main () {
                                         continue;
                                     }
                                     else if (structure_type == STRUCTURE_ROAD) {
-                                        var sstype = StoredStructureType.ROAD;
+                                        var sstype = StoredObstacleType.ROAD;
                                     }
                                     else {
-                                        var sstype = StoredStructureType.OTHER_IMPASSABLE;
+                                        var sstype = StoredObstacleType.OTHER_IMPASSABLE;
                                     }
                                     set_matrix (struct.pos.x, struct.pos.y, sstype, true, structure_type);
                                 }
@@ -17943,30 +17945,30 @@ function main () {
                                         if (structure_type == STRUCTURE_CONTAINER || structure_type == STRUCTURE_RAMPART || structure_type == STRUCTURE_ROAD) {
                                             continue;
                                         }
-                                        set_matrix (struct.pos.x, struct.pos.y, StoredStructureType.OTHER_IMPASSABLE, true, structure_type);
+                                        set_matrix (struct.pos.x, struct.pos.y, StoredObstacleType.OTHER_IMPASSABLE, true, structure_type);
                                     }
                                 }
                                 var __iterable0__ = room.find (FIND_SOURCES);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var source = __iterable0__ [__index0__];
                                     if (any_lairs) {
-                                        set_matrix (source.pos.x, source.pos.y, StoredStructureType.SOURCE_KEEPER_SOURCE, false, null);
+                                        set_matrix (source.pos.x, source.pos.y, StoredObstacleType.SOURCE_KEEPER_SOURCE, false, null);
                                     }
                                     else if (room.my && room.mining.is_mine_linked (source)) {
-                                        set_matrix (source.pos.x, source.pos.y, StoredStructureType.SOURCE, false, _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE);
+                                        set_matrix (source.pos.x, source.pos.y, StoredObstacleType.SOURCE, false, _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE);
                                     }
                                     else {
-                                        set_matrix (source.pos.x, source.pos.y, StoredStructureType.SOURCE, false, null);
+                                        set_matrix (source.pos.x, source.pos.y, StoredObstacleType.SOURCE, false, null);
                                     }
                                 }
                                 var __iterable0__ = room.find (FIND_MINERALS);
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var mineral = __iterable0__ [__index0__];
                                     if (any_lairs) {
-                                        set_matrix (mineral.pos.x, mineral.pos.y, StoredStructureType.SOURCE_KEEPER_MINERAL, false, null);
+                                        set_matrix (mineral.pos.x, mineral.pos.y, StoredObstacleType.SOURCE_KEEPER_MINERAL, false, null);
                                     }
                                     else {
-                                        set_matrix (mineral.pos.x, mineral.pos.y, StoredStructureType.MINERAL, false, null);
+                                        set_matrix (mineral.pos.x, mineral.pos.y, StoredObstacleType.MINERAL, false, null);
                                     }
                                 }
                                 var __iterable0__ = spawn_fill_wait_flags;
@@ -18000,7 +18002,7 @@ function main () {
                                 }
                             }
                             else {
-                                var __iterable0__ = room_data.structures;
+                                var __iterable0__ = room_data.obstacles;
                                 for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                     var stored_struct = __iterable0__ [__index0__];
                                     set_matrix (stored_struct.x, stored_struct.y, stored_struct.type, false, null);
@@ -18628,41 +18630,41 @@ function main () {
                                 continue;
                             }
                             else if (orig_type == STRUCTURE_ROAD) {
-                                var stored_type = StoredStructureType.ROAD;
+                                var stored_type = StoredObstacleType.ROAD;
                             }
                             else if (orig_type == STRUCTURE_CONTROLLER) {
-                                var stored_type = StoredStructureType.CONTROLLER;
+                                var stored_type = StoredObstacleType.CONTROLLER;
                             }
                             else if (orig_type == STRUCTURE_KEEPER_LAIR) {
-                                var stored_type = StoredStructureType.SOURCE_KEEPER_LAIR;
+                                var stored_type = StoredObstacleType.SOURCE_KEEPER_LAIR;
                                 var any_lairs = true;
                             }
                             else {
-                                var stored_type = StoredStructureType.OTHER_IMPASSABLE;
+                                var stored_type = StoredObstacleType.OTHER_IMPASSABLE;
                             }
-                            result.append (new StoredStructure (structure.pos.x, structure.pos.y, stored_type));
+                            result.append (new StoredObstacle (structure.pos.x, structure.pos.y, stored_type));
                         }
                         var __iterable0__ = room.find (FIND_SOURCES);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var source = __iterable0__ [__index0__];
                             if (any_lairs) {
-                                var stored_type = StoredStructureType.SOURCE_KEEPER_SOURCE;
+                                var stored_type = StoredObstacleType.SOURCE_KEEPER_SOURCE;
                             }
                             else {
-                                var stored_type = StoredStructureType.SOURCE;
+                                var stored_type = StoredObstacleType.SOURCE;
                             }
-                            result.append (new StoredStructure (source.pos.x, source.pos.y, stored_type, source.energyCapacity));
+                            result.append (new StoredObstacle (source.pos.x, source.pos.y, stored_type, source.energyCapacity));
                         }
                         var __iterable0__ = room.find (FIND_MINERALS);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var mineral = __iterable0__ [__index0__];
                             if (any_lairs) {
-                                var stored_type = StoredStructureType.SOURCE_KEEPER_MINERAL;
+                                var stored_type = StoredObstacleType.SOURCE_KEEPER_MINERAL;
                             }
                             else {
-                                var stored_type = StoredStructureType.MINERAL;
+                                var stored_type = StoredObstacleType.MINERAL;
                             }
-                            result.append (new StoredStructure (mineral.pos.x, mineral.pos.y, stored_type));
+                            result.append (new StoredObstacle (mineral.pos.x, mineral.pos.y, stored_type));
                         }
                         return result;
                     };
@@ -18709,7 +18711,7 @@ function main () {
                             return null;
                         }
                         else {
-                            return new StoredRoomOwner (name, state);
+                            return new StoredEnemyRoomOwner (name, state);
                         }
                     };
                     var update_data_for_visible_rooms = function () {
@@ -18746,8 +18748,8 @@ function main () {
                         else {
                             var data = new StoredRoom ();
                         }
-                        data.structures = _find_structures (room);
-                        data.structures_last_updated = Game.time;
+                        data.obstacles = _find_structures (room);
+                        data.last_updated = Game.time;
                         data.owner = _find_room_owner (room);
                         data.reservation_end = _find_room_reservation_end (room);
                         var __left0__ = data.encode ();
@@ -18776,7 +18778,7 @@ function main () {
                     var get_last_updated_tick = function (room_name) {
                         var data = get_data (room_name);
                         if (data) {
-                            return data.structures_last_updated;
+                            return data.last_updated;
                         }
                         else {
                             return 0;
@@ -18823,11 +18825,11 @@ function main () {
                                     var data = new StoredRoom ();
                                 }
                                 var already_existing = new_set ();
-                                var __iterable1__ = data.structures;
+                                var __iterable1__ = data.obstacles;
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
-                                    var structure = __iterable1__ [__index1__];
-                                    if (structure.type == StoredStructureType.SOURCE_KEEPER_LAIR || structure.type == StoredStructureType.SOURCE_KEEPER_MINERAL || structure.type == StoredStructureType.SOURCE_KEEPER_SOURCE) {
-                                        already_existing.add (positions.serialize_pos_xy (structure));
+                                    var obstacle = __iterable1__ [__index1__];
+                                    if (obstacle.type == StoredObstacleType.SOURCE_KEEPER_LAIR || obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL || obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE) {
+                                        already_existing.add (positions.serialize_pos_xy (obstacle));
                                     }
                                 }
                                 var new_stored = [];
@@ -18836,7 +18838,7 @@ function main () {
                                     var flag = __iterable1__ [__index1__];
                                     var serialized = positions.serialize_pos_xy (flag);
                                     if (!(already_existing.has (serialized))) {
-                                        new_stored.append (new StoredStructure (flag.pos.x, flag.pos.y, StoredStructureType.SOURCE_KEEPER_LAIR));
+                                        new_stored.append (new StoredObstacle (flag.pos.x, flag.pos.y, StoredObstacleType.SOURCE_KEEPER_LAIR));
                                         already_existing.add (serialized);
                                         print ('[storage] Successfully migrated SK flag in {} at {},{} to data storage.'.format (room_name, flag.pos.x, flag.pos.y));
                                     }
@@ -18865,7 +18867,7 @@ function main () {
                         }
                         var stored = get_data (room_name);
                         if (stored) {
-                            if (stored.owner && (stored.owner.state in [StoredEnemyRoomState.FULLY_FUNCTIONAL || StoredEnemyRoomState.RESERVED])) {
+                            if (stored.owner && (stored.owner.state === StoredEnemyRoomState.FULLY_FUNCTIONAL || stored.owner.state === StoredEnemyRoomState.RESERVED)) {
                                 return ;
                             }
                             var new_data = StoredRoom.decode (_get_serialized_data (room_name));
@@ -18873,7 +18875,7 @@ function main () {
                         else {
                             var new_data = new StoredRoom ();
                         }
-                        new_data.owner = new StoredRoomOwner (username, StoredEnemyRoomState.FULLY_FUNCTIONAL);
+                        new_data.owner = new StoredEnemyRoomOwner (username, StoredEnemyRoomState.FULLY_FUNCTIONAL);
                         var __left0__ = new_data.encode ();
                         _mem () [room_name] = __left0__;
                         var encoded = __left0__;
@@ -22328,9 +22330,9 @@ function main () {
                             };
                             var honey = self.hive.honey;
                             if (deposit_point.pos.isNearTo (mine_flag)) {
-                                var route_to_mine = honey.get_serialized_path_obj (self.room.spawn, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
+                                var route_to_mine = honey.get_serialized_path_obj (self.room.spawn, mine_flag, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                                 check_route (route_to_mine, null, null);
-                                var all_positions = honey.list_of_room_positions_in_path (self.room.spawn, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
+                                var all_positions = honey.list_of_room_positions_in_path (self.room.spawn, mine_flag, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
                             }
                             else {
                                 var route_to_mine = honey.get_serialized_path_obj (mine_flag, deposit_point, {'paved_for': mine_flag, 'keep_for': min_repath_mine_roads_every * 2});
