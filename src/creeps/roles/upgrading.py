@@ -162,6 +162,8 @@ class Upgrader(RoleBase):
                         elif a_creep_with_energy:
                             a_creep_with_energy.memory.get_near_controller = True
                             self.creep.move(self.pos.getDirectionTo(link.pos))
+                        elif not self.pos.inRangeTo(controller, 3):
+                            self.move_to(controller)
                     elif not self.pos.inRangeTo(controller, 3):
                         self.move_to(controller)
                 return
