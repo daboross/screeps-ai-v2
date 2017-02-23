@@ -57,6 +57,12 @@ def room_xy_to_name(room_x, room_y):
 
 
 def center_pos(room_name):
+    if room_name.name:
+        room_name = room_name.name
+    if not room_name or not _.isString(room_name):
+        msg = '[movement] WARNING: Non-string room name passed in to center_pos: {}!'.format(room_name)
+        print(msg)
+        Game.notify(msg)
     return __new__(RoomPosition(25, 25, room_name))
 
 

@@ -231,8 +231,7 @@ class MilitaryBase(RoleBase):
                 else:
                     portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
                     if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
-                            + movement.chebyshev_distance_room_pos(movement.center_pos(portals[0].destination),
-                                                                   target) \
+                            + movement.chebyshev_distance_room_pos(portals[0].destination, target) \
                             < movement.chebyshev_distance_room_pos(self.pos, target):
                         self.memory.next_ppos = self.pos.findClosestByRange(portals).pos
                     else:
