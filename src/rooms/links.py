@@ -234,16 +234,17 @@ class LinkingMind:
             priority_output = current_output_links[next_output_index]
             next_output_index += 1
             if (main_link.cooldown == 0
-                and main_link.energy * (1 - LINK_LOSS_RATIO)
-                    >= (priority_output.link.energyCapacity - priority_output.link.energy)):
+                and (main_link.energy == main_link.energyCapacity or
+                                 main_link.energy * (1 - LINK_LOSS_RATIO)
+                             >= (priority_output.link.energyCapacity - priority_output.link.energy))):
                 main_link.transferEnergy(priority_output.link)
                 priority_output = current_output_links[next_output_index]
                 next_output_index += 1
             if (priority_output and secondary_link and secondary_link.cooldown == 0
-                and ((priority_output.link.energy == 0 and secondary_link.energy == secondary_link.energyCapacity
-                      ) or (secondary_link.energy == secondary_link.energyCapacity or
-                                        secondary_link.energy * (1 + LINK_LOSS_RATIO)
-                                    >= (priority_output.link.energyCapacity - priority_output.link.energy)))):
+                and (secondary_link.energy == secondary_link.energyCapacity
+                     or (secondary_link.energy == secondary_link.energyCapacity or
+                                     secondary_link.energy * (1 + LINK_LOSS_RATIO)
+                                 >= (priority_output.link.energyCapacity - priority_output.link.energy)))):
                 secondary_link.transferEnergy(priority_output.link)
                 priority_output = current_output_links[next_output_index]
                 next_output_index += 1
