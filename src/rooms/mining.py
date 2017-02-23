@@ -373,8 +373,7 @@ class MiningMind:
             else:
                 return False
         else:
-            # TODO: what to do here?
-            print("[mining] Warning: can't find local flag for mine {}!".format(source))
+            # probably not a local mine (remote mine?)
             return False
 
     def get_next_needed_mining_role_for(self, flag):
