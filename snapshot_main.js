@@ -1454,54 +1454,55 @@ function defineRoomMetadataPrototypes() {
             var result = [];
             var bitNum = 0;
             var currentCharData = 0;
-            var currentCharDataModified = false;
             for (var i = 0; i < byteArray.length; i++) {
                 var thisByte = byteArray[i];
                 for (var j = 0; j < BITS_PER_BYTE; j++) {
                     var thisBit = thisByte >> j & 0x1;
 
                     currentCharData |= thisBit << bitNum;
-                    currentCharDataModified = true;
                     bitNum += 1;
                     if (bitNum >= BITS_PER_CHARACTER) {
                         result.push(String.fromCodePoint(currentCharData));
                         bitNum = 0;
                         currentCharData = 0;
-                        currentCharDataModified = false;
                     }
                 }
             }
-            if (currentCharDataModified) {
-                result.push(String.fromCodePoint(currentCharData))
+            if (currentCharData) {
+                // To be honest, this _could_ have data in it that's = 0, but a null byte is not very well serialized
+                // to JSON. Instead, we just append 2 '0's whenever decoding something, and that works out alright.
+                result.push(String.fromCodePoint(currentCharData));
             }
             return result.join('');
         },
         decode: function (string) {
             var BITS_PER_CHARACTER = 15,
                 BITS_PER_BYTE = 8;
-            var result = new Uint8Array(Math.ceil(string.length * BITS_PER_CHARACTER / BITS_PER_BYTE));
+            // Add in two 0 bytes to the end to account for any 0's that were stripped at the end of the encoding.
+            var result = new Uint8Array(Math.ceil(string.length * BITS_PER_CHARACTER / BITS_PER_BYTE) + 2);
             var resultPos = 0;
 
             var bitNum = 0;
             var currentByte = 0;
-            var currentByteModified = false;
             for (var i = 0; i < string.length; i++) {
                 var thisCharData = string.codePointAt(i);
                 for (var j = 0; j < BITS_PER_CHARACTER; j++) {
                     var bit = thisCharData >> j & 0x1;
                     currentByte |= bit << bitNum;
-                    currentByteModified = true;
                     bitNum += 1;
                     if (bitNum >= BITS_PER_BYTE) {
                         result[resultPos++] = currentByte;
                         bitNum = 0;
                         currentByte = 0;
-                        currentByteModified = false;
                     }
                 }
             }
-            if (currentByteModified) {
-                result[resultPos] = currentByte;
+            // This could have been unmodified, but at worst that just adds an extra '0' to the end!
+            // Pbf ignores bytes after the message ends, so it doesn't really matter.
+            result[resultPos++] = currentByte;
+            // fill the rest of the array up with 0s
+            for (resultPos; resultPos < result.length; resultPos++) {
+                result[resultPos] = 0;
             }
             return result;
         }
@@ -1695,7 +1696,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-19 19:13:13
+// Transcrypt'ed from Python, 2017-02-23 23:31:16
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -1869,7 +1870,7 @@ function main () {
                         get __init__ () {return __get__ (this, function (self) {
                             self.interpreter_name = 'python';
                             self.transpiler_name = 'transcrypt';
-                            self.transpiler_version = '3.6.8';
+                            self.transpiler_version = '3.6.18';
                             self.target_subdir = '__javascript__';
                         });}
                     });
@@ -3370,6 +3371,15 @@ function main () {
         }
     }
 
+
+    function __dgetitem__ (aKey) {
+        return this [aKey];
+    }
+
+    function __dsetitem__ (aKey, aValue) {
+        this [aKey] = aValue;
+    }
+
     function dict (objectOrPairs) {
         var instance = {};
         if (!objectOrPairs || objectOrPairs instanceof Array) { // It's undefined or an array of pairs
@@ -3430,7 +3440,9 @@ function main () {
         __setProperty__ (instance, '__class__', {value: dict, enumerable: false, writable: true});
         __setProperty__ (instance, 'py_keys', {value: __keys__, enumerable: false});
         __setProperty__ (instance, '__iter__', {value: function () {new __PyIterator__ (this.py_keys ());}, enumerable: false});
+
         __setProperty__ (instance, Symbol.iterator, {value: function () {new __JsIterator__ (this.py_keys ());}, enumerable: false});
+
         __setProperty__ (instance, 'py_items', {value: __items__, enumerable: false});
         __setProperty__ (instance, 'py_del', {value: __del__, enumerable: false});
         __setProperty__ (instance, 'py_clear', {value: __clear__, enumerable: false});
@@ -3438,6 +3450,8 @@ function main () {
         __setProperty__ (instance, 'py_setdefault', {value: __setdefault__, enumerable: false});
         __setProperty__ (instance, 'py_pop', {value: __pop__, enumerable: false});
         __setProperty__ (instance, 'py_update', {value: __update__, enumerable: false});
+        __setProperty__ (instance, '__getitem__', {value: __dgetitem__, enumerable: false});    // Needed since compound keys necessarily
+        __setProperty__ (instance, '__setitem__', {value: __dsetitem__, enumerable: false});    // trigger overloading to deal with slices
         return instance;
     }
 
@@ -3495,6 +3509,7 @@ function main () {
             return a % b;
         }
     };
+    __all__.__jsmod__ = __jsmod__;
 
     var __mod__ = function (a, b) {
         if (typeof a == 'object' && '__mod__' in a) {
@@ -3507,7 +3522,7 @@ function main () {
             return ((a % b) + b) % b;
         }
     };
-    __all__.pow = __pow__;
+    __all__.mod = __mod__;
 
     // Overloaded binary arithmetic
 
@@ -3697,6 +3712,222 @@ function main () {
         }
     };
     __all__.__ge__ = __ge__;
+
+    // Overloaded augmented general
+
+    var __imatmul__ = function (a, b) {
+        if ('__imatmul__' in a) {
+            return a.__imatmul__ (b);
+        }
+        else {
+            return a.__matmul__ (b);
+        }
+    };
+    __all__.__imatmul__ = __imatmul__;
+
+    var __ipow__ = function (a, b) {
+        if (typeof a == 'object' && '__pow__' in a) {
+            return a.__ipow__ (b);
+        }
+        else if (typeof a == 'object' && '__ipow__' in a) {
+            return a.__pow__ (b);
+        }
+        else if (typeof b == 'object' && '__rpow__' in b) {
+            return b.__rpow__ (a);
+        }
+        else {
+            return Math.pow (a, b);
+        }
+    };
+    __all__.ipow = __ipow__;
+
+    var __ijsmod__ = function (a, b) {
+        if (typeof a == 'object' && '__imod__' in a) {
+            return a.__ismod__ (b);
+        }
+        else if (typeof a == 'object' && '__mod__' in a) {
+            return a.__mod__ (b);
+        }
+        else if (typeof b == 'object' && '__rpow__' in b) {
+            return b.__rmod__ (a);
+        }
+        else {
+            return a % b;
+        }
+    };
+    __all__.ijsmod__ = __ijsmod__;
+
+    var __imod__ = function (a, b) {
+        if (typeof a == 'object' && '__imod__' in a) {
+            return a.__imod__ (b);
+        }
+        else if (typeof a == 'object' && '__mod__' in a) {
+            return a.__mod__ (b);
+        }
+        else if (typeof b == 'object' && '__rpow__' in b) {
+            return b.__rmod__ (a);
+        }
+        else {
+            return ((a % b) + b) % b;
+        }
+    };
+    __all__.imod = __imod__;
+
+    // Overloaded augmented arithmetic
+
+    var __imul__ = function (a, b) {
+        if (typeof a == 'object' && '__imul__' in a) {
+            return a.__imul__ (b);
+        }
+        else if (typeof a == 'object' && '__mul__' in a) {
+            return a = a.__mul__ (b);
+        }
+        else if (typeof b == 'object' && '__rmul__' in b) {
+            return a = b.__rmul__ (a);
+        }
+        else if (typeof a == 'string') {
+            return a = a.__mul__ (b);
+        }
+        else if (typeof b == 'string') {
+            return a = b.__rmul__ (a);
+        }
+        else {
+            return a *= b;
+        }
+    };
+    __all__.__imul__ = __imul__;
+
+    var __idiv__ = function (a, b) {
+        if (typeof a == 'object' && '__idiv__' in a) {
+            return a.__idiv__ (b);
+        }
+        else if (typeof a == 'object' && '__div__' in a) {
+            return a = a.__div__ (b);
+        }
+        else if (typeof b == 'object' && '__rdiv__' in b) {
+            return a = b.__rdiv__ (a);
+        }
+        else {
+            return a /= b;
+        }
+    };
+    __all__.__idiv__ = __idiv__;
+
+    var __iadd__ = function (a, b) {
+        if (typeof a == 'object' && '__iadd__' in a) {
+            return a.__iadd__ (b);
+        }
+        else if (typeof a == 'object' && '__add__' in a) {
+            return a = a.__add__ (b);
+        }
+        else if (typeof b == 'object' && '__radd__' in b) {
+            return a = b.__radd__ (a);
+        }
+        else {
+            return a += b;
+        }
+    };
+    __all__.__iadd__ = __iadd__;
+
+    var __isub__ = function (a, b) {
+        if (typeof a == 'object' && '__isub__' in a) {
+            return a.__isub__ (b);
+        }
+        else if (typeof a == 'object' && '__sub__' in a) {
+            return a = a.__sub__ (b);
+        }
+        else if (typeof b == 'object' && '__rsub__' in b) {
+            return a = b.__rsub__ (a);
+        }
+        else {
+            return a -= b;
+        }
+    };
+    __all__.__isub__ = __isub__;
+
+    // Overloaded augmented bitwise
+
+    var __ilshift__ = function (a, b) {
+        if (typeof a == 'object' && '__ilshift__' in a) {
+            return a.__ilshift__ (b);
+        }
+        else if (typeof a == 'object' && '__lshift__' in a) {
+            return a = a.__lshift__ (b);
+        }
+        else if (typeof b == 'object' && '__rlshift__' in b) {
+            return a = b.__rlshift__ (a);
+        }
+        else {
+            return a <<= b;
+        }
+    };
+    __all__.__ilshift__ = __ilshift__;
+
+    var __irshift__ = function (a, b) {
+        if (typeof a == 'object' && '__irshift__' in a) {
+            return a.__irshift__ (b);
+        }
+        else if (typeof a == 'object' && '__rshift__' in a) {
+            return a = a.__rshift__ (b);
+        }
+        else if (typeof b == 'object' && '__rrshift__' in b) {
+            return a = b.__rrshift__ (a);
+        }
+        else {
+            return a >>= b;
+        }
+    };
+    __all__.__irshift__ = __irshift__;
+
+    var __ior__ = function (a, b) {
+        if (typeof a == 'object' && '__ior__' in a) {
+            return a.__ior__ (b);
+        }
+        else if (typeof a == 'object' && '__or__' in a) {
+            return a = a.__or__ (b);
+        }
+        else if (typeof b == 'object' && '__ror__' in b) {
+            return a = b.__ror__ (a);
+        }
+        else {
+            return a |= b;
+        }
+    };
+    __all__.__ior__ = __ior__;
+
+    var __ixor__ = function (a, b) {
+        if (typeof a == 'object' && '__ixor__' in a) {
+            return a.__ixor__ (b);
+        }
+        else if (typeof a == 'object' && '__xor__' in a) {
+            return a = a.__xor__ (b);
+        }
+        else if (typeof b == 'object' && '__rxor__' in b) {
+            return a = b.__rxor__ (a);
+        }
+        else {
+            return a ^= b;
+        }
+    };
+    __all__.__ixor__ = __ixor__;
+
+    var __iand__ = function (a, b) {
+        if (typeof a == 'object' && '__iand__' in a) {
+            return a.__iand__ (b);
+        }
+        else if (typeof a == 'object' && '__and__' in a) {
+            return a = a.__and__ (b);
+        }
+        else if (typeof b == 'object' && '__rand__' in b) {
+            return a = b.__rand__ (a);
+        }
+        else {
+            return a &= b;
+        }
+    };
+    __all__.__iand__ = __iand__;
+
+    // Indices and slices
 
     var __getitem__ = function (container, key) {                           // Slice c.q. index, direct generated call to runtime switch
         if (typeof container == 'object' && '__getitem__' in container) {
@@ -9413,7 +9644,7 @@ function main () {
                                     }
                                     else {
                                         var portals = _.filter (self.room.find (FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL});
-                                        if (len (portals) && movement.chebyshev_distance_room_pos (self.pos, portals [0].pos) + movement.chebyshev_distance_room_pos (movement.center_pos (portals [0].destination), target) < movement.chebyshev_distance_room_pos (self.pos, target)) {
+                                        if (len (portals) && movement.chebyshev_distance_room_pos (self.pos, portals [0].pos) + movement.chebyshev_distance_room_pos (portals [0].destination, target) < movement.chebyshev_distance_room_pos (self.pos, target)) {
                                             self.memory.next_ppos = self.pos.findClosestByRange (portals).pos;
                                         }
                                         else {
@@ -10087,7 +10318,7 @@ function main () {
                                     }
                                     if (!(closest) || closest_distance >= CREEP_LIFE_TIME) {
                                         var portals = _.filter (self.room.find (FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL});
-                                        if (len (portals) && movement.chebyshev_distance_room_pos (self.pos, portals [0].pos) + movement.chebyshev_distance_room_pos (movement.center_pos (portals [0].destination), target) < movement.chebyshev_distance_room_pos (self.pos, target)) {
+                                        if (len (portals) && movement.chebyshev_distance_room_pos (self.pos, portals [0].pos) + movement.chebyshev_distance_room_pos (portals [0].destination, target) < movement.chebyshev_distance_room_pos (self.pos, target)) {
                                             self.memory.next_ppos = self.pos.findClosestByRange (portals).pos;
                                         }
                                         else {
@@ -15816,7 +16047,7 @@ function main () {
                             }
                             self.harvest_from (link);
                             var spot = self.targets.get_new_target (self, target_home_flag, UPGRADER_SPOT);
-                            if (spot && self.home.role_count (role_upgrader) <= len (flags.find_flags (self.home, UPGRADER_SPOT))) {
+                            if (spot) {
                                 if (self.pos.isEqualTo (spot.pos)) {
                                     self.memory.set_till = Game.time + 30;
                                 }
@@ -15849,7 +16080,7 @@ function main () {
                                                     __break0__ = true;
                                                     break;
                                                 }
-                                                else if (creep.getBodyparts (WORK) < self.home.get_upgrader_size () * (self.home.get_variable_base (role_upgrader) === creep_base_full_upgrader ? 0.5 : 1)) {
+                                                else if (creep.getBodyparts (WORK) < self.home.get_upgrader_size () * (self.home.get_variable_base (role_upgrader) === creep_base_full_upgrader ? 2 : 1)) {
                                                     var small = creep;
                                                 }
                                             }
@@ -15930,6 +16161,9 @@ function main () {
                                             else if (a_creep_with_energy) {
                                                 a_creep_with_energy.memory.get_near_controller = true;
                                                 self.creep.move (self.pos.getDirectionTo (link.pos));
+                                            }
+                                            else if (!(self.pos.inRangeTo (controller, 3))) {
+                                                self.move_to (controller);
                                             }
                                         }
                                         else if (!(self.pos.inRangeTo (controller, 3))) {
@@ -17878,7 +18112,7 @@ function main () {
                                     return ;
                                 }
                                 if (structure_type) {
-                                    if (structure_type == STRUCTURE_STORAGE || structure_type == STRUCTURE_LINK || structure_type == STRUCTURE_LAB || structure_type == STRUCTURE_TERMINAL) {
+                                    if ((structure_type == STRUCTURE_STORAGE || structure_type == STRUCTURE_LINK || structure_type == STRUCTURE_LAB || structure_type == STRUCTURE_TERMINAL) && !(paved_for)) {
                                         if ((!(is_dest_room) || abs (x - destination.x) > 3 || abs (y - destination.y) > 3) && (!(is_origin_room) || abs (x - origin.x) > 3 || abs (y - origin.y) > 3)) {
                                             for (var xx = x - 1; xx < x + 2; xx++) {
                                                 for (var yy = y - 1; yy < y + 2; yy++) {
@@ -17976,10 +18210,13 @@ function main () {
                                     var flag = __iterable0__ [__index0__];
                                     matrix.set_impassable (flag.pos.x, flag.pos.y);
                                 }
-                                var __iterable0__ = upgrader_wait_flags;
-                                for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
-                                    var flag = __iterable0__ [__index0__];
-                                    matrix.set_impassable (flag.pos.x, flag.pos.y);
+                                var controller = room.controller;
+                                if (!(controller) || destination.roomName != room_name || destination.x != controller.pos.x || destination.y != controller.pos.y) {
+                                    var __iterable0__ = upgrader_wait_flags;
+                                    for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                        var flag = __iterable0__ [__index0__];
+                                        matrix.set_impassable (flag.pos.x, flag.pos.y);
+                                    }
                                 }
                                 if (room.my && room.room.storage && room.links.main_link) {
                                     var ml = room.links.main_link;
@@ -18596,7 +18833,7 @@ function main () {
                         return _mem () [room_name] || null;
                     };
                     var _deserialize_data = function (data) {
-                        if (Game.time - _cache_created > 100) {
+                        if (Game.time - _cache_created > 1000) {
                             _cached_data = new_map ();
                             _cache_created = Game.time;
                         }
@@ -18608,6 +18845,16 @@ function main () {
                         _cached_data.set (data, deserialized);
                         return deserialized;
                     };
+                    var _set_new_data = function (room_name, data) {
+                        var __left0__ = data.encode ();
+                        _mem () [room_name] = __left0__;
+                        var encoded = __left0__;
+                        _cached_data.set (encoded, data);
+                        if (!(len (encoded))) {
+                            print ('[storage] Warning: would have set empty data for room {}!'.format (room_name));
+                            delete _mem () [room_name];
+                        }
+                    };
                     var _my_username = null;
                     var _find_my_username = function () {
                         if (_my_username === null) {
@@ -18616,7 +18863,7 @@ function main () {
                         }
                         return _my_username;
                     };
-                    var _find_structures = function (room) {
+                    var _find_obstacles = function (room) {
                         var result = [];
                         var any_lairs = false;
                         var __iterable0__ = room.find (FIND_STRUCTURES);
@@ -18748,14 +18995,11 @@ function main () {
                         else {
                             var data = new StoredRoom ();
                         }
-                        data.obstacles = _find_structures (room);
+                        data.obstacles = _find_obstacles (room);
                         data.last_updated = Game.time;
                         data.owner = _find_room_owner (room);
                         data.reservation_end = _find_room_reservation_end (room);
-                        var __left0__ = data.encode ();
-                        _mem () [room_name] = __left0__;
-                        var encoded = __left0__;
-                        _cached_data.set (encoded, data);
+                        _set_new_data (room_name, data);
                     };
                     var get_data = function (room_name) {
                         var serialized = _get_serialized_data (room_name);
@@ -18793,10 +19037,7 @@ function main () {
                             var data = new StoredRoom ();
                         }
                         data.reservation_end = Game.time + reservation_time;
-                        var __left0__ = data.encode ();
-                        _mem () [room_name] = __left0__;
-                        var encoded = __left0__;
-                        _cached_data.set (encoded, data);
+                        _set_new_data (room_name, data);
                     };
                     var migrate_old_data = function () {
                         var definition = flags.flag_definitions [flags.SK_LAIR_SOURCE_NOTED];
@@ -18844,10 +19085,7 @@ function main () {
                                     }
                                 }
                                 if (len (new_stored)) {
-                                    var __left0__ = data.encode ();
-                                    _mem () [room_name] = __left0__;
-                                    var encoded = __left0__;
-                                    _cached_data.set (encoded, data);
+                                    _set_new_data (room_name, data);
                                 }
                                 var __iterable1__ = flags_here;
                                 for (var __index1__ = 0; __index1__ < __iterable1__.length; __index1__++) {
@@ -18876,11 +19114,8 @@ function main () {
                             var new_data = new StoredRoom ();
                         }
                         new_data.owner = new StoredEnemyRoomOwner (username, StoredEnemyRoomState.FULLY_FUNCTIONAL);
-                        var __left0__ = new_data.encode ();
-                        _mem () [room_name] = __left0__;
-                        var encoded = __left0__;
-                        _cached_data.set (encoded, new_data);
                         print ('[storage] Successfully added {} as an enemy room.'.format (room_name));
+                        _set_new_data (room_name, new_data);
                     };
                     __pragma__ ('<use>' +
                         'constants' +
@@ -18897,12 +19132,13 @@ function main () {
                         __all__._cached_data = _cached_data;
                         __all__._deserialize_data = _deserialize_data;
                         __all__._find_my_username = _find_my_username;
+                        __all__._find_obstacles = _find_obstacles;
                         __all__._find_room_owner = _find_room_owner;
                         __all__._find_room_reservation_end = _find_room_reservation_end;
-                        __all__._find_structures = _find_structures;
                         __all__._get_serialized_data = _get_serialized_data;
                         __all__._mem = _mem;
                         __all__._my_username = _my_username;
+                        __all__._set_new_data = _set_new_data;
                         __all__.find_oldest_room_data_in_observer_range_of = find_oldest_room_data_in_observer_range_of;
                         __all__.flags = flags;
                         __all__.get_data = get_data;
@@ -24206,12 +24442,12 @@ function main () {
                                 var next_output_index = 0;
                                 var priority_output = current_output_links [next_output_index];
                                 next_output_index++;
-                                if (main_link.cooldown == 0 && main_link.energy * (1 - LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy) {
+                                if (main_link.cooldown == 0 && (main_link.energy == main_link.energyCapacity || main_link.energy * (1 - LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy)) {
                                     main_link.transferEnergy (priority_output.link);
                                     var priority_output = current_output_links [next_output_index];
                                     next_output_index++;
                                 }
-                                if (priority_output && secondary_link && secondary_link.cooldown == 0 && (priority_output.link.energy == 0 && secondary_link.energy == secondary_link.energyCapacity || (secondary_link.energy == secondary_link.energyCapacity || secondary_link.energy * (1 + LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy))) {
+                                if (priority_output && secondary_link && secondary_link.cooldown == 0 && (secondary_link.energy == secondary_link.energyCapacity || (secondary_link.energy == secondary_link.energyCapacity || secondary_link.energy * (1 + LINK_LOSS_RATIO) >= priority_output.link.energyCapacity - priority_output.link.energy))) {
                                     secondary_link.transferEnergy (priority_output.link);
                                     var priority_output = current_output_links [next_output_index];
                                     next_output_index++;
@@ -25217,6 +25453,12 @@ function main () {
                                         }
                                         else {
                                             var minimum = (bottom_prices [mineral] + sell_at_prices [mineral]) / 2;
+                                            if (self.get_total_room_resource_counts () [mineral] < 1000) {
+                                                minimum /= 2;
+                                                if (self.get_total_room_resource_counts () [mineral] < 50) {
+                                                    minimum /= 4;
+                                                }
+                                            }
                                         }
                                         if (best_gain < minimum) {
                                             if (best_order.price > 0.2) {
@@ -25996,7 +26238,6 @@ function main () {
                                 }
                             }
                             else {
-                                print ("[mining] Warning: can't find local flag for mine {}!".format (source));
                                 return false;
                             }
                         }, 'is_mine_linked');},
@@ -30009,6 +30250,14 @@ function main () {
                         return '{}{}{}{}'.format ((room_x > 0 ? 'E' : 'W'), (room_x < 0 ? -(room_x) - 1 : room_x), (room_y > 0 ? 'S' : 'N'), (room_y < 0 ? -(room_y) - 1 : room_y));
                     };
                     var center_pos = function (room_name) {
+                        if (room_name.name) {
+                            var room_name = room_name.name;
+                        }
+                        if (!(room_name) || !(_.isString (room_name))) {
+                            var msg = '[movement] WARNING: Non-string room name passed in to center_pos: {}!'.format (room_name);
+                            print (msg);
+                            Game.notify (msg);
+                        }
                         return new RoomPosition (25, 25, room_name);
                     };
                     var find_an_open_space = function (room_name) {
