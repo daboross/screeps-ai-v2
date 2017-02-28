@@ -11,7 +11,7 @@ from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from rooms import defense
-from utilities import movement
+from utilities import movement, paths
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -147,16 +147,80 @@ class MiningMind:
         return target_mass
 
     def calculate_current_target_mass_for_mine(self, flag):
-        ideal_mass = self.calculate_ideal_mass_for_mine(flag)
-        if not self.room.room.storage:
-            return ideal_mass
-        # sitting = self.energy_sitting_at(flag)
-        # if sitting > 1000:
-        #     carry_per_tick = 50.0 / (self.distance_to_mine(flag) * 2.1 + 10)
-        #     # Count every 200 already there as an extra 1 production per turn
-        #     return ideal_mass + min(math.ceil(sitting / 500 / carry_per_tick), ideal_mass)
-        # else:
-        return ideal_mass
+        return self.calculate_ideal_mass_for_mine(flag)
+
+    def road_repair_work_needed_now(self, flag):
+        """
+        Gets road health from storage to flag, returning the ideal number of creeps with 2 work parts each who should be
+        on this mine.
+        :param flag: the flag
+        :return: road health
+        """
+        key = "{}-health".format(flag)
+        road_health = self.room.get_cached_property(key)
+        if road_health is not None:
+            return road_health
+
+        deposit_point = self.closest_deposit_point_to_mine(flag)
+
+        if not deposit_point:
+            raise ValueError("mine_road_health called for mine with no deposit point.")
+
+        max_damage = 0
+        for room_name, serialized_path in self.hive.honey \
+                .get_ordered_list_of_serialized_path_segments(flag, deposit_point, {'paved_for': flag}):
+            cut_off_start = room_name == flag.pos.roomName
+            room = Game.rooms[room_name]
+            if not room:
+                continue
+            dx_dy = paths.direction_to_dx_dy(int(serialized_path[4]))
+            x = int(serialized_path[0:2]) - dx_dy[0]
+            y = int(serialized_path[2:4]) - dx_dy[1]
+            path_len = len(serialized_path)
+            for i in range(4, path_len):
+                if (not cut_off_start or i > 8) and 0 < x < 49 and 0 < y < 49:
+                    road_list = room.lookForAt(LOOK_STRUCTURES, x, y)
+                    road = _.find(road_list, {'structureType': STRUCTURE_ROAD})
+                    if road:
+                        damage = road.hitsMax - road.hits
+                    else:
+                        site_list = room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y)
+                        road = _.find(site_list, {'structureType': STRUCTURE_ROAD})
+                        if road:
+                            damage = (road.progressTotal - road.progress) * REPAIR_POWER / BUILD_POWER
+                        else:
+                            room.createConstructionSite(x, y, STRUCTURE_ROAD)
+                            if Game.map.getTerrainAt(x, y, room_name)[0] == "s":
+                                damage = CONSTRUCTION_COST_ROAD_SWAMP_RATIO * CONSTRUCTION_COST[STRUCTURE_ROAD] \
+                                         * REPAIR_POWER / BUILD_POWER
+                            else:
+                                damage = CONSTRUCTION_COST[STRUCTURE_ROAD] * REPAIR_POWER / BUILD_POWER
+
+                    if damage > max_damage:
+                        max_damage = damage
+
+                dx_dy = paths.direction_to_dx_dy(int(serialized_path[i]))
+                x += dx_dy[0]
+                y += dx_dy[1]
+
+        work_part_max_per_road = (
+            CREEP_LIFE_TIME
+            # Half the time is spent moving towards the target, during which no roads are repaired
+            / 2
+            # The remaining life is divided between each road segment
+            / self.hive.honey.find_path_length(flag, deposit_point, {'paved_for': flag})
+            # each work part can do one REPAIR_POWER work per tick
+            * REPAIR_POWER
+        )
+
+        # TODO: we should have something here to make sure that no roads can decay within one creep lifetime,
+        # in case the constants change (I don't think it's possible with the current game constants).
+        needed_parts = max(
+            math.floor(max_damage / work_part_max_per_road / 2) * 2
+        )
+
+        self.room.store_cached_property(key, needed_parts, CREEP_LIFE_TIME)
+        return needed_parts
 
     def cleanup_old_flag_sitting_values(self):
         for flag in self.available_mines:
@@ -231,21 +295,10 @@ class MiningMind:
 
     active_mines = property(get_active_mining_flags)
 
-    def calculate_creep_num_sections_for_mine(self, flag):
-        double = False
-        if flag.pos.roomName == self.room.name:
-            if self.room.paving():
-                maximum = spawning.max_sections_of(self.room, creep_base_half_move_hauler)
-                double = True
-            else:
-                maximum = spawning.max_sections_of(self.room, creep_base_hauler)
-        elif self.room.paving():
-            maximum = spawning.max_sections_of(self.room, creep_base_work_half_move_hauler)
-            double = True
-        else:
-            maximum = spawning.max_sections_of(self.room, creep_base_hauler)
+    def calculate_creep_num_sections_for_mine(self, flag, base):
+        maximum = spawning.max_sections_of(self.room, base)
         needed = self.calculate_ideal_mass_for_mine(flag)
-        if double:
+        if base == creep_base_half_move_hauler or base == creep_base_work_half_move_hauler:
             # Each section has twice the carry, ~~and the initial section has half the carry of one regular section.~~
             # as of 2016/11/02, we have WWM initial sections, not CWM
             return fit_num_sections(needed / 2, maximum)
@@ -460,12 +513,14 @@ class MiningMind:
             return None
 
         current_noneol_hauler_mass = 0
+        current_noneol_hauler_work = 0
         for hauler_name in self.targets.creeps_now_targeting(target_energy_hauler_mine, flag_id):
             creep = Game.creeps[hauler_name]
             if not creep:
                 continue
             if self.room.replacement_time_of(creep) > Game.time:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
+                current_noneol_hauler_work += spawning.work_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
             if flag.pos.roomName == self.room.name:
                 if self.room.paving():
@@ -473,7 +528,11 @@ class MiningMind:
                 else:
                     base = creep_base_hauler
             elif self.room.paving():
-                base = creep_base_work_half_move_hauler
+                ideal_work = self.road_repair_work_needed_now(flag)
+                if ideal_work > current_noneol_hauler_work:
+                    base = creep_base_work_half_move_hauler
+                else:
+                    base = creep_base_half_move_hauler
             else:
                 base = creep_base_hauler
 
@@ -492,7 +551,7 @@ class MiningMind:
             return {
                 'role': role_hauler,
                 'base': base,
-                'num_sections': self.calculate_creep_num_sections_for_mine(flag),
+                'num_sections': self.calculate_creep_num_sections_for_mine(flag, base),
                 'targets': [
                     [target_energy_hauler_mine, flag_id]
                 ],
