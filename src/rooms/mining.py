@@ -117,9 +117,9 @@ class MiningMind:
         deposit_point = self.closest_deposit_point_to_mine(flag)
         if deposit_point:
             if deposit_point.structureType == STRUCTURE_SPAWN:
-                return self.hive.honey.find_path_length(deposit_point, flag) + 20
+                return self.hive.honey.find_path_length(deposit_point, flag, {"use_roads": False}) + 20
             else:
-                return self.hive.honey.find_path_length(deposit_point, flag)
+                return self.hive.honey.find_path_length(deposit_point, flag, {"use_roads": False})
         else:
             # This will happen if we have no storage nor spawn
             return Infinity

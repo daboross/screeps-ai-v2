@@ -161,7 +161,7 @@ def get_global_cache_key(origin, destination, opts):
                 destination.y,
                 global_cache_mining_paths_suffix
             ])
-        elif not opts['use_roads']:  # Default true
+        elif 'use_roads' in opts and not opts['use_roads']:  # Default true
             return '_'.join([
                 'path',
                 origin.roomName,

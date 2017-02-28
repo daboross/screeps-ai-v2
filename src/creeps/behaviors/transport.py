@@ -43,7 +43,7 @@ class TransportPickup(RoleBase):
             if self.pos.roomName != target.roomName or not self.pos.inRangeTo(target, 4):
                 if total_carried_now:
                     self.repair_nearby_roads()
-                self.follow_energy_path(fill, pickup, pickup)
+                self.follow_energy_path(fill, pickup)
                 return
             piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
             if len(piles):
@@ -210,10 +210,20 @@ class TransportPickup(RoleBase):
             else:
                 origin = self.home.spawn.pos
 
-        opts = {
-            'current_room': self.pos.roomName,
-            'paved_for': mine,
-        }
+        if mine:
+            opts = {
+                'current_room': self.pos.roomName,
+                'paved_for': mine,
+            }
+        elif self.carry_sum() == 0:
+            opts = {
+                'current_room': self.pos.roomName,
+                'use_roads': False
+            }
+        else:
+            opts = {
+                'current_room': self.pos.roomName
+            }
         path = self.hive.honey.find_serialized_path(origin, target, opts)
         # TODO: manually check the next position, and if it's a creep check what direction it's going
         result = self.creep.moveByPath(path)
