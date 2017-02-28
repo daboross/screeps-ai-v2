@@ -234,16 +234,14 @@ class MiningMind:
     def calculate_creep_num_sections_for_mine(self, flag):
         double = False
         if flag.pos.roomName == self.room.name:
-            if self.room.all_paved():
+            if self.room.paving():
                 maximum = spawning.max_sections_of(self.room, creep_base_half_move_hauler)
                 double = True
             else:
                 maximum = spawning.max_sections_of(self.room, creep_base_hauler)
-        elif self.room.all_paved():
+        elif self.room.paving():
             maximum = spawning.max_sections_of(self.room, creep_base_work_half_move_hauler)
             double = True
-        elif self.room.paving():
-            maximum = spawning.max_sections_of(self.room, creep_base_work_full_move_hauler)
         else:
             maximum = spawning.max_sections_of(self.room, creep_base_hauler)
         needed = self.calculate_ideal_mass_for_mine(flag)
@@ -443,7 +441,7 @@ class MiningMind:
             else:
                 base = creep_base_1500miner
                 num_sections = min(3, spawning.max_sections_of(self.room, base))
-            if self.room.all_paved():
+            if self.room.paving():
                 num_sections = spawning.ceil_sections(num_sections / 2, base)
             return {
                 'role': role_miner,
@@ -470,15 +468,12 @@ class MiningMind:
                 current_noneol_hauler_mass += spawning.carry_count(creep)
         if current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine(flag):
             if flag.pos.roomName == self.room.name:
-                if self.room.all_paved():
+                if self.room.paving():
                     base = creep_base_half_move_hauler
                 else:
                     base = creep_base_hauler
-            elif self.room.all_paved():
-                base = creep_base_work_half_move_hauler
             elif self.room.paving():
-                # TODO: better all_paved detection *per mine* (all_paved currently is always set to paving() value)
-                base = creep_base_work_full_move_hauler
+                base = creep_base_work_half_move_hauler
             else:
                 base = creep_base_hauler
 

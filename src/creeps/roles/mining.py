@@ -180,7 +180,7 @@ class EnergyMiner(TransportPickup):
         path_length = self.hive.honey.find_path_length(self.home.spawn, source)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
-        if self.home.all_paved():
+        if self.home.paving():
             moves_every /= 2
         moves_every = math.ceil(moves_every)
         return path_length / moves_every + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15

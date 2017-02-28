@@ -687,10 +687,6 @@ class RoomMind:
                 self._paving = paving
         return self._paving
 
-    def all_paved(self):
-        # TODO: better remote mine-specific paving detection, so we can disable this shortcut
-        return self.paving()
-
     def any_local_miners(self):
         """
         :rtype: bool
@@ -1696,10 +1692,8 @@ class RoomMind:
 
     def get_variable_base(self, role):
         if role == role_hauler:
-            if self.all_paved():
+            if self.paving():
                 return creep_base_work_half_move_hauler
-            elif self.paving():
-                return creep_base_work_full_move_hauler
             else:
                 return creep_base_hauler
         elif role == role_upgrader:
