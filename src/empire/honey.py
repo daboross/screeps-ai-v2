@@ -1018,9 +1018,8 @@ class HoneyTrails:
 
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
         """
-        Gets a list of room positions in the path. The positions are guaranteed to be in order for each room, but it is
-        not guaranteed that the rooms will be in order. This is retrieved from cached memory, but a new list to return
-        is created each call, and each RoomPosition is created fresh each call.
+        Gets a list of room positions in the path, with guaranteed order. This is retrieved from cached memory, but a
+        new list to return is created each call, and each RoomPosition is created fresh each call.
         """
         if origin.pos:
             origin = origin.pos
@@ -1046,6 +1045,33 @@ class HoneyTrails:
                 if 0 < pos.x < 50 and 0 < pos.y < 50:
                     final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
+
+    def get_ordered_list_of_serialized_path_segments(self, origin, destination, opts=None):
+        """
+        Gets a list of serialized path segments in order for the path from origin to destination.
+        :rtype: list[(str, str)]
+        """
+        if origin.pos:
+            origin = origin.pos
+        if destination.pos:
+            destination = destination.pos
+
+        path_obj = self.get_serialized_path_obj(origin, destination, opts)
+
+        result = []
+
+        if _path_cached_data_key_room_order in path_obj:
+            list_of_names = path_obj[_path_cached_data_key_room_order]
+        elif _path_cached_data_key_metadata in path_obj:
+            list_of_names = path_obj[_path_cached_data_key_metadata].js_split(',').slice(1)
+        else:
+            list_of_names = Object.keys(path_obj)
+
+        for room_name in list_of_names:
+            if not movement.is_valid_room_name(room_name):  # special key
+                continue
+            result.append((room_name, path_obj[room_name]))
+        return result
 
     def find_path_length(self, origin, destination, opts=None):
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
