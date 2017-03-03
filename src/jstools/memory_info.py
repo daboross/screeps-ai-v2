@@ -15,9 +15,12 @@ def analyse_memory(path=None):
     mem = Memory
     if path is not None:
         mem = _.get(mem, path)
+    total = 0
     for key, submem in _.pairs(mem):
         amount = count_total_keys(submem)
+        total += amount
         print("Under {}: {}".format(key, amount))
+    print("Total: {}".format(total))
 
 
 def count_total_keys(mem):
