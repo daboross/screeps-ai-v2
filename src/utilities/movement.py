@@ -206,6 +206,8 @@ def is_block_clear(room, x, y):
     """
     Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
     :type room: rooms.room_mind.RoomMind
+    :type x: int
+    :type y: int
     """
     if x > 49 or y > 49 or x < 0 or y < 0:
         return False

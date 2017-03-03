@@ -284,7 +284,11 @@ class TransportPickup(RoleBase):
                         opts, JSON.stringify(path, 0, 4)))
                     honey.clear_cached_path(origin, target, opts)
             elif self.pos.isNearTo(new_target):
-                self.basic_move_to(new_target)
+                if movement.is_block_clear(self.room, new_target.x, new_target.y):
+                    self.basic_move_to(new_target)
+                else:
+                    del self.memory.next_ppos
+                    del self.memory.tried_new_next_ppos
                 return
             else:
                 del self.memory.tried_new_next_ppos
