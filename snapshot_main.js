@@ -1696,7 +1696,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-02-23 23:31:16
+// Transcrypt'ed from Python, 2017-03-04 00:17:03
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -10066,7 +10066,7 @@ function main () {
                                     if (total_carried_now) {
                                         self.repair_nearby_roads ();
                                     }
-                                    self.follow_energy_path (fill, pickup, pickup);
+                                    self.follow_energy_path (fill, pickup);
                                     return ;
                                 }
                                 var piles = self.room.look_for_in_area_around (LOOK_RESOURCES, target, 1);
@@ -10283,7 +10283,15 @@ function main () {
                                     var origin = self.home.spawn.pos;
                                 }
                             }
-                            var opts = {'current_room': self.pos.roomName, 'paved_for': mine};
+                            if (mine) {
+                                var opts = {'current_room': self.pos.roomName, 'paved_for': mine};
+                            }
+                            else if (self.carry_sum () == 0) {
+                                var opts = {'current_room': self.pos.roomName, 'use_roads': false};
+                            }
+                            else {
+                                var opts = {'current_room': self.pos.roomName};
+                            }
                             var path = self.hive.honey.find_serialized_path (origin, target, opts);
                             var result = self.creep.moveByPath (path);
                             if (result == ERR_NOT_FOUND || result == ERR_NO_PATH) {
@@ -10352,7 +10360,13 @@ function main () {
                                     }
                                 }
                                 else if (self.pos.isNearTo (new_target)) {
-                                    self.basic_move_to (new_target);
+                                    if (movement.is_block_clear (self.room, new_target.x, new_target.y)) {
+                                        self.basic_move_to (new_target);
+                                    }
+                                    else {
+                                        delete self.memory.next_ppos;
+                                        delete self.memory.tried_new_next_ppos;
+                                    }
                                     return ;
                                 }
                                 else {
@@ -12981,7 +12995,7 @@ function main () {
                             }
                             var path_length = self.hive.honey.find_path_length (self.home.spawn, source);
                             var moves_every = (len (self.creep.body) - self.creep.getActiveBodyparts (MOVE)) / self.creep.getActiveBodyparts (MOVE);
-                            if (self.home.all_paved ()) {
+                            if (self.home.paving ()) {
                                 moves_every /= 2;
                             }
                             var moves_every = math.ceil (moves_every);
@@ -17664,7 +17678,7 @@ function main () {
                             else if (opts ['paved_for']) {
                                 return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, global_cache_mining_paths_suffix]);
                             }
-                            else if (!(opts ['use_roads'])) {
+                            else if (('use_roads' in opts) && !(opts ['use_roads'])) {
                                 return '_'.join (['path', origin.roomName, origin.x, origin.y, destination.roomName, destination.x, destination.y, global_cache_roadless_paths_suffix]);
                             }
                         }
@@ -18575,6 +18589,37 @@ function main () {
                             }
                             return final_list;
                         }, 'list_of_room_positions_in_path');},
+                        get get_ordered_list_of_serialized_path_segments () {return __get__ (this, function (self, origin, destination, opts) {
+                            if (typeof opts == 'undefined' || (opts != null && opts .hasOwnProperty ("__kwargtrans__"))) {;
+                                var opts = null;
+                            };
+                            if (origin.pos) {
+                                var origin = origin.pos;
+                            }
+                            if (destination.pos) {
+                                var destination = destination.pos;
+                            }
+                            var path_obj = self.get_serialized_path_obj (origin, destination, opts);
+                            var result = [];
+                            if ((_path_cached_data_key_room_order in path_obj)) {
+                                var list_of_names = path_obj [_path_cached_data_key_room_order];
+                            }
+                            else if ((_path_cached_data_key_metadata in path_obj)) {
+                                var list_of_names = path_obj [_path_cached_data_key_metadata].split (',').slice (1);
+                            }
+                            else {
+                                var list_of_names = Object.keys (path_obj);
+                            }
+                            var __iterable0__ = list_of_names;
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var room_name = __iterable0__ [__index0__];
+                                if (!(movement.is_valid_room_name (room_name))) {
+                                    continue;
+                                }
+                                result.append ([room_name, path_obj [room_name]]);
+                            }
+                            return result;
+                        }, 'get_ordered_list_of_serialized_path_segments');},
                         get find_path_length () {return __get__ (this, function (self, origin, destination, opts) {
                             if (typeof opts == 'undefined' || (opts != null && opts .hasOwnProperty ("__kwargtrans__"))) {;
                                 var opts = null;
@@ -20629,14 +20674,17 @@ function main () {
                         if (path !== null) {
                             var mem = _.get (mem, path);
                         }
+                        var total = 0;
                         var __iterable0__ = _.pairs (mem);
                         for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                             var __left0__ = __iterable0__ [__index0__];
                             var key = __left0__ [0];
                             var submem = __left0__ [1];
                             var amount = count_total_keys (submem);
+                            total += amount;
                             print ('Under {}: {}'.format (key, amount));
                         }
+                        print ('Total: {}'.format (total));
                     };
                     var count_total_keys = function (mem) {
                         var total_count = 0;
@@ -25873,6 +25921,7 @@ function main () {
                     var flags = __init__ (__world__.position_management.flags);
                     var defense = __init__ (__world__.rooms.defense);
                     var movement = __init__ (__world__.utilities.movement);
+                    var paths = __init__ (__world__.utilities.paths);
                     var is_sk = function (flag) {
                         return (flag.name in Memory.flags) && flag.memory.sk_room || Memory.no_controller && Memory.no_controller [flag.pos.roomName];
                     };
@@ -25969,10 +26018,10 @@ function main () {
                             var deposit_point = self.closest_deposit_point_to_mine (flag);
                             if (deposit_point) {
                                 if (deposit_point.structureType == STRUCTURE_SPAWN) {
-                                    return self.hive.honey.find_path_length (deposit_point, flag) + 20;
+                                    return self.hive.honey.find_path_length (deposit_point, flag, {'use_roads': false}) + 20;
                                 }
                                 else {
-                                    return self.hive.honey.find_path_length (deposit_point, flag);
+                                    return self.hive.honey.find_path_length (deposit_point, flag, {'use_roads': false});
                                 }
                             }
                             else {
@@ -26005,12 +26054,72 @@ function main () {
                             return target_mass;
                         }, 'calculate_ideal_mass_for_mine');},
                         get calculate_current_target_mass_for_mine () {return __get__ (this, function (self, flag) {
-                            var ideal_mass = self.calculate_ideal_mass_for_mine (flag);
-                            if (!(self.room.room.storage)) {
-                                return ideal_mass;
-                            }
-                            return ideal_mass;
+                            return self.calculate_ideal_mass_for_mine (flag);
                         }, 'calculate_current_target_mass_for_mine');},
+                        get road_repair_work_needed_now () {return __get__ (this, function (self, flag) {
+                            var key = '{}-health'.format (flag);
+                            var road_health = self.room.get_cached_property (key);
+                            if (road_health !== null) {
+                                return road_health;
+                            }
+                            var deposit_point = self.closest_deposit_point_to_mine (flag);
+                            if (!(deposit_point)) {
+                                var __except0__ = ValueError ('mine_road_health called for mine with no deposit point.');
+                                __except0__.__cause__ = null;
+                                throw __except0__;
+                            }
+                            var max_damage = 0;
+                            var __iterable0__ = self.hive.honey.get_ordered_list_of_serialized_path_segments (flag, deposit_point, {'paved_for': flag});
+                            for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
+                                var __left0__ = __iterable0__ [__index0__];
+                                var room_name = __left0__ [0];
+                                var serialized_path = __left0__ [1];
+                                var cut_off_start = room_name == flag.pos.roomName;
+                                var room = Game.rooms [room_name];
+                                if (!(room)) {
+                                    continue;
+                                }
+                                var dx_dy = paths.direction_to_dx_dy (int (serialized_path [4]));
+                                var x = int (serialized_path.__getslice__ (0, 2, 1)) - dx_dy [0];
+                                var y = int (serialized_path.__getslice__ (2, 4, 1)) - dx_dy [1];
+                                var path_len = len (serialized_path);
+                                for (var i = 4; i < path_len; i++) {
+                                    if ((!(cut_off_start) || i > 8) && (0 < x && x < 49) && (0 < y && y < 49)) {
+                                        var road_list = room.lookForAt (LOOK_STRUCTURES, x, y);
+                                        var road = _.find (road_list, {'structureType': STRUCTURE_ROAD});
+                                        if (road) {
+                                            var damage = road.hitsMax - road.hits;
+                                        }
+                                        else {
+                                            var site_list = room.lookForAt (LOOK_CONSTRUCTION_SITES, x, y);
+                                            var road = _.find (site_list, {'structureType': STRUCTURE_ROAD});
+                                            if (road) {
+                                                var damage = ((road.progressTotal - road.progress) * REPAIR_POWER) / BUILD_POWER;
+                                            }
+                                            else {
+                                                room.createConstructionSite (x, y, STRUCTURE_ROAD);
+                                                if (Game.map.getTerrainAt (x, y, room_name) [0] == 's') {
+                                                    var damage = ((CONSTRUCTION_COST_ROAD_SWAMP_RATIO * CONSTRUCTION_COST [STRUCTURE_ROAD]) * REPAIR_POWER) / BUILD_POWER;
+                                                }
+                                                else {
+                                                    var damage = (CONSTRUCTION_COST [STRUCTURE_ROAD] * REPAIR_POWER) / BUILD_POWER;
+                                                }
+                                            }
+                                        }
+                                        if (damage > max_damage) {
+                                            var max_damage = damage;
+                                        }
+                                    }
+                                    var dx_dy = paths.direction_to_dx_dy (int (serialized_path [i]));
+                                    x += dx_dy [0];
+                                    y += dx_dy [1];
+                                }
+                            }
+                            var work_part_max_per_road = ((CREEP_LIFE_TIME / 2) / self.hive.honey.find_path_length (flag, deposit_point, {'paved_for': flag})) * REPAIR_POWER;
+                            var needed_parts = max (math.floor ((max_damage / work_part_max_per_road) / 2) * 2);
+                            self.room.store_cached_property (key, needed_parts, CREEP_LIFE_TIME);
+                            return needed_parts;
+                        }, 'road_repair_work_needed_now');},
                         get cleanup_old_flag_sitting_values () {return __get__ (this, function (self) {
                             var __iterable0__ = self.available_mines;
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
@@ -26092,29 +26201,10 @@ function main () {
                             }
                             return self._active_mining_flags;
                         }, 'get_active_mining_flags');},
-                        get calculate_creep_num_sections_for_mine () {return __get__ (this, function (self, flag) {
-                            var double = false;
-                            if (flag.pos.roomName == self.room.name) {
-                                if (self.room.all_paved ()) {
-                                    var maximum = spawning.max_sections_of (self.room, creep_base_half_move_hauler);
-                                    var double = true;
-                                }
-                                else {
-                                    var maximum = spawning.max_sections_of (self.room, creep_base_hauler);
-                                }
-                            }
-                            else if (self.room.all_paved ()) {
-                                var maximum = spawning.max_sections_of (self.room, creep_base_work_half_move_hauler);
-                                var double = true;
-                            }
-                            else if (self.room.paving ()) {
-                                var maximum = spawning.max_sections_of (self.room, creep_base_work_full_move_hauler);
-                            }
-                            else {
-                                var maximum = spawning.max_sections_of (self.room, creep_base_hauler);
-                            }
+                        get calculate_creep_num_sections_for_mine () {return __get__ (this, function (self, flag, base) {
+                            var maximum = spawning.max_sections_of (self.room, base);
                             var needed = self.calculate_ideal_mass_for_mine (flag);
-                            if (double) {
+                            if (base == creep_base_half_move_hauler || base == creep_base_work_half_move_hauler) {
                                 return fit_num_sections (needed / 2, maximum);
                             }
                             else {
@@ -26313,7 +26403,7 @@ function main () {
                                     var base = creep_base_1500miner;
                                     var num_sections = min (3, spawning.max_sections_of (self.room, base));
                                 }
-                                if (self.room.all_paved ()) {
+                                if (self.room.paving ()) {
                                     var num_sections = spawning.ceil_sections (num_sections / 2, base);
                                 }
                                 return {'role': role_miner, 'base': base, 'num_sections': num_sections, 'targets': [[target_energy_miner_mine, flag_id]]};
@@ -26326,6 +26416,7 @@ function main () {
                                 return null;
                             }
                             var current_noneol_hauler_mass = 0;
+                            var current_noneol_hauler_work = 0;
                             var __iterable0__ = self.targets.creeps_now_targeting (target_energy_hauler_mine, flag_id);
                             for (var __index0__ = 0; __index0__ < __iterable0__.length; __index0__++) {
                                 var hauler_name = __iterable0__ [__index0__];
@@ -26335,27 +26426,31 @@ function main () {
                                 }
                                 if (self.room.replacement_time_of (creep) > Game.time) {
                                     current_noneol_hauler_mass += spawning.carry_count (creep);
+                                    current_noneol_hauler_work += spawning.work_count (creep);
                                 }
                             }
                             if (current_noneol_hauler_mass < self.calculate_current_target_mass_for_mine (flag)) {
                                 if (flag.pos.roomName == self.room.name) {
-                                    if (self.room.all_paved ()) {
+                                    if (self.room.paving ()) {
                                         var base = creep_base_half_move_hauler;
                                     }
                                     else {
                                         var base = creep_base_hauler;
                                     }
                                 }
-                                else if (self.room.all_paved ()) {
-                                    var base = creep_base_work_half_move_hauler;
-                                }
                                 else if (self.room.paving ()) {
-                                    var base = creep_base_work_full_move_hauler;
+                                    var ideal_work = self.road_repair_work_needed_now (flag);
+                                    if (ideal_work > current_noneol_hauler_work) {
+                                        var base = creep_base_work_half_move_hauler;
+                                    }
+                                    else {
+                                        var base = creep_base_half_move_hauler;
+                                    }
                                 }
                                 else {
                                     var base = creep_base_hauler;
                                 }
-                                return {'role': role_hauler, 'base': base, 'num_sections': self.calculate_creep_num_sections_for_mine (flag), 'targets': [[target_energy_hauler_mine, flag_id]]};
+                                return {'role': role_hauler, 'base': base, 'num_sections': self.calculate_creep_num_sections_for_mine (flag, base), 'targets': [[target_energy_hauler_mine, flag_id]]};
                             }
                             return null;
                         }, 'get_next_needed_mining_role_for');},
@@ -26408,6 +26503,7 @@ function main () {
                         'position_management.flags' +
                         'rooms.defense' +
                         'utilities.movement' +
+                        'utilities.paths' +
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.LOCAL_MINE = LOCAL_MINE;
@@ -26427,6 +26523,7 @@ function main () {
                         __all__.flags = flags;
                         __all__.is_sk = is_sk;
                         __all__.movement = movement;
+                        __all__.paths = paths;
                         __all__.role_hauler = role_hauler;
                         __all__.role_miner = role_miner;
                         __all__.role_remote_mining_reserve = role_remote_mining_reserve;
@@ -27464,9 +27561,6 @@ function main () {
                             }
                             return self._paving;
                         }, 'paving');},
-                        get all_paved () {return __get__ (this, function (self) {
-                            return self.paving ();
-                        }, 'all_paved');},
                         get any_local_miners () {return __get__ (this, function (self) {
                             if (!('_any_miners' in self)) {
                                 var any_miners = false;
@@ -28650,11 +28744,8 @@ function main () {
                         });},
                         get get_variable_base () {return __get__ (this, function (self, role) {
                             if (role == role_hauler) {
-                                if (self.all_paved ()) {
+                                if (self.paving ()) {
                                     return creep_base_work_half_move_hauler;
-                                }
-                                else if (self.paving ()) {
-                                    return creep_base_work_full_move_hauler;
                                 }
                                 else {
                                     return creep_base_hauler;
@@ -30640,6 +30731,46 @@ function main () {
                     '</use>')
                     __pragma__ ('<all>')
                         __all__.random_digits = random_digits;
+                    __pragma__ ('</all>')
+                }
+            }
+        }
+    );
+    __nest__ (
+        __all__,
+        'utilities.paths', {
+            __all__: {
+                __inited__: false,
+                __init__: function (__all__) {
+                    var direction_to_dx_dy = function (dir) {
+
+                            switch (dir) {
+                                case TOP:
+                                    return [0, -1];
+                                case TOP_RIGHT:
+                                    return [1, -1];
+                                case RIGHT:
+                                    return [1, 0];
+                                case BOTTOM_RIGHT:
+                                    return [1, 1];
+                                case BOTTOM:
+                                    return [0, 1];
+                                case BOTTOM_LEFT:
+                                    return [-1, 1];
+                                case LEFT:
+                                    return [-1, 0];
+                                case TOP_LEFT:
+                                    return [-1, -1];
+                                default:
+                                    return null;
+                            }
+
+                    };
+                    __pragma__ ('<use>' +
+                        'jstools.screeps' +
+                    '</use>')
+                    __pragma__ ('<all>')
+                        __all__.direction_to_dx_dy = direction_to_dx_dy;
                     __pragma__ ('</all>')
                 }
             }
