@@ -2022,6 +2022,19 @@ class RoomMind:
             _.sample(creeps_here_now).say(note, True)
         Memory['_ly'][self.name] = [song_key, position + 1]
 
+    def get_message(self):
+        all_messages = [
+            "Powered by BonzAI: https://github.com/bonzaiferroni/bonzAI",
+            "◯",
+            "Territory of {}, an Open Collaboration Society user! (https://github.com/ScreepsOCS)"
+                .format(stored_data.get_my_username()),
+            "Fully automated TooAngel bot: https://github.com/TooAngel/screeps",
+            "Powered by Protocol Buffers: https://git.io/vyEdW",
+            "Powered by Transcrypt: https://git.io/vyEdZ",
+            "Powered by Python: https://git.io/vyEds",
+            "Powered by Slack: http://screeps.slack.com/"
+        ]
+
     def toString(self):
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
             self.name, self.my, self.full_storage_use, self.conducting_siege())

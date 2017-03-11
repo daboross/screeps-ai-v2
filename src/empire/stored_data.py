@@ -60,7 +60,7 @@ def _set_new_data(room_name, data):
 _my_username = None
 
 
-def _find_my_username():
+def get_my_username():
     global _my_username
     if _my_username is None:
         struct = _.find(Game.structures, 'my')
@@ -111,7 +111,7 @@ def _find_room_reservation_end(room):
     :type room: Room
     :rtype: int
     """
-    if room.controller and room.controller.reservation and room.controller.reservation.username == _find_my_username():
+    if room.controller and room.controller.reservation and room.controller.reservation.username == get_my_username():
         return Game.time + room.controller.reservation.ticksToEnd
     else:
         return 0
@@ -129,7 +129,7 @@ def _find_room_owner(room):
         if controller.owner and not controller.my:
             name = controller.owner.username
             state = StoredEnemyRoomState.FULLY_FUNCTIONAL
-        elif controller.reservation and controller.reservation.username != _find_my_username():
+        elif controller.reservation and controller.reservation.username != get_my_username():
             name = controller.reservation.username
             state = StoredEnemyRoomState.RESERVED
 

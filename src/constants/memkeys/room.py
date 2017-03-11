@@ -38,6 +38,8 @@ mem_key_alive_squads = 'st'
 
 mem_key_urgency = 'urgency'
 
+mem_key_message = 'm'
+
 cache_key_spending_now = 'ss'
 cache_key_squads = 'sqds'
 cache_key_squad_prefix = 'sq&'
