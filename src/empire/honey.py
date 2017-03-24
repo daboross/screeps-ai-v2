@@ -104,7 +104,7 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
                 dy = 1
             elif dy == 49:
                 dy = -1
-            if pos.endOfReroute:
+            if pos.end_of_reroute:
                 reroute_end_dx = dx
                 reroute_end_dy = dy
         if dx < -1 or dx > 1:
@@ -781,13 +781,15 @@ class HoneyTrails:
                     + movement.chebyshev_distance_room_pos(reroute_destination, destination) \
                     < movement.chebyshev_distance_room_pos(origin, destination):
                 # Let's path through the portal!
-                path1 = self._get_raw_path(origin, reroute_start)
-                if not len(path1) or (path1[len(path1) - 1].isNearTo(reroute_start.pos)
-                                      and not path1[len(path1) - 1].isEqualTo(reroute_start.pos)):
+                path1 = self._get_raw_path(origin, reroute_start, opts)
+                if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start.pos)):
                     pos = __new__(RoomPosition(reroute_start.pos.x, reroute_start.pos.y, reroute_start.pos.roomName))
-                    pos.endOfReroute = True
+                    pos.end_of_reroute = True
                     path1.push(pos)
-                path2 = self._get_raw_path(reroute_destination, destination)
+                else:
+                    path1[len(path1) - 1].end_of_reroute = True
+                path1.push(reroute_destination.pos)
+                path2 = self._get_raw_path(reroute_destination, destination, opts)
                 return path1.concat(path2)
 
         if paved_for:
@@ -874,11 +876,30 @@ class HoneyTrails:
                     "maxRooms": max_rooms,
                     "maxOps": max_ops,
                 })
+                path = path_start.concat(second_path_result.path)
                 if second_path_result.incomplete:
-                    print("[honey] Second path result incomplete, not appending.")
+                    second_midpoint = path[len(path) - 1]
+                    print("[honey] Second path result incomplete, trying third from {} to {}, starting at {}."
+                          .format(origin, destination, midpoint))
+
+                    third_path_result = PathFinder.search(second_midpoint, {"pos": destination, "range": pf_range}, {
+                        "plainCost": plain_cost,
+                        "swampCost": swamp_cost,
+                        "roomCallback": self._get_callback(origin, destination, {
+                            "roads": roads_better,
+                            "paved_for": paved_for,
+                            "max_avoid": max_avoid,
+                            "plain_cost": plain_cost,
+                            "swamp_cost": swamp_cost,
+                        }),
+                        "maxRooms": max_rooms,
+                        "maxOps": max_ops,
+                    })
+                    path = path.concat(third_path_result.path)
+                    if third_path_result.incomplete:
+                        print("[honey] Third path still incomplete! Still concatenating.")
                 else:
                     print("[honey] Second path result complete! Concatenating paths!")
-                    path = path_start.concat(second_path_result.path)
         if paved_for:
             if paved_for.name:
                 mine_name = paved_for.name

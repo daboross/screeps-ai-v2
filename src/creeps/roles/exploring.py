@@ -40,7 +40,7 @@ class Scout(MilitaryBase):
                 self.log("Recalculating path due to circumstances in {}.".format(self.memory.rp))
                 self.recalc_military_path(self.home.spawn, destination, {
                     "ignore_swamp": True,
-                    "use_roads": False
+                    "use_roads": False,
                 })
                 del self.memory.rp
 
@@ -49,7 +49,7 @@ class Scout(MilitaryBase):
                 if self.room.enemy and self.pos.roomName != destination.pos.roomName:
                     self.recalc_military_path(self.home.spawn, destination, {
                         "ignore_swamp": True,
-                        "use_roads": False
+                        "use_roads": False,
                     })
                 rx, ry = movement.parse_room_to_xy(self.pos.roomName)
                 last_updated = stored_data.get_last_updated_tick(self.pos.roomName)
@@ -87,7 +87,7 @@ class Scout(MilitaryBase):
         else:
             self.follow_military_path(self.home.spawn, destination, {
                 "ignore_swamp": True,
-                "use_roads": False
+                "use_roads": False,
             })
             if recalc:
                 self.log("Recalculating path due.")
