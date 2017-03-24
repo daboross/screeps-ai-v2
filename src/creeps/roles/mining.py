@@ -203,7 +203,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                         self.repair_nearby_roads()
             if self.memory.running == 'refill':
                 return self.refill_creeps()
-            elif self.memory.running == role_spawn_fill:
+            elif self.memory.running == role_spawn_fill or self.memory.running == 'spawn_wait':
                 return SpawnFill.run(self)
             else:
                 if _.find(self.home.find(FIND_MY_STRUCTURES), lambda s:

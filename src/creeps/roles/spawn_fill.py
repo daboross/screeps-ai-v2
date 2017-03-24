@@ -50,7 +50,7 @@ class SpawnFill(building.Builder, Refill):
                     return building.Builder.run(self)
                 elif self.memory.running == "refill":
                     return self.refill_creeps()
-                elif self.memory.running != role_spawn_fill:
+                elif self.memory.running != role_spawn_fill and self.memory.running != "spawn_wait":
                     self.log("WARNING: Unknown running value: {}", self.memory.running)
                     del self.memory.running
             elif self.home.room.energyCapacityAvailable < 550 and self.home.room.energyAvailable < 300 \
@@ -64,6 +64,7 @@ class SpawnFill(building.Builder, Refill):
             target = self.targets.get_new_target(self, target_spawn_deposit)
             if target:
                 if target.color:  # it's a spawn fill wait flag
+                    self.memory.running = "spawn_wait"
                     rwc_cache = volatile_cache.mem("sfrwc")
                     if not rwc_cache.has(self.pos.roomName):
                         rwc_cache.set(self.pos.roomName, not not _.find(
@@ -83,6 +84,8 @@ class SpawnFill(building.Builder, Refill):
                         self.move_to(target)
                     return False
                 else:
+                    if self.memory.running == "spawn_wait":
+                        del self.memory.running
                     if target.energy >= target.energyCapacity:
                         self.targets.untarget(self, target_spawn_deposit)
                         return True

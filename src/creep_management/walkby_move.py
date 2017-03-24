@@ -23,6 +23,7 @@ MOVE_THEN_STOP = 1
 role_movement_types = {
     role_upgrader: MOVE_THEN_WORK,
     role_spawn_fill: SEMICONSTANT_MOVEMENT,
+    "spawn_wait": IDLE_ABOUT,
     role_spawn_fill_backup: SEMICONSTANT_MOVEMENT,
     role_upgrade_fill: IDLE_ABOUT,
     role_link_manager: MOVE_THEN_STOP,
