@@ -16,6 +16,8 @@ fi
 
 # Transcrypt binary
 TRANSCRYPT="$BASEDIR/env/bin/transcrypt"
+# Grunt binary
+GRUNT="$BASEDIR/node_modules/grunt-cli/bin/grunt"
 # Final distribution directory
 DIST_DIR="$BASEDIR/dist"
 # Source javascript files directory
@@ -31,4 +33,4 @@ mkdir -p "$DIST_DIR/"
 cp "$SRC_DIR/__javascript__/main.js" "$DIST_DIR/"
 cp "$JS_DIR/"*.js "$DIST_DIR/"
 
-grunt screeps "$@"
+"$GRUNT" screeps "$@"

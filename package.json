@@ -20,6 +20,7 @@
     },
     "homepage": "https://bitbucket.org/daboross/screeps/",
     "devDependencies": {
+        "grunt-cli": "^1.2.0",
         "grunt": "^1.0.1",
         "grunt-screeps": "^1.2.1",
         "pbf": "^3.0.5"
