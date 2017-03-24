@@ -488,6 +488,9 @@ function activateCustomizations() {
         // we subtract that! I do think this is actually more performant than trying to do any more complicated
         // logic in the loop.
         dxdy = directionToDxDy(+path[4]);
+        if (this.memory.debug) {
+            console.log(`[${this.memory.home}][${this.name}] Changing initial position (${x_to_check}, ${y_to_check}) to (${x_to_check - dxdy[0]}, ${y_to_check - dxdy[1]}) to the position to check (as initial direction is ${path[4]}).`);
+        }
         x_to_check -= dxdy[0];
         y_to_check -= dxdy[1];
         // Since we start at 4 again, we'll be re-adding what we just subtracted above - this lets us check both the
@@ -498,8 +501,10 @@ function activateCustomizations() {
             // Also, if this is the first iteration and x/y_to_check match the first pos, idx is at 4, the fifth
             // pos, directly after the initial x/y, and also the first direction to go!
             if (x_to_check === my_x && y_to_check == my_y) {
-                // console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y})`);
                 dir = +path[idx];
+                if (this.memory.debug) {
+                    console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y}) at position ${idx}, moving ${dir}`);
+                }
                 return this.move(dir);
             } else {
                 // console.log(`[${this.memory.home}][${this.name}] Not my position: (${x_to_check}, ${y_to_check})`);
@@ -508,6 +513,9 @@ function activateCustomizations() {
             if (dxdy === null) {
                 console.log(`Unknown direction! couldn't figure out '${path[idx]}'`);
                 return ERR_INVALID_ARGS;
+            }
+            if (this.memory.debug) {
+                console.log(`[${this.memory.home}][${this.name}] Changing position to check (${x_to_check}, ${y_to_check}) to (${x_to_check + dxdy[0]}, ${y_to_check + dxdy[1]}) (as dir at ${idx} is ${path[idx]}).`);
             }
             x_to_check += dxdy[0];
             y_to_check += dxdy[1];
