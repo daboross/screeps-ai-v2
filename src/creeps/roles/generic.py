@@ -125,7 +125,7 @@ class Recycling(Refill, MilitaryBase):
         # flag to other creeps
         if 'filling' in self.memory:
             del self.memory.filling
-        if self.pos.roomName != self.room.name:
+        if self.pos.roomName != self.home.name:
             target = None
             if self.carry_sum() > 0:
                 target = self.home.room.storage

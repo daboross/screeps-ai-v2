@@ -90,9 +90,11 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
                 last_room = pos.roomName
                 list_of_rooms.push(pos.roomName)
         if reroute_end_dx is not None:
-            dx = reroute_end_dx
-            dy = reroute_end_dy
+            # Skip the first position past the reroute end.
             reroute_end_dx, reroute_end_dy = None, None
+            last_x = pos.x
+            last_y = pos.y
+            continue
         else:
             dx = pos.x - last_x
             dy = pos.y - last_y
@@ -711,7 +713,7 @@ class HoneyTrails:
                     set_matrix(mineral.pos.x, mineral.pos.y, StoredObstacleType.MINERAL, False, None)
             for flag in spawn_fill_wait_flags:
                 matrix.set_impassable(flag.pos.x, flag.pos.y)
-            controller = room.controller
+            controller = room.room.controller
             if not controller or destination.roomName != room_name or destination.x != controller.pos.x or destination.y != controller.pos.y:
                 for flag in upgrader_wait_flags:
                     matrix.set_impassable(flag.pos.x, flag.pos.y)
@@ -781,7 +783,9 @@ class HoneyTrails:
                     + movement.chebyshev_distance_room_pos(reroute_destination, destination) \
                     < movement.chebyshev_distance_room_pos(origin, destination):
                 # Let's path through the portal!
-                path1 = self._get_raw_path(origin, reroute_start, opts)
+                origin_opts = Object.create(opts)
+                origin_opts.range = 1
+                path1 = self._get_raw_path(origin, reroute_start, origin_opts)
                 if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start.pos)):
                     pos = __new__(RoomPosition(reroute_start.pos.x, reroute_start.pos.y, reroute_start.pos.roomName))
                     pos.end_of_reroute = True
