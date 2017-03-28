@@ -776,6 +776,63 @@ function activateCustomizations() {
         return this.moveByPath(path);
     };
 
+    global.walk_path = function (path) {
+        let result = [];
+        if (!_.isString(path)) {
+            result.push("Serializing path");
+            path = Room.serializePath(path);
+        }
+        var path_len = path.length;
+        if (path_len < 5) {
+            result.push("not a path: {}".format(path));
+            return result.join('\n');
+        }
+        var x_to_check = +path.slice(0, 2);
+        var y_to_check = +path.slice(2, 4);
+        var dir, dxdy;
+        // The path serialization format basically starts with the second position x, second position y, and then
+        // follows with a list of directions *to get to each position*. To clarify, the first direction, at idx=4,
+        // gives the direction *from the first position to the second position*. So, to find the first position,
+        // we subtract that! I do think this is actually more performant than trying to do any more complicated
+        // logic in the loop.
+        dxdy = directionToDxDy(+path[4]);
+        x_to_check -= dxdy[0];
+        y_to_check -= dxdy[1];
+        // Since we start at 4 again, we'll be re-adding what we just subtracted above - this lets us check both the
+        // first and second positions correctly!
+        for (var idx = 4; idx < path_len; idx++) {
+            // Essentially at this point, *_to_check represent the point reached by the *last* movement (the pos
+            // reached by the movement at (idx - 1) since idx just got incremented at the start of this loop)
+            // Also, if this is the first iteration and x/y_to_check match the first pos, idx is at 4, the fifth
+            // pos, directly after the initial x/y, and also the first direction to go!
+            result.push(`Visisted (${x_to_check}, ${y_to_check})`);
+
+            dxdy = directionToDxDy(+path[idx]);
+            if (dxdy === null) {
+                result.push(`Unknown direction! couldn't figure out '${path[idx]}'`);
+                return result.join('\n');
+            }
+            x_to_check += dxdy[0];
+            y_to_check += dxdy[1];
+        }
+        return result.join('\n');
+    };
+
+    global.full_debug_path = function (origin, destination, opts) {
+        //     let result = [];
+        //     let path = py.hive().honey.completely_repath_and_get_raw_path(origin, destination, opts);
+        //     result.push(`Path from ${origin} to ${destination} has ${path.length} positions.`);
+        //     for (let pos of path) {
+        //         result.push(`Visisted ${pos.roomName}, (${pos.x}, ${pos.y})`);
+        //     }
+        //     console.log(JSON.stringify(result));
+        //
+        //     asdf.dsafdsafawe.fawefawe;fawef.awef;
+        //     return result.join('\n');
+        // };
+        walk_path(py.hive().honey.find_serialized_path(origin, destination, opts))
+    };
+
     global.__customizations_active = true;
 }
 
