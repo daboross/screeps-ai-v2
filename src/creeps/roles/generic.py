@@ -129,9 +129,9 @@ class Recycling(Refill, MilitaryBase):
             target = None
             if self.carry_sum() > 0:
                 target = self.home.room.storage
-            if target is None:
+            if target == undefined:
                 target = self.home.spawn
-            if target is None or self.creep.ticksToLive < movement.chebyshev_distance_room_pos(self, target):
+            if target == undefined or self.creep.ticksToLive < movement.chebyshev_distance_room_pos(self, target):
                 self.creep.suicide()
                 return False
             if 'checkpoint' not in self.memory or \
