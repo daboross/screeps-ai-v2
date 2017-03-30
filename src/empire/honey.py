@@ -767,6 +767,7 @@ class HoneyTrails:
             max_ops = opts["max_ops"] if "max_ops" in opts else get_default_max_ops(origin, destination, opts)
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
             max_avoid = opts["avoid_rooms"] if "avoid_rooms" in opts else None
+            heuristic_attempt_num = opts["heuristic_attempt_num"] if "heuristic_attempt_num" in opts else 0
         else:
             roads_better = True
             ignore_swamp = False
@@ -775,6 +776,7 @@ class HoneyTrails:
             paved_for = None
             max_ops = get_default_max_ops(origin, destination, {'use_roads': roads_better})
             max_avoid = None
+            heuristic_attempt_num = 0
 
         if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
             reroute_start = Game.flags['reroute']
@@ -816,6 +818,11 @@ class HoneyTrails:
             swamp_cost = 5
             heuristic = 1.2
             min_cost = 1
+
+        if heuristic_attempt_num == 1:
+            heuristic *= 3
+        elif heuristic_attempt_num == 2:
+            heuristic /= 3
 
         destination_data = stored_data.get_data(destination.roomName)
         if destination_data and destination_data.owner \
@@ -901,7 +908,14 @@ class HoneyTrails:
                     })
                     path = path.concat(third_path_result.path)
                     if third_path_result.incomplete:
-                        print("[honey] Third path still incomplete! Still concatenating.")
+                        if heuristic_attempt_num < 3:
+                            print("[honey] Third path still incomplete! Trying next heuristic attempt ({})."
+                                  .format(heuristic_attempt_num + 1))
+                            return self._get_raw_path(origin, destination, _.create(opts, {
+                                'heuristic_attempt_num': heuristic_attempt_num + 1
+                            }))
+                        else:
+                            print("[honey] Third path still incomplete! Still concatenating.")
                 else:
                     print("[honey] Second path result complete! Concatenating paths!")
         if paved_for:
