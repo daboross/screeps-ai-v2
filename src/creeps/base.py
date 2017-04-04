@@ -255,8 +255,8 @@ class RoleBase:
                 return False
             result = self.creep.pickup(pile)
             if result == OK:
-                self.creep.picked_up = True
-                pile.picked_up = True
+                self.creep.picked_up = pile
+                pile.picked_up = self.creep
             else:
                 self.log("Unknown result from creep.pickup({}): {}", pile, result)
             return False

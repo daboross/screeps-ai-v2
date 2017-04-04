@@ -354,7 +354,7 @@ def pickup_check_room(room):
                     result = creep.pickup(pile)
                     if result == OK:
                         creep.cancelOrder('withdraw')
-                        creep.picked_up = True
+                        creep.picked_up = pile
                         left -= empty
                         if left <= 0:
                             break
