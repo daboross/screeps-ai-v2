@@ -1761,7 +1761,7 @@ if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
 "use strict";
-// Transcrypt'ed from Python, 2017-03-30 15:58:28
+// Transcrypt'ed from Python, 2017-04-26 02:57:16
 function main () {
    var __symbols__ = ['__py3.5__', '__esv5__'];
     var __all__ = {};
@@ -5814,7 +5814,7 @@ function main () {
                                         var result = creep.pickup (pile);
                                         if (result == OK) {
                                             creep.cancelOrder ('withdraw');
-                                            creep.picked_up = true;
+                                            creep.picked_up = pile;
                                             left -= empty;
                                             if (left <= 0) {
                                                 break;
@@ -8947,8 +8947,8 @@ function main () {
                                 }
                                 var result = self.creep.pickup (pile);
                                 if (result == OK) {
-                                    self.creep.picked_up = true;
-                                    pile.picked_up = true;
+                                    self.creep.picked_up = pile;
+                                    pile.picked_up = self.creep;
                                 }
                                 else {
                                     self.log ('Unknown result from creep.pickup({}): {}', pile, result);
@@ -11115,60 +11115,6 @@ function main () {
                     });
                     var Claim = __class__ ('Claim', [MilitaryBase], {
                         get run () {return __get__ (this, function (self) {
-                            if (self.home.name == 'W47S45') {
-                                if (!(self.memory.followed)) {
-                                    var escort = _.find (self.room.creeps, (function __lambda__ (s) {
-                                        return s.memory.role == role_escort && !(s.memory.following);
-                                    }));
-                                    if (escort) {
-                                        escort.memory.following = self.creep.id;
-                                        self.memory.followed = escort.name;
-                                    }
-                                    else if (self.pos.roomName != self.home.name) {
-                                        self.memory.followed = 'none';
-                                    }
-                                    else {
-                                        self.log ("Can't find escort!");
-                                    }
-                                }
-                                else if (self.memory.followed != 'none') {
-                                    var creep = Game.creeps [self.memory.followed];
-                                    if (creep) {
-                                        if (self.creep.hits < self.creep.hitsMax && !(self.pos.isNearTo (creep.pos)) && self.pos.x != 0 && self.pos.x != 49 && self.pos.y != 0 && self.pos.y != 49) {
-                                            return ;
-                                        }
-                                        else if (movement.chebyshev_distance_room_pos (creep, self) > 2 && self.pos.x != 0 && self.pos.x != 49 && self.pos.y != 0 && self.pos.y != 49) {
-                                            return ;
-                                        }
-                                    }
-                                }
-                                if (!(self.memory.followed2)) {
-                                    var escort = _.find (self.room.creeps, (function __lambda__ (s) {
-                                        return s.memory.role == role_escort && !(s.memory.following);
-                                    }));
-                                    if (escort) {
-                                        escort.memory.following = self.creep.id;
-                                        self.memory.followed2 = escort.name;
-                                    }
-                                    else if (self.pos.roomName != self.home.name) {
-                                        self.memory.followed2 = 'none';
-                                    }
-                                    else {
-                                        self.log ("Can't find escort!");
-                                    }
-                                }
-                                else if (self.memory.followed2 != 'none') {
-                                    var creep = Game.creeps [self.memory.followed2];
-                                    if (creep) {
-                                        if (self.creep.hits < self.creep.hitsMax && !(self.pos.isNearTo (creep.pos)) && self.pos.x != 0 && self.pos.x != 49 && self.pos.y != 0 && self.pos.y != 49) {
-                                            return ;
-                                        }
-                                        else if (movement.chebyshev_distance_room_pos (creep, self) > 2 && self.pos.x != 0 && self.pos.x != 49 && self.pos.y != 0 && self.pos.y != 49) {
-                                            return ;
-                                        }
-                                    }
-                                }
-                            }
                             var claim_flag = self.targets.get_new_target (self, target_single_flag, CLAIM_LATER);
                             if (!(claim_flag)) {
                                 self.memory.last_role = self.memory.role;
