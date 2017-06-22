@@ -84,7 +84,10 @@ class RoleDefender(MilitaryBase):
                     room_hostiles.splice(index, 1)
             return True
 
-        self.move_to(target, {'reusePath': 2})
+        if self.pos.isNearTo(target):
+            self.creep.attack(target)
+        else:
+            self.move_to(target, {'reusePath': 2})
 
     def _calculate_time_to_replace(self):
         return 0  # never live-replace a defender.
