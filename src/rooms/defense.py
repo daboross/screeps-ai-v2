@@ -348,7 +348,7 @@ class RoomDefense:
                 return 2
         elif user == SK_USERNAME:
             return 0
-        elif Memory.meta.friends.includes(user):
+        elif Memory.meta.friends.includes(user.toLowerCase()):
             return 0
         elif hostile.my:
             return 0
@@ -996,7 +996,7 @@ class RoomDefense:
                     total_offense = 0
                     for obj in nearby:
                         creep = obj.creep
-                        if not creep.my and not Memory.meta.friends.includes(creep.owner.username):
+                        if not creep.my and not Memory.meta.friends.includes(creep.owner.username.toLowerCase()):
                             offense = max(creep.getBodyparts(WORK) * DISMANTLE_POWER,
                                           creep.getBodyparts(ATTACK) * ATTACK_POWER)
                             if _.some(hot_spots, lambda x: movement.chebyshev_distance_room_pos(x, creep) <= 1):

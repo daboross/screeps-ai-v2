@@ -519,7 +519,7 @@ class HoneyTrails:
                     print("[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!"
                           .format(origin, destination, room_data.owner.name, room_name))
             elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.RESERVED \
-                    and not Memory.meta.friends.includes(room_data.owner.name):
+                    and not Memory.meta.friends.includes(room_data.owner.name.toLowerCase()):
                 if room_name != origin.roomName and room_name != destination.roomName:
                     # print("[honey] Avoiding room {}.".format(room_name))
                     return False

@@ -183,7 +183,7 @@ class RoomMind:
             # this is patched in here because we pretty much never want to find hostile creeps besides like this:
             if parameter == FIND_HOSTILE_CREEPS and len(Memory.meta.friends):
                 result = self.room.find(FIND_HOSTILE_CREEPS, {
-                    "filter": lambda c: not Memory.meta.friends.includes(c.owner.username)
+                    "filter": lambda c: not Memory.meta.friends.includes(c.owner.username.toLowerCase())
                 })
             elif parameter is PYFIND_REPAIRABLE_ROADS:
                 result = _.filter(self.find(FIND_STRUCTURES),

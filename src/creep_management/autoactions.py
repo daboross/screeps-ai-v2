@@ -188,7 +188,7 @@ def instinct_do_heal(creep):
     most_damage = 0
     for ally_obj in creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1):
         ally = ally_obj.creep
-        if not ally.my and not Memory.meta.friends.includes(ally.owner.username):
+        if not ally.my and not Memory.meta.friends.includes(ally.owner.username.toLowerCase()):
             continue
         damage = ally.hitsMax - ally.hits
         if damage > most_damage:
