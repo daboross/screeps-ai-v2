@@ -1726,6 +1726,8 @@ class RoomMind:
                 lambda: min(2, spawning.max_sections_of(self, creep_base_reserving)),
             role_colonist:
                 lambda: spawning.max_sections_of(self, creep_base_worker),
+            role_sacrifice:
+                lambda: spawning.max_sections_of(self, creep_base_half_move_hauler),
             role_builder: self.get_builder_size,
             role_mineral_miner:
                 lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
@@ -1829,6 +1831,7 @@ class RoomMind:
             [role_mineral_steal, self.get_target_mineral_steal_mass, True],
             [role_mineral_hauler, self.minerals.get_target_mineral_hauler_count],
             [role_mineral_miner, self.minerals.get_target_mineral_miner_count],
+            [role_sacrifice, self.minerals.get_target_sacrifice_count],
         ]
         return self._check_role_reqs(requirements)
 

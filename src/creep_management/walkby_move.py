@@ -38,6 +38,8 @@ role_movement_types = {
     role_cleanup: MOVE_THEN_WORK,
     role_temporary_replacing: MOVE_THEN_WORK,
     role_colonist: MOVE_THEN_WORK,
+    role_sacrifice: IDLE_ABOUT,
+    role_sacrificial_cleanup: MOVE_THEN_WORK,
     role_simple_claim: MILITARY,
     role_room_reserve: MOVE_THEN_STOP,
     role_mineral_steal: CONSTANT_MOVEMENT,

@@ -69,6 +69,8 @@ role_defender = "simple_defender"
 role_wall_defender = "melee_wall_defender"
 role_ranged_offense = "kiting_offense"
 role_colonist = "colonist"
+role_sacrifice = "sacrifice"
+role_sacrificial_cleanup = "cleanup_sacrifice"
 role_simple_claim = "simple_claim"
 role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
@@ -115,6 +117,8 @@ role_bases = {
     role_wall_defender: creep_base_rampart_defense,
     role_cleanup: creep_base_hauler,
     role_colonist: creep_base_worker,
+    role_sacrifice: creep_base_hauler,
+    role_sacrificial_cleanup: creep_base_hauler,
     role_simple_claim: creep_base_claiming,
     role_room_reserve: creep_base_reserving,
     role_mineral_miner: creep_base_mammoth_miner,

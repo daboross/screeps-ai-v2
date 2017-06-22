@@ -638,13 +638,17 @@ class MineralMind:
         mineral, cost = self.find_emptying_mineral_and_cost()
         if energy < cost:
             return
+        sending_to = self.room.mem[rmem_key_empty_all_resources_into_room]
+        if sending_to in Game.rooms and not Game.rooms[sending_to].terminal:
+            return
 
-        self.terminal.send(mineral, self.terminal.store[mineral],
-                           self.room.mem[rmem_key_empty_all_resources_into_room],
+        self.terminal.send(mineral, self.terminal.store[mineral], sending_to,
                            "Emptying to {}".format(self.room.mem[rmem_key_empty_all_resources_into_room]))
 
     def run_empty2(self):
         sending_to = self.room.mem[rmem_key_sell_all_but_empty_resources_to]
+        if sending_to in Game.rooms and not Game.rooms[sending_to].terminal:
+            return
         to_send = self.terminal.store[RESOURCE_ENERGY]
         distance = Game.map.getRoomLinearDistance(self.room.name, sending_to, True)
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
@@ -1029,6 +1033,21 @@ class MineralMind:
             return 1
         else:
             return 0
+
+    def get_target_sacrifice_count(self):
+        if self.has_no_terminal_or_storage():
+            return 0
+
+        target = self.room.mem[rmem_key_empty_all_resources_into_room] or self.room.mem[
+            rmem_key_sell_all_but_empty_resources_to]
+
+        if not target or target not in Game.rooms or Game.rooms[target].terminal:
+            return 0
+
+        if self.get_estimate_total_energy() < 50 * 1000:
+            return 0
+
+        return 10
 
     def mineral_report(self):
         minstrings = []

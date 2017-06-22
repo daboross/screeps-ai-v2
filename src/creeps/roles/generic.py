@@ -22,7 +22,9 @@ let_live_roles = [
     role_tower_fill,
     role_builder,
     role_cleanup,
+    role_sacrificial_cleanup,
     role_colonist,
+    role_sacrifice,
     role_hauler,
     role_miner,  # We need this and mining reserve to let them use the cached paths.
     role_remote_mining_reserve,

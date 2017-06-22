@@ -1,5 +1,5 @@
 from constants import *
-from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
+from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, sacrificial, \
     smart_offensive, spawn_fill, squads, tower_fill, upgrading, utility
 from jstools.screeps import *
 
@@ -29,6 +29,8 @@ role_classes = {
     role_cleanup: utility.Cleanup,
     role_temporary_replacing: generic.ReplacingExpendedCreep,
     role_colonist: colonizing.Colonist,
+    role_sacrifice: sacrificial.Sacrifice,
+    role_sacrificial_cleanup: sacrificial.SacrificialCleanup,
     role_simple_claim: colonizing.Claim,
     role_room_reserve: colonizing.ReserveNow,
     role_mineral_steal: colonizing.MineralSteal,
