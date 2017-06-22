@@ -17,7 +17,8 @@ def start_of_tick_check():
         for name, home_name, threats, room_name in Memory.deathwatch:
             if name not in Game.creeps:
                 if not _.every(threats, lambda t: t == INVADER_USERNAME or t == 'unknown' or t == SK_USERNAME):
-                    threats = ['an invader' if t == INVADER_USERNAME else ('a source keeper' if t == SK_USERNAME else t) for t in threats]
+                    threats = ['an invader' if t == INVADER_USERNAME else ('a source keeper' if t == SK_USERNAME else t)
+                               for t in threats]
                     msg = '[death][{}] {}, a {} of {}, died in {}, likely at the hands of {}.'.format(
                         Game.time,
                         name,

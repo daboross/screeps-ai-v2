@@ -3,7 +3,7 @@ import math
 from cache import volatile_cache
 from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_3000miner, creep_base_4000miner, \
     creep_base_carry3000miner, creep_base_half_move_hauler, creep_base_hauler, creep_base_reserving, \
-    creep_base_work_full_move_hauler, creep_base_work_half_move_hauler, role_hauler, role_miner, \
+    creep_base_work_half_move_hauler, role_hauler, role_miner, \
     role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
 from creep_management import spawning
 from creep_management.spawning import fit_num_sections

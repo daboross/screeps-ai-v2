@@ -268,7 +268,7 @@ class MilitaryBase(RoleBase):
                             origin, target, self.pos, new_target, [
                                 "({},{})".format(p.x, p.y) for p in Room.deserializePath(
                                     _.get(self.memory, ['_move', 'path'], ''))
-                                ].join(', ')))
+                            ].join(', ')))
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
         else:

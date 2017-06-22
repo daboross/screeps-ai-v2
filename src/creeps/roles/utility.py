@@ -112,7 +112,7 @@ class LinkManager(RoleBase):
         # link or storage.
         if result != OK:
             if p3:
-                self.log("ERROR: Unknown result from link creep.{}({},{},{}): {}!".format(action, p1, p2, p3,result))
+                self.log("ERROR: Unknown result from link creep.{}({},{},{}): {}!".format(action, p1, p2, p3, result))
             else:
                 self.log("ERROR: Unknown result from link creep.{}({},{}): {}!".format(action, p1, p2, result))
 

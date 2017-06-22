@@ -344,9 +344,9 @@ class KitingOffense(MilitaryBase):
                 lambda pos: "Error calculating or moving by kiting path at pos {}.".format(pos),
                 self.pos,
                 [{
-                     'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
-                     'range': 10,
-                 } for h in hostiles_nearby]
+                    'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
+                    'range': 10,
+                } for h in hostiles_nearby]
             )
             if kiting_path is True:
                 # errored
