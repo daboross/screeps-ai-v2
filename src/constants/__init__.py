@@ -53,6 +53,11 @@ target_energy_hauler_mine = 31
 target_reserve_now = 32
 # Other military: 4*
 target_rampart_defense = 40
+# Support: 5*
+target_support_miner_mine = 50
+target_support_hauler_mine = 51
+target_support_hauler_fill = 52
+target_support_builder_wall = 53
 
 role_upgrader = "upgrader"
 role_spawn_fill_backup = "spawn_fill_backup"
@@ -86,6 +91,9 @@ role_energy_grab = "egrab"
 role_power_attack = "attack_power"
 role_power_cleanup = "power_cleanup"
 role_scout = "scout"
+role_support_miner = "spm"
+role_support_hauler = "sph"
+role_support_builder = "spb"
 
 role_squad_init = "sqi"
 role_squad_final_renew = 'sqr'
@@ -170,6 +178,8 @@ REMOTE_MINE = 20
 LOCAL_MINE = 21
 RESERVE_NOW = 22
 CLAIM_LATER = 23
+SUPPORT_MINE = 24
+SUPPORT_WALL = 25
 # Military: 5*
 SCOUT = 50
 RANGED_DEFENSE = 51

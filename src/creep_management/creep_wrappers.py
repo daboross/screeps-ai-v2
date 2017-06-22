@@ -1,6 +1,6 @@
 from constants import *
 from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, sacrificial, \
-    smart_offensive, spawn_fill, squads, tower_fill, upgrading, utility
+    smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -55,6 +55,9 @@ role_classes = {
     role_squad_all_attack: squads.SquadAllAttack,
     role_squad_kiting_attack: squads.SquadKitingRangedAttack,
     role_squad_kiting_heal: squads.SquadDirectSupportHeal,
+    role_support_builder: support.SupportBuilder,
+    role_support_miner: support.SupportMiner,
+    role_support_hauler: support.SupportHauler,
 }
 
 

@@ -38,6 +38,15 @@ def _mass_count(name):
 __pragma__('fcall')
 
 
+def target_to_target_id(target):
+    if Game.getObjectById(target.id) == target:
+        return target.id
+    if target.name and target.name in Game.flags:
+        return "flag-{}".format(target.name)
+    if target.name:
+        return target.name
+
+
 def update_targeters_memory_0_to_1(targeters):
     string_target_names_to_numbers = {
         'source': 0,

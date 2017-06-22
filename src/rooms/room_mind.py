@@ -1951,6 +1951,70 @@ class RoomMind:
         if role_obj:
             return role_obj
 
+    def _next_neighbor_support_creep(self):
+        # flags_without_target is a cheap hack here, since we never target it with TARGET_SINGLE_FLAG.
+        # this always gets all SUPPORT_MINE flags we own.
+        mine_flags = self.flags_without_target(SUPPORT_MINE)
+
+        def calculate_ideal_mass_for_mine(mine, wall):
+            key = "smh_mass_{}".format(mine_flag.name)
+            target_mass = self.get_cached_property(key)
+            if target_mass:
+                return target_mass
+            distance = self.hive.honey.find_path_length(mine, wall, {"use_roads": False})
+            carry_per_tick = CARRY_CAPACITY / (distance * 2.04 + 5)
+            # With 1 added to have some leeway
+            mining_per_tick = SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME
+            target_mass = math.ceil(mining_per_tick / carry_per_tick) + 1
+            self.store_cached_property(key, target_mass, 50)
+            return target_mass
+
+        for mine_flag in mine_flags:
+            wall_flag = Game.flags[mine_flag.memory.wall]
+            if not wall_flag:
+                print("[{}] Support mine {} has no wall flag!".format(self.name, mine_flag))
+                continue
+            mine_flag_id = "flag-{}".format(mine_flag.name)
+            wall_flag_id = "flag-{}".format(wall_flag.name)
+            if self.count_noneol_creeps_targeting(target_support_miner_mine, mine_flag_id) < 1:
+                return {
+                    'role': role_support_miner,
+                    'base': creep_base_1500miner,
+                    'num_sections': min(3, spawning.max_sections_of(self, creep_base_1500miner)),
+                    'targets': [
+                        [target_support_miner_mine, mine_flag_id],
+                    ]
+                }
+            if self.count_noneol_creeps_targeting(target_support_builder_wall, wall_flag_id) < 1:
+                return {
+                    'role': role_support_builder,
+                    'base': creep_base_worker,
+                    'num_sections': min(6, spawning.max_sections_of(self, creep_base_worker)),
+                    'targets': [
+                        [target_support_builder_wall, wall_flag_id],
+                    ]
+                }
+            needed_hauler_mass = calculate_ideal_mass_for_mine(mine_flag, wall_flag)
+            current_noneol_hauler_mass = 0
+            for hauler_name in self.hive.targets.creeps_now_targeting(target_support_hauler_mine, mine_flag_id):
+                creep = Game.creeps[hauler_name]
+                if not creep:
+                    continue
+                if self.replacement_time_of(creep) > Game.time:
+                    current_noneol_hauler_mass += spawning.carry_count(creep)
+            if current_noneol_hauler_mass < needed_hauler_mass:
+                print("[{}] Spawning hauler for {}:{}!".format(self.name, mine_flag_id, wall_flag_id))
+                return {
+                    'role': role_support_hauler,
+                    'base': creep_base_hauler,
+                    'num_sections': fit_num_sections(needed_hauler_mass,
+                                                     spawning.max_sections_of(self, creep_base_hauler)),
+                    'targets': [
+                        [target_support_hauler_mine, mine_flag_id],
+                        [target_support_hauler_fill, wall_flag_id]
+                    ],
+                }
+
     def reset_planned_role(self):
         del self.mem[mem_key_planned_role_to_spawn]
         if not self.spawn:
@@ -1972,6 +2036,7 @@ class RoomMind:
                 self._next_tower_breaker_role,
                 self._next_complex_defender,
                 self._get_next_requested_creep,
+                self._next_neighbor_support_creep,
             ]
         else:
             funcs_to_try = [
@@ -1988,6 +2053,7 @@ class RoomMind:
                 self._next_needed_local_role,
                 self._next_claim,
                 self._get_next_requested_creep,
+                self._next_neighbor_support_creep,
             ]
         next_role = None
         for func in funcs_to_try:
