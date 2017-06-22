@@ -58,6 +58,7 @@ role_classes = {
     role_support_builder: support.SupportBuilder,
     role_support_miner: support.SupportMiner,
     role_support_hauler: support.SupportHauler,
+    role_sign: exploring.Rndrs,
 }
 
 

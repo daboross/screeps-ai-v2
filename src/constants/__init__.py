@@ -94,6 +94,7 @@ role_scout = "scout"
 role_support_miner = "spm"
 role_support_hauler = "sph"
 role_support_builder = "spb"
+role_sign = "home_sign"
 
 role_squad_init = "sqi"
 role_squad_final_renew = 'sqr'

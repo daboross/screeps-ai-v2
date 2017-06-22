@@ -1,5 +1,7 @@
 import math
 
+import random
+
 from cache import consistency
 from constants import *
 from constants.memkeys.room import *
@@ -17,7 +19,7 @@ from rooms.minerals import MineralMind
 from rooms.mining import MiningMind
 from rooms.room_constants import *
 from rooms.squads import SquadTactics
-from utilities import hostile_utils, movement, speech
+from utilities import hostile_utils, movement, rndrs, speech
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
 __pragma__('noalias', 'name')
@@ -2015,6 +2017,16 @@ class RoomMind:
                     ],
                 }
 
+    def _next_message_creep(self):
+        message = self.get_message()
+        if (self.room.controller.sign == undefined or message != self.room.controller.sign.text) \
+                and self.role_count(role_sign) < 1:
+            return {
+                'role': role_sign,
+                'base': creep_base_scout,
+                'num_sections': 1,
+            }
+
     def reset_planned_role(self):
         del self.mem[mem_key_planned_role_to_spawn]
         if not self.spawn:
@@ -2036,6 +2048,7 @@ class RoomMind:
                 self._next_tower_breaker_role,
                 self._next_complex_defender,
                 self._get_next_requested_creep,
+                self._next_message_creep,
                 self._next_neighbor_support_creep,
             ]
         else:
@@ -2053,6 +2066,7 @@ class RoomMind:
                 self._next_needed_local_role,
                 self._next_claim,
                 self._get_next_requested_creep,
+                self._next_message_creep,
                 self._next_neighbor_support_creep,
             ]
         next_role = None
@@ -2092,17 +2106,12 @@ class RoomMind:
         Memory['_ly'][self.name] = [song_key, position + 1]
 
     def get_message(self):
-        all_messages = [
-            "Powered by BonzAI: https://github.com/bonzaiferroni/bonzAI",
-            "◯",
-            "Territory of {}, an Open Collaboration Society user! (https://github.com/ScreepsOCS)"
-                .format(stored_data.get_my_username()),
-            "Fully automated TooAngel bot: https://github.com/TooAngel/screeps",
-            "Powered by Protocol Buffers: https://git.io/vyEdW",
-            "Powered by Transcrypt: https://git.io/vyEdZ",
-            "Powered by Python: https://git.io/vyEds",
-            "Powered by Slack: http://screeps.slack.com/"
-        ]
+        message = self.get_cached_property("_msg")
+
+        if not message:
+            message = rndrs.rs()
+            self.store_cached_property("_msg", message, random.randint(500, 1000))
+        return message
 
     def toString(self):
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(

@@ -1,4 +1,5 @@
 from constants import INVADER_USERNAME, SCOUT, target_single_flag
+from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from empire import stored_data
 from jstools.screeps import *
@@ -147,3 +148,12 @@ class Scout(MilitaryBase):
             "use_roads": False
         })
         return path_len + 28  # Body size is always 1, so just 25 leeway + 3 here.
+
+
+class Rndrs(RoleBase):
+    def run(self):
+        if self.pos.isNearTo(self.room.room.controller):
+            self.creep.signController(self.room.room.controller, self.room.get_message())
+            self.creep.suicide()
+        else:
+            self.move_to(self.room.room.controller)

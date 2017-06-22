@@ -16,7 +16,7 @@ from jstools import errorlog, memory_info, records
 from jstools.screeps import *
 from position_management import flags, locations
 from rooms import building, defense, minerals, squads
-from utilities import hostile_utils, movement
+from utilities import hostile_utils, movement, rndrs
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -413,6 +413,7 @@ __pragma__('js', 'global').py = {
     "meminfo": memory_info,
     "minerals": minerals,
     "stored_data": stored_data,
+    "rndrs": rndrs,
     "honey": honey,
     "squads": squads,
     "roles_squads": creeps.roles.squads,
