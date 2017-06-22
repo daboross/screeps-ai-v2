@@ -766,7 +766,7 @@ class MineralMind:
                     if order.amount < 50 or order.type != ORDER_BUY:
                         continue
                     distance = Game.map.getRoomLinearDistance(self.room.name, order.roomName, True)
-                    energy_cost_of_1_resource = 1 * (math.log((distance + 9) * 0.1) + 0.1)
+                    energy_cost_of_1_resource = 1 * (1 - Math.exp(-distance / 30))
                     gain = order.price - energy_cost_of_1_resource * energy_price
                     if gain > best_gain:
                         best_gain = gain
