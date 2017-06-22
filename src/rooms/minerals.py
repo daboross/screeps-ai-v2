@@ -686,7 +686,8 @@ class MineralMind:
                 del self.fulfilling_mem()[mineral]
 
     def run_spending_state_tick(self):
-        if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] or self.terminal.store[RESOURCE_ENERGY] < 5000:
+        if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] \
+                or self.terminal.store[RESOURCE_ENERGY] < 5000 or self.terminal.cooldown:
             return
         spending_state = self.room.get_spending_target()
         if spending_state == room_spending_state_supporting or spending_state == room_spending_state_supporting_sieged:
