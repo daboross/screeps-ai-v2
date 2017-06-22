@@ -31,6 +31,8 @@ def get_100_slack(key):
     if key in r and r[key].d > Game.time + 100:
         r[key].l = Game.time
         return r[key].v
+    else:
+        return None
 
 
 def has(key):
