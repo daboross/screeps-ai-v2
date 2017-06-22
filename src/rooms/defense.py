@@ -325,6 +325,16 @@ class RoomDefense:
             self._cache.set('_attack_invaders', any_attack_invaders)
             return any_attack_invaders
 
+    def hostile_users(self):
+        if self._cache.has('_hostile_users'):
+            return self._cache.get('_hostile_users')
+        else:
+            hostile_users = _(self.all_hostiles()).filter(
+                lambda h: h.hasBodyparts(ATTACK) or h.hasBodyparts(RANGED_ATTACK) or h.getActiveBodyparts(
+                    HEAL) or h.hasBodyparts(TOUGH)).pluck('owner.username').unique().value()
+            self._cache.set('_hostile_users', hostile_users)
+            return hostile_users
+
     def _calc_danger_level(self, hostile):
         """
         Internal function to calculate the raw danger level of a hostile. Use DefenseMind.danger_level(hostile) for a
@@ -338,6 +348,7 @@ class RoomDefense:
         """
         under_siege = self.room.mem[rmem_key_currently_under_siege]
         user = hostile.owner.username
+        owner_hostile = self.hostile_users().includes(user)
         if user == INVADER_USERNAME:
             if not hostile.hasBodyparts(ATTACK) and not hostile.hasBodyparts(RANGED_ATTACK):
                 if self.any_attack_invaders():
@@ -413,7 +424,7 @@ class RoomDefense:
         1: Might become a threat in the future, but not an immediate threat - attack sparingly
         2: Definitely a threat, but not the highest priority - run away from, and attack sparingly
         3: Immediate threat, attack and run from.
-        4: Not neccesarily immediate, but has RANGED_ATTACK parts so attack freely anyway
+        4: Not necessarily immediate, but has RANGED_ATTACK parts so attack freely anyway
         5: WORK or ATTACK creep which is currently next to one of our structures. Attack NOW!
 
         :param hostile: Hostile to check
@@ -469,7 +480,7 @@ class RoomDefense:
                                 # Further away from closest target = less important
                                 + movement.minimum_chebyshev_distance(c, protect)
                                 # Further away average distance from targets = less important
-                                + self.healing_possible_on(c) * 30
+                                + self.healing_possible_on(c) * 300
                                 # More hits = less important
                                 + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
                                   / 50
@@ -781,16 +792,16 @@ class RoomDefense:
         hostiles = self.dangerous_hostiles()
         towers = _.filter(self.towers(), lambda x: x.energy)
 
-        # if len(hostiles) and (len(towers) or self.room.spawn):
-        #     print("[{}][defense] Found danger:{}".format(
-        #         self.room.room_name, ["\n(a: {}, h: {}, w: {}, r: {}, hits: {}%, pos: {},{}, prio: {})"
-        #                                   .format(h.getActiveBodyparts(ATTACK),
-        #                                           h.getActiveBodyparts(HEAL),
-        #                                           h.getActiveBodyparts(WORK),
-        #                                           h.getActiveBodyparts(RANGED_ATTACK),
-        #                                           round(h.hits / h.hitsMax * 100),
-        #                                           h.pos.x, h.pos.y,
-        #                                           self.danger_level(h)) for h in hostiles]))
+        if len(hostiles) and (len(towers) or self.room.spawn):
+            print("[{}][defense] Found danger:{}".format(
+                self.room.name, ["\n(a: {}, h: {}, w: {}, r: {}, hits: {}%, pos: {},{}, prio: {})"
+                                     .format(h.getActiveBodyparts(ATTACK),
+                                             h.getActiveBodyparts(HEAL),
+                                             h.getActiveBodyparts(WORK),
+                                             h.getActiveBodyparts(RANGED_ATTACK),
+                                             round(h.hits / h.hitsMax * 100),
+                                             h.pos.x, h.pos.y,
+                                             self.danger_level(h)) for h in hostiles].join('')))
 
         if len(towers):
             if Game.time % 3 == 1:
