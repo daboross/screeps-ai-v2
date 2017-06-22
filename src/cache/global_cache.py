@@ -26,6 +26,13 @@ def get(key):
         return None
 
 
+def get_100_slack(key):
+    r = root()
+    if key in r and r[key].d > Game.time + 100:
+        r[key].l = Game.time
+        return r[key].v
+
+
 def has(key):
     r = root()
     return key in r

@@ -946,6 +946,11 @@ class HoneyTrails:
         if serialized_path_obj is not None:
             return serialized_path_obj
 
+        if Game.cpu.getUsed() > 300:
+            serialized_path_obj = global_cache.get_100_slack(cache_key)
+            if serialized_path_obj is not None:
+                return serialized_path_obj
+
         path = self._get_raw_path(origin, destination, opts)
         # TODO: make our own serialization format. This wouldn't be too much of a stretch, since we already have to do
         # all of this to convert PathFinder results into a Room-compatible format.
