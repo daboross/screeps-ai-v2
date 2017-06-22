@@ -159,9 +159,9 @@ class TargetMind:
     targets_workforce = property(__get_targets_workforce, __set_targets_workforce)
     reverse_targets = property(__get_reverse_targets, __set_reverse_targets)
 
-    def workforce_of(self, ttype, target):
-        return (self.targets[ttype] and self.targets[ttype][target]
-                and self.targets_workforce[ttype] and self.targets_workforce[ttype][target]) or 0
+    def workforce_of(self, ttype, target_id):
+        return (self.targets[ttype] and self.targets[ttype][target_id]
+                and self.targets_workforce[ttype] and self.targets_workforce[ttype][target_id]) or 0
 
     def creeps_now_targeting(self, ttype, target_id):
         return (ttype in self.reverse_targets and self.reverse_targets[ttype][target_id]) or []
@@ -377,7 +377,7 @@ class TargetMind:
             distance = movement.chebyshev_distance_room_pos(source.pos, creep.pos)
             current_work_force = self.workforce_of(target_source, source.id)
             if any_miners:
-                energy = _.sum(creep.home.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                energy = _.sum(creep.home.find_in_range(FIND_DROPPED_RESOURCES, 1, source.pos), 'amount')
                 priority = energy - current_work_force * 100 - distance * 2
             else:
                 oss = creep.home.get_open_source_spaces_around(source)

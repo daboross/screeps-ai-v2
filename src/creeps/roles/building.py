@@ -95,7 +95,7 @@ class Builder(upgrading.Upgrader):
                 # If we're bootstrapping, build any roads set to be built in swamp, so that we can get to/from the
                 # source faster!
                 if self.home.mem[rmem_key_there_might_be_energy_lying_around]:
-                    closest = self.pos.findClosestByRange(FIND_DROPPED_ENERGY, {
+                    closest = self.pos.findClosestByRange(FIND_DROPPED_RESOURCES, {
                         'filter': lambda x: x.amount >= self.creep.carryCapacity
                     })
                     if closest:

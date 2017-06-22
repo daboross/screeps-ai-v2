@@ -243,7 +243,7 @@ class RoleBase:
             self.move_to(source)
             return False
 
-        piles = self.room.find_in_range(FIND_DROPPED_ENERGY, 3, source.pos)
+        piles = self.room.find_in_range(FIND_DROPPED_RESOURCES, 3, source.pos)
         if len(piles) > 0:
             pile = _.max(piles, 'amount')
             if not self.creep.pos.isNearTo(pile):
@@ -286,7 +286,7 @@ class RoleBase:
                                 self.pos.getRangeTo(miner) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
-                if _.sum(self.room.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount') > 1500:
+                if _.sum(self.room.find_in_range(FIND_DROPPED_RESOURCES, 1, source.pos), 'amount') > 1500:
                     # Just get all you can - if this much has built up, it means something's blocking the queue...
                     self.move_to(miner)
                 self.move_to(miner)

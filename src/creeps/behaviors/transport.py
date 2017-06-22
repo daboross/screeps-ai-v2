@@ -133,7 +133,7 @@ class TransportPickup(RoleBase):
                     return
         else:
             # don't use up *all* the energy doing this
-            if total_carried_now and total_carried_now + 50 >= self.creep.carryCapacity / 2:
+            if total_carried_now and total_carried_now + 50.0 >= self.creep.carryCapacity / 2.0:
                 self.repair_nearby_roads()
             if total_carried_now > self.creep.carry.energy and self.home.room.storage:
                 fill = self.home.room.storage

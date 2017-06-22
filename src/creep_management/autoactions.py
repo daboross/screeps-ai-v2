@@ -336,7 +336,7 @@ def pickup_check_room(room):
     """
     :type room: rooms.room_mind.RoomMind
     """
-    energy = room.find(FIND_DROPPED_ENERGY)
+    energy = room.find(FIND_DROPPED_RESOURCES)
     if not len(energy):
         return
     creeps = room.find(FIND_MY_CREEPS)

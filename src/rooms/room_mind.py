@@ -1485,7 +1485,7 @@ class RoomMind:
         elif self.room.energyCapacityAvailable < 550:
             wm = self.get_open_source_spaces() * worker_size
             for source in self.sources:
-                energy = _.sum(self.find_in_range(FIND_DROPPED_ENERGY, 1, source.pos), 'amount')
+                energy = _.sum(self.find_in_range(FIND_DROPPED_RESOURCES, 1, source.pos), 'amount')
                 wm += energy / 200.0
         else:
             wm = len(self.sources) * 2 * worker_size

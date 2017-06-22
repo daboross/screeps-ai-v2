@@ -1,5 +1,5 @@
-from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_recycling, target_rampart_defense, \
-    role_miner
+from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_miner, role_recycling, \
+    target_rampart_defense
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from jstools.screeps import *
