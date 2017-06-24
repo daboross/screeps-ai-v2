@@ -29,6 +29,7 @@ role_movement_types = {
     role_link_manager: MOVE_THEN_STOP,
     role_builder: MOVE_THEN_WORK,
     role_tower_fill: SEMICONSTANT_MOVEMENT,
+    "tf2": MILITARY,
     role_miner: MOVE_THEN_STOP,
     role_hauler: CONSTANT_MOVEMENT,
     role_remote_mining_reserve: MOVE_THEN_STOP,

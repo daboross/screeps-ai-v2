@@ -40,15 +40,19 @@ class TowerFill(spawn_fill.SpawnFill):
                 if not self.home.role_count(role_spawn_fill) and target.energy >= target.energyCapacity / 2:
                     return spawn_fill.SpawnFill.run(self)
                 if not self.pos.isNearTo(target):
+                    self.memory.running = "tf2"
                     self.move_to(target)
                     return False
                 result = self.creep.transfer(target, RESOURCE_ENERGY)
                 if result == ERR_FULL:
                     self.targets.untarget(self, target_tower_fill)
+                    del self.memory.running
                     return True
                 elif result != OK:
                     self.log("Unknown result from tower_fill-creep.transfer({}): {}", target, result)
                     self.targets.untarget(self, target_tower_fill)
+                    del self.memory.running
+                return False
 
             return spawn_fill.SpawnFill.run(self)
 
