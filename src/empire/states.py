@@ -46,7 +46,7 @@ class StateCalc:
                         closest_distance = Infinity
                         for i in range(0, len(not_under_siege)):
                             room_to_check = not_under_siege[i]
-                            distance = Game.map.getLinearRoomDistance(room.name, room_to_check.name, True)
+                            distance = Game.map.getRoomLinearDistance(room.name, room_to_check.name, True)
                             if distance < closest_distance:
                                 closest = room_to_check
                                 closest_distance = distance
