@@ -27,7 +27,7 @@ def _init_tough_part_multipliers():
     result = {}
     input_obj = BOOSTS[TOUGH]
     for boost in Object.keys(input_obj):
-        result[boost] = 1 / (1 - input_obj[boost])
+        result[boost] = 1 / (1 - input_obj[boost].damage)
     return result
 
 
@@ -296,7 +296,7 @@ class RoomDefense:
             for obj in nearby:
                 creep = obj.creep
                 distance = movement.chebyshev_distance_room_pos(hostile, creep)
-                if distance <= 2:
+                if distance <= 1:
                     healing_possible += creep.getActiveBodypartsBoostEquivalent(HEAL, 'heal') * HEAL_POWER
                 else:
                     healing_possible += creep.getActiveBodypartsBoostEquivalent(HEAL, 'rangedHeal') * RANGED_HEAL_POWER
@@ -835,6 +835,9 @@ class RoomDefense:
                         # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
                         # effective_hits = math.ceil(part.hits * (1 / prevented))
                         effective_hits = math.ceil(part.hits * TOUGH_HIT_MULTIPLIERS[part.boost])
+                        if js_isNaN(effective_hits):
+                            print("effective hits for boost {} is NaN.".format(part.boost))
+                            effective_hits = part.hits
                         # If we will fully destroy this part, there's no need to do partial-destruction logic
                         if effective_hits <= damage_to_account_for:
                             damage_to_account_for -= effective_hits
