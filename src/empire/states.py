@@ -27,7 +27,7 @@ class StateCalc:
         not_under_siege = []
         for room in self.hive.my_rooms:
             if room.minerals.fully_setup():
-                if room.mem[rmem_key_currently_under_siege]:
+                if room.mem[rmem_key_currently_under_siege] and len(room.spawns):
                     under_siege.append(room)
                 else:
                     not_under_siege.append(room)
