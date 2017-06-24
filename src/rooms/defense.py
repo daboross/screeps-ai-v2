@@ -444,7 +444,7 @@ class RoomDefense:
         """
         Finds all hostiles in the current room with a danger_level of one or greater - cached per-tick per-room.
 
-        If the room is owned, all returned hostiles are sorted first by highestdanger level, then by lowest distance
+        If the room is owned, all returned hostiles are sorted first by highest danger level, then by lowest distance
         from spawn/towers, then by least (hits left + possible heal around).
 
         If the room is owned by an enemy, an empty list is unconditionally returned.
@@ -858,6 +858,9 @@ class RoomDefense:
                           .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                     some_left = True
                     continue
+                else:
+                    print("[{}] Attacking hostile at {}: {} heal possible, {} damage possible."
+                          .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                 for my_defender in nearby_defenders:
                     my_defender.creep.attack(hostile)
                     my_defender.creep.defense_override = True
