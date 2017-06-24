@@ -2018,6 +2018,8 @@ class RoomMind:
                 }
 
     def _next_message_creep(self):
+        if self.under_siege():
+            return None
         message = self.get_message()
         if (self.room.controller.sign == undefined or message != self.room.controller.sign.text) \
                 and self.role_count(role_sign) < 1:
