@@ -36,7 +36,7 @@ for (let key in Memory.cache) { Memory.cache[key].d = Game.time + Math.random() 
 Game.rooms.W15S15.find(FIND_MY_CONSTRUCTION_SITES).forEach(site => site.remove());
 
 # Enable 'hyper upgrade' status
-Memory.hyper_upgrade = true; for (let room of py.context.hive().my_rooms) { room.reset_planned_role() }
+Memory.hyper_upgrade = true; for (let room of py.hive().my_rooms) { room.reset_planned_role() }
 
 # Display the location of all creeps of a certain role
 _(Game.creeps).filter('role', py.constants.role_colonist).forEach(console.log(creep.name + ": " + creep.pos))
@@ -54,7 +54,11 @@ for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game
 py.consistency.complete_refresh()
 
 # Force 'W15S15''s builders to re-target
-for (let creep of py.get_room("W15S15").creeps) { if (creep.memory.role == "builder") { py.context.targets().untarget_all(creep) } }
+for (let creep of py.get_room("W15S15").creeps) { if (creep.memory.role == "builder") { py.hive().targets().untarget_all(creep) } }
+
+# TODO: run this often
+py.get_room("W45S43").delete_cached_property('rcrnd'); _(py.get_room("W45S43").creeps).filter(c => c.memory.role == 'melee_wall_defender').forEach(c => py.hive().targets._unregister_all(c.name))
+
 
 # Check on the building priority of 'W15S15' to ensure it is correct
 _(py.get_room("W15S15").building.next_priority_repair_targets()).map(Game.getObjectById).filter().map('hits').value()
@@ -70,7 +74,11 @@ py.get_room("W47N27").honey.find_path(new RoomPosition(15, 6, "W47N27"), new Roo
 JSON.stringify(PathFinder.search(new RoomPosition(15, 6, "W47N27"), {pos: new RoomPosition(21, 2, "W47N26"), range: 1}), 4, 4)
 
 # Urgent reassignment of all builders in a room to a specific target
-_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.context.targets().manually_register(c, 12, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
+_(py.get_room("E17N55").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.manually_register(c, 12, "57fdce57218402fd6c166f03") || _.set(Memory.creeps[c.name], 'la','b'))
+
+_(py.get_room("W45S43").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.manually_register(c, 12, "582f7cec9ee51b225c749fcc") || _.set(Memory.creeps[c.name], 'la','b'))
+
+_(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.manually_register(c, 12, "58a28a9eefd8663613836c7e") || _.set(Memory.creeps[c.name], 'la','b'))
 
 # Remove flags we don't need anymore
 for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }
@@ -79,7 +87,7 @@ for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.
 JSON.stringify(_.countBy(py.flags.find_flags_global(py.flags.ATTACK_POWER_BANK), 'pos.roomName'))
 
 # Manually re-route wall defender
-py.context.targets().manually_register({name: "2366"}, 40, "57fe2bc3985c67b3701c90c5")
+py.hive().targets().manually_register({name: "2366"}, 40, "57fe2bc3985c67b3701c90c5")
 
 # Manually turn all creeps to a certain role (unadvisable usually)
 Game.rooms.E56N21.find(FIND_MY_CREEPS).forEach(c => c.memory.role = py.constants.role_builder)
