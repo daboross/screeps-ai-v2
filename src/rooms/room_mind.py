@@ -870,6 +870,7 @@ class RoomMind:
         deprioritized = not not (
             (
                 self.upgrading_paused()
+                or (self.rcl == 8 and Memory[gmem_key_pause_rcl8_upgrading])
                 or (self.rcl < 4 and len(self.subsidiaries) and not self.being_bootstrapped())
                 or (not self.spawn and not self.being_bootstrapped())
                 or (self.under_siege() and (not self.room.storage or self.room.storage.storeCapacity))
