@@ -661,8 +661,9 @@ class TargetMind:
             best_priority = movement.chebyshev_distance_room_pos(pos, best.pos) - 13
             if creep.home.links.enabled:
                 for struct in creep.home.links.links:
+                    current_targets = self.targets[target_closest_energy_site][struct.id]
                     priority = movement.chebyshev_distance_room_pos(pos, struct.pos)
-                    if priority < best_priority:
+                    if priority < best_priority and (not current_targets or current_targets < 2):
                         best = struct
                         best_priority = priority
             return best.id
