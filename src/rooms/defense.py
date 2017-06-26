@@ -268,6 +268,17 @@ class RoomDefense:
             self._cache.set('any_broken_walls', broken)
             return broken
 
+    def has_significant_nukes(self):
+        has_significant_nukes = self.room.get_cached_property('s-nukes')
+        if has_significant_nukes is not None:
+            return has_significant_nukes
+
+        # TODO: use this to find walls to repair more, etc!
+        nuke_count = len(self.room.find(FIND_NUKES))
+        has_significant_nukes = nuke_count > 1
+        self.room.store_cached_property('s-nukes', has_significant_nukes, 1000)
+        return has_significant_nukes
+
     def this_room_mining_ops(self):
         if self._cache.has("this_room_mining_ops"):
             return self._cache.get("this_room_mining_ops")

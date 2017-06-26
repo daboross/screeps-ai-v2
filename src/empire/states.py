@@ -27,7 +27,8 @@ class StateCalc:
         not_under_siege = []
         for room in self.hive.my_rooms:
             if room.minerals.fully_setup():
-                if room.mem[rmem_key_currently_under_siege] and len(room.spawns):
+                if len(room.spawns) and (room.mem[rmem_key_currently_under_siege]
+                                         or room.defense.has_significant_nukes()):
                     under_siege.append(room)
                 else:
                     not_under_siege.append(room)
@@ -39,6 +40,7 @@ class StateCalc:
                     while len(under_siege) < len(not_under_siege):
                         under_siege = under_siege.concat(under_siege)
                     for room in under_siege:
+                        room.set_supporting_room(None)
                         if not len(not_under_siege):
                             break
                         closest = None
