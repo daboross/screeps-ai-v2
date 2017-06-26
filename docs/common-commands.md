@@ -80,6 +80,10 @@ _(py.get_room("W45S43").creeps).filter(c => c.memory.role == 'builder').forEach(
 
 _(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.manually_register(c, 12, "58a28a9eefd8663613836c7e") || _.set(Memory.creeps[c.name], 'la','b'))
 
+_(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.untarget_all(c))
+
+py.get_room("E56N21").building.refresh_building_targets(); _(py.get_room("E56N21").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.untarget_all(c))
+
 # Remove flags we don't need anymore
 for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }
 

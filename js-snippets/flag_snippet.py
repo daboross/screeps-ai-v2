@@ -1,4 +1,3 @@
-
 flag_definitions = {
     LOCAL_MINE: (COLOR_BLUE, COLOR_PURPLE),
     DEPOT: (COLOR_BLUE, COLOR_BLUE),
@@ -171,6 +170,7 @@ def find_flags(room, flag_type):
         _room_flag_cache.set(room_name, new_map([[flag_type, flag_list]]))
     return flag_list
 
+
 _global_flag_cache = new_map()
 _global_flag_refresh_time = Game.time + _REFRESH_EVERY
 
@@ -191,6 +191,7 @@ def find_flags_global(flag_type, reload=False):
             flag_list.append(flag)
     _global_flag_cache.set(flag_type, flag_list)
     return flag_list
+
 
 def squared_distance(x1, y1, x2, y2):
     """

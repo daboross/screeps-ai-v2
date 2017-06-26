@@ -848,10 +848,10 @@ class RoomDefense:
                             actually_destroyed = math.floor((effective_hits - damage_to_account_for)
                                                             / effective_hits
                                                             * part.hits)
-                            attack_possible = damage_to_account_for - actually_destroyed
+                            attack_possible -= damage_to_account_for - actually_destroyed
                             break  # No need to zero out damage_to_account_for here, as we're done
 
-                if healing_possible > attack_possible:
+                if healing_possible >= attack_possible:
                     # TODO: request a rampart defender if this is next to a rampart and there's a small enough gap
                     #  between damage/healing power!
                     print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
