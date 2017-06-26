@@ -840,41 +840,9 @@ class RoomDefense:
                                   * ATTACK_POWER \
                                   + _.sum(towers.slice(tower_index),
                                           lambda t: tower_damage(t.pos.getRangeTo(hostile)))
-                attack_possible_if_healed_first = attack_possible
                 if hostile.hasActiveBoostedBodyparts(TOUGH):
-                    damage_to_account_for = attack_possible
-                    for part in hostile.body:
-                        if part.hits <= 0:
-                            continue
-                        if damage_to_account_for <= 0:
-                            break
-                        if part.boost is undefined or part.type != TOUGH:
-                            damage_to_account_for -= part.hits
-                            continue
-                        # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
-                        # effective_hits = math.ceil(part.hits * (1 / retained_damage))
-                        effective_hits = math.ceil(part.hits * TOUGH_HIT_MULTIPLIERS[part.boost])
-                        if js_isNaN(effective_hits):
-                            print("effective hits for boost {} is NaN.".format(part.boost))
-                            effective_hits = part.hits
-                        # If we will fully destroy this part, there's no need to do partial-destruction logic
-                        if effective_hits <= damage_to_account_for:
-                            damage_to_account_for -= effective_hits
-                            # since we fully destroy it, just subtract how much extra damage is absorbed
-                            attack_possible -= (effective_hits - part.hits)
-                        else:
-                            # This is the last part, and we're partially destroying it, which means... ratios!
-                            actually_destroyed = math.floor((effective_hits - damage_to_account_for)
-                                                            / effective_hits
-                                                            * part.hits)
-                            attack_possible -= damage_to_account_for - actually_destroyed
-                            break  # No need to zero out damage_to_account_for here, as we're done
-                # check the worst case scenario: when healers hit it before we attack
-                # this isn't ideal since we can't retroactively put our attack orders at the top of the queue,
-                # but we can ask to for next time.
-                if hostile.hasBoostedBodyparts(TOUGH) and hostile.hits < hostile.hitsMax:
                     healing_to_account_for = healing_possible
-                    damage_to_account_for = attack_possible_if_healed_first
+                    damage_to_account_for = attack_possible
                     parts_not_healed = 0
                     last_healed_part_hits = 50
                     for part in reversed(hostile.body):
@@ -911,13 +879,13 @@ class RoomDefense:
                         if effective_hits <= damage_to_account_for:
                             damage_to_account_for -= effective_hits
                             # since we fully destroy it, just subtract how much extra damage is absorbed
-                            attack_possible_if_healed_first -= (effective_hits - part_hits)
+                            attack_possible -= (effective_hits - part_hits)
                         else:
                             # This is the last part, and we're partially destroying it, which means... ratios!
                             actually_destroyed = math.floor((effective_hits - damage_to_account_for)
                                                             / effective_hits
                                                             * part_hits)
-                            attack_possible_if_healed_first -= damage_to_account_for - actually_destroyed
+                            attack_possible -= damage_to_account_for - actually_destroyed
                             break  # No need to zero out damage_to_account_for here, as we're done
 
                 if healing_possible >= attack_possible:
@@ -931,19 +899,7 @@ class RoomDefense:
                     continue
                 else:
                     print("[{}] Attacking hostile at {}: {} heal possible, {} damage possible."
-                          " ({} damage possible if healed first)"
-                          .format(self.room.name, hostile.pos, healing_possible, attack_possible,
-                                  attack_possible_if_healed_first))
-                    if healing_possible >= attack_possible_if_healed_first:
-                        print("[{}] Warning: if healing is applied first, attack on hostile at {} will not succeed:"
-                              " {} heal possible, {} damage possible".format(self.room.name, hostile.pos,
-                                                                             healing_possible,
-                                                                             attack_possible_if_healed_first))
-                        Memory.attack_first = []
-                        for my_defender in nearby_defenders:
-                            Memory.attack_first.push([my_defender.id, hostile.id])
-                        for tower in towers:
-                            Memory.attack_first.push([tower.id, hostile.id])
+                          .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                 for my_defender in nearby_defenders:
                     my_defender.creep.attack(hostile)
                     my_defender.creep.defense_override = True

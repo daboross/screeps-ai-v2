@@ -197,32 +197,6 @@ def run_room(targets, creeps_skipped, room):
 
 run_room.err_desc = lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
 
-
-def attack_first():
-    if Memory.attack_first:
-        results = []
-        for friendly_id, hostile_id in Memory.attack_first:
-            friendly = Game.getObjectById(friendly_id)
-            hostile = Game.getObjectById(hostile_id)
-            if friendly and callable(friendly.attack):
-                results.push(friendly.attack(hostile))
-            else:
-                results.push("attack is not a function")
-            friendly.defense_override = True
-        for i in range(0, len(results)):
-            if results[i] != OK:
-                friendly_id, hostile_id = Memory.attack_first[i]
-                friendly = Game.getObjectById(friendly_id)
-                hostile = Game.getObjectById(hostile_id)
-                print("[attack_first] ({} ({})).attack(({} ({}))) failed: {}", friendly, friendly_id, hostile,
-                      hostile_id, results[i])
-
-        del Memory.attack_first
-
-
-attack_first.err_desc = lambda: "error running attack_first"
-
-
 def main():
     global _memory_init
     # This check is here in case it's a global reset, and we've already initiated memory.
@@ -233,10 +207,6 @@ def main():
     records.start_main_record()
     records.record_memory_amount(_memory_init)
     _memory_init = None
-
-    records.start_record()
-    try_thing(attack_first)
-    records.finish_record('attack-first')
 
     records.start_record()
 
