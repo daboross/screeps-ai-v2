@@ -1079,6 +1079,7 @@ class RoomDefense:
         else:
             serialized_locations = self.mem.known_locations = []
         ramparts_undefended = []  # Slow, but faster than lodash
+        eh_might_try = []  # eh_might_try is backup for if there are no other urgent hot-spots
         for rampart in self.room.find(FIND_MY_STRUCTURES):
             if rampart.setPublic:  # method only accessible for STRUCTURE_RAMPART, faster than checking structureType
                 serialized = positions.serialize_pos_xy(rampart)
@@ -1094,6 +1095,7 @@ class RoomDefense:
                         continue
                     nearby = self.room.look_for_in_area_around(LOOK_CREEPS, rampart, 1)
                     total_offense = 0
+                    total_enemy_parts = 0
                     for obj in nearby:
                         creep = obj.creep
                         if not creep.my and not Memory.meta.friends.includes(creep.owner.username.toLowerCase()):
@@ -1102,8 +1104,14 @@ class RoomDefense:
                             if _.some(hot_spots, lambda x: movement.chebyshev_distance_room_pos(x, creep) <= 1):
                                 offense /= 3
                             total_offense += offense
+                            total_enemy_parts += len(creep.body)
                     if total_offense:
                         ramparts_undefended.push([rampart, total_offense])
+                    elif total_enemy_parts:
+                        eh_might_try.push([rampart, total_enemy_parts])
+        # let's kill everyone if there are no direct threats
+        if not len(ramparts_undefended):
+            ramparts_undefended = eh_might_try
         # NOTE: This code may very well prioritize stocking multiple ramparts directly next to each other (all in range
         #  of a single creep), over defending all different points of invasion. However undesirable this is, it seems
         #  to be a reasonable behavior given that the alternative would use that much more CPU.
