@@ -21,7 +21,10 @@ def is_room_mostly_safe(room_name):
     room = context.hive().get_room(room_name)
     if not room or not room.my:
         return False
-    if room.defense.broken_walls or room.being_bootstrapped():
+    # right now, broken walls returns True even when the walls that are broken are non-essential.
+    # not a very useful metric.
+    # if room.defense.broken_walls or room.being_bootstrapped():
+    if room.being_bootstrapped():
         return False
     return True
 
