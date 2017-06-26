@@ -914,6 +914,9 @@ class RoomDefense:
                     break
             if some_left:
                 self.check_for_noninvader_raid()
+            if tower_index == 0:
+                # all enemies are untouchable, let's just ignore them and heal our guys.
+                self.tower_heal()
         elif self.room.spawn:
             self.check_for_noninvader_raid()
 
