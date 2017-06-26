@@ -94,7 +94,32 @@ class RoleDefender(MilitaryBase):
 
 
 class WallDefender(RoleBase):
+    def boost(self):
+        if not self.room.defense.needs_boosted_defenders():
+            self.memory.boosted = 2
+            return False
+
+        lab = _.find(self.home.minerals.labs(),
+                     lambda l: l.mineralAmount and l.energy and l.mineralType == RESOURCE_CATALYZED_UTRIUM_ACID)
+        if lab:
+            if self.pos.isNearTo(lab):
+                result = lab.boostCreep(self.creep)
+                if result == OK or result == ERR_NOT_ENOUGH_RESOURCES or self.creep.hasBoostedBodyparts(ATTACK):
+                    self.memory.boosted = 1
+                else:
+                    self.log("WARNING: Unknown result from {}.boostCreep({}): {}"
+                             .format(lab, self.creep, result))
+            else:
+                self.move_to(lab)
+            return True
+        else:
+            self.memory.boosted = 2
+        return False
+
     def run(self):
+        if self.creep.ticksToLive > 1400 and not (self.memory.boosted >= 1):
+            if self.boost():
+                return False
         target = self.targets.get_new_target(self, target_rampart_defense)
         if not target:
             self.go_to_depot()

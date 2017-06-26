@@ -95,6 +95,10 @@ minerals_to_keep_on_hand = [
     RESOURCE_CATALYZED_UTRIUM_ACID,
 ]
 
+minerals_to_buy = [
+    RESOURCE_CATALYZED_UTRIUM_ACID
+]
+
 _EMPTY_MEM_OBJ = {}
 
 Object.freeze(_EMPTY_MEM_OBJ)
@@ -690,6 +694,9 @@ class MineralMind:
                 or self.terminal.store[RESOURCE_ENERGY] < 5000 or self.terminal.cooldown:
             return
         spending_state = self.room.get_spending_target()
+
+        self.buy_boosts()  # very low cost if not under siege
+
         if spending_state == room_spending_state_supporting or spending_state == room_spending_state_supporting_sieged:
             self.run_support(spending_state)
         elif spending_state == room_spending_state_selling_and_supporting:
@@ -741,6 +748,63 @@ class MineralMind:
             if result != OK:
                 self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}"
                          .format(amount, sending_to, result))
+
+    def buy_boosts(self):
+        if not self.room.defense.needs_boosted_defenders():
+            return
+        counts = self.get_total_room_resource_counts()
+        cache = volatile_cache.mem('market_orders')
+
+        for mineral in minerals_to_buy:
+            if counts[mineral] and counts[mineral] >= 5000:
+                continue
+            if cache.has(mineral):
+                orders = cache.get(mineral)
+            else:
+                orders = Game.market.getAllOrders({'resourceType': mineral})
+                cache.set(mineral, orders)
+            if len(orders):
+                best_order = None
+                best_order_energy_cost = None
+                least_losses = Infinity  # TODO: this should be set to min value, but is lower for debug purposes.
+                energy_price = find_credits_one_energy_is_worth()  # << cached per tick
+                for order in orders:
+                    if order.amount < 50 or order.type != ORDER_SELL:
+                        continue
+                    distance = Game.map.getRoomLinearDistance(self.room.name, order.roomName, True)
+                    energy_cost_of_1_resource = 1 * (1 - Math.exp(-distance / 30))
+                    loss = order.price + energy_cost_of_1_resource * energy_price
+                    if loss < least_losses:
+                        least_losses = loss
+                        best_order = order
+                        best_order_energy_cost = energy_cost_of_1_resource
+                if best_order is not None:
+                    maximum = 4.0
+                    if least_losses > maximum:
+                        print("[{}][minerals] Best sell order for {} is at price {}."
+                              " Not buying because loss is {} ({} + {} * {}) higher than the maximum {}."
+                              .format(self.room.name, mineral, best_order.price, least_losses.toFixed(5),
+                                      best_order.price, best_order_energy_cost.toFixed(5),
+                                      energy_price, maximum))
+                        continue
+                    amount = min(
+                        self.terminal.store[RESOURCE_ENERGY] / best_order_energy_cost,
+                        5000,
+                        best_order.amount,
+                    )
+                    if js_isNaN(amount):
+                        print("[{}][minerals] Wrong calculation for amount of transaction! we have {} energy, {} {},"
+                              " order amount is {}: result: {}.".format(self.room.name,
+                                                                        self.terminal.store[RESOURCE_ENERGY],
+                                                                        self.terminal.store[mineral], mineral,
+                                                                        best_order.amount, amount))
+                    print("[{}][minerals] Buying {} {} from {} for the price of {} (loss: {}, left: {}).".format(
+                        self.room.name, amount, mineral, best_order.roomName, best_order.price, least_losses.toFixed(5),
+                        best_order.amount - amount))
+                    result = Game.market.deal(best_order.id, amount, self.room.name)
+                    if result != OK:
+                        print("[{}][minerals] Unknown result from Game.market.deal('{}', {}, '{}'): {}!"
+                              .format(self.room.name, best_order.id, amount, self.room.name, result))
 
     def run_execute_buy(self):
         """

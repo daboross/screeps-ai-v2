@@ -279,6 +279,12 @@ class RoomDefense:
         self.room.store_cached_property('s-nukes', has_significant_nukes, 1000)
         return has_significant_nukes
 
+    def needs_boosted_defenders(self):
+        if self.room.minerals.has_no_terminal_or_storage():
+            return False
+        needs_boosts = self.room.get_cached_property('n-boost')
+        return needs_boosts or False
+
     def this_room_mining_ops(self):
         if self._cache.has("this_room_mining_ops"):
             return self._cache.get("this_room_mining_ops")
@@ -919,6 +925,8 @@ class RoomDefense:
                     #  between damage/healing power!
                     print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
                           .format(self.room.name, hostile.pos, healing_possible, attack_possible))
+                    if len(nearby_defenders):
+                        self.room.store_cached_property('n-boost', True, 1500)
                     some_left = True
                     continue
                 else:

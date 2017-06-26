@@ -138,7 +138,7 @@ class KitingOffense(MilitaryBase):
             return False
 
         if self.memory.boosted == 0:
-            lab = labs.find(lambda l: l.mineralType == "XKHO2")
+            lab = labs.find(lambda l: l.mineralType == RESOURCE_CATALYZED_KEANIUM_ALKALIDE)
             if lab:
                 if self.pos.isNearTo(lab):
                     result = lab.boostCreep(self.creep)
@@ -154,7 +154,7 @@ class KitingOffense(MilitaryBase):
                 self.memory.boosted = 1
 
         if self.memory.boosted == 1:
-            lab = labs.find(lambda l: l.mineralType == "XLHO2")
+            lab = labs.find(lambda l: l.mineralType == RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE)
             if lab:
                 if self.pos.isNearTo(lab):
                     result = lab.boostCreep(self.creep)
