@@ -115,6 +115,28 @@ function activateCustomizations() {
     };
 
     // Custom addition
+    Creep.prototype.hasBoostedBodyparts = function (type) {
+        for (var i = this.body.length; i-- > 0;) {
+            var x = this.body[i];
+            if (x.boost !== undefined && x.type == type) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Custom addition
+    Creep.prototype.hasOffenseBodyparts = function () {
+        for (var i = this.body.length; i-- > 0;) {
+            var x = this.body[i];
+            if (x.type == ATTACK || x.type == RANGED_ATTACK) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    // Custom addition
     Creep.prototype.getActiveBodypartsBoostEquivalent = function (type, action) {
         var total = 0;
         var typeBoosts, boostPowers, actionPower;
