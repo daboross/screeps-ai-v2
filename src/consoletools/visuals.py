@@ -1,3 +1,4 @@
+from constants import rmem_key_currently_under_siege
 from creep_management import mining_paths
 from jstools import js_visuals
 from jstools.screeps import *
@@ -13,7 +14,11 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-def visualize_room(room_name):
+def visualize_room(hive, room_name):
+    """
+    :type hive: empire.hive.HiveMind
+    :type room_name: str
+    """
     js_visuals.clear(room_name)
     path_colors = ['#6AB4FF', '#A4B227', '#EDFF51', '#CC362C', '#B2615B']
     next_color = 0
@@ -32,3 +37,34 @@ def visualize_room(room_name):
             'opacity': 0.3,
             'strokeWidth': 0.2,
         })
+
+    room = hive.get_room(room_name)
+    if room and room.my and room.mem[rmem_key_currently_under_siege]:
+        js_visuals.text(room_name, 5, 45, "under attack", {
+            'color': '#AA0114',
+            'size': 1.0,
+            'opacity': 0.8,
+        })
+        hot, cold = room.defense.get_current_defender_spots()
+        for spot in hot:
+            js_visuals.circle(room_name, spot.x, spot.y, {
+                'radius': 2.0,
+                'fill': '#AA0114',
+                'opacity': 0.2,
+            })
+            js_visuals.circle(room_name, spot.x, spot.y, {
+                'radius': 4.0,
+                'fill': '#AA0114',
+                'opacity': 0.2,
+            })
+        for spot in cold:
+            js_visuals.circle(room_name, spot.x, spot.y, {
+                'radius': 2.0,
+                'fill': '00B7EB',
+                'opacity': 0.2,
+            })
+            js_visuals.circle(room_name, spot.x, spot.y, {
+                'radius': 4.0,
+                'fill': '#00B7EB',
+                'opacity': 0.2,
+            })

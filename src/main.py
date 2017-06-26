@@ -413,7 +413,7 @@ def main():
             if room_name[0] == '_':
                 continue
             any_visualized_rooms = True
-            visuals.visualize_room(room_name)
+            visuals.visualize_room(hive, room_name)
             records.finish_record('visuals.visualize-room')
             records.start_record()
     if not any_visualized_rooms:
