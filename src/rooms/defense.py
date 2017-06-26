@@ -1077,7 +1077,7 @@ class RoomDefense:
                 if not hot_found.has(serialized):
                     is_other = False
                     for structure in self.room.look_at(LOOK_STRUCTURES, rampart):
-                        if not structure.setPublic:
+                        if structure.structureType != STRUCTURE_RAMPART and structure.structureType != STRUCTURE_ROAD:
                             is_other = True
                     for creep in self.room.look_at(LOOK_CREEPS, rampart):
                         if creep.memory.role == role_miner:
