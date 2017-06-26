@@ -1050,7 +1050,7 @@ class RoomMind:
             state = room_spending_state_selling
         elif self.mem[mem_key_now_supporting]:
             room = self.hive.get_room(self.mem[mem_key_now_supporting])
-            if room and room.minerals.get_estimate_total_energy() < energy_at_which_to_stop_supporting:
+            if room and not room.minerals.has_no_terminal_or_storage() and room.minerals.get_estimate_total_energy() < energy_at_which_to_stop_supporting:
                 if room.mem[mem_key_currently_under_siege]:
                     state = room_spending_state_supporting_sieged
                 else:
