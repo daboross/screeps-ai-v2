@@ -23,11 +23,11 @@ def _init_tough_part_multipliers():
     # This was the original code. We're now creating a constant in order to skip directly to
     # math.ceil(part.hits * MULTIPLIERS[part.boost])
     # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
-    # effective_hits = math.ceil(part.hits * (1 / prevented))
+    # effective_hits = math.ceil(part.hits * (1 / retained_damage))
     result = {}
     input_obj = BOOSTS[TOUGH]
     for boost in Object.keys(input_obj):
-        result[boost] = 1 / (1 - input_obj[boost].damage)
+        result[boost] = 1 / input_obj[boost].damage
     return result
 
 
@@ -833,7 +833,7 @@ class RoomDefense:
                             damage_to_account_for -= part.hits
                             continue
                         # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
-                        # effective_hits = math.ceil(part.hits * (1 / prevented))
+                        # effective_hits = math.ceil(part.hits * (1 / retained_damage))
                         effective_hits = math.ceil(part.hits * TOUGH_HIT_MULTIPLIERS[part.boost])
                         if js_isNaN(effective_hits):
                             print("effective hits for boost {} is NaN.".format(part.boost))
