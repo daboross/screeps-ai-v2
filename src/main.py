@@ -197,6 +197,7 @@ def run_room(targets, creeps_skipped, room):
 
 run_room.err_desc = lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
 
+
 def main():
     global _memory_init
     # This check is here in case it's a global reset, and we've already initiated memory.

@@ -36,7 +36,7 @@ def try_exec(place, thing, error_description, *args):
     :type place: str
     :type thing: callable
     :type error_description: callable
-    :type args: list[any]
+    :type args: any
     """
     result = True
     try:

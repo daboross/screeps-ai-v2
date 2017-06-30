@@ -6,10 +6,11 @@ def __pragma__(arg1, arg2=None, arg3=None):
     """
 
 
-def __new__(*args):
+def __new__(arg):
     """
-    :type args: list[any]
+    :type arg: any
     """
+    return arg
 
 
 def js_isNaN(num):

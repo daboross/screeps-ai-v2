@@ -82,7 +82,11 @@ _(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c
 
 _(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.untarget_all(c))
 
-py.get_room("E56N21").building.refresh_building_targets(); _(py.get_room("E56N21").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.untarget_all(c))
+py.get_room("E4S61").building.refresh_building_targets(); _(py.get_room("E4S61").creeps).filter(c => c.memory.role == 'builder').forEach(c => py.hive().targets.untarget_all(c))
+
+py.get_room("E4S61").delete_cached_property('sqds')
+
+py.locations.get(Memory.creeps['3b1a'].squad).update(Game.flags['E4S61_attack!'].pos.x, Game.flags['E4S61_attack!'].pos.y, Game.flags['E4S61_attack!'].pos.roomName)
 
 # Remove flags we don't need anymore
 for (let flag of py.flags.find_flags_ms_global(py.flags.MAIN_DESTRUCT, py.flags.SUB_ROAD)) {  flag.remove() }

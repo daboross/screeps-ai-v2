@@ -601,7 +601,7 @@ class RoleBase:
         """
         Logs a given string
         :type format_string: str
-        :type args: list[object]
+        :type args: any
         """
         if len(args):
             print("[{}][{}] {}".format(self.home.name, self.name, format_string.format(*args)))

@@ -519,7 +519,7 @@ class HoneyTrails:
                     print("[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!"
                           .format(origin, destination, room_data.owner.name, room_name))
             elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.RESERVED \
-                    and not Memory.meta.friends.includes(room_data.owner.name.toLowerCase()):
+                    and not Memory.meta.friends.includes(room_data.owner.name.lower()):
                 if room_name != origin.roomName and room_name != destination.roomName:
                     # print("[honey] Avoiding room {}.".format(room_name))
                     return False
@@ -714,7 +714,8 @@ class HoneyTrails:
             for flag in spawn_fill_wait_flags:
                 matrix.set_impassable(flag.pos.x, flag.pos.y)
             controller = room.room.controller
-            if not controller or destination.roomName != room_name or destination.x != controller.pos.x or destination.y != controller.pos.y:
+            if not controller or destination.roomName != room_name \
+                    or destination.x != controller.pos.x or destination.y != controller.pos.y:
                 for flag in upgrader_wait_flags:
                     matrix.set_impassable(flag.pos.x, flag.pos.y)
             # Link manager creep position
@@ -723,10 +724,10 @@ class HoneyTrails:
                 storage = room.room.storage
                 if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
                         and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
-                    matrix.set_impassable(ml.pos.x, (ml.pos.y + storage.pos.y) / 2)
+                    matrix.set_impassable(ml.pos.x, int((ml.pos.y + storage.pos.y) / 2))
                 elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
                         and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
-                    matrix.set_impassable((ml.pos.x + storage.pos.x) / 2, ml.pos.y)
+                    matrix.set_impassable(int((ml.pos.x + storage.pos.x) / 2), ml.pos.y)
                 else:
                     for sxx in range(ml.pos.x - 1, ml.pos.x + 2):
                         for syy in range(ml.pos.y - 1, ml.pos.y + 2):

@@ -452,7 +452,7 @@ function activateCustomizations() {
             }
 
             resultStringArray.push(dxDyToDirection(dx, dy));
-            if (pos.roomName != roomToConvert) {
+            if (pos.roomName !== roomToConvert) {
                 break;
             }
             last_x = pos.x;
@@ -522,7 +522,7 @@ function activateCustomizations() {
             // reached by the movement at (idx - 1) since idx just got incremented at the start of this loop)
             // Also, if this is the first iteration and x/y_to_check match the first pos, idx is at 4, the fifth
             // pos, directly after the initial x/y, and also the first direction to go!
-            if (x_to_check === my_x && y_to_check == my_y) {
+            if (x_to_check === my_x && y_to_check === my_y) {
                 dir = +path[idx];
                 // if (this.memory.debug) {
                 //     console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y}) at position ${idx}, moving ${dir}`);
@@ -573,7 +573,7 @@ function activateCustomizations() {
             // reached by the movement at (idx - 1) since idx just got incremented at the start of this loop)
             // Also, if this is the first iteration and x/y_to_check match the first pos, idx is at 4, the fifth
             // pos, directly after the initial x/y, and also the first direction to go!
-            if (x_to_check === my_x && y_to_check == my_y) {
+            if (x_to_check === my_x && y_to_check === my_y) {
                 // console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y})`);
                 dxdy = directionToDxDy(+path[idx]);
                 return new RoomPosition(x_to_check + dxdy[0], x_to_check + dxdy[1], this.pos.roomName);
@@ -849,7 +849,6 @@ function activateCustomizations() {
         //     }
         //     console.log(JSON.stringify(result));
         //
-        //     asdf.dsafdsafawe.fawefawe;fawef.awef;
         //     return result.join('\n');
         // };
         walk_path(py.hive().honey.find_serialized_path(origin, destination, opts))
