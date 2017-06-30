@@ -1,4 +1,4 @@
-from constants import role_mineral_hauler, role_mineral_miner, role_recycling
+from constants import rmem_key_currently_under_siege, role_mineral_hauler, role_mineral_miner, role_recycling
 from creeps.base import RoleBase
 from jstools.screeps import *
 from utilities import movement
@@ -110,7 +110,7 @@ class MineralHauler(RoleBase):
     def determine_next_state(self, debug=False):
         mind = self.home.minerals
         now_held = self.carry_sum()
-        if now_held < self.creep.carryCapacity:
+        if now_held < self.creep.carryCapacity and not self.room.mem[rmem_key_currently_under_siege]:
             mineral = self.home.find(FIND_MINERALS)[0]
             if mineral:
                 containers = _.filter(self.home.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
@@ -131,9 +131,12 @@ class MineralHauler(RoleBase):
                                 if mind.terminal.store[resource] > (mind.get_all_terminal_targets()[resource] or 0):
                                     break
                     else:
-                        if debug:
-                            self.log('Choosing miner_harvest as there\'s a miner with 1000 minerals and we have space.')
-                        return _MINER_HARVEST
+                        if _.some(self.home.look_at(LOOK_STRUCTURES, mineral.pos),
+                                  {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
+                            if debug:
+                                self.log('Choosing miner_harvest as there\'s a miner with'
+                                         ' 1000 minerals and we have space.')
+                            return _MINER_HARVEST
 
         for resource in Object.keys(self.creep.carry):
             if self.creep.carry[resource] > 0:
@@ -292,6 +295,7 @@ class MineralHauler(RoleBase):
                            {'my': True, 'structureType': STRUCTURE_EXTRACTOR})
         if not extractor:
             self.log("MineralHauler's mineral at {} does not have an extractor. D:".format(mineral.pos))
+            del self.memory.state
             self.go_to_depot()
             return False
 
