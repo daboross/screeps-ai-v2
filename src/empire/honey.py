@@ -540,6 +540,9 @@ class HoneyTrails:
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
                       .format(origin, destination, room_name))
+        if room_data and room_data.avoid_always:
+            print("[honey] Manually avoiding room {} marked as always avoid.".format(room_name))
+            return False
 
         plain_cost = opts['plain_cost'] or 1
         swamp_cost = opts['swamp_cost'] or 5

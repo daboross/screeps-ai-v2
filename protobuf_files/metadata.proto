@@ -35,4 +35,5 @@ message StoredRoom {
     uint64 last_updated = 2;
     uint64 reservation_end = 3;
     StoredEnemyRoomOwner owner = 4;
+    bool avoid_always = 5;
 }

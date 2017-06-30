@@ -317,3 +317,17 @@ def set_as_enemy(room_name, username=None):
     new_data.owner = __new__(StoredEnemyRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
     print("[storage] Successfully added {} as an enemy room.".format(room_name))
     _set_new_data(room_name, new_data)
+
+
+def avoid_always(room_name):
+    stored = get_data(room_name)
+    if stored:
+        if stored.avoid_always:
+            return "already avoiding {}.".format(room_name)
+        new_data = StoredRoom.decode(_get_serialized_data(room_name))
+    else:
+        new_data = __new__(StoredRoom())
+    new_data.avoid_always = True
+    print("[storage] Now always avoiding {}.".format(room_name))
+    _set_new_data(room_name, new_data)
+    return "set {} as always avoid room.".format(room_name)

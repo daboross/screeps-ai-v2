@@ -823,13 +823,14 @@ function defineRoomMetadataPrototypes() {
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], last_updated = 0, reservation_end = 0, owner = undefined) {
+    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], last_updated = 0, reservation_end = 0, owner = undefined, avoid_always=false) {
         this.obstacles = obstacles;
         this.reservation_end = reservation_end;
         this.last_updated = last_updated;
         if (owner !== undefined) {
             this.owner = owner;
         }
+        this.avoid_always = avoid_always;
     };
 
     StoredRoom.prototype.toString = function () {
@@ -845,6 +846,9 @@ function defineRoomMetadataPrototypes() {
         }
         if (this.structures) {
             values.push(...this.structures);
+        }
+        if (this.avoid_always) {
+            values.push(" [manually avoiding always]");
         }
         return `[StoredRoom ${values.join(' ')}]`;
     };
@@ -892,12 +896,14 @@ function defineRoomMetadataPrototypes() {
         else if (tag === 2) obj.last_updated = pbf.readVarint();
         else if (tag === 3) obj.reservation_end = pbf.readVarint();
         else if (tag === 4) obj.owner = StoredEnemyRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
+        else if (tag === 5) obj.avoid_always = pbf.readBoolean();
     };
     StoredRoom.write = function (obj, pbf) {
         if (obj.obstacles) for (var i = 0; i < obj.obstacles.length; i++) pbf.writeMessage(1, StoredObstacle.write, obj.obstacles[i]);
         if (obj.last_updated) pbf.writeVarintField(2, obj.last_updated);
         if (obj.reservation_end) pbf.writeVarintField(3, obj.reservation_end);
         if (obj.owner) pbf.writeMessage(4, StoredEnemyRoomOwner.write, obj.owner);
+        if (obj.avoid_always) pbf.writeBooleanField(5, obj.avoid_always);
     };
 
     StoredRoom.prototype.encode = function () {

@@ -50,7 +50,7 @@ class StoredRoom:
     :type owner: StoredEnemyRoomOwner
     """
 
-    def __init__(self, obstacles=None, last_updated=None, reservation_end=None, owner=None):
+    def __init__(self, obstacles=None, last_updated=None, reservation_end=None, owner=None, avoid_always=None):
         if obstacles is None:
             obstacles = []
         if last_updated is None:
@@ -61,6 +61,7 @@ class StoredRoom:
         self.last_updated = last_updated
         self.reservation_end = reservation_end
         self.owner = owner
+        self.avoid_always = avoid_always
 
     @staticmethod
     def decode(string):
