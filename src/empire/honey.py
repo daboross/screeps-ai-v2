@@ -530,6 +530,15 @@ def clear_cached_path(origin, destination, opts=None):
     global_cache.rem(key)
 
 
+def get_room_list_from_serialized_obj(path_obj):
+    if _path_cached_data_key_room_order in path_obj:
+        return path_obj[_path_cached_data_key_room_order]
+    elif _path_cached_data_key_metadata in path_obj:
+        return path_obj[_path_cached_data_key_metadata].js_split(',').slice(1)
+    else:
+        return Object.keys(path_obj)
+
+
 class HoneyTrails:
     """
     :type hive: empire.hive.HiveMind
@@ -1119,12 +1128,7 @@ class HoneyTrails:
 
         final_list = []
 
-        if _path_cached_data_key_room_order in path_obj:
-            list_of_names = path_obj[_path_cached_data_key_room_order]
-        elif _path_cached_data_key_metadata in path_obj:
-            list_of_names = path_obj[_path_cached_data_key_metadata].js_split(',').slice(1)
-        else:
-            list_of_names = Object.keys(path_obj)
+        list_of_names = get_room_list_from_serialized_obj(path_obj)
 
         for room_name in list_of_names:
             if not movement.is_valid_room_name(room_name):  # special key
@@ -1149,12 +1153,7 @@ class HoneyTrails:
 
         result = []
 
-        if _path_cached_data_key_room_order in path_obj:
-            list_of_names = path_obj[_path_cached_data_key_room_order]
-        elif _path_cached_data_key_metadata in path_obj:
-            list_of_names = path_obj[_path_cached_data_key_metadata].js_split(',').slice(1)
-        else:
-            list_of_names = Object.keys(path_obj)
+        list_of_names = get_room_list_from_serialized_obj(path_obj)
 
         for room_name in list_of_names:
             if not movement.is_valid_room_name(room_name):  # special key

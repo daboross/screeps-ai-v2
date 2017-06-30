@@ -156,8 +156,8 @@ def dismantle_pathfinder_callback(room_name):
                 for x in range(mineral.pos.x - 4, mineral.pos.x + 5):
                     for y in range(mineral.pos.y - 4, mineral.pos.y + 5):
                         matrix.set(x, y, 200)
-        print('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'
-              .format(room_name, matrix.visual()))
+        pass
+        # print('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'.format(room_name, matrix.visual()))
     else:
         matrix = __new__(PathFinder.CostMatrix())
         data = stored_data.get_data(room_name)
@@ -191,6 +191,10 @@ def dismantle_condition_not_a_road(structure):
     return structure.structureType != STRUCTURE_ROAD and not structure.my
 
 
+def creep_condition_enemy(creep):
+    return not creep.my and not Memory.meta.friends.includes(creep.owner.username.lower())
+
+
 class SquadDismantle(SquadDrone):
     def run_squad(self, members, target):
         """
@@ -207,10 +211,13 @@ class SquadDismantle(SquadDrone):
                     if result != OK:
                         self.log("Unknown result from {}.dismantle({}): {}"
                                  .format(self.creep, best_structure, result))
-                    return
+                    if result != ERR_NOT_IN_RANGE:
+                        return
             elif next_pos == ERR_NOT_FOUND:
                 del self.memory['_move']
-        if self.room.my:
+        owner = stored_data._find_room_owner(self.room.room)
+        if owner and (Memory.meta.friends.includes(owner.name.lower())
+                      or owner.name == self.creep.owner.username):
             return
         structures_around = self.room.look_for_in_area_around(LOOK_STRUCTURES, self, 1)
         best_structure = None
@@ -294,6 +301,12 @@ class SquadDismantle(SquadDrone):
         enemy_structures = self.room.find(FIND_HOSTILE_STRUCTURES)
         for struct in enemy_structures:
             structure_type = struct.structureType
+            if structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
+                    or (struct.store and _.findKey(struct.store,
+                                                   lambda amount, key: amount > 5000
+                                                   and (key != RESOURCE_ENERGY or amount > 100 * 1000))):
+                self.log("skipping structure at {},{}", struct.pos.x, struct.pos.y)
+                continue
             if structure_type == STRUCTURE_SPAWN:
                 rank = 50
             elif structure_type == STRUCTURE_LAB:
@@ -367,7 +380,7 @@ class SquadHeal(SquadDrone):
             if result != OK:
                 self.log("Unknown result using {}.heal({}): {}"
                          .format(self.creep, best_damaged_rank.creep, result))
-        elif best_near:
+        elif movement.chebyshev_distance_room_pos(self, target) < 100 and best_near:
             result = self.creep.heal(best_near.creep)
             if result != OK:
                 self.log("Unknown result using {}.heal({}): {}"
