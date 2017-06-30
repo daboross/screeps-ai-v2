@@ -1247,7 +1247,7 @@ class RoomMind:
                             else:
                                 break  # this is sorted
                 if room.room.storage:
-                    target = min(10, 5 + room.room.storage.store.energy / 20 * 1000) * worker_mass
+                    target = min(10.0, 5 + room.room.storage.store.energy / 20 * 1000) * worker_mass
                 elif len(room.sources) >= 2:
                     target = 5 * worker_mass
                 else:
@@ -1735,7 +1735,8 @@ class RoomMind:
             role_mineral_miner:
                 lambda: min(4, spawning.max_sections_of(self, creep_base_mammoth_miner)),
             role_mineral_hauler:
-                lambda: min(10, spawning.max_sections_of(self, creep_base_hauler)),
+                lambda: min(self.minerals.get_target_mineral_hauler_size(),
+                            spawning.max_sections_of(self, creep_base_hauler)),
             role_td_goad:
                 lambda: spawning.max_sections_of(self, creep_base_goader),
             role_td_healer:

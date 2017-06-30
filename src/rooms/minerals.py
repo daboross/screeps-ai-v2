@@ -95,7 +95,7 @@ minerals_to_keep_on_hand = [
     RESOURCE_CATALYZED_UTRIUM_ACID,
 ]
 
-minerals_to_buy = [
+to_buy_when_defending = [
     RESOURCE_CATALYZED_UTRIUM_ACID
 ]
 
@@ -749,13 +749,48 @@ class MineralMind:
                 self.log("ERROR: Unknown result from terminal.send(RESOURCE_ENERGY, {}, '{}', 'Sending support!'): {}"
                          .format(amount, sending_to, result))
 
+    def stock(self, mineral):
+        mem = self.mem()
+        if not mem.stock:
+            mem.stock = []
+
+        if mem.stock.includes(mineral):
+            return "{} is already stocked!".format(self.room.name, mineral)
+        else:
+            print("[{}][minerals] Stocking {}.".format(self.room.name, mineral))
+            mem.stock.push(mineral)
+            return "stocked {}.".format(mineral)
+
+    def clear_stock(self):
+        mem = self.mem()
+        if 'stock' in mem:
+            del mem['stock']
+            return "stock cleared."
+        else:
+            return "stock already empty."
+
+    def minerals_to_stock(self):
+        mem_stock = self.ro_mem().stock
+        defenders = self.room.defense.needs_boosted_defenders()
+        if defenders:
+            if mem_stock:
+                return to_buy_when_defending.concat(mem_stock)
+            else:
+                return to_buy_when_defending
+        else:
+            if mem_stock:
+                return mem_stock
+            else:
+                return []
+
     def buy_boosts(self):
-        if not self.room.defense.needs_boosted_defenders():
+        to_buy = self.minerals_to_stock()
+        if not len(to_buy):
             return
         counts = self.get_total_room_resource_counts()
         cache = volatile_cache.mem('market_orders')
 
-        for mineral in minerals_to_buy:
+        for mineral in to_buy:
             if counts[mineral] and counts[mineral] >= 5000:
                 continue
             if cache.has(mineral):
@@ -1098,6 +1133,15 @@ class MineralMind:
             return 1
         else:
             return 0
+
+    def get_target_mineral_hauler_size(self):
+        total = _.sum(self.adding_to_terminal(), lambda t: t[1]) \
+                + _.sum(self.removing_from_terminal(), lambda t: t[1])
+        print("[{}][minerals] total workload: {}".format(self.room.name, total))
+        if total > 100 * 1000:
+            return 25
+        else:
+            return 10
 
     def get_target_sacrifice_count(self):
         if self.has_no_terminal_or_storage():
