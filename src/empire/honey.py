@@ -2,7 +2,7 @@ import math
 
 from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, global_cache_mining_paths_suffix, \
-    global_cache_roadless_paths_suffix, global_cache_swamp_paths_suffix, role_miner
+    global_cache_roadless_paths_suffix, global_cache_swamp_paths_suffix, global_cache_warpath_suffix, role_miner
 from creep_management import mining_paths
 from empire import stored_data
 from jstools.screeps import *
@@ -141,6 +141,43 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
 
 def get_global_cache_key(origin, destination, opts):
     if opts:
+        if opts['sk_ok']:
+            if opts['ignore_swamp']:  # Default false
+                return '_'.join([
+                    'path',
+                    origin.roomName,
+                    origin.x,
+                    origin.y,
+                    destination.roomName,
+                    destination.x,
+                    destination.y,
+                    global_cache_swamp_paths_suffix,
+                    global_cache_warpath_suffix,
+                ])
+            elif opts['paved_for']:  # Default false
+                return '_'.join([
+                    'path',
+                    origin.roomName,
+                    origin.x,
+                    origin.y,
+                    destination.roomName,
+                    destination.x,
+                    destination.y,
+                    global_cache_mining_paths_suffix,
+                    global_cache_warpath_suffix,
+                ])
+            elif 'use_roads' in opts and not opts['use_roads']:  # Default true
+                return '_'.join([
+                    'path',
+                    origin.roomName,
+                    origin.x,
+                    origin.y,
+                    destination.roomName,
+                    destination.x,
+                    destination.y,
+                    global_cache_roadless_paths_suffix,
+                    global_cache_warpath_suffix,
+                ])
         if opts['ignore_swamp']:  # Default false
             return '_'.join([
                 'path',
@@ -646,9 +683,10 @@ class HoneyTrails:
                                 for yy in range(y - 3, y + 4):
                                     matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 6 * plain_cost)
                 return
-            if stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE \
-                    or stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL \
-                    or stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR:
+
+            if not opts["sk_ok"] and (stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE
+                                      or stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL
+                                      or stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR):
                 for xx in range(x - 4, x + 5):
                     for yy in range(y - 4, y + 5):
                         matrix.set_impassable(xx, yy)
@@ -772,6 +810,7 @@ class HoneyTrails:
             max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
             max_avoid = opts["avoid_rooms"] if "avoid_rooms" in opts else None
             heuristic_attempt_num = opts["heuristic_attempt_num"] if "heuristic_attempt_num" in opts else 0
+            sk_ok = opts["sk_ok"] if "sk_ok" in opts else False
         else:
             roads_better = True
             ignore_swamp = False
@@ -781,6 +820,7 @@ class HoneyTrails:
             max_ops = get_default_max_ops(origin, destination, {'use_roads': roads_better})
             max_avoid = None
             heuristic_attempt_num = 0
+            sk_ok = False
 
         if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
             reroute_start = Game.flags['reroute']
@@ -847,7 +887,8 @@ class HoneyTrails:
                 "plain_cost": plain_cost,
                 "swamp_cost": swamp_cost,
                 "min_cost": min_cost,
-                "enemy_ok": enemy_ok
+                "enemy_ok": enemy_ok,
+                "sk_ok": sk_ok,
             }),
             "maxRooms": max_rooms,
             "maxOps": max_ops,

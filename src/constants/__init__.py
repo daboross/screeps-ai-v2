@@ -231,6 +231,7 @@ max_repave_mine_roads_every = 15 * 1000
 global_cache_mining_paths_suffix = 'mrd'
 global_cache_swamp_paths_suffix = 'swl'
 global_cache_roadless_paths_suffix = 'nrd'
+global_cache_warpath_suffix = 'wrp'
 
 # Note: regex useful for generating the following:
 # in room.py, search for: ([^ \n]+) = '[^']+'\n+

@@ -17,83 +17,93 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
-class MilitaryBase(RoleBase):
-    def _find_nearest_junctions(self):
-        x, y = parse_room_to_xy(self.pos.roomName)
-        if x == 0 and y == 0 and self.pos.roomName == 'sim':
-            return []  # we're in sim
+def _find_nearest_junctions(pos):
+    """
+    :type pos: RoomPosition
+    """
+    if pos.pos:
+        pos = pos.pos
+    x, y = parse_room_to_xy(pos.roomName)
+    if x == 0 and y == 0 and pos.roomName == 'sim':
+        return []  # we're in sim
 
-        rrx = (-x - 1 if x < 0 else x) % 10
-        rry = (-y - 1 if y < 0 else y) % 10
+    rrx = (-x - 1 if x < 0 else x) % 10
+    rry = (-y - 1 if y < 0 else y) % 10
 
-        def floor_thing(coord):
-            if coord < 0:
-                return math.floor((coord + 1) / 10) * 10 - 1
-            else:
-                return math.floor(coord / 10) * 10
+    def floor_thing(coord):
+        if coord < 0:
+            return math.floor((coord + 1) / 10) * 10 - 1
+        else:
+            return math.floor(coord / 10) * 10
 
-        def ceil_thing(coord):
-            if coord < 0:
-                return math.ceil((coord + 1) / 10) * 10 - 1
-            else:
-                return math.ceil(coord / 10) * 10
+    def ceil_thing(coord):
+        if coord < 0:
+            return math.ceil((coord + 1) / 10) * 10 - 1
+        else:
+            return math.ceil(coord / 10) * 10
 
-        if rrx == 0:
-            if rry == 0:
-                return [center_pos(room_xy_to_name(x, y))]
-            else:
-                return [
-                    center_pos(room_xy_to_name(x, floor_thing(y))),
-                    center_pos(room_xy_to_name(x, ceil_thing(y))),
-                ]
-        elif rry == 0:
-            return [
-                center_pos(room_xy_to_name(floor_thing(x), y)),
-                center_pos(room_xy_to_name(ceil_thing(x), y)),
-            ]
+    if rrx == 0:
+        if rry == 0:
+            return [center_pos(room_xy_to_name(x, y))]
         else:
             return [
-                center_pos(room_xy_to_name(floor_thing(x), floor_thing(y))),
-                center_pos(room_xy_to_name(floor_thing(x), ceil_thing(y))),
-                center_pos(room_xy_to_name(ceil_thing(x), floor_thing(y))),
-                center_pos(room_xy_to_name(ceil_thing(x), ceil_thing(y))),
+                center_pos(room_xy_to_name(x, floor_thing(y))),
+                center_pos(room_xy_to_name(x, ceil_thing(y))),
             ]
+    elif rry == 0:
+        return [
+            center_pos(room_xy_to_name(floor_thing(x), y)),
+            center_pos(room_xy_to_name(ceil_thing(x), y)),
+        ]
+    else:
+        return [
+            center_pos(room_xy_to_name(floor_thing(x), floor_thing(y))),
+            center_pos(room_xy_to_name(floor_thing(x), ceil_thing(y))),
+            center_pos(room_xy_to_name(ceil_thing(x), floor_thing(y))),
+            center_pos(room_xy_to_name(ceil_thing(x), ceil_thing(y))),
+        ]
 
-    def find_midpoint(self, origin, target):
-        # This method calculates the angle at each junction made by drawing lines from the origin and destination to
-        # that junction. pi*2/5 is just under 90 degrees, and is our cutoff point for deciding to path through an
-        # intersection.
-        biggest_midpoint_angle = math.pi * 2 / 5
-        best_midpoint = None
-        for junction in self._find_nearest_junctions():
-            # a^2 = b^2 + c^2  - 2bc * cos(A)
-            # cos(A) = (b^2 + c^2 - a^2) / (2bc)
-            oj_distance_squared = distance_squared_room_pos(origin, junction)
-            jt_distance_squared = distance_squared_room_pos(junction, target)
-            ot_distance_squared = distance_squared_room_pos(origin, target)
-            junction_angle = math.acos(
-                (oj_distance_squared + jt_distance_squared - ot_distance_squared)
-                / (2 * math.sqrt(oj_distance_squared) * math.sqrt(jt_distance_squared))
-            )
-            if junction_angle > biggest_midpoint_angle:
-                biggest_midpoint_angle = junction_angle
-                best_midpoint = junction
-        # if best_midpoint is not None:
-        #     self.log("WARNING: Found midpoint {} for path from {} to {}".format(
-        #         best_midpoint, origin, target
-        #     ))
-        return best_midpoint
 
-    def _using_reroute(self, origin, target):
-        if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-            reroute_start = Game.flags['reroute']
-            reroute_destination = Game.flags['reroute_destination']
-            if chebyshev_distance_room_pos(origin, reroute_start) \
-                    + chebyshev_distance_room_pos(reroute_destination, target) \
-                    < chebyshev_distance_room_pos(origin, target):
-                return True
-        return False
+def find_midpoint(pos, origin, target):
+    # This method calculates the angle at each junction made by drawing lines from the origin and destination to
+    # that junction. pi*2/5 is just under 90 degrees, and is our cutoff point for deciding to path through an
+    # intersection.
+    if pos.pos:
+        pos = pos.pos
+    biggest_midpoint_angle = math.pi * 2 / 5
+    best_midpoint = None
+    for junction in _find_nearest_junctions(pos):
+        # a^2 = b^2 + c^2  - 2bc * cos(A)
+        # cos(A) = (b^2 + c^2 - a^2) / (2bc)
+        oj_distance_squared = distance_squared_room_pos(origin, junction)
+        jt_distance_squared = distance_squared_room_pos(junction, target)
+        ot_distance_squared = distance_squared_room_pos(origin, target)
+        junction_angle = math.acos(
+            (oj_distance_squared + jt_distance_squared - ot_distance_squared)
+            / (2 * math.sqrt(oj_distance_squared) * math.sqrt(jt_distance_squared))
+        )
+        if junction_angle > biggest_midpoint_angle:
+            biggest_midpoint_angle = junction_angle
+            best_midpoint = junction
+    # if best_midpoint is not None:
+    #     self.log("WARNING: Found midpoint {} for path from {} to {}".format(
+    #         best_midpoint, origin, target
+    #     ))
+    return best_midpoint
 
+
+def is_path_portal(origin, target):
+    if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
+        reroute_start = Game.flags['reroute']
+        reroute_destination = Game.flags['reroute_destination']
+        if chebyshev_distance_room_pos(origin, reroute_start) \
+                + chebyshev_distance_room_pos(reroute_destination, target) \
+                < chebyshev_distance_room_pos(origin, target):
+            return True
+    return False
+
+
+class MilitaryBase(RoleBase):
     def recalc_military_path(self, origin, target, opts=None):
         # TODO: separate the majority of the code this shares with follow_military_path into a new module
         if opts and "to_home" in opts:
@@ -115,10 +125,10 @@ class MilitaryBase(RoleBase):
             'current_room': self.pos.roomName,
         }
         if opts:
-            path_opts = _.create(path_opts, opts)
+            path_opts = _.merge(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if chebyshev_distance_room_pos(origin, target) > 900 \
-                and not self._using_reroute(origin, target):
+                and not is_path_portal(origin, target):
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
             path_opts.use_roads = False
@@ -136,11 +146,11 @@ class MilitaryBase(RoleBase):
                     # basic pathfinding to get to our actual target.
                     self.move_to(target)
                     return
-            if not self._using_reroute(origin, target):
-                origin_midpoint = self.find_midpoint(self, origin)
+            if not is_path_portal(origin, target):
+                origin_midpoint = find_midpoint(self, self, origin)
                 if origin_midpoint is not None:
                     origin = origin_midpoint
-                dest_midpoint = self.find_midpoint(origin, target)
+                dest_midpoint = find_midpoint(self, origin, target)
                 if dest_midpoint is not None:
                     if self.pos.roomName == dest_midpoint.roomName:
                         origin = dest_midpoint
@@ -170,10 +180,10 @@ class MilitaryBase(RoleBase):
             'current_room': self.pos.roomName,
         }
         if opts:
-            path_opts = _.create(path_opts, opts)
+            path_opts = _.merge(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if chebyshev_distance_room_pos(origin, target) > 900 \
-                and not self._using_reroute(origin, target):
+                and not is_path_portal(origin, target):
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
 
@@ -192,10 +202,10 @@ class MilitaryBase(RoleBase):
                     self.move_to(target)
                     return
             pass
-            origin_midpoint = self.find_midpoint(self, origin)
+            origin_midpoint = find_midpoint(self, self, origin)
             if origin_midpoint is not None:
                 origin = origin_midpoint
-            dest_midpoint = self.find_midpoint(origin, target)
+            dest_midpoint = find_midpoint(self, origin, target)
             if dest_midpoint is not None:
                 if self.pos.roomName == dest_midpoint.roomName:
                     origin = dest_midpoint
