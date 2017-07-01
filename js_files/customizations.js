@@ -527,7 +527,7 @@ function activateCustomizations() {
                 // if (this.memory.debug) {
                 //     console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y}) at position ${idx}, moving ${dir}`);
                 // }
-                return [idx, dir];
+                return [idx - 4, dir];
             } else {
                 // console.log(`[${this.memory.home}][${this.name}] Not my position: (${x_to_check}, ${y_to_check})`);
             }
@@ -541,6 +541,14 @@ function activateCustomizations() {
             // }
             x_to_check += dxdy[0];
             y_to_check += dxdy[1];
+        }
+        // if we're at the last position of a multi-room path.
+        // TODO: include this in moveByPath too?
+        if (x_to_check === my_x && y_to_check === my_y) {
+            console.log(`[${this.name}] : last position found: ${my_x},${my_y}`);
+            return [idx - 4, -30];
+        } else {
+            console.log(`[${this.name}] : no position found: ${my_x},${my_y} (last to_check: ${x_to_check},${y_to_check})`);
         }
         return [ERR_NOT_FOUND, ERR_NOT_FOUND];
     };

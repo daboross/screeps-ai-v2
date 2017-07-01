@@ -268,6 +268,23 @@ class RoomDefense:
             self._cache.set('any_broken_walls', broken)
             return broken
 
+    def urgent_wall_repairs(self):
+        """
+        Gets any walls which urgently need repair.
+        """
+        if self._cache.has("urgent_walls"):
+            return self._cache.get("urgent_walls")
+        else:
+            def hits(wall_id):
+                wall = Game.getObjectById(wall_id)
+                if wall:
+                    return wall.hits
+                else:
+                    return
+
+            average = _(self.room.building.get_big_repair_targets()).map(
+                lambda x: Game.getObjectById(x)).filter().pluck('hits"')
+
     def has_significant_nukes(self):
         has_significant_nukes = self.room.get_cached_property('s-nukes')
         if has_significant_nukes is not None:

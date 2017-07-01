@@ -104,7 +104,7 @@ _boosts_to_use = {
 
 _should_boost = {
     SQUAD_4_SCOUTS: False,
-    SQUAD_DISMANTLE_RANGED: True,
+    SQUAD_DISMANTLE_RANGED: False,
     SQUAD_DUAL_ATTACK: False,
     SQUAD_DUAL_SCOUTS: False,
     SQUAD_KITING_PAIR: False,
@@ -476,7 +476,7 @@ class SquadTactics:
                 continue
             target_type = target.hint
             if target_type in squad_classes:
-                squad_obj = squad_classes[target_type](squad_members, target)
+                squad_obj = squad_classes[target_type](self.room, squad_members, target)
                 squad_obj.run()
             else:
                 print("[{}][squads] Warning: couldn't find run func for squad type {}!"
@@ -531,15 +531,18 @@ class SquadTactics:
 
 class Squad:
     """
+    :type home: rooms.room_mind.RoomMind
     :type __cached_members_movement_order: list[creeps.roles.squads.SquadDrone]
     :type members: list[creeps.roles.squads.SquadDrone]
     """
 
-    def __init__(self, members, location):
+    def __init__(self, home, members, location):
         """
+        :type home: rooms.room_mind.RoomMind
         :type members: list[creeps.roles.squads.SquadDrone]
         :type location: position_management.locations.Location
         """
+        self.home = home
         self.members = members
 
         self.location = location
@@ -548,9 +551,18 @@ class Squad:
         self.__cached_members_movement_order = undefined
         __pragma__('noskip')
 
+    def log(self, message, *args):
+        """
+        :type message: str
+        :type *args: any
+        """
+        if len(args):
+            print("[{}][squad-{}] {}".format(self.home.name, self.location.name, message.format(*args)))
+        else:
+            print("[{}][squad-{}] {}".format(self.home.name, self.location.name, message))
+
     def find_origin(self):
-        home = self.members[0].home
-        return home.spawn or movement.find_an_open_space(home.name)
+        return self.home.spawn or movement.find_an_open_space(self.home.name)
 
     def members_movement_order(self):
         """
@@ -566,8 +578,9 @@ class Squad:
         
         :type target: position_management.locations.Location | RoomPosition
         """
-
         ordered_members = self.members_movement_order()
+
+        self.log("Members {} moving - stage 0.", _.pluck(ordered_members, 'name'))
 
         for i in range(len(ordered_members) - 1, -1, -1):
             if i == 0:
@@ -582,6 +595,8 @@ class Squad:
         :type target: position_management.locations.Location | RoomPosition
         """
         ordered_members = self.members_movement_order()
+
+        self.log("Members {} moving - stage 1.", _.pluck(ordered_members, 'name'))
 
         options = self.new_movement_opts()
 
@@ -600,7 +615,6 @@ class Squad:
 
         for drone in ordered_members:
             room_index = ordered_rooms_in_path.indexOf(drone.pos.roomName)
-            drone.log("this drone room index: {}", room_index)
             if not room_index:
                 any_member_off_path = True
                 members_path_positions.push(None)
@@ -609,22 +623,23 @@ class Squad:
 
             path_index, moving_direction = drone.creep.findIndexAndDirectionInPath(room_path)
 
-            if moving_direction < 0:
+            if path_index < 0:
+                self.log("..: position ({},{}) is not within {} ({}, {})",
+                         drone.pos.x, drone.pos.y, room_path, path_index, moving_direction)
                 any_member_off_path = True
                 members_path_positions.push(None)
                 continue
-
-            drone.log("this drone path index: {}", path_index)
 
             members_path_positions.push({'room': room_index, 'path': path_index, 'dir': moving_direction})
 
         if any_member_off_path:
             for i in range(len(ordered_members) - 1, -1, -1):
                 if members_path_positions[i] is None:
+                    member = ordered_members[i]
                     # Since the member is definitely off the path
-                    ordered_members[i].log("[squad-{}] Off path, individually following military path.",
-                                           self.location.name)
-                    ordered_members[i].follow_military_path(origin, target, options)
+                    self.log("Member {} ({}) off path - individually following military path ({} -> {})..",
+                             member.name, member.pos, origin, target)
+                    member.follow_military_path(origin, target, options)
                 else:
                     # members near members that are off path should also move, to make room available.
                     for i2 in range(0, len(ordered_members)):
@@ -633,10 +648,13 @@ class Squad:
                                 and movement.chebyshev_distance_room_pos(other_member, ordered_members[i]) \
                                         <= len(ordered_members) + 1:
                             direction = members_path_positions[i].dir
-                            result = ordered_members[i].creep.move(direction)
-                            if result != OK and result != ERR_TIRED:
-                                ordered_members[i].log("Error moving by squad path ({}.move({})): {}",
-                                                       ordered_members[i].creep, direction, result)
+                            # key code turned from findIndexAndDirectionInPath when we're at an exit and we should
+                            # just say put.
+                            if direction != -30:
+                                result = ordered_members[i].creep.move(direction)
+                                if result != OK and result != ERR_TIRED:
+                                    ordered_members[i].log("Error moving by squad path ({}.move({})): {}",
+                                                           ordered_members[i].creep, direction, result)
                             break
         else:
             # iterate backwards over every member so we can break the loop easily if any further back members are
@@ -646,10 +664,14 @@ class Squad:
                 drone = ordered_members[i]
                 move_obj = members_path_positions[i]
 
-                drone.log("[squads] regular stage1 movement in dir {}", move_obj.dir)
-                result = drone.creep.move(move_obj.dir)
-                if result != OK:
-                    drone.log("Error moving by squad path ({}.move({})): {}", drone.creep, move_obj.dir, result)
+                self.log("[{}] regular stage1 movement in dir {}", drone.name, move_obj.dir)
+
+                # key code turned from findIndexAndDirectionInPath when we're at an exit and we should
+                # just say put.
+                if move_obj.dir != -30:
+                    result = drone.creep.move(move_obj.dir)
+                    if result != OK and result != ERR_TIRED:
+                        drone.log("Error moving by squad path ({}.move({})): {}", drone.creep, move_obj.dir, result)
 
                 if i != 0:
                     next_member_obj = members_path_positions[i - 1]
@@ -658,7 +680,7 @@ class Squad:
                     if room_diff < 0:
                         # we're accidentally ahead..? let's let them keep going
                         if move_obj['path'] > 3:
-                            drone.log("[squads] we're ahead... canceling move")
+                            self.log("[{}] we're ahead - canceling move.", drone.name)
                             # if we're substantially into this room, let's just pause and wait for the next member
                             drone.creep.cancelOrder('move')
                         continue
@@ -666,7 +688,7 @@ class Squad:
                         abs_path_diff = next_member_obj['path'] - move_obj['path']
 
                         if abs_path_diff < 0:
-                            drone.log("[squads] we're ahead... moving backwards.")
+                            self.log("[{}] we're ahead - moving manually.", drone.name)
                             drone.move_to(ordered_members[i - 1])
                             continue
                     elif room_diff == 1:
@@ -679,11 +701,12 @@ class Squad:
                             # room_path_lengths is an estimation, and may be off.
                             abs_path_diff = next_member_obj['path']
                     else:
-                        drone.log("[squads] other room diff: {}", room_diff)
+                        self.log("[{}] other room diff: {}", drone.name, room_diff)
                         # just a message that we're quite far behind.
                         abs_path_diff = 100
 
-                    drone.log("[squads] path diff to next member: {}", abs_path_diff)
+                    self.log("[{}] room diff: {}, path diff: {}, pos: {}",
+                             drone.name, room_diff, abs_path_diff, drone.pos)
                     if abs_path_diff > 10:
                         break  # we're too far behind, pause all ahead creeps till we catch up
 
@@ -696,6 +719,8 @@ class Squad:
         :type target: position_management.locations.Location | RoomPosition
         """
         ordered_members = self.members_movement_order()
+
+        self.log("Members {} moving - stage 2.", _.pluck(ordered_members, 'name'))
 
         movement_opts = self.new_movement_opts()
 
@@ -874,6 +899,7 @@ class DismantleSquad(BasicOffenseSquad):
     def new_movement_opts(self):
         return {
             "use_roads": False,
+            "sk_ok": True,
             "maxOps": 40000,
             "reusePath": 100,
             "plainCost": 2,
@@ -888,8 +914,8 @@ class ScoutSquad(Squad):
 
     def run(self):
         members = self.members_movement_order()
-        print('[scout squad] Running squad {} with members {}'
-              .format(self.location.name, [member.name for member in members]))
+        self.log('Running scout squad {} with members {}',
+                 self.location.name, [member.name for member in members])
         if members[0].pos.isNearTo(self.location):
             for i in range(0, len(members) - 1):
                 if not members[i].pos.isNearTo(members[i + 1].pos):
@@ -936,6 +962,6 @@ squad_classes = {
     SQUAD_4_SCOUTS: ScoutSquad,
     SQUAD_DUAL_ATTACK: BasicOffenseSquad,
     SQUAD_DISMANTLE_RANGED: DismantleSquad,
-    SQUAD_TOWER_DRAIN: DismantleSquad,
+    SQUAD_TOWER_DRAIN: BasicOffenseSquad,
     SQUAD_KITING_PAIR: KitingPairSquad,
 }

@@ -1,13 +1,13 @@
 import math
 
-from constants import role_recycling, target_single_flag
+from constants import SQUAD_DISMANTLE_RANGED, role_recycling, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.roles.smart_offensive import kiting_away_raw_path
 from empire import honey, stored_data
 from jstools import errorlog
 from jstools.screeps import *
-from position_management import locations
+from position_management import flags, locations
 from rooms import defense
 from utilities import hostile_utils, movement, positions
 
@@ -97,6 +97,26 @@ def cost_of_wall_hits(hits):
     return int(math.ceil(20 * math.log(hits / (DISMANTLE_POWER * MAX_CREEP_SIZE / 2 * 40), 50)))
 
 
+def is_saveable_amount(amount, resource):
+    return amount > 5000 and (resource != RESOURCE_ENERGY or amount > 100 * 1000)
+
+
+def can_target_struct(structure):
+    if '__valid_dismantle_target' not in structure:
+        structure_type = structure.structureType
+        invalid = (
+            structure.my
+            or structure_type == STRUCTURE_CONTROLLER
+            or structure_type == STRUCTURE_PORTAL
+            or (
+                structure.store
+                and _.findKey(structure.store, is_saveable_amount)
+            )
+        )
+        structure['__valid_dismantle_target'] = not invalid
+    return structure['__valid_dismantle_target']
+
+
 def dismantle_pathfinder_callback(room_name):
     room = Game.rooms[room_name]
     if room:
@@ -107,6 +127,8 @@ def dismantle_pathfinder_callback(room_name):
             structure_type = structure.structureType
             if structure_type == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
                 continue
+            elif not can_target_struct(structure):
+                matrix.set(structure.pos.x, structure.pos.y, 255)
             elif structure_type == STRUCTURE_ROAD:
                 if matrix.get(structure.pos.x, structure.pos.y) == 0:
                     matrix.set(structure.pos.x, structure.pos.y, plain_cost)
@@ -131,7 +153,6 @@ def dismantle_pathfinder_callback(room_name):
                             matrix.increase_at(x, y, None, 10 * plain_cost)
                         else:
                             matrix.increase_at(x, y, None, (10 - distance) * plain_cost)
-
             elif structure.hits:
                 matrix.increase_at(structure.pos.x, structure.pos.y, None,
                                    cost_of_wall_hits(structure.hits) * plain_cost)
@@ -157,7 +178,7 @@ def dismantle_pathfinder_callback(room_name):
                     for y in range(mineral.pos.y - 4, mineral.pos.y + 5):
                         matrix.set(x, y, 200)
         pass
-        # print('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'.format(room_name, matrix.visual()))
+        print('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'.format(room_name, matrix.visual()))
     else:
         matrix = __new__(PathFinder.CostMatrix())
         data = stored_data.get_data(room_name)
@@ -188,7 +209,7 @@ _dismantle_move_to_opts = {
 
 
 def dismantle_condition_not_a_road(structure):
-    return structure.structureType != STRUCTURE_ROAD and not structure.my
+    return structure.structureType != STRUCTURE_ROAD and can_target_struct(structure)
 
 
 def creep_condition_enemy(creep):
@@ -201,6 +222,8 @@ class SquadDismantle(SquadDrone):
         :type members: list[SquadDrone]
         :type target: position_management.locations.Location
         """
+        if movement.chebyshev_distance_room_pos(self, target) > 150:
+            return
         path = _.get(self.memory, ['_move', 'path'])
         if path:
             next_pos = self.creep.findNextPathPos(path)
@@ -209,15 +232,14 @@ class SquadDismantle(SquadDrone):
                 if best_structure:
                     result = self.creep.dismantle(best_structure)
                     if result != OK:
-                        self.log("Unknown result from {}.dismantle({}): {}"
-                                 .format(self.creep, best_structure, result))
+                        self.log("Unknown result from {}.dismantle({}): {}", self.creep, best_structure, result)
                     if result != ERR_NOT_IN_RANGE:
                         return
             elif next_pos == ERR_NOT_FOUND:
                 del self.memory['_move']
         owner = stored_data._find_room_owner(self.room.room)
-        if owner and (Memory.meta.friends.includes(owner.name.lower())
-                      or owner.name == self.creep.owner.username):
+        if (owner and (Memory.meta.friends.includes(owner.name.lower())
+                       or owner.name == self.creep.owner.username)):
             return
         structures_around = self.room.look_for_in_area_around(LOOK_STRUCTURES, self, 1)
         best_structure = None
@@ -232,10 +254,13 @@ class SquadDismantle(SquadDrone):
             best_rank = -Infinity
             for structure_obj in self.room.look_for_in_area_around(LOOK_STRUCTURES, self, 1):
                 structure = structure_obj.structure
+                if not can_target_struct(structure):
+                    continue
                 if structure.my or structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
                         or (structure.store and _.findKey(structure.store,
                                                           lambda amount, key: amount > 5000
                                                           and (key != RESOURCE_ENERGY or amount > 100 * 1000))):
+                    print("WARNING WARNING WARNING second clause hit for {}".format(structure))
                     continue
                 structure_type = structure.structureType
                 if structure_type == STRUCTURE_TOWER:
@@ -261,22 +286,23 @@ class SquadDismantle(SquadDrone):
                     best_structure = structure
         elif len(structures_around):
             best_structure = structures_around[0].structure
-            if best_structure.my:
+            if not can_target_struct(best_structure):
                 return
         else:
             return
 
-        result = self.creep.dismantle(best_structure)
-        self._dismantled = best_structure
-        if result == OK:
-            if best_structure.hits < our_dismantle_power \
-                    or best_structure.hits < our_dismantle_power + _.sum(
-                        members, lambda x: x.creep.getActiveBodypartsBoostEquivalent(RANGED_ATTACK, 'rangedAttack')
-                                * RANGED_ATTACK_POWER):
-                del self.memory._move
-        else:
-            self.log("Unknown result from {}.dismantle({}): {}"
-                     .format(self.creep, best_structure, result))
+        if best_structure:
+            result = self.creep.dismantle(best_structure)
+            self._dismantled = best_structure
+            if result == OK:
+                if best_structure.hits < our_dismantle_power \
+                        or best_structure.hits < our_dismantle_power + _.sum(
+                            members, lambda x: x.creep.getActiveBodypartsBoostEquivalent(RANGED_ATTACK, 'rangedAttack')
+                                    * RANGED_ATTACK_POWER):
+                    del self.memory._move
+            else:
+                self.log("Unknown result from {}.dismantle({}): {}"
+                         .format(self.creep, best_structure, result))
 
     def find_target_here(self, target):
         """
@@ -301,10 +327,13 @@ class SquadDismantle(SquadDrone):
         enemy_structures = self.room.find(FIND_HOSTILE_STRUCTURES)
         for struct in enemy_structures:
             structure_type = struct.structureType
+            if not can_target_struct(struct):
+                continue
             if structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
                     or (struct.store and _.findKey(struct.store,
                                                    lambda amount, key: amount > 5000
                                                    and (key != RESOURCE_ENERGY or amount > 100 * 1000))):
+                print("WARNING WARNING WARNING second clause hit for {}".format(struct))
                 self.log("skipping structure at {},{}", struct.pos.x, struct.pos.y)
                 continue
             if structure_type == STRUCTURE_SPAWN:
@@ -333,6 +362,14 @@ class SquadDismantle(SquadDrone):
             self.memory.tloctimeout = Game.time + 100
             return best_target.pos
         else:
+            if self.pos.isNearTo(target):
+                flag = _.find(flags.look_for(self.room, target, SQUAD_DISMANTLE_RANGED))
+                if flag:
+                    msg = "[dismantle squad][{}][{}] Dismantle job in {} completed at {}! Removing flag {} ({})." \
+                        .format(self.home.name, self.name, self.pos.roomName, Game.time, flag, flag.pos)
+                    self.log(msg)
+                    Game.notify(msg)
+                    flag.remove()
             self.memory.tloc = positions.serialize_pos_xy(target)
             self.memory.tloctimeout = Game.time + 20
             return target
