@@ -61,7 +61,7 @@ scalable_sections = {
     creep_base_full_move_attack: [MOVE, ATTACK],
     creep_base_power_attack: [MOVE, MOVE, TOUGH, ATTACK, ATTACK, ATTACK],
     creep_base_half_move_hauler: [MOVE, CARRY, CARRY],
-    creep_base_claiming: [MOVE, MOVE, MOVE, CLAIM, MOVE],
+    creep_base_claiming: [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, MOVE],
     creep_base_claim_attack: [MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, CLAIM, CLAIM, CLAIM, CLAIM],
 }
 
@@ -285,7 +285,9 @@ def run(room, spawn):
     elif base is creep_base_claiming:
         claim_cost = BODYPART_COST[CLAIM]
         move_cost = BODYPART_COST[MOVE]
-        if energy >= claim_cost + move_cost * 4:
+        if energy >= claim_cost + move_cost * 7:
+            parts = [MOVE, MOVE, MOVE, MOVE, MOVE, MOVE, CLAIM, MOVE]
+        elif energy >= claim_cost + move_cost * 4:
             parts = [MOVE, MOVE, MOVE, CLAIM, MOVE]
         elif energy >= claim_cost + move_cost * 2:
             parts = [MOVE, CLAIM, MOVE]
