@@ -553,6 +553,8 @@ class HoneyTrails:
         room_data = stored_data.get_data(room_name)
         room = self.hive.get_room(room_name)
 
+        sk_ok = not not opts['sk_ok']
+
         if room_data and room_data.owner:
             if room_data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL:
                 if room_name != origin.roomName and room_name != destination.roomName:
@@ -575,6 +577,11 @@ class HoneyTrails:
             elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.JUST_MINING:
                 print("[honey] Warning: path {}-{} may pass through {}'s mining room, {}"
                       .format(origin, destination, room_data.owner.name, room_name))
+            if room_data.owner and room_data.owner.state is StoredEnemyRoomState.JUST_MINING \
+                    and Memory.meta.friends.includes(room_data.owner.name.lower()):
+                print("[honey] Enabling moving close to SK mines in {} (mining room of {})"
+                      .format(room_name, room_data.owner.name))
+                sk_ok = True
         elif room and room.enemy:
             # TODO: add the granularity we have above down here.
             if room_name != origin.roomName and room_name != destination.roomName:
@@ -693,7 +700,7 @@ class HoneyTrails:
                                     matrix.increase_at(xx, yy, _COST_TYPE_AVOID_SOURCE, 6 * plain_cost)
                 return
 
-            if not opts["sk_ok"] and (stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE
+            if not sk_ok and (stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE
                                       or stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL
                                       or stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR):
                 for xx in range(x - 4, x + 5):
