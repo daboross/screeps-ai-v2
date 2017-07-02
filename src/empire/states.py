@@ -28,7 +28,9 @@ class StateCalc:
         for room in self.hive.my_rooms:
             if room.minerals.fully_setup():
                 if len(room.spawns) and (room.mem[rmem_key_currently_under_siege]
-                                         or room.defense.has_significant_nukes()):
+                                         or room.defense.has_significant_nukes()) \
+                        or ((len(room.squads.squad_targets()) or len(room.subsidiaries))
+                            and room.minerals.get_estimate_total_energy() < 200 * 1000):
                     under_siege.append(room)
                 else:
                     not_under_siege.append(room)
