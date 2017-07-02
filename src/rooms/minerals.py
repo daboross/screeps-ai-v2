@@ -394,7 +394,7 @@ class MineralMind:
     def labs_for(self, mineral):
         if self._labs_for is undefined:
             self._labs_for = (_(self.labs())
-                              .filter(lambda l: l.mineralAmount and l.energy)
+                              .filter(lambda l: l.mineralAmount >= LAB_BOOST_MINERAL and l.energy >= LAB_BOOST_ENERGY)
                               .groupBy('mineralType')
                               .value())
         return self._labs_for[mineral] or []
@@ -578,8 +578,22 @@ class MineralMind:
                                        currently_have - energy_balance_point_for_rcl8_selling)
             else:
                 min_via_spending = 0
-            return min(currently_have - 50 * 1000,
-                       max(0, min_via_empty_to, min_via_fulfillment, min_via_spending)), 2
+
+            max_so_far = max(0, min_via_empty_to, min_via_fulfillment, min_via_spending)
+            if max_so_far < 5000:
+                counts = self.get_total_room_resource_counts()
+                for mineral in self.minerals_to_sell():
+                    we_have = self.terminal.store[mineral]
+                    if we_have or (we_have < 1000 and we_have < counts[mineral]):
+                        max_so_far = 5000
+                        break
+                else:
+                    for mineral in self.minerals_to_stock():
+                        if not counts[mineral] or counts[mineral] < 5000:
+                            max_so_far = 5000
+                            break
+
+            return min(currently_have - 50 * 1000, max_so_far), 2
         elif minerals_to_keep_on_hand.includes(mineral):
             return 0
         else:
@@ -850,7 +864,7 @@ class MineralMind:
         cache = volatile_cache.mem('market_orders')
         for mineral in minerals:
             we_have = self.terminal.store[mineral]
-            if not we_have or (we_have < 1000 and we_have < self.get_total_room_resource_counts()[minerals]):
+            if not we_have or (we_have < 1000 and we_have < self.get_total_room_resource_counts()[mineral]):
                 continue
             if cache.has(mineral):
                 orders = cache.get(mineral)
