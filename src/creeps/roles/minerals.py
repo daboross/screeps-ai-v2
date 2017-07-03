@@ -182,7 +182,7 @@ class MineralHauler(RoleBase):
             if debug:
                 self.log("Choosing dead because we are near death.")
             return _DEAD
-        elif mind.energy_needed_in_labs():
+        elif mind.energy_needed_in_labs() >= self.creep.carryCapacity / 2:
             if debug:
                 self.log("Choosing storage_pickup as there is something needed in labs.")
             return _STORAGE_PICKUP
@@ -354,7 +354,7 @@ class MineralHauler(RoleBase):
             return False
         for resource, needed_in_terminal in mind.adding_to_terminal() \
                 .concat([(RESOURCE_ENERGY, mind.energy_needed_in_labs())]) \
-                .concat([(mineral, amount)
+                .concat([(mineral, amount - lab.mineralAmount)
                          for lab, mineral, amount in mind.get_lab_targets()
                          if lab.mineralAmount < amount]):
             to_withdraw = min(self.creep.carryCapacity - now_carrying,
