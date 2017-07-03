@@ -106,7 +106,7 @@ _boosts_to_use = {
 
 _should_boost = {
     SQUAD_4_SCOUTS: False,
-    SQUAD_DISMANTLE_RANGED: False,
+    SQUAD_DISMANTLE_RANGED: True,
     SQUAD_DUAL_ATTACK: False,
     SQUAD_DUAL_SCOUTS: False,
     SQUAD_KITING_PAIR: False,
