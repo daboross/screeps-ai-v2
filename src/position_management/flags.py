@@ -602,8 +602,16 @@ def _flag_hint():
     if reverse_primary:
         if this.secondaryColor in reverse_primary:
             result = reverse_primary[this.secondaryColor]
-    Object.defineProperty(this, 'hint', {'value': result})
+    Object.defineProperty(this, 'hint', {
+        'value': result,
+        'enumerable': True,
+        'configurable': True,
+    })
     return result
 
 
-Object.defineProperty(Flag.prototype, 'hint', {'get': _flag_hint})
+Object.defineProperty(Flag.prototype, 'hint', {
+    'get': _flag_hint,
+    'enumerable': True,
+    'configurable': True,
+})
