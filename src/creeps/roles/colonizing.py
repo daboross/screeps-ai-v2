@@ -59,7 +59,8 @@ class Colonist(MilitaryBase):
             if room.role_count(role_upgrader) < 1 and not room.upgrading_deprioritized() \
                     and (not room.mem.midpoint or room.room.controller.ticksToDowngrade >= 1000):
                 self.memory.role = role_upgrader
-            elif (enemy_storage_exhausted and (room.rcl >= 5 or room.rcl >= sponsor.rcl)) \
+            elif (enemy_storage_exhausted and (room.rcl >= 5 or room.rcl >= sponsor.rcl
+                                               or (room.mem.build_at and room.rcl >= room.mem.build_at))) \
                     or room.mem.prio_spawn or room.mem.prio_walls:
                 self.memory.role = role_builder
             else:
