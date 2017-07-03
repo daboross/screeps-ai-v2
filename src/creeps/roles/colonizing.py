@@ -68,9 +68,7 @@ class Colonist(MilitaryBase):
             if _.some(room.defense.towers(), lambda t: t.energy < t.energyCapacity * 0.9):
                 self.memory.old_role = self.memory.role
                 self.memory.role = role_tower_fill_once
-            meta = room.mem.meta
-            if meta:
-                meta.clear_next = 0  # clear next tick
+            room.check_all_creeps_next_tick()
         else:
             self.follow_military_path(self.home.spawn, movement.center_pos(colony), {'range': 15})
 
