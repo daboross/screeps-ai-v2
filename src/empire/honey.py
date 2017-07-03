@@ -747,7 +747,7 @@ class HoneyTrails:
                     sstype = StoredObstacleType.ROAD
                 else:
                     sstype = StoredObstacleType.OTHER_IMPASSABLE
-                set_matrix(struct.pos.x, struct.pos.y, sstype, True, structure_type)
+                set_matrix(site.pos.x, site.pos.y, sstype, True, structure_type)
             if room.my:
                 for flag, flag_type in flags.find_by_main_with_sub(room, flags.MAIN_BUILD):
                     structure_type = flags.flag_sub_to_structure_type[flag_type]
