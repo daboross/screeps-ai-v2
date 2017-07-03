@@ -489,7 +489,7 @@ class SquadTactics:
                 spawn_time = self.spawn_time_for(target)
                 total_ttl = 0
                 for member in squad_members:
-                    total_ttl += member.ticksToLive
+                    total_ttl += member.creep.ticksToLive
                 avg_ttl = total_ttl / len(squad_members)
                 print("[{}][squads] death-time calculation for squad {}: distance: {}, spawn time: {}, avg ttl: {}"
                       " ({} / {})"
