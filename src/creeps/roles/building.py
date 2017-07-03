@@ -326,7 +326,9 @@ class Builder(upgrading.Upgrader):
                     if not _.find(creeps, lambda c: not c.my):
                         mine = _.find(creeps, 'my')
                         if not mine.__moved:
-                            self.hive.wrap_creep(mine).go_to_depot()
+                            mine = self.hive.wrap_creep(mine)
+                            if mine is not None:
+                                mine.go_to_depot()
                 else:
                     self.log("WARNING: Couldn't find site for flag at {}! Refreshing building targets..."
                              .format(target.pos))

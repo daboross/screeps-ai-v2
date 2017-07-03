@@ -44,3 +44,12 @@ def try_exec(place, thing, error_description, *args):
     except:
         report_error(place, __except0__, error_description(*args))
     return result
+
+
+def execute(thing, *args):
+    result = None
+    try:
+        result = thing(*args)
+    except:
+        report_error(thing.place, __except0__, thing.err_desc(*args))
+    return result

@@ -2,6 +2,7 @@ from constants import *
 from creep_management import creep_wrappers
 from empire.honey import HoneyTrails
 from empire.states import StateCalc
+from jstools import errorlog
 from jstools.screeps import *
 from position_management import flags
 from rooms.room_constants import room_spending_state_visual
@@ -235,7 +236,7 @@ class HiveMind:
         """
         home = self.get_room(creep.memory.home)
         if home:
-            return creep_wrappers.wrap_creep(self, self.targets, home, creep)
+            return errorlog.execute(creep_wrappers.wrap_creep, self, self.targets, home, creep)
         else:
             raise ValueError("[hive]Invalid value to wrap_creep: {} with memory {}"
                              .format(creep, JSON.stringify(creep.memory)))

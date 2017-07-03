@@ -9,6 +9,7 @@ from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
 from creeps.base import RoleBase
 from empire import stored_data
+from jstools import errorlog
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from position_management import flags
@@ -435,8 +436,6 @@ class RoomMind:
         """
         Registers the creep's role and time till replacement in permanent memory. Should only be called once per creep.
         """
-        if not isinstance(creep, RoleBase):
-            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
         role = creep.memory.role
         if role in self.role_counts:
             self.role_counts[role] += 1
@@ -451,7 +450,7 @@ class RoomMind:
         else:
             self.work_mass_map[role] = spawning.work_count(creep)
         rt_map = self._get_rt_map()
-        rt_pair = [creep.name, creep.get_replacement_time()]
+        rt_pair = [creep.name, self.replacement_time_of(creep)]
         if not rt_map[role]:
             rt_map[role] = [rt_pair]
         else:
@@ -491,9 +490,9 @@ class RoomMind:
 
             if creep.spawning or creep.memory.role == role_temporary_replacing:
                 continue  # don't add rt_pairs for spawning creeps
-            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
 
-            rt_pair = (creep.name, creep.get_replacement_time())
+            rt_pair = (creep.name, self.replacement_time_of(creep))
+
             if not rt_map[role]:
                 rt_map[role] = [rt_pair]
             else:
@@ -592,8 +591,10 @@ class RoomMind:
         if 'wrapped' in creep:
             creep = creep.wrapped
         else:
-            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
-            if not creep:
+
+            creep = errorlog.execute(creep_wrappers.wrap_creep, self.hive, self.hive.targets, self, creep)
+            if creep is None:
+                print("[{}] could not wrap creep {} to get replacement time.".format(self.name, creep.name))
                 return Infinity
 
         return creep.get_replacement_time()

@@ -81,3 +81,11 @@ def wrap_creep(hive, targets, home, creep):
         return role_classes[role](hive, targets, home, creep)
     else:
         return None
+
+
+wrap_creep.err_desc = lambda hive, targets, home, creep: (
+    "Error creating role wrapper for {} for creep {} (home: {})".format(
+        creep.memory.role, creep.name, home
+    ))
+
+wrap_creep.place = "wrap_creep"
