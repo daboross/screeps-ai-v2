@@ -483,15 +483,36 @@ class SquadTactics:
             else:
                 print("[{}][squads] Warning: couldn't find run func for squad type {}!"
                       .format(self.room.name, target_type))
+                squad_obj = Squad(self.room, squad_members, target)
             if targets_fully_alive:
-                any_near_death = False
-                distance = self.room.hive.honey.find_path_length(self.room.spawn, target, {'use_roads': False})
+                distance = self.room.hive.honey.find_path_length(self.room.spawn, target, squad_obj.new_movement_opts())
+                spawn_time = self.spawn_time_for(target)
+                total_ttl = 0
                 for member in squad_members:
-                    if member.ticksToLive < distance + CREEP_SPAWN_TIME * len(member.body):
-                        any_near_death = True
-                        break
-                if not any_near_death:
+                    total_ttl += member.ticksToLive
+                avg_ttl = total_ttl / len(squad_members)
+                print("[{}][squads] death-time calculation for squad {}: distance: {}, spawn time: {}, avg ttl: {}"
+                      " ({} / {})"
+                      .format(self.room.name, target.name, distance, spawn_time, avg_ttl, total_ttl,
+                              len(squad_members)))
+                if avg_ttl > spawn_time + distance:
                     targets_fully_alive.append(positions.serialize_xy_room_pos(target))
+
+    def spawn_time_for(self, target):
+        required = roles_required_for(target)
+
+        time_accumulator = 0
+        while True:
+            spawns_usable = len(self.room.spawns)
+            for key in Object.keys(required):
+                if spawns_usable <= 0:
+                    break
+                spawns_usable -= 1
+                _base, num_sections = get_base_for(target, key)
+                time_accumulator += num_sections * CREEP_SPAWN_TIME
+            else:
+                break
+        return time_accumulator
 
     def request_spawns_for_targets_excluding(self, targets_already_active):
         """
