@@ -148,7 +148,7 @@ def dismantle_pathfinder_callback(room_name):
                         for y in range(obstacle.y - 4, obstacle.y + 5):
                             matrix.set(x, y, 200)
                 matrix.set(obstacle.x, obstacle.y, 255)
-    return matrix
+    return matrix.cost_matrix
 
 
 _dismantle_move_to_opts = {

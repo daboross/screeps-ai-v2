@@ -608,7 +608,7 @@ class HoneyTrails:
             mark_exit_tiles(matrix)
             mark_flags(matrix)
             set_max_avoid(matrix, opts)
-            return matrix
+            return matrix.cost_matrix
 
         if room and room.my:
             spawn_fill_wait_flags = flags.find_flags(room, SPAWN_FILL_WAIT)
@@ -702,8 +702,8 @@ class HoneyTrails:
                 return
 
             if not sk_ok and (stored_type == StoredObstacleType.SOURCE_KEEPER_SOURCE
-                                      or stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL
-                                      or stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR):
+                              or stored_type == StoredObstacleType.SOURCE_KEEPER_MINERAL
+                              or stored_type == StoredObstacleType.SOURCE_KEEPER_LAIR):
                 for xx in range(x - 4, x + 5):
                     for yy in range(y - 4, y + 5):
                         matrix.set_impassable(xx, yy)
