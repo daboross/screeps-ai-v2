@@ -83,6 +83,7 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
                         'dy': dy,
                         'direction': dxdy_to_direction(dx, dy)
                     })
+                last_room = pos.roomName
             else:
                 current_path = []
                 # this is passed by reference, so we just set it here
