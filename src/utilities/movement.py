@@ -313,6 +313,22 @@ def dxdy_to_direction(dx, dy):
         return direction
 
 
+def apply_direction(pos, direction):
+    """
+    :type pos: RoomPosition
+    :type direction: int
+    :rtype: RoomPosition
+    """
+    if pos.pos is not undefined:
+        pos = pos.pos
+
+    dxdy = js_global.__movement_use_directionToDxDy(direction)
+    if dxdy:
+        return __new__(RoomPosition(pos.x + dxdy[0], pos.y + dxdy[1], pos.roomName))
+    else:
+        return None
+
+
 def diff_as_direction(origin, destination):
     if origin.pos is not undefined:
         origin = origin.pos
