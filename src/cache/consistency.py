@@ -71,6 +71,9 @@ def clear_memory(room):
             if not time or game_time > time + basic_reuse_path:
                 del memory['_move']
     dead_next = Game.time + smallest_ticks_to_live
+    if rmem_key_metadata not in room.mem:
+        print("[consistency] warning: no metadata key in room {} memory. Creating.".format(room.name))
+        room.mem[rmem_key_metadata] = {}
     room.mem[rmem_key_metadata].clear_next = dead_next + 1
     room.mem[rmem_key_metadata].reset_spawn_on = closest_replacement_time + 1
 
