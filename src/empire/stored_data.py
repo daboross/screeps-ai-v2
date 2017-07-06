@@ -332,6 +332,7 @@ def avoid_always(room_name):
     _set_new_data(room_name, new_data)
     return "set {} as always avoid room.".format(room_name)
 
+
 def unavoid_always(room_name):
     stored = get_data(room_name)
     if stored:

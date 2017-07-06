@@ -1,4 +1,4 @@
-from constants import role_recycling, target_single_flag, role_squad_dismantle
+from constants import role_recycling, role_squad_dismantle, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.roles.smart_offensive import kiting_away_raw_path
