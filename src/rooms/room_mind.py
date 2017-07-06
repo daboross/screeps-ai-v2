@@ -7,7 +7,6 @@ from constants import *
 from constants.memkeys.room import *
 from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
-from creeps.base import RoleBase
 from empire import stored_data
 from jstools import errorlog
 from jstools.js_set_map import new_map
@@ -221,7 +220,7 @@ class RoomMind:
                 return room.look_at(look_type, x, y)
             else:
                 return []
-        if x > 49 | x < 0 | y > 49 | y < 0:
+        if x > 49 or x < 0 or y > 49 or y < 0:
             print('[{}] warning: looked for {} at {}, {},{}'.format(self.name, look_type, self.name, x, y))
             return []
         result = self.room.lookForAt(look_type, x, y)
