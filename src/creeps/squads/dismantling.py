@@ -1,6 +1,7 @@
 import math
 
-from constants import SQUAD_DISMANTLE_RANGED, role_squad_dismantle, role_squad_heal, role_squad_ranged
+from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, role_squad_dismantle, role_squad_heal, \
+    role_squad_ranged
 from creeps.roles.squads import SquadDrone
 from creeps.squads.base import BasicOffenseSquad
 from empire import honey, stored_data
@@ -42,6 +43,42 @@ class DismantleSquad(BasicOffenseSquad):
 
         return initial
 
+    # def move_to_stage_2(self, target):
+    #     """
+    #     :type target: position_management.locations.Location | RoomPosition
+    #     """
+    #     dismantler = None
+    #     ranged = None
+    #     healers = []
+    #     for creep in self.members:
+    #         specialty = creep.findSpecialty()
+    #         if specialty == WORK:
+    #             if dismantler is not None:
+    #                 self.log("multiple dismantlers found! {} and {}: delegating to default stage 2 movement",
+    #                          dismantler, creep)
+    #                 return BasicOffenseSquad.move_to_stage_2(self, target)
+    #             dismantler = creep
+    #         elif specialty == RANGED_ATTACK:
+    #             if ranged is not None:
+    #                 self.log("multiple rangers found! {} and {}: delegating to default stage 2 movement",
+    #                          ranged, creep)
+    #                 return BasicOffenseSquad.move_to_stage_2(self, target)
+    #             ranged = creep
+    #         elif specialty == HEAL:
+    #             healers.append(creep)
+    #         else:
+    #             self.log("unknown specialty creep in dismantling squad: {} ({})",
+    #                      specialty, creep)
+    #
+    #     if dismantler is None or not len(healers):
+    #         return BasicOffenseSquad.move_to_stage_2(self, target)
+    #     if len(healers) > 2:
+    #         return BasicOffenseSquad.move_to_stage_2(self, target)
+    #     self.log("Dismantler squad moving - stage 2 - d:{}, r:{}, h:{}",
+    #              dismantler.name, ranged.name if ranged else "None", _.pluck(healers, 'name'))
+    #
+    #     BasicOffenseSquad.move_to_stage_2(self, target)
+
     def is_heavily_armed(self):
         return True
 
@@ -54,7 +91,7 @@ def is_saveable_amount(amount, resource):
     return amount > 5000 and (resource != RESOURCE_ENERGY or amount > 100 * 1000)
 
 
-def can_target_struct(structure):
+def can_target_struct(structure, opts):
     if '__valid_dismantle_target' not in structure:
         structure_type = structure.structureType
         invalid = (
@@ -65,14 +102,33 @@ def can_target_struct(structure):
                 structure.store
                 and _.findKey(structure.store, is_saveable_amount)
             )
+            or (
+                opts['just_vitals']
+                and structure_type != STRUCTURE_SPAWN
+                and structure_type != STRUCTURE_NUKER
+                and structure_type != STRUCTURE_TOWER
+                and structure_type != STRUCTURE_RAMPART
+                and structure_type != STRUCTURE_POWER_SPAWN
+                and structure_type != STRUCTURE_OBSERVER
+            )
         )
         structure['__valid_dismantle_target'] = not invalid
     return structure['__valid_dismantle_target']
 
 
+def get_opts(room_name):
+    if room_name in Memory.rooms:
+        room_mem = Memory.rooms[room_name]
+        if rmem_key_dismantler_squad_opts in room_mem:
+            return room_mem[rmem_key_dismantler_squad_opts]
+
+    return {'just_vitals': True}
+
+
 def dismantle_pathfinder_callback(room_name):
     room = Game.rooms[room_name]
     if room:
+        opts = get_opts(room_name)
         plain_cost = 1
         matrix = honey.create_custom_cost_matrix(room_name, plain_cost, plain_cost * 5, 1, False)
         any_lairs = False
@@ -80,7 +136,9 @@ def dismantle_pathfinder_callback(room_name):
             structure_type = structure.structureType
             if structure_type == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
                 continue
-            elif not can_target_struct(structure):
+            elif structure_type == STRUCTURE_ROAD:
+                continue
+            elif not can_target_struct(structure, opts):
                 matrix.set(structure.pos.x, structure.pos.y, 255)
             elif structure_type == STRUCTURE_ROAD:
                 if matrix.get(structure.pos.x, structure.pos.y) == 0:
@@ -96,16 +154,16 @@ def dismantle_pathfinder_callback(room_name):
                     for y in range(structure.pos.y - 1, structure.pos.y + 2):
                         existing = matrix.get_existing(x, y)
                         matrix.set(x, y, existing - 1)
-            elif structure_type == STRUCTURE_TOWER:
+            elif structure_type == STRUCTURE_TOWER and structure.energy:
                 initial_x = structure.pos.x
                 initial_y = structure.pos.y
-                for x in range(initial_x - 30, initial_x + 30):
-                    for y in range(initial_y - 30, initial_y + 30):
+                for x in range(initial_x - 10, initial_x + 10):
+                    for y in range(initial_y - 10, initial_y + 10):
                         distance = movement.chebyshev_distance_xy(initial_x, initial_y, x, y)
                         if distance <= 5:
-                            matrix.increase_at(x, y, None, 30 * 3 * plain_cost)
+                            matrix.increase_at(x, y, None, 20 * plain_cost)
                         else:
-                            matrix.increase_at(x, y, None, (30 - distance) * 3 * plain_cost)
+                            matrix.increase_at(x, y, None, (25 - distance) * plain_cost)
             elif structure.hits:
                 matrix.increase_at(structure.pos.x, structure.pos.y, None,
                                    cost_of_wall_hits(structure.hits) * plain_cost)
@@ -130,7 +188,6 @@ def dismantle_pathfinder_callback(room_name):
                 for x in range(mineral.pos.x - 4, mineral.pos.x + 5):
                     for y in range(mineral.pos.y - 4, mineral.pos.y + 5):
                         matrix.set(x, y, 200)
-        pass
         print('Dismantler cost matrix for {}:\nStart.\n{}\nEnd.'.format(room_name, matrix.visual()))
     else:
         matrix = __new__(PathFinder.CostMatrix())
@@ -161,8 +218,8 @@ _dismantle_move_to_opts = {
 }
 
 
-def dismantle_condition_not_a_road(structure):
-    return structure.structureType != STRUCTURE_ROAD and can_target_struct(structure)
+def get_dismantle_condition_not_a_road(opts):
+    return lambda structure: structure.structureType != STRUCTURE_ROAD and can_target_struct(structure, opts)
 
 
 def creep_condition_enemy(creep):
@@ -177,23 +234,35 @@ class SquadDismantle(SquadDrone):
         """
         if movement.chebyshev_distance_room_pos(self, target) > 150:
             return
-        path = _.get(self.memory, ['_move', 'path'])
-        if path:
-            next_pos = self.creep.findNextPathPos(path)
-            if _.isObject(next_pos):
-                best_structure = _.find(self.room.look_at(LOOK_STRUCTURES, next_pos), dismantle_condition_not_a_road)
-                if best_structure:
-                    result = self.creep.dismantle(best_structure)
-                    if result != OK:
-                        self.log("Unknown result from {}.dismantle({}): {}", self.creep, best_structure, result)
-                    if result != ERR_NOT_IN_RANGE:
-                        return
-            elif next_pos == ERR_NOT_FOUND:
-                del self.memory['_move']
+        opts = get_opts(self.pos.roomName)
+        self.log("running with opts {}", JSON.stringify(opts))
         owner = stored_data._find_room_owner(self.room.room)
         if (owner and (Memory.meta.friends.includes(owner.name.lower())
                        or owner.name == self.creep.owner.username)):
             return
+
+        next_pos = None
+
+        path = _.get(self.memory, ['_move', 'path'])
+        if path:
+            next_pos = self.creep.findNextPathPos(path)
+            if not _.isObject(next_pos) or not self.pos.isNearTo(next_pos):
+                next_pos = None
+
+        if next_pos is None and self.creep.__direction_moved:
+            next_pos = movement.apply_direction(self.pos, self.creep.__direction_moved)
+
+        if next_pos is not None:
+            best_structure = _.find(self.room.look_at(LOOK_STRUCTURES, next_pos),
+                                    get_dismantle_condition_not_a_road(opts))
+            if best_structure:
+                result = self.creep.dismantle(best_structure)
+                if result != OK:
+                    self.log("Unknown result from {}.dismantle({}): {}", self.creep, best_structure, result)
+                if result != ERR_NOT_IN_RANGE:
+                    return
+        elif next_pos == ERR_NOT_FOUND:
+            del self.memory['_move']
         structures_around = self.room.look_for_in_area_around(LOOK_STRUCTURES, self, 1)
         best_structure = None
         our_dismantle_power = DISMANTLE_POWER * self.creep.getActiveBodypartsBoostEquivalent(WORK, 'dismantle')
@@ -207,7 +276,7 @@ class SquadDismantle(SquadDrone):
             best_rank = -Infinity
             for structure_obj in self.room.look_for_in_area_around(LOOK_STRUCTURES, self, 1):
                 structure = structure_obj.structure
-                if not can_target_struct(structure):
+                if not can_target_struct(structure, opts):
                     continue
                 if structure.my or structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
                         or (structure.store and _.findKey(structure.store,
@@ -228,10 +297,14 @@ class SquadDismantle(SquadDrone):
                     rank = 30
                 else:
                     rank = 10
-                rampart = ramparts_at and ramparts_at[positions.serialize_pos_xy(structure)]
+
                 hits = structure.hits
-                if rampart and rampart.hits:
-                    hits += rampart.hits
+
+                if structure_type != STRUCTURE_RAMPART and ramparts_at:
+                    rampart = ramparts_at[positions.serialize_pos_xy(structure)]
+                    if rampart and rampart.hits:
+                        hits += rampart.hits
+
                 if hits < our_dismantle_power:
                     rank -= hits / our_dismantle_power
                 if rank > best_rank:
@@ -239,7 +312,7 @@ class SquadDismantle(SquadDrone):
                     best_structure = structure
         elif len(structures_around):
             best_structure = structures_around[0].structure
-            if not can_target_struct(best_structure):
+            if not can_target_struct(best_structure, opts):
                 return
         else:
             return
@@ -261,12 +334,13 @@ class SquadDismantle(SquadDrone):
         """
         :type target: position_management.locations.Location
         """
+        opts = get_opts(self.pos.roomName)
         if self.memory.tloctimeout > Game.time:
             pos = positions.deserialize_xy_to_pos(self.memory.tloc, target.roomName)
             if pos:
-                if _.some(self.room.look_at(LOOK_STRUCTURES, pos), dismantle_condition_not_a_road):
+                if _.some(self.room.look_at(LOOK_STRUCTURES, pos), get_dismantle_condition_not_a_road(opts)):
                     return pos
-        structure_target = _.find(self.room.look_at(LOOK_STRUCTURES, target), dismantle_condition_not_a_road)
+        structure_target = _.find(self.room.look_at(LOOK_STRUCTURES, target), get_dismantle_condition_not_a_road(opts))
         if structure_target:
             self.memory.tloc = positions.serialize_pos_xy(structure_target)
             self.memory.tloctimeout = Game.time + 50
@@ -278,16 +352,10 @@ class SquadDismantle(SquadDrone):
         best_target = None
         best_rank = -Infinity
         enemy_structures = self.room.find(FIND_HOSTILE_STRUCTURES)
+        opts = get_opts(self.pos.roomName)
         for struct in enemy_structures:
             structure_type = struct.structureType
-            if not can_target_struct(struct):
-                continue
-            if structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
-                    or (struct.store and _.findKey(struct.store,
-                                                   lambda amount, key: amount > 5000
-                                                   and (key != RESOURCE_ENERGY or amount > 100 * 1000))):
-                print("WARNING WARNING WARNING second clause hit for {}".format(struct))
-                self.log("skipping structure at {},{}", struct.pos.x, struct.pos.y)
+            if not can_target_struct(struct, opts):
                 continue
             if structure_type == STRUCTURE_SPAWN:
                 rank = 50

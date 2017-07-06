@@ -252,6 +252,7 @@ from constants.memkeys.room import \
     mem_key_creeps_by_role_and_replacement_time as rmem_key_creeps_by_role_and_replacement_time, \
     mem_key_currently_under_siege as rmem_key_currently_under_siege, \
     mem_key_defense_mind_storage as rmem_key_defense_mind_storage, \
+    mem_key_dismantler_squad_opts as rmem_key_dismantler_squad_opts, \
     mem_key_empty_all_resources_into_room as rmem_key_empty_all_resources_into_room, \
     mem_key_flag_for_testing_spawning_in_simulation as rmem_key_flag_for_testing_spawning_in_simulation, \
     mem_key_focusing_home as rmem_key_focusing_home, \
