@@ -1,5 +1,5 @@
 from constants import SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, \
-    SQUAD_TOWER_DRAIN, creep_base_full_move_attack, creep_base_scout, creep_base_squad_dismantle, \
+    SQUAD_SIGN_CLEAR, SQUAD_TOWER_DRAIN, creep_base_full_move_attack, creep_base_scout, creep_base_squad_dismantle, \
     creep_base_squad_healer, creep_base_squad_ranged, request_priority_attack, rmem_key_alive_quads, \
     role_squad_dismantle, role_squad_drone, role_squad_final_boost, role_squad_final_renew, role_squad_heal, \
     role_squad_init, role_squad_kiting_attack, role_squad_kiting_heal, role_squad_ranged, target_single_flag
@@ -7,6 +7,7 @@ from constants.memkeys.room import cache_key_squads
 from creeps.squads import dismantling
 from creeps.squads.base import BasicOffenseSquad, KitingPairSquad, ScoutSquad, Squad
 from creeps.squads.dismantling import DismantleSquad
+from creeps.squads.triple_heal_sign import TripleHealSign
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from position_management import flags, locations
@@ -51,6 +52,8 @@ def roles_required_for(flag):
         return {MOVE: 4}
     elif hint == SQUAD_DISMANTLE_RANGED:
         return {WORK: 1, HEAL: 2, RANGED_ATTACK: 1}
+    elif hint == SQUAD_SIGN_CLEAR:
+        return {RANGED_ATTACK: 2, HEAL: 2}
     elif hint == SQUAD_TOWER_DRAIN:
         return {HEAL: 3}
     else:
@@ -111,6 +114,7 @@ _should_boost = {
     SQUAD_DUAL_SCOUTS: False,
     SQUAD_KITING_PAIR: False,
     SQUAD_TOWER_DRAIN: False,
+    SQUAD_SIGN_CLEAR: False,
 }
 
 
@@ -163,6 +167,7 @@ class SquadTactics:
                 SQUAD_DUAL_ATTACK,
                 SQUAD_DISMANTLE_RANGED,
                 SQUAD_TOWER_DRAIN,
+                SQUAD_SIGN_CLEAR,
             ]):
                 if flags.flag_sponsor(flag) == self.room.name:
                     targets.append(flag)
@@ -564,4 +569,5 @@ squad_classes = {
     SQUAD_DISMANTLE_RANGED: DismantleSquad,
     SQUAD_TOWER_DRAIN: BasicOffenseSquad,
     SQUAD_KITING_PAIR: KitingPairSquad,
+    SQUAD_SIGN_CLEAR: TripleHealSign,
 }

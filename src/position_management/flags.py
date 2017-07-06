@@ -75,7 +75,7 @@ Orange:
     Green: SQUAD_DISMANTLE_RANGED - Marks a location for one ranged, one dismantle and two healer squad.
     Yellow: SQUAD_TOWER_DRAIN   - Marks a location for three healers.
     Orange:
-    Brown:
+    Brown: SQUAD_SIGN_CLEAR     - Marks a location to clear a controller sign.
     Grey:
     White:
 Brown:
@@ -117,7 +117,7 @@ from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, E
     RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
     SK_LAIR_SOURCE_NOTED, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, \
     SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, SQUAD_TOWER_DRAIN, SUPPORT_MINE, SUPPORT_WALL, TD_D_GOAD, TD_H_D_STOP, \
-    TD_H_H_STOP, UPGRADER_SPOT
+    TD_H_H_STOP, UPGRADER_SPOT, SQUAD_SIGN_CLEAR
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from utilities import naming
@@ -177,6 +177,7 @@ flag_definitions = {
     SQUAD_4_SCOUTS: (COLOR_ORANGE, COLOR_BLUE),
     SQUAD_DUAL_ATTACK: (COLOR_ORANGE, COLOR_CYAN),
     SQUAD_DISMANTLE_RANGED: (COLOR_ORANGE, COLOR_GREEN),
+    SQUAD_SIGN_CLEAR: (COLOR_ORANGE, COLOR_BROWN),
     SQUAD_TOWER_DRAIN: (COLOR_ORANGE, COLOR_YELLOW),
     SUPPORT_MINE: (COLOR_GREY, COLOR_RED),
     SUPPORT_WALL: (COLOR_GREY, COLOR_PURPLE),
