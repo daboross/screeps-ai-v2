@@ -158,7 +158,9 @@ class Refill(RoleBase):
                     idle = 1
                 if idle >= 3:
                     role = self.home.get_next_role()
-                    if not role or role.role == role_hauler or role.role == role_spawn_fill or idle >= 7:
+                    if not role or ((role.role == role_hauler or role.role == role_spawn_fill)
+                                    and (self.home.get_target_builder_work_mass()
+                                         or self.home.get_target_upgrader_work_mass())) or idle >= 7:
                         self.home.mem[rmem_key_planned_role_to_spawn] = generate_role_obj(self.home)
                         v.set("refills_idle", -Infinity)
                 else:
