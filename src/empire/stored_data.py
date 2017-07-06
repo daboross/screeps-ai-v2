@@ -331,3 +331,16 @@ def avoid_always(room_name):
     print("[storage] Now always avoiding {}.".format(room_name))
     _set_new_data(room_name, new_data)
     return "set {} as always avoid room.".format(room_name)
+
+def unavoid_always(room_name):
+    stored = get_data(room_name)
+    if stored:
+        if not stored.avoid_always:
+            return "already not avoiding {}.".format(room_name)
+        new_data = StoredRoom.decode(_get_serialized_data(room_name))
+    else:
+        new_data = __new__(StoredRoom())
+    new_data.avoid_always = False
+    print("[storage] Now not avoiding {}.".format(room_name))
+    _set_new_data(room_name, new_data)
+    return "set {} as not avoid room.".format(room_name)
