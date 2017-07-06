@@ -503,15 +503,20 @@ class SquadTactics:
 
         time_accumulator = 0
         while True:
+            time_this_loop = 0
             spawns_usable = len(self.room.spawns)
             for key in Object.keys(required):
                 if spawns_usable <= 0:
                     break
                 spawns_usable -= 1
                 _base, num_sections = get_base_for(target, key)
-                time_accumulator += num_sections * CREEP_SPAWN_TIME
+                time_for_this_spawn = num_sections * CREEP_SPAWN_TIME
+                if time_for_this_spawn >= time_this_loop:
+                    time_this_loop = time_for_this_spawn
             else:
+                time_accumulator += time_this_loop
                 break
+            time_accumulator += time_this_loop
         return time_accumulator
 
     def request_spawns_for_targets_excluding(self, targets_already_active):
