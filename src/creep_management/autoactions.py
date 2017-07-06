@@ -1,7 +1,7 @@
 import random
 
 from cache import context, volatile_cache
-from constants import INVADER_USERNAME, role_miner, role_simple_dismantle
+from constants import INVADER_USERNAME, role_miner, role_simple_dismantle, role_squad_dismantle
 from creep_management import walkby_move
 from jstools.screeps import *
 from rooms import defense
@@ -320,7 +320,8 @@ def running_check_room(room):
                     and room.hive.get_room(creep.memory.home).conducting_siege()) \
                 or not creep.hasActiveBodyparts(MOVE) \
                 or (creep.memory.role == role_miner and _.find(creep.pos.lookFor(LOOK_STRUCTURES),
-                                                               {'structureType': STRUCTURE_RAMPART})):
+                                                               {'structureType': STRUCTURE_RAMPART})) \
+                or (creep.memory.role == role_squad_dismantle):
             continue
         overridden = run_away_check(creep, hostile_path_targets)
         if overridden:
