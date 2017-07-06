@@ -364,6 +364,8 @@ function activateCustomizations() {
         }
     };
 
+    global.__movement_use_directionToDxDy = directionToDxDy;
+
     const dxDyToDirection = function (dx, dy) {
         if (dx < 0) {
             if (dy < 0) {
@@ -392,6 +394,29 @@ function activateCustomizations() {
             }
         }
     };
+
+    function reverseDirection(direction) {
+        switch (+direction) {
+            case TOP:
+                return BOTTOM;
+            case BOTTOM:
+                return TOP;
+            case LEFT:
+                return RIGHT;
+            case RIGHT:
+                return LEFT;
+            case TOP_LEFT:
+                return BOTTOM_RIGHT;
+            case TOP_RIGHT:
+                return BOTTOM_LEFT;
+            case BOTTOM_LEFT:
+                return TOP_RIGHT;
+            case BOTTOM_RIGHT:
+                return TOP_LEFT;
+            default:
+                return null;
+        }
+    }
 
     /**
      * Searches for a path using PathFinder and the given opts, turns the path into a Room.findPath-compatible
@@ -494,16 +519,16 @@ function activateCustomizations() {
     Creep.prototype.__moveByPath = Creep.prototype.moveByPath;
     Creep.prototype.findIndexAndDirectionInPath = function (path) {
         if (!_.isString(path)) {
-            return [ERR_INVALID_ARGS, ERR_INVALID_ARGS];
+            return [ERR_INVALID_ARGS, ERR_INVALID_ARGS, ERR_INVALID_ARGS];
         }
         var path_len = path.length;
         if (path_len < 5) {
-            return [ERR_NOT_FOUND, ERR_NOT_FOUND];
+            return [ERR_NOT_FOUND, ERR_NOT_FOUND, ERR_NOT_FOUND];
         }
         var my_x = this.pos.x, my_y = this.pos.y;
         var x_to_check = +path.slice(0, 2);
         var y_to_check = +path.slice(2, 4);
-        var dir, dxdy;
+        var dir, dxdy, reversed;
         // The path serialization format basically starts with the second position x, second position y, and then
         // follows with a list of directions *to get to each position*. To clarify, the first direction, at idx=4,
         // gives the direction *from the first position to the second position*. So, to find the first position,
@@ -527,14 +552,26 @@ function activateCustomizations() {
                 // if (this.memory.debug) {
                 //     console.log(`[${this.memory.home}][${this.name}] Found my position (${my_x}, ${my_y}) at position ${idx}, moving ${dir}`);
                 // }
-                return [idx - 4, dir];
+                if (idx > 4) {
+                    reversed = reverseDirection(path[idx - 1]);
+                    if (reversed === null) {
+                        console.log(
+                            `Unknown reverse direction! couldn't figure out path[${idx - 1}]: `
+                            + `${path[idx - 1]} (${reverseDirection}(${path}[${idx} - 1] `
+                            + `== ${reverseDirection(path[idx - 1])})`
+                        );
+                    }
+                } else {
+                    reversed = -30;
+                }
+                return [idx - 4, dir, reversed];
             } else {
                 // console.log(`[${this.memory.home}][${this.name}] Not my position: (${x_to_check}, ${y_to_check})`);
             }
             dxdy = directionToDxDy(+path[idx]);
             if (dxdy === null) {
                 console.log(`Unknown direction! couldn't figure out '${path[idx]}'`);
-                return [ERR_INVALID_ARGS, ERR_INVALID_ARGS];
+                return [ERR_INVALID_ARGS, ERR_INVALID_ARGS, ERR_INVALID_ARGS];
             }
             // if (this.memory.debug) {
             //     console.log(`[${this.memory.home}][${this.name}] Changing position to check (${x_to_check}, ${y_to_check}) to (${x_to_check + dxdy[0]}, ${y_to_check + dxdy[1]}) (as dir at ${idx} is ${path[idx]}).`);
@@ -545,8 +582,19 @@ function activateCustomizations() {
         // if we're at the last position of a multi-room path.
         // TODO: include this in moveByPath too?
         if (x_to_check === my_x && y_to_check === my_y) {
-            console.log(`[${this.name}] : last position found: ${my_x},${my_y}`);
-            return [idx - 4, -30];
+            if (idx > 4) {
+                reversed = reverseDirection(path[idx - 1]);
+                if (reversed === null) {
+                    console.log(
+                        `Unknown reverse direction! couldn't figure out path[${idx - 1}]: `
+                        + `${path[idx - 1]} (${reverseDirection}(${path}[${idx} - 1] `
+                        + `== ${reverseDirection(path[idx - 1])})`
+                    );
+                }
+            } else {
+                reversed = -30;
+            }
+            return [idx - 4, -30, reversed];
         } else {
             console.log(`[${this.name}] : no position found: ${my_x},${my_y} (last to_check: ${x_to_check},${y_to_check})`);
         }
