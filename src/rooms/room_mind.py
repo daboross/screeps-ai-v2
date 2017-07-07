@@ -1196,10 +1196,12 @@ class RoomMind:
 
         return False
 
-    def flags_without_target(self, flag_type):
+    def flags_without_target(self, flag_type, filter_func=None):
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
             if flags.flag_sponsor(flag, self.hive) == self.name:
+                if filter_func is not None and not filter_func(flag):
+                    continue
                 flag_id = "flag-{}".format(flag.name)
                 noneol_targeting_count = self.count_noneol_creeps_targeting(target_single_flag, flag_id)
                 if noneol_targeting_count < 1:
@@ -1228,8 +1230,9 @@ class RoomMind:
             obj.memory = {'boosted': 2}
         return obj
 
-    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0):
-        flag_list = self.flags_without_target(flag_type)
+    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0,
+                                 filter_func=None):
+        flag_list = self.flags_without_target(flag_type, filter_func)
         if len(flag_list):
             return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0], max_sections)
         return None
@@ -2007,8 +2010,29 @@ class RoomMind:
         if self.conducting_siege() or self.under_siege():
             return
 
+        def is_energy_grab_efficient(flag):
+            home_point = self.room.storage
+            add_extra = 0
+            if not home_point:
+                home_point = self.spawn
+                add_extra = 20
+            round_trip_distance = (
+                self.hive.honey.find_path_length(home_point, flag, {'use_roads': False})
+                + self.hive.honey.find_path_length(flag, home_point)
+                + add_extra
+            )
+            # assuming full energy grab on recycling
+            cost_per_section_per_tick = (BODYPART_COST[MOVE] + BODYPART_COST[CARRY]) / CREEP_LIFE_TIME
+            profit_per_section_per_tick = (CARRY_CAPACITY / round_trip_distance)
+            choosing = profit_per_section_per_tick > cost_per_section_per_tick
+            print("[{}] Energy grab flag {} has {} cost/tick, {} profit/tick. {}"
+                  .format(self.name, flag.name, cost_per_section_per_tick.toFixed(3),
+                          profit_per_section_per_tick.toFixed(3),
+                          "Spawning." if choosing else "Ignoring."))
+            return choosing
+
         role_obj = self.spawn_one_creep_per_flag(ENERGY_GRAB, role_energy_grab, creep_base_hauler,
-                                                 creep_base_hauler)
+                                                 creep_base_hauler, 0, is_energy_grab_efficient)
 
         if role_obj:
             return role_obj

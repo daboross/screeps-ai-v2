@@ -306,14 +306,13 @@ class EnergyGrab(TransportPickup, EnergyHauler):
 
         fill = self.home.room.storage or self.home.spawn
 
-        if self.memory.filling and (
-                        Game.time * 2 + self.creep.ticksToLive) % 5 and self.pos.roomName == target.pos.roomName:
+        if self.memory.filling and (Game.time * 2 + self.creep.ticksToLive) % 5 \
+                and self.pos.roomName == target.pos.roomName:
             piles = self.room.look_at(LOOK_RESOURCES, target)
-            if not len(piles) and not _.find(self.room.look_at(LOOK_STRUCTURES, target),
-                                             lambda s: s.structureType == STRUCTURE_CONTAINER and s.store.energy):
+            if not len(piles) and not _.some(self.room.look_at(LOOK_STRUCTURES, target),
+                                             lambda s: s.store and s.store.energy):
                 new_target = self.room.find_closest_by_range(FIND_STRUCTURES, target.pos,
-                                                             lambda s: s.structureType == STRUCTURE_CONTAINER
-                                                                       and s.store.energy)
+                                                             lambda s: s.store and s.store.energy)
                 if not new_target:
                     new_target = self.room.find_closest_by_range(FIND_DROPPED_RESOURCES, target.pos)
                 if new_target:
