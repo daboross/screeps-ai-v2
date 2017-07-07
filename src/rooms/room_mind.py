@@ -671,6 +671,69 @@ class RoomMind:
     def constant_balance_point_for_pre_rcl8_backup_energy_spending(self):
         return energy_pre_rcl8_building_when_upgrading_balance_point
 
+    def tick_observer(self):
+        if self.rcl < 8:
+            return
+        offset = (Game.time + self.get_unique_owned_index()) % 20
+        if offset == 3:
+            # on offset=3, set observer to observer a room.
+            observer = _.find(self.find(FIND_MY_STRUCTURES), lambda s: s.observeRoom)
+            if not observer:
+                return
+            saved_mem = self.mem[mem_key_observer_plans]
+            if saved_mem:
+                assert isinstance(saved_mem, str)
+                split_mem = saved_mem.split(',')
+                if len(split_mem) == 1:
+                    # this means we're delaying a bit since nothing was found.
+                    if not split_mem[0].isnumeric() or Game.time > int(split_mem[0]):
+                        del self.mem[mem_key_observer_plans]
+                    return
+                else:
+                    to_observe = split_mem[0]
+            else:
+                retry_with, try_next = stored_data.find_oldest_rooms_to_check_in_observer_range_of(self.name)
+
+                if len(try_next):
+                    self.mem[mem_key_observer_plans] = try_next.concat([retry_with]).join(',')
+                    to_observe = try_next[0]
+                else:
+                    self.mem[mem_key_observer_plans] = str(Game.time + 2000)
+                    return
+            result = observer.observeRoom(to_observe)
+            if result != OK:
+                print("[{}][observer] Unknown result from {}.observeRoom({}): {}"
+                      .format(self.name, observer, to_observe, result))
+        elif offset == 4:
+            # on offset=4, serialize the results of that observation.
+            saved_mem = self.mem[mem_key_observer_plans]
+            if not saved_mem:
+                return
+
+            split_mem = saved_mem.split(',')
+            if len(split_mem) < 2:
+                return
+
+            to_try = split_mem[0]
+            room = Game.rooms[to_try]
+            if not room:
+                print("[{}][observer] WARNING: Could not find room {} which was observed last tick."
+                      .format(self.name, to_try))
+                return
+
+            stored_data.update_data(room)
+            print("[{}][observer] Updated {}.".format(self.name, room.name))
+
+            if len(split_mem) == 2:
+                saved_pos = int(split_mem[1])
+                retry_with, try_next = stored_data.find_oldest_rooms_to_check_in_observer_range_of(self.name, saved_pos)
+                if len(try_next):
+                    self.mem[mem_key_observer_plans] = try_next.concat([retry_with]).join(',')
+                else:
+                    self.mem[mem_key_observer_plans] = str(Game.time + 2000)
+            else:
+                self.mem[mem_key_observer_plans] = split_mem[1:].join(',')
+
     def paving(self):
         if '_paving' not in self:
             if not self.my:

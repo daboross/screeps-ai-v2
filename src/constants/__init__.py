@@ -261,6 +261,7 @@ from constants.memkeys.room import \
     mem_key_metadata as rmem_key_metadata, \
     mem_key_mineral_mind_storage as rmem_key_mineral_mind_storage, \
     mem_key_now_supporting as rmem_key_now_supporting, \
+    mem_key_observer_plans as rmem_key_observer_plans, \
     mem_key_pause_all_room_operations as rmem_key_pause_all_room_operations, \
     mem_key_planned_role_to_spawn as rmem_key_planned_role_to_spawn, \
     mem_key_prepping_defenses as rmem_key_prepping_defenses, \

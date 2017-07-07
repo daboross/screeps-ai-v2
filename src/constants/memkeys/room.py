@@ -13,6 +13,7 @@ mem_key_upgrading_paused = 'upgrading_paused'
 mem_key_building_paused = 'building_paused'
 mem_key_spawn_requests = '_requests'
 mem_key_planned_role_to_spawn = 'next_role'
+mem_key_observer_plans = 'observer_plan'
 
 mem_key_flag_for_testing_spawning_in_simulation = 'completely_sim_testing'
 mem_key_pause_all_room_operations = 'pause'

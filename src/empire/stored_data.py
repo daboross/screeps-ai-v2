@@ -8,7 +8,7 @@ from constants.memkeys import global_mem_key_room_data
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
-from utilities import positions
+from utilities import movement, positions
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -173,12 +173,44 @@ def update_old_structure_data_for_visible_rooms():
                 update_data(room)
 
 
-def find_oldest_room_data_in_observer_range_of(room_name):
+def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=None):
     """
-    :type room_name: str
-    :rtype: str
+    :type saved_pos: int
+    :type center_room_name: str
+    :rtype: (int, list[str])
     """
-    pass
+    if saved_pos == -1:
+        saved_pos = None
+
+    this_room_x, this_room_y = movement.parse_room_to_xy(center_room_name)
+    now = Game.time
+
+    result = []
+
+    relative_x = 0
+    relative_y = 0
+    dx = 0
+    dy = -1
+    for i in range(10 ** 2):
+        if saved_pos is None:
+            room_name = movement.room_xy_to_name(this_room_x + relative_x, this_room_y + relative_y)
+            last_updated = get_last_updated_tick(room_name)
+            if last_updated != 0 and now - last_updated > 5000:
+                result.append(room_name)
+                if len(result) >= 20:
+                    new_saved_pos = i
+                    break
+        elif i == saved_pos:
+            saved_pos = None
+        if relative_x == relative_y or (relative_x < 0 and relative_x == -relative_y) \
+                or (relative_x > 0 and relative_x == 1 - relative_y):
+            dx, dy = -dy, dx
+        relative_x = relative_x + dx
+        relative_y = relative_y + dy
+    else:
+        new_saved_pos = -1
+
+    return new_saved_pos, result
 
 
 def update_data(room):

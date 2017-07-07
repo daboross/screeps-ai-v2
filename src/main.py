@@ -193,6 +193,9 @@ def run_room(targets, creeps_skipped, room):
     records.start_record()
     room.minerals.tick_terminal()
     records.finish_record('terminal.tick')
+    records.start_record()
+    room.tick_observer()
+    records.finish_record('observer.tick')
 
 
 run_room.err_desc = lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
