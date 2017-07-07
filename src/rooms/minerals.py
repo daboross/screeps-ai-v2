@@ -89,10 +89,11 @@ def add_reaction_prices():
 add_reaction_prices()
 
 minerals_to_keep_on_hand = [
+    RESOURCE_CATALYZED_UTRIUM_ACID,
     RESOURCE_CATALYZED_KEANIUM_ALKALIDE,
     RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE,
     RESOURCE_CATALYZED_ZYNTHIUM_ACID,
-    RESOURCE_CATALYZED_UTRIUM_ACID,
+    RESOURCE_CATALYZED_GHODIUM_ALKALIDE,
 ]
 
 to_buy_when_defending = [
@@ -320,8 +321,10 @@ class MineralMind:
     def minerals_to_sell(self):
         if not self._minerals_to_sell:
             result = []
+            buying = self.minerals_to_stock()
             for mineral in Object.keys(self.get_total_room_resource_counts()):
-                if mineral != RESOURCE_ENERGY and not minerals_to_keep_on_hand.includes(mineral):
+                if mineral != RESOURCE_ENERGY and not minerals_to_keep_on_hand.includes(mineral) \
+                        and not buying.includes(mineral):
                     result.append(mineral)
             self._minerals_to_sell = result
         return self._minerals_to_sell
