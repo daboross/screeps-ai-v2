@@ -178,7 +178,7 @@ class HiveMind:
 
         for room in self.my_rooms:
             if room.name != target_room and not room.minerals.has_no_terminal_or_storage():
-                del room.minerals.fulfilling[RESOURCE_ENERGY]
+                del room.minerals.mem().fulfilling[RESOURCE_ENERGY]
                 room.minerals.send_minerals(target_room, RESOURCE_ENERGY, 200 * 1000)
 
     def mineral_report(self):

@@ -54,7 +54,7 @@ def report_error(err, description):
 def try_thing(thing, *args):
     """
     :type thing: callable()
-    :type args: list[any]
+    :type args: any
     """
     return errorlog.try_exec('main', thing, thing.err_desc, *args)
 
@@ -63,7 +63,7 @@ def try_thing2(thing, err_desc, *args):
     """
     :type thing: callable
     :type err_desc: callable
-    :type args: list[any]
+    :type args: any
     """
     return errorlog.try_exec('main', thing, err_desc, *args)
 
@@ -337,7 +337,7 @@ def main():
     else:
         rooms = hive.my_rooms
         if Game.gcl.level > 1 and Game.cpu.bucket <= 4000:
-            rooms = sorted(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
+            rooms = _.sortBy(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
             rooms = rooms[:len(rooms) - 1]
         used_start = Game.cpu.getUsed()
         for room in rooms:
