@@ -213,6 +213,42 @@ class HiveMind:
             result.push('{}: {}'.format(room.name, ', '.join(room_result)))
         return '\n'.join(result)
 
+    def checkup(self):
+        result = ['Hive Structures Checkup:']
+        for room in self.my_rooms:
+            room_result = []
+            counts = _.countBy(room.find(FIND_STRUCTURES), 'structureType')
+
+            if room.rcl >= 8:
+                if (counts[STRUCTURE_OBSERVER] or 0) < 1:
+                    room_result.push('no observer')
+                if (counts[STRUCTURE_POWER_SPAWN] or 0) < 1:
+                    room_result.push('no power spawn')
+            if room.rcl >= 6:
+                if (counts[STRUCTURE_LAB] or 0) < 3:
+                    if STRUCTURE_LAB not in counts:
+                        room_result.push('no labs')
+                    else:
+                        room_result.push('{} labs'.format(counts[STRUCTURE_LAB]))
+            if (counts[STRUCTURE_SPAWN] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.rcl]:
+                room_result.push('{} / {} spawns'.format(counts[STRUCTURE_SPAWN] or 0,
+                                                         CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.rcl]))
+            if (counts[STRUCTURE_TOWER] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.rcl]:
+                room_result.push('{} / {} towers'.format(counts[STRUCTURE_TOWER] or 0,
+                                                         CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.rcl]))
+            if (counts[STRUCTURE_EXTENSION] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.rcl]:
+                room_result.push('{} / {} extensions'.format(counts[STRUCTURE_EXTENSION] or 0,
+                                                             CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.rcl]))
+            if (counts[STRUCTURE_WALL] or 0) > (counts[STRUCTURE_RAMPART] or 0):
+                room_result.push('more walls than ramparts: {} walls, {} ramparts'
+                                 .format(counts[STRUCTURE_WALL] or 0, counts[STRUCTURE_RAMPART] or 0))
+
+            if len(room_result):
+                result.push('{}:\n\t{}'.format(room.name, '\n\t'.join(room_result)))
+            else:
+                result.push('{}: ✓'.format(room.name))
+        return '\n'.join(result)
+
     def sing(self):
         if '_ly' not in Memory:
             Memory['_ly'] = {}
