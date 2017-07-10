@@ -2117,7 +2117,12 @@ class RoomMind:
                 for y in range(controller_pos.y - 1, controller_pos.y + 2):
                     if movement.is_block_empty(self, x, y):
                         any_spots = True
+                        break
+                else:
+                    continue
+                break
             self.store_cached_property('controller-spots', any_spots, 5000)
+        return any_spots
 
     def _next_message_creep(self):
         if self.under_siege() or not self.spots_around_controller():
