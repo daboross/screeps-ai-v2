@@ -6,38 +6,26 @@ This repository contains a snapshot of my program written for the JavaScript-bas
 Although screeps uses JS, this repository is, as you've probably noticed, written in Python. In order to accomplish this,
 I've used a tool called [transcrypt](transcrypt.com).
 
-Transcrypt allows turning a python program pretty directly into a JavaScript program - the command I've used to do this
-is in the ``./build.sh` program in this repository.
+The `./build.py` script does the majority of the work, from setting up a new environment to building/publishing the
+binary to the screeps server. However, you will need to install some dependencies:
 
-To get started with this project, you'll need to get the following programs available:
-- `python-3.5`
-- `pip` (often comes with python)
-- `virtualenv` (install manually later, see below)
-- `node.js`
-- `npm` (often comes with node)
-- `grunt` (install manually later, see below)
+- `python-3.5` - Transcrypt works natively with Python 3.5, so you will need this version installed. Python 3.4 is more
+  widely available, but will not work for our purposes.
+- `pip` - Make sure you have a Python 3.* version of `pip` installed as well. While `pip-3.4` is fine, you do need at
+  least that in order to make a `python-3.5` virtualenv. You can check your pip version with `pip --version`, and
+  depending on how it was installed, you may need to use `pip3`, `pip-3`, `pip3.4` or `pip-3.4` instead.
 
-In order to install Python 3.5, pip, node.js and npm, I would recommend looking up instructions specific to your
-operating system.
+After you have those set up, you'll need to install `virtualenv`:
 
-If you are using Windows, I would also recommend installing `git bash`. You'll need some version of bash in order to run
-the deploy script.
+To install virtualenv, use `pip` (or another `pip3*` / `pip-3*` command) as follows:
 
-To install virtualenv, after you have installed `pip`, use the following command:
-
-```sh
+```
 pip install --user virtualenv
 ```
 
-To install `grunt`, after you have installed `npm`, use the following commands:
-```sh
-npm install -g grunt-cli
-```
+After that, the rest of the dependencies will be installed upon running `build.py` for the first time.
 
-After that, you should run the `build.sh` script of this project once to install the rest of the dependencies.
+The only remaining step will be to provide your screeps credentials. To do that, copy `config.default.json` to
+a new file `config.json`, and enter your email and password into the config.
 
-The only remaining step will be to provide your screeps credentials. To do that, put your log in email into a file
-called `.screeps-email` in this project directory, and your password into a file called `.screeps-password`.
-
-Following that, you're all set up! All you need to do now is run the `./build.sh` script whenever you want to compile
-and deploy code, and it will deal with the rest of it.
+Following that, you're all set up! All you need to do now is run `python3 build.py` to compile, collect and deploy code.
