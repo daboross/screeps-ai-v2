@@ -346,9 +346,7 @@ class MineralMind:
                     else:
                         priorities[priority] = [rtype]
         total = _.sum(target_counts)
-        if total == target_counts[RESOURCE_ENERGY]:
-            target_counts = {}
-        elif total > TERMINAL_CAPACITY:
+        if total > TERMINAL_CAPACITY:
             if priorities[0]:
                 for rtype in priorities[0]:
                     del target_counts[rtype]
