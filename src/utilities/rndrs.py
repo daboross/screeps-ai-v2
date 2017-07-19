@@ -65,5 +65,29 @@ def pwrd():
     ])
 
 
+def strw():
+    message = _.sample([
+        "Territory Of INTEGER_MAX",
+        "CIRCLE WORLD!",
+        "INTEGER_MAX",
+        "Cake!",
+        "Delicious Cake!",
+        "My Cake Is Real",
+        "The Cake Is A Lie",
+        "Territory Of STARWAR15432, An INTEGER_MAX MEMBER",
+        "Cake, and grief counseling, will be available at the conclusion of the test -GLaDOS",
+        "In layman's terms, speedy thing goes in, speedy thing comes out -GLaDOS",
+        "It's been a long time. I've been *really* busy being dead. You know, after you MURDERED ME? -GLaDOS",
+        "When life gives you lemons, don't make lemonade! Make life take the lemons back! -Portal 2",
+        "Do you know who I am? I'm the man whose gonna burn your house down - with the lemons! -Portal 2",
+        "It's your friend deadly neurotoxin. If I were you, I'd take a deep breath. And hold it. -Portal 2",
+        "See that? That is a potato battery. It's a toy for children. And now she lives in it. -Portal 2",
+        "Violence is the last refuge of the incompetent.",
+        "Self-education is, I firmly believe, the only kind of education there is.",
+        "People who think they know everything are a great annoyance to those of us who do.",
+    ])
+    return "\"{}\" - starwar15432".format(message)
+
+
 def rs():
-    return _.sample([auto, pnk, coal, crcl, pwrd])()
+    return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
