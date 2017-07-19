@@ -258,6 +258,7 @@ from constants.memkeys.room import \
     mem_key_flag_for_testing_spawning_in_simulation as rmem_key_flag_for_testing_spawning_in_simulation, \
     mem_key_focusing_home as rmem_key_focusing_home, \
     mem_key_linking_mind_storage as rmem_key_linking_mind_storage, \
+    mem_key_message as rmem_key_message, \
     mem_key_metadata as rmem_key_metadata, \
     mem_key_mineral_mind_storage as rmem_key_mineral_mind_storage, \
     mem_key_now_supporting as rmem_key_now_supporting, \
@@ -271,9 +272,11 @@ from constants.memkeys.room import \
     mem_key_sell_all_but_empty_resources_to as rmem_key_sell_all_but_empty_resources_to, \
     mem_key_spawn_requests as rmem_key_spawn_requests, \
     mem_key_sponsor as rmem_key_sponsor, \
+    mem_key_squad_memory as rmem_key_squad_memory, \
     mem_key_storage_use_enabled as rmem_key_storage_use_enabled, \
     mem_key_stored_hostiles as rmem_key_stored_hostiles, \
     mem_key_there_might_be_energy_lying_around as rmem_key_there_might_be_energy_lying_around, \
     mem_key_total_open_source_spaces as rmem_key_total_open_source_spaces, \
     mem_key_upgrading_paused as rmem_key_upgrading_paused, \
+    mem_key_urgency as rmem_key_urgency, \
     mem_key_work_parts_by_role as rmem_key_work_parts_by_role

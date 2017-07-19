@@ -42,6 +42,7 @@ mem_key_urgency = 'urgency'
 mem_key_message = 'm'
 
 mem_key_dismantler_squad_opts = 'dm_opts'
+mem_key_squad_memory = 'sqmem'
 
 cache_key_spending_now = 'ss'
 cache_key_squads = 'sqds'

@@ -1,4 +1,5 @@
 import creeps.roles.squads
+from constants import rmem_key_squad_memory
 from empire import honey
 from jstools.errorlog import try_exec
 from jstools.screeps import *
@@ -14,11 +15,32 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
 
+def __squad_get_mem():
+    name = this.location.name
+    room_mem = this.home.mem
+    if not room_mem[rmem_key_squad_memory]:
+        mem = {}
+        room_mem[rmem_key_squad_memory] = {name: mem}
+    elif name not in room_mem[rmem_key_squad_memory]:
+        mem = room_mem[rmem_key_squad_memory][name] = {}
+    else:
+        mem = room_mem[rmem_key_squad_memory][name]
+
+    Object.defineProperty(this, 'mem', {
+        'value': mem,
+        'enumerable': True,
+        'configurable': True,
+    })
+    return mem
+
+squadmemkey_origin = 'o'
+
 class Squad:
     """
     :type home: rooms.room_mind.RoomMind
     :type __cached_members_movement_order: list[creeps.roles.squads.SquadDrone]
     :type members: list[creeps.roles.squads.SquadDrone]
+    :type mem: dict[str, any]
     """
 
     def __init__(self, home, members, location):
@@ -35,6 +57,7 @@ class Squad:
         __pragma__('skip')
         self.__cached_members_movement_order = undefined
         self.__origin = undefined
+        self.mem = {}
         __pragma__('noskip')
 
     def log(self, message, *args):
@@ -52,8 +75,7 @@ class Squad:
 
     def find_origin(self):
         if '__origin' not in self:
-            member = self.members_movement_order()[0]
-            origin_mem = member.memory.squad_origin
+            origin_mem = self.mem[squadmemkey_origin]
             if origin_mem:
                 origin = positions.deserialize_xy_to_pos(origin_mem.xy, origin_mem.room)
             else:
@@ -68,8 +90,7 @@ class Squad:
 
         self.__origin = origin
 
-        member = self.members_movement_order()[0]
-        member.memory.squad_origin = {'xy': positions.serialize_pos_xy(origin), 'room': origin.roomName}
+        self.mem[squadmemkey_origin] = {'xy': positions.serialize_pos_xy(origin), 'room': origin.roomName}
 
     def members_movement_order(self):
         """
@@ -318,7 +339,10 @@ class Squad:
                     this_drone.creep.__direction_moved = direction
                 elif movement.is_edge_position(this_drone):
                     this_drone.move_to(next_drone)
-                elif movement.chebyshev_distance_room_pos(this_drone, next_drone) > 3:
+                elif movement.chebyshev_distance_room_pos(this_drone, next_drone) > 3 or (
+                                movement.chebyshev_distance_room_pos(this_drone, next_drone) > 1
+                        and not movement.is_edge_position(next_drone)
+                ):
                     this_drone.move_to(next_drone)
                     self.log("drone {} at {},{} breaking due to distance", i, this_drone.pos.x, this_drone.pos.y)
                     break
@@ -380,9 +404,10 @@ class Squad:
         if min_distance_to_origin > 100:
             mv_order = self.members_movement_order()
             self.set_origin(mv_order[len(mv_order) - 1].pos)
-        if min_distance_from_home < 50 and (min_distance_from_home < total_distance / 2):
-            # print('[squads][{}] move_to: chose stage 0 (minimum distance from home: {}, total distance: {})'
-            #       .format(self.location.name, min_distance_from_home, total_distance))
+        if min_distance_from_home < 50 and (max_distance_to_target < total_distance / 2):
+            print('[squads][{}] move_to: chose stage 0 (minimum distance from home: {}, maximum distance from home: {},'
+                  ' total distance: {})'
+                  .format(self.location.name, min_distance_from_home, max_distance_to_target, total_distance))
             self.move_to_stage_0(target)
         elif min_distance_to_target < 300 and any_hostiles:
             self.move_to_stage_2(target)
@@ -434,6 +459,12 @@ class Squad:
         """
         self.move_to(self.location)
 
+
+Object.defineProperty(Squad, 'mem', {
+    'get': __squad_get_mem,
+    'enumerable': True,
+    'configurable': True,
+})
 
 specialty_order = [ATTACK, WORK, HEAL, RANGED_ATTACK]
 

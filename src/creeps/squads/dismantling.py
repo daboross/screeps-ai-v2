@@ -3,7 +3,7 @@ import math
 from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, role_squad_dismantle, role_squad_heal, \
     role_squad_ranged
 from creeps.roles.squads import SquadDrone
-from creeps.squads.base import BasicOffenseSquad
+from creeps.squads.base import BasicOffenseSquad, squadmemkey_origin
 from empire import honey, stored_data
 from jstools.screeps import *
 from position_management import flags, locations
@@ -30,54 +30,344 @@ def drone_role(specialty):
         return role_squad_heal
 
 
+dismemkey_gathered = "g"
+dismemkey_ordered = "d"
+dismemkey_regrouping = "t"
+
+
 class DismantleSquad(BasicOffenseSquad):
     def calculate_movement_order(self):
-        initial = _.sortByAll(self.members, lambda x: specialty_order.index(x.findSpecialty()), 'name')
+        return _.sortByAll(self.members, lambda x: specialty_order.index(x.findSpecialty()), 'name')
 
-        # if len(initial) == 4:
-        #     ranged_index = _.findIndex(initial, lambda x: x.findSpecialty() == RANGED_ATTACK)
-        #     if ranged_index == len(initial) - 1:
-        #         temp = initial[len(initial) - 2]
-        #         initial[len(initial) - 2] = initial[ranged_index]
-        #         initial[ranged_index] = temp
+    def move_to_stage_0(self, target):
+        self.new_move(target)
 
-        return initial
+    def move_to_stage_1(self, target, any_hostiles):
+        """
+        :type target: position_management.locations.Location | RoomPosition
+        """
+        self.new_move(target)
 
-    # def move_to_stage_2(self, target):
-    #     """
-    #     :type target: position_management.locations.Location | RoomPosition
-    #     """
-    #     dismantler = None
-    #     ranged = None
-    #     healers = []
-    #     for creep in self.members:
-    #         specialty = creep.findSpecialty()
-    #         if specialty == WORK:
-    #             if dismantler is not None:
-    #                 self.log("multiple dismantlers found! {} and {}: delegating to default stage 2 movement",
-    #                          dismantler, creep)
-    #                 return BasicOffenseSquad.move_to_stage_2(self, target)
-    #             dismantler = creep
-    #         elif specialty == RANGED_ATTACK:
-    #             if ranged is not None:
-    #                 self.log("multiple rangers found! {} and {}: delegating to default stage 2 movement",
-    #                          ranged, creep)
-    #                 return BasicOffenseSquad.move_to_stage_2(self, target)
-    #             ranged = creep
-    #         elif specialty == HEAL:
-    #             healers.append(creep)
-    #         else:
-    #             self.log("unknown specialty creep in dismantling squad: {} ({})",
-    #                      specialty, creep)
-    #
-    #     if dismantler is None or not len(healers):
-    #         return BasicOffenseSquad.move_to_stage_2(self, target)
-    #     if len(healers) > 2:
-    #         return BasicOffenseSquad.move_to_stage_2(self, target)
-    #     self.log("Dismantler squad moving - stage 2 - d:{}, r:{}, h:{}",
-    #              dismantler.name, ranged.name if ranged else "None", _.pluck(healers, 'name'))
-    #
-    #     BasicOffenseSquad.move_to_stage_2(self, target)
+    def move_to_stage_2(self, target):
+        """
+        :type target: position_management.locations.Location | RoomPosition
+        """
+        self.new_move(target)
+
+    def move_to(self, target):
+        self.new_move(target)
+
+    def new_move(self, target):
+        """
+        :type target: position_management.locations.Location | RoomPosition
+        """
+        if not self.mem[dismemkey_gathered]:
+            self.initial_gathering(target)
+            return
+        self.move_together(target)
+
+    def initial_gathering(self, target):
+        """
+        :type target: position_management.locations.Location | RoomPosition
+        """
+        origin = self.find_home()
+        if not self.mem[squadmemkey_origin]:
+            self.set_origin(origin)
+        serialized_obj = self.home.hive.honey.get_serialized_path_obj(origin, target, self.new_movement_opts())
+        ordered_rooms_in_path = honey.get_room_list_from_serialized_obj(serialized_obj)
+
+        second_from_home = ordered_rooms_in_path[1]
+        path = Room.deserializePath(serialized_obj[second_from_home])
+        halfway = path[int(len(path) / 2)]
+        meet_at = __new__(RoomPosition(halfway.x, halfway.y, second_from_home))
+
+        anyone_near = []
+        for member in self.members:
+            if member.pos.inRangeTo(meet_at, 3):
+                anyone_near.append(member)
+
+        if len(anyone_near) != len(self.members):
+            for creep in self.members:
+                creep.move_to(meet_at)
+        else:
+            self.mem[dismemkey_gathered] = True
+
+    def move_together(self, target):
+        """
+        :type target: position_management.locations.Location | RoomPosition
+        """
+        origin = self.find_home()
+        serialized_obj = self.home.hive.honey.get_serialized_path_obj(origin, target, self.new_movement_opts())
+        ordered_rooms_in_path = honey.get_room_list_from_serialized_obj(serialized_obj)
+
+        dismantle = []
+        attack = []
+        heal = []
+        for creep in self.members:
+            specialty = creep.findSpecialty()
+            if specialty == WORK:
+                dismantle.append(creep)
+            elif specialty == RANGED_ATTACK:
+                attack.append(creep)
+            elif specialty == HEAL:
+                heal.append(creep)
+            else:
+                self.log("unknown specialty creep in dismantling squad: {} ({}). treating as ranged.",
+                         specialty, creep)
+                attack.append(creep)
+
+        if not len(dismantle):
+            self.log("dismantle squad has no dismantle creeps!")
+        elif not len(heal):
+            self.log("dismantle squad has no healers!")
+
+        dismantle = _.sortBy(dismantle, 'name')
+        heal = _.sortBy(heal, 'name')
+        attack = _.sortBy(attack, 'name')
+        groups = []
+        if len(dismantle):
+            groups.append(dismantle)
+        if len(heal):
+            groups.append(heal)
+        if len(attack):
+            groups.append(attack)
+
+        self.log("dismantler squad moving: {}",
+                 "<-".join(["[{}]".format(_.pluck(g, 'name')) for g in groups]))
+
+        memory = self.mem
+
+        if not memory[dismemkey_ordered]:
+            self.log("ordering")
+            ordered_now, repath = self.get_ordered(target, serialized_obj, dismantle, heal, attack)
+            if not ordered_now:
+                return
+
+        current_room = groups[0][0].pos.roomName
+        if not self.mem[dismemkey_regrouping]:
+            if _.any(self.members, lambda c: c.pos.roomName != current_room):
+                self.log("enabling regrouping - not in same room.")
+                self.mem[dismemkey_regrouping] = True
+            else:
+                grouped = [groups[0][0]]
+                ungrouped = _.clone(self.members)
+                iterations = len(ungrouped) ** 2
+                for _i in range(0, iterations):
+                    index = 0
+                    while index < len(ungrouped):
+                        this_creep = ungrouped[index]
+                        any_matched = False
+                        for creep in grouped:
+                            if this_creep.pos.isNearTo(creep):
+                                any_matched = True
+                                break
+                        if any_matched:
+                            grouped.append(this_creep)
+                            ungrouped.splice(this_creep, 1)
+                        else:
+                            index += 1
+                if len(ungrouped):
+                    self.log("enabling regrouping - in same room, but not together.")
+                    self.mem[dismemkey_regrouping] = True
+        if self.mem[dismemkey_regrouping]:
+            self.log("regrouping")
+            if self.regroup(target, groups, ordered_rooms_in_path):
+                return
+            else:
+                # TODO: don't require this! we shouldn't be relying on the main path except for the rooms,
+                # and for the first reordering outside of base.
+                del self.mem[dismemkey_ordered]
+        elif _.any(self.members, 'fatigue'):
+            self.log('fatigue')
+            return
+
+        return BasicOffenseSquad.move_to_stage_2(self, target)
+
+    def regroup(self, target, groups, ordered_rooms_in_path):
+        current_room = groups[0][0].pos.roomName
+        room_index = ordered_rooms_in_path.lastIndexOf(current_room)
+        last_room = ordered_rooms_in_path[room_index - 1]
+        next_room = ordered_rooms_in_path[room_index + 1]
+        gather_at_x = groups[0][0].pos.x
+        gather_at_y = groups[0][0].pos.y
+        extra_condition = None
+        if next_room:
+            if last_room:
+                min_x = 1
+                min_y = 1
+                max_x = 48
+                max_y = 48
+                room_x_diff, room_y_diff = movement.room_diff(last_room, current_room)
+                if abs(room_x_diff) > 1 or abs(room_y_diff) > 1:
+                    portals = Game.rooms[current_room].find(FIND_STRUCTURES, {
+                        'filter': {'structureType': STRUCTURE_PORTAL}
+                    })
+
+                    def portal_condition(x, y):
+                        return not _.any(portals, lambda p: (abs(p.pos.x - x) < 5
+                                                             or abs(p.pos.y - y) < 5))
+
+                    extra_condition = portal_condition
+                    self.log(".. through a portal")
+                else:
+                    if room_x_diff > 0:
+                        min_x = 6
+                    elif room_x_diff < 0:
+                        max_x = 44
+                    if room_y_diff > 0:
+                        min_y = 6
+                    elif room_y_diff < 0:
+                        max_y = 44
+            else:
+                min_x = 6
+                max_x = 44
+                min_y = 6
+                max_y = 44
+
+            if gather_at_x < min_x or gather_at_x > max_x or gather_at_y < min_y or gather_at_y > max_y \
+                    or (extra_condition and not extra_condition(gather_at_x, gather_at_y)):
+                open_space = movement.find_an_open_space_around(current_room, gather_at_x, gather_at_y,
+                                                                min_x, min_y, max_x, max_y, extra_condition)
+                gather_at_x = open_space.x
+                gather_at_y = open_space.y
+            target_itself = False
+        else:
+            target = target.pos or target
+            gather_at_x = target.x
+            gather_at_y = target.y
+            current_room = target.roomName
+            min_x = 0
+            max_x = 50
+            min_y = 0
+            max_y = 50
+            target_itself = True
+
+        pos = __new__(RoomPosition(gather_at_x, gather_at_y, current_room))
+        last_group_gathered = True
+
+        self.log('.. at {} (conditions: [{}-{},{}-{}])', pos, min_x, max_x, min_y, max_y)
+
+        def move_to_closest_of(c, targets):
+            """
+            :type c: SquadDrone
+            :type targets: list[RoomPosition]
+            :return: is_this_creep_still_moving
+            """
+            target = None
+            distance = Infinity
+            for test_target in targets:
+                test_distance = movement.chebyshev_distance_room_pos(c, test_target)
+                if test_distance < distance:
+                    distance = test_distance
+                    target = test_target
+
+            target = target.pos or target
+            if c.pos.roomName == target.roomName:
+                if c.pos.isNearTo(target):
+                    return False
+                else:
+                    c.move_to(target)
+                    return True
+            elif movement.chebyshev_distance_room_pos(c, target) < 100:
+                c.move_to(target)
+                return True
+            else:
+                if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
+                    reroute_start = Game.flags['reroute']
+                    reroute_destination = Game.flags['reroute_destination']
+                    if movement.chebyshev_distance_room_pos(c, reroute_start) \
+                            + movement.chebyshev_distance_room_pos(reroute_destination, target) \
+                            < movement.chebyshev_distance_room_pos(c, target):
+                        target = reroute_start
+                c.move_to(target)
+                return True
+
+        for creep in groups[0]:
+            if move_to_closest_of(creep, [pos]):
+                self.log(".. breaking in group 0")
+                last_group_gathered = False
+        for index in range(1, len(groups)):
+            last_group = groups[index - 1]
+            this_group = groups[index]
+            if last_group_gathered:
+                for in_group_index in range(0, len(this_group)):
+                    to_test = last_group
+                    this_creep = this_group[in_group_index]
+                    # if in_group_index == 0:
+                    #     to_test = last_group
+                    # else:
+                    #     last_creep = this_group[in_group_index - 1]
+                    #     to_test = [last_creep]
+                    #     to_test.extend(last_group)
+                    if move_to_closest_of(this_creep, to_test):
+                        last_group_gathered = False
+                        self.log(".. breaking in group {}", index)
+            else:
+                for this_creep in groups[index]:
+                    if target_itself:
+                        move_to_closest_of(this_creep, last_group)
+                    else:
+                        move_to_closest_of(this_creep, [pos])
+        if last_group_gathered:
+            del self.mem[dismemkey_regrouping]
+            return False
+        else:
+            return True
+
+    def get_ordered(self, target, serialized_obj, dismantle, heal, attack, already_repathed=False):
+        rebuilt = dismantle.concat(heal).concat(attack)
+        first_creep = rebuilt[0]
+
+        serialized_path_this_room = serialized_obj[first_creep.pos.roomName]
+        if serialized_path_this_room:
+            path_this_room = Room.deserializePath(serialized_path_this_room)
+            total_positions_this_room = len(path_this_room)
+        else:
+            total_positions_this_room = 0
+            path_this_room = None
+        if path_this_room is not None and total_positions_this_room >= len(self.members) + 4:
+            if total_positions_this_room >= len(self.members) * 2 + 4:
+                first_index = int(len(path_this_room) / 2)
+            else:
+                first_index = len(path_this_room) - 2
+            any_off = False
+            for index in range(0, len(rebuilt)):
+                pos = path_this_room[first_index - index]
+                creep = rebuilt[index]
+                pos = __new__(RoomPosition(pos.x, pos.y, first_creep.pos.roomName))
+                if creep.pos.isEqualTo(pos):
+                    continue
+                else:
+                    any_off = True
+                    creep.move_to(pos)
+            if not any_off:
+                self.mem[dismemkey_ordered] = True
+                return True, already_repathed
+        else:
+            next_intermediate_goal = target
+            origin = _.max(self.members, lambda m: movement.chebyshev_distance_room_pos(m, next_intermediate_goal))
+            if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
+                reroute_start = Game.flags['reroute']
+                reroute_destination = Game.flags['reroute_destination']
+                if movement.chebyshev_distance_room_pos(origin, reroute_start) \
+                        + movement.chebyshev_distance_room_pos(reroute_destination, target) \
+                        < movement.chebyshev_distance_room_pos(origin, target):
+                    next_intermediate_goal = reroute_start
+                    origin = _.max(self.members,
+                                   lambda m: movement.chebyshev_distance_room_pos(m, next_intermediate_goal))
+            self.set_origin(origin)
+            serialized_obj = self.home.hive.honey.get_serialized_path_obj(origin, target, self.new_movement_opts())
+            if not serialized_obj[first_creep.pos.roomName]:
+                self.log("Uh-oh - path from furthest creep to target did not include the room the first creep is in."
+                         " Setting origin to first creep's pos.")
+                self.set_origin(first_creep)
+                serialized_obj = self.home.hive.honey.get_serialized_path_obj(origin, target, self.new_movement_opts())
+                if not serialized_obj[first_creep.pos.roomName]:
+                    self.log("Path from first creep {} to {} did not include room {}! ...",
+                             first_creep.pos, target, first_creep.pos.roomName)
+                    return False, False
+                return self.get_ordered(target, serialized_obj, dismantle, heal, attack, True)
+        return False, already_repathed
 
     def is_heavily_armed(self):
         return True

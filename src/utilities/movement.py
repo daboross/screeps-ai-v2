@@ -42,6 +42,12 @@ def parse_room_to_xy(room_name):
     return x, y
 
 
+def room_diff(room_1, room_2):
+    x1, y1 = parse_room_to_xy(room_1)
+    x2, y2 = parse_room_to_xy(room_2)
+    return x2 - x1, y2 - y1
+
+
 def is_valid_room_name(room_name):
     matches = room_regex.exec(room_name)
     return not not matches
@@ -66,20 +72,50 @@ def center_pos(room_name):
     return __new__(RoomPosition(25, 25, room_name))
 
 
-def find_an_open_space(room_name):
+def do_a_50x50_spiral(func):
     x = 0
     y = 0
     dx = 0
     dy = -1
     for i in range(0, 50 * 50):
-        if Game.map.getTerrainAt(24 + x, 24 + y, room_name) != 'wall':
-            return __new__(RoomPosition(24 + x, 24 + y, room_name))
+        result = func(x, y)
+        if result:
+            return result
         if x == y or (x < 0 and x == -y) or (x > 0 and x == -y + 1):
             dx, dy = -dy, dx
         x += dx
         y += dy
-    print("[movement] WARNING: Could not find open space in {}".format(room_name))
-    return __new__(RoomPosition(25, 25, room_name))
+    return None
+
+
+def find_an_open_space(room_name):
+    def test(x_diff, y_diff):
+        if Game.map.getTerrainAt(24 + x_diff, 24 + y_diff, room_name) != 'wall':
+            return __new__(RoomPosition(24 + x_diff, 24 + y_diff, room_name))
+
+    result = do_a_50x50_spiral(test)
+    if result:
+        return result
+    else:
+        print("[movement] WARNING: Could not find open space in {}".format(room_name))
+        return __new__(RoomPosition(25, 25, room_name))
+
+
+def find_an_open_space_around(room_name, center_x, center_y, min_x=1, min_y=1, max_x=48, max_y=48, cond=None):
+    def test(x_diff, y_diff):
+        x = center_x + x_diff
+        y = center_y + y_diff
+        if min_x <= x <= max_x and min_y <= y <= max_y and Game.map.getTerrainAt(x, y, room_name) != 'wall' \
+                and (cond is None or cond(x, y)):
+            return __new__(RoomPosition(x, y, room_name))
+
+    result = do_a_50x50_spiral(test)
+    if result:
+        return result
+    else:
+        print("[movement] WARNING: Could not find open space in {} with boundaries [{}-{},{}-{}]"
+              .format(room_name, min_x, max_x, min_y, max_y))
+        return __new__(RoomPosition(25, 25, room_name))
 
 
 def find_clear_inbetween_spaces(room, pos1, pos2):
