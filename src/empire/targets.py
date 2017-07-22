@@ -77,15 +77,15 @@ def update_targeters_memory_0_to_1(targeters):
                 if ttype in string_target_names_to_numbers:
                     ttype = string_target_names_to_numbers[ttype]
                 else:
-                    msg = "WARNING: Error updating old targetmind memory. Couldn't find ttype {} in conversion map!" \
+                    msg = "WARNING: Error updating old TargetMind memory. Couldn't find ttype {} in conversion map!" \
                         .format(ttype)
-                    console.log(msg)
+                    print(msg)
                     Game.notify(msg)
                     raise ValueError
             elif not _.isNumber(ttype):
                 msg = "WARNING: Error updating old TargetMind memory. Unknown type of ttype (not string nor int): {}!" \
                     .format(ttype)
-                console.log(msg)
+                print(msg)
                 Game.notify(msg)
                 raise ValueError
             new_targeter_map[ttype] = target_id

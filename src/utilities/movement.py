@@ -1,7 +1,11 @@
 import math
+from typing import Callable, Iterable, List, Optional, TYPE_CHECKING, Tuple, TypeVar, Union
 
 from jstools.screeps import *
 from utilities import positions
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -16,6 +20,7 @@ room_regex = __new__(RegExp("(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})"))
 
 
 def squared_distance(xy1, xy2):
+    # type: (Tuple[int, int], Tuple[int, int]) -> int
     """
     Gets the squared distance between two x, y positions
     :param xy1: a tuple (x, y)
@@ -28,6 +33,7 @@ def squared_distance(xy1, xy2):
 
 
 def parse_room_to_xy(room_name):
+    # type: (str) -> Tuple[int, int]
     matches = room_regex.exec(room_name)
     if not matches:
         return 0, 0
@@ -43,17 +49,20 @@ def parse_room_to_xy(room_name):
 
 
 def room_diff(room_1, room_2):
+    # type: (str, str) -> Tuple[int, int]
     x1, y1 = parse_room_to_xy(room_1)
     x2, y2 = parse_room_to_xy(room_2)
     return x2 - x1, y2 - y1
 
 
 def is_valid_room_name(room_name):
+    # type: (str) -> bool
     matches = room_regex.exec(room_name)
     return not not matches
 
 
 def room_xy_to_name(room_x, room_y):
+    # type: (int, int) -> str
     return "{}{}{}{}".format(
         "E" if room_x > 0 else "W",
         - room_x - 1 if room_x < 0 else room_x,
@@ -63,8 +72,7 @@ def room_xy_to_name(room_x, room_y):
 
 
 def center_pos(room_name):
-    if room_name.name:
-        room_name = room_name.name
+    # type: (str) -> RoomPosition
     if not room_name or not _.isString(room_name):
         msg = '[movement] WARNING: Non-string room name passed in to center_pos: {}!'.format(room_name)
         print(msg)
@@ -72,13 +80,17 @@ def center_pos(room_name):
     return __new__(RoomPosition(25, 25, room_name))
 
 
+_T = TypeVar('T')
+
+
 def do_a_50x50_spiral(func):
+    # type: (Callable[[int, int], _T]) -> Optional[_T]
     x = 0
     y = 0
     dx = 0
     dy = -1
     for i in range(0, 50 * 50):
-        result = func(x, y)
+        result = func(x, y)  # type: _T
         if result:
             return result
         if x == y or (x < 0 and x == -y) or (x > 0 and x == -y + 1):
@@ -89,11 +101,12 @@ def do_a_50x50_spiral(func):
 
 
 def find_an_open_space(room_name):
+    # type: (str) -> RoomPosition
     def test(x_diff, y_diff):
         if Game.map.getTerrainAt(24 + x_diff, 24 + y_diff, room_name) != 'wall':
             return __new__(RoomPosition(24 + x_diff, 24 + y_diff, room_name))
 
-    result = do_a_50x50_spiral(test)
+    result = do_a_50x50_spiral(test)  # type: Optional[RoomPosition]
     if result:
         return result
     else:
@@ -102,6 +115,7 @@ def find_an_open_space(room_name):
 
 
 def find_an_open_space_around(room_name, center_x, center_y, min_x=1, min_y=1, max_x=48, max_y=48, cond=None):
+    # type: (str, int, int, int, int, int, int, Callable[[int, int], bool]) -> RoomPosition
     def test(x_diff, y_diff):
         x = center_x + x_diff
         y = center_y + y_diff
@@ -119,10 +133,7 @@ def find_an_open_space_around(room_name, center_x, center_y, min_x=1, min_y=1, m
 
 
 def find_clear_inbetween_spaces(room, pos1, pos2):
-    if pos1.pos:
-        pos1 = pos1.pos
-    if pos2.pos:
-        pos2 = pos2.pos
+    # type: (RoomMind, RoomPosition, RoomPosition) -> List[int]
     distance = chebyshev_distance_room_pos(pos1, pos2)
     result = []
     if distance > 2 or pos1.roomName != pos2.roomName:
@@ -138,8 +149,7 @@ def find_clear_inbetween_spaces(room, pos1, pos2):
 
 
 def room_pos_of_closest_serialized(room, here_pos, list_of_serialized):
-    if here_pos.pos:
-        here_pos = here_pos.pos
+    # type: (RoomMind, RoomPosition, List[int]) -> Optional[RoomPosition]
     length = len(list_of_serialized)
     room_name = here_pos.roomName
 
@@ -165,6 +175,7 @@ def room_pos_of_closest_serialized(room, here_pos, list_of_serialized):
 
 
 def distance_squared_room_pos(room_position_1, room_position_2):
+    # type: (RoomPosition, RoomPosition) -> int
     """
     Gets the squared distance between two RoomPositions, taking into account room difference by parsing room names to
     x, y coords and counting each room difference at 50 position difference.
@@ -172,10 +183,6 @@ def distance_squared_room_pos(room_position_1, room_position_2):
     :param room_position_2: The second RoomPosition
     :return: The squared distance as an int
     """
-    if room_position_1.pos:
-        room_position_1 = room_position_1.pos
-    if room_position_2.pos:
-        room_position_2 = room_position_2.pos
     if room_position_1.roomName == room_position_2.roomName:
         return squared_distance((room_position_1.x, room_position_1.y), (room_position_2.x, room_position_2.y))
     room_1_pos = parse_room_to_xy(room_position_1.roomName)
@@ -192,10 +199,7 @@ def distance_squared_room_pos(room_position_1, room_position_2):
 
 
 def chebyshev_distance_room_pos(pos1, pos2):
-    if pos1.pos:
-        pos1 = pos1.pos
-    if pos2.pos:
-        pos2 = pos2.pos
+    # type: (RoomPosition, RoomPosition) -> int
     if pos1.roomName == pos2.roomName:
         return max(abs(pos1.x - pos2.x), abs(pos1.y - pos2.y))
     room_1_pos = parse_room_to_xy(pos1.roomName)
@@ -212,13 +216,16 @@ def chebyshev_distance_room_pos(pos1, pos2):
 
 
 def chebyshev_distance_xy(x1, y1, x2, y2):
+    # type: (int, int, int, int) -> int
     return max(abs(x1 - x2), abs(y1 - y2))
 
 
 def minimum_chebyshev_distance(comparison_pos, targets):
+    # type: (RoomPosition, Iterable[Union[RoomPosition, RoomObject]]) -> int
     min_distance = Infinity
     for target in targets:
-        distance = chebyshev_distance_room_pos(comparison_pos, target)
+        pos = target.pos or target  # type: RoomPosition
+        distance = chebyshev_distance_room_pos(comparison_pos, pos)
         if distance < min_distance:
             min_distance = distance
     if min_distance is Infinity:
@@ -228,22 +235,19 @@ def minimum_chebyshev_distance(comparison_pos, targets):
 
 
 def distance_room_pos(room_pos_1, room_pos_2):
+    # type: (RoomPosition, RoomPosition) -> float
     """
     Gets the distance between two RoomPositions, taking into account room difference by parsing room names into x, y
     coords. This method is equivalent to `math.sqrt(distance_squared_room_pos(pos1, pos2))`
-    :param room_pos_1:
-    :param room_pos_2:
     :return:
     """
     return math.sqrt(distance_squared_room_pos(room_pos_1, room_pos_2))
 
 
 def is_block_clear(room, x, y):
+    # type: (RoomMind, int, int) -> bool
     """
     Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
-    :type room: rooms.room_mind.RoomMind
-    :type x: int
-    :type y: int
     """
     if x > 49 or y > 49 or x < 0 or y < 0:
         return False
@@ -263,9 +267,9 @@ def is_block_clear(room, x, y):
 
 
 def is_block_empty(room, x, y):
+    # type: (RoomMind, int, int) -> bool
     """
-    Checks if a block is not a wall, and has no non-walkable structures. (does not check creeps).
-    :type room: rooms.room_mind.RoomMind
+    Checks if a block is not a wall, and has no non-walkable structures. (does not check creeps)
     """
     if x > 49 or y > 49 or x < 0 or y < 0:
         return False
@@ -283,15 +287,13 @@ def is_block_empty(room, x, y):
 
 
 def get_entrance_for_exit_pos(exit_pos):
-    if exit_pos.pos:
-        exit_pos = exit_pos.pos
+    # type: (RoomPosition) -> Union[RoomPosition, int]
     room_xy = parse_room_to_xy(exit_pos.roomName)
     return get_entrance_for_exit_pos_with_room(exit_pos, room_xy)
 
 
 def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
-    if exit_pos.pos:
-        exit_pos = exit_pos.pos
+    # type: (RoomPosition, Tuple[int, int]) -> Union[RoomPosition, int]
     entrance_pos = __new__(RoomPosition(exit_pos.x, exit_pos.y, exit_pos.roomName))
     room_x, room_y = current_room_xy
     if exit_pos.y == 0:
@@ -316,11 +318,9 @@ def get_entrance_for_exit_pos_with_room(exit_pos, current_room_xy):
 
 
 def dxdy_to_direction(dx, dy):
+    # type: (int, int) -> Optional[int]
     """
     Gets the screeps direction constant from a given dx and dy.
-    :type dx: int
-    :type dy: int
-    :rtype: int
     """
     direction = None
     if dx < 0:
@@ -350,14 +350,7 @@ def dxdy_to_direction(dx, dy):
 
 
 def apply_direction(pos, direction):
-    """
-    :type pos: RoomPosition
-    :type direction: int
-    :rtype: RoomPosition
-    """
-    if pos.pos is not undefined:
-        pos = pos.pos
-
+    # type: (RoomPosition, int) -> Optional[RoomPosition]
     dxdy = js_global.__movement_use_directionToDxDy(direction)
     if dxdy:
         return __new__(RoomPosition(pos.x + dxdy[0], pos.y + dxdy[1], pos.roomName))
@@ -366,10 +359,7 @@ def apply_direction(pos, direction):
 
 
 def diff_as_direction(origin, destination):
-    if origin.pos is not undefined:
-        origin = origin.pos
-    if destination.pos is not undefined:
-        destination = destination.pos
+    # type: (RoomPosition, RoomPosition) -> Optional[int]
     if origin.roomName and destination.roomName and origin.roomName != destination.roomName:
         origin_room_pos = parse_room_to_xy(origin.roomName)
         destination_room_pos = parse_room_to_xy(destination.roomName)
@@ -386,10 +376,7 @@ def diff_as_direction(origin, destination):
 
 
 def next_pos_in_direction_to(origin, destination):
-    if origin.pos is not undefined:
-        origin = origin.pos
-    if destination.pos is not undefined:
-        destination = destination.pos
+    # type: (RoomPosition, RoomPosition) -> RoomPosition
     if origin.roomName and destination.roomName and origin.roomName != destination.roomName:
         origin_room_pos = parse_room_to_xy(origin.roomName)
         destination_room_pos = parse_room_to_xy(destination.roomName)
@@ -420,5 +407,5 @@ def next_pos_in_direction_to(origin, destination):
 
 
 def is_edge_position(pos):
-    pos = pos.pos or pos
+    # type: (RoomPosition) -> bool
     return pos.x == 49 or pos.y == 49 or pos.x == 0 or pos.y == 0

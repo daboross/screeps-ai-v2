@@ -271,7 +271,7 @@ class RoomMind:
         :param find_type: thing to look for, one of the FIND_* constants
         :type find_type: str
         :param pos: The position to look for at
-        :type pos: RoomPosition
+        :type pos: RoomPosition | RoomObject
         :param lodash_filter: Optional lodash filter object to apply to the results before checking distance.
         :type lodash_filter: dict | callable
         :return: A single result
@@ -1115,7 +1115,8 @@ class RoomMind:
             state = room_spending_state_selling
         elif self.mem[mem_key_now_supporting]:
             room = self.hive.get_room(self.mem[mem_key_now_supporting])
-            if room and not room.minerals.has_no_terminal_or_storage() and room.minerals.get_estimate_total_energy() < energy_at_which_to_stop_supporting:
+            if room and not room.minerals.has_no_terminal_or_storage() \
+                    and room.minerals.get_estimate_total_energy() < energy_at_which_to_stop_supporting:
                 if room.mem[mem_key_currently_under_siege]:
                     state = room_spending_state_supporting_sieged
                 else:
@@ -1531,14 +1532,16 @@ class RoomMind:
                 else:
                     wm = 15
             elif spending == room_spending_state_selling_and_rcl8building:
-                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_upgrading_energy() \
+                extra = self.minerals.get_estimate_total_energy() \
+                        - self.constant_balance_point_for_rcl8_upgrading_energy() \
                         - energy_for_terminal_when_selling
                 if extra < 0:
                     wm = 4
                 else:
                     wm = 15
             elif spending == room_spending_state_supporting:
-                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_upgrading_energy()
+                extra = self.minerals.get_estimate_total_energy() \
+                        - self.constant_balance_point_for_rcl8_upgrading_energy()
                 if extra < 0:
                     wm = 4
                 # TODO: see if this is the best possible condition we could have...

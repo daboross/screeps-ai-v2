@@ -112,6 +112,7 @@ White:
     Grey:
     White:
 """
+from typing import Dict, TYPE_CHECKING, Optional
 
 from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
     RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
@@ -121,6 +122,9 @@ from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, E
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from utilities import naming
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -183,7 +187,7 @@ flag_definitions = {
     SUPPORT_WALL: (COLOR_GREY, COLOR_PURPLE),
 }
 
-reverse_definitions = {}
+reverse_definitions = {}  # type: Dict[str, Dict[str, int]]
 
 main_to_flag_primary = {
     MAIN_DESTRUCT: COLOR_RED,
@@ -543,7 +547,8 @@ def rename_flags():
     refresh_flag_caches()
 
 
-def look_for(room, position, main, sub=None):
+def look_for(room, position, main, sub):
+    # type: (RoomMind, RoomPosition, int, int) -> Optional[RoomObject]
     """
     :type room: rooms.room_mind.RoomMind
     :type position: RoomPosition
@@ -552,8 +557,6 @@ def look_for(room, position, main, sub=None):
     """
     if not room.look_at:
         raise ValueError("Invalid room argument")
-    if position.pos:
-        position = position.pos
     if sub:
         return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == main_to_flag_primary[main] and
@@ -565,7 +568,7 @@ def look_for(room, position, main, sub=None):
             # look_for(room, pos, flags.MAIN_DESTRUCT, flags.structure_type_to_flag_sub[structure_type])
             # if there is no flag for a given structure, sub will be undefined, and thus this side will be called
             # and not the above branch.
-            return []
+            return None
         return _.find(room.look_at(LOOK_FLAGS, position),
                       lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
 

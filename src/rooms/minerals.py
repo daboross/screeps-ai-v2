@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict
 
 from cache import volatile_cache
 from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
@@ -20,9 +21,9 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-_SINGLE_MINERAL_FULFILLMENT_MAX = math.floor(TERMINAL_CAPACITY / 6)
+_SINGLE_MINERAL_FULFILLMENT_MAX = int(math.floor(TERMINAL_CAPACITY / 6))
 _SELL_ORDER_SIZE = 10 * 1000
-_KEEP_IN_TERMINAL_MY_MINERAL = math.floor(TERMINAL_CAPACITY * 0.4)
+_KEEP_IN_TERMINAL_MY_MINERAL = int(math.floor(TERMINAL_CAPACITY * 0.4))
 _KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING = energy_for_terminal_when_selling
 _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS = math.floor(TERMINAL_CAPACITY / 20)
 _KEEP_IN_TERMINAL_ENERGY = 0
@@ -100,7 +101,7 @@ to_buy_when_defending = [
     RESOURCE_CATALYZED_UTRIUM_ACID
 ]
 
-_EMPTY_MEM_OBJ = {}
+_EMPTY_MEM_OBJ = {}  # type: Dict[str, Any]
 
 Object.freeze(_EMPTY_MEM_OBJ)
 
@@ -636,10 +637,10 @@ class MineralMind:
 
     def find_emptying_mineral_and_cost(self):
         if not self._next_mineral_to_empty:
-            energy = self.terminal.store.energy
+            energy = self.terminal.store[RESOURCE_ENERGY]
             minerals = _.sum(self.terminal.store) - energy
 
-            if minerals > 1000 or _.sum(self.storage.store) == self.storage.store.energy:
+            if minerals > 1000 or _.sum(self.storage.store) == self.storage.store[RESOURCE_ENERGY]:
                 mineral_chosen = _.find(Object.keys(self.terminal.store),
                                         lambda r: r != RESOURCE_ENERGY and self.terminal.store[r] >= 100)
                 if not mineral_chosen:
@@ -653,7 +654,7 @@ class MineralMind:
         return self._next_mineral_to_empty
 
     def run_emptying_terminal(self):
-        energy = self.terminal.store.energy
+        energy = self.terminal.store[RESOURCE_ENERGY]
         mineral, cost = self.find_emptying_mineral_and_cost()
         if energy < cost:
             return
@@ -671,7 +672,7 @@ class MineralMind:
         to_send = self.terminal.store[RESOURCE_ENERGY]
         distance = Game.map.getRoomLinearDistance(self.room.name, sending_to, True)
         total_cost_of_1_energy = 1 + 1 * (math.log((distance + 9) * 0.1) + 0.1)
-        amount = math.floor(to_send / total_cost_of_1_energy)
+        amount = int(math.floor(to_send / total_cost_of_1_energy))
         if amount >= 100:
             result = self.terminal.send(RESOURCE_ENERGY, amount, sending_to, "Emptying!")
             if result != OK:

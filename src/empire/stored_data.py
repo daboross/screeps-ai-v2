@@ -75,7 +75,7 @@ def _find_obstacles(room):
     """
     result = []
     any_lairs = False
-    for structure in room.find(FIND_STRUCTURES):
+    for structure in room.find(FIND_STRUCTURES):  # type: OwnedStructure
         orig_type = structure.structureType
         if orig_type == STRUCTURE_PORTAL or orig_type == STRUCTURE_CONTAINER:
             continue
@@ -91,7 +91,7 @@ def _find_obstacles(room):
         else:
             stored_type = StoredObstacleType.OTHER_IMPASSABLE
         result.append(__new__(StoredObstacle(structure.pos.x, structure.pos.y, stored_type)))
-    for source in room.find(FIND_SOURCES):
+    for source in room.find(FIND_SOURCES): # type: Source
         if any_lairs:
             stored_type = StoredObstacleType.SOURCE_KEEPER_SOURCE
         else:

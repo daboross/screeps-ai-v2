@@ -1,3 +1,5 @@
+from typing import List
+
 from constants import *
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
@@ -14,7 +16,7 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
-immediately_replace_roles = []
+immediately_replace_roles = []  # type: List[str]
 let_live_roles = [
     role_spawn_fill_backup,
     role_spawn_fill,

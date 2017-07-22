@@ -187,7 +187,7 @@ class MineralSteal(TransportPickup):
             closest_room_name = None
             for room in self.hive.my_rooms:
                 if room.room.storage and room.room.storage.storeCapacity <= 0 \
-                        and _.sum(room.room.storage.store) > room.room.storage.store.energy:
+                        and _.sum(room.room.storage.store) > room.room.storage.store[RESOURCE_ENERGY]:
                     distance = movement.distance_squared_room_pos(self.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
                         closest_room_name = room.name

@@ -199,6 +199,7 @@ def _create_basic_room_cost_matrix(room_name):
                 any_lairs = True
             matrix.set(structure.pos.x, structure.pos.y, 255)
         for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+            # type: ConstructionSite
             if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
                     or site.structureType == STRUCTURE_CONTAINER:
                 continue

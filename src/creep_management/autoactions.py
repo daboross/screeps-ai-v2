@@ -173,8 +173,8 @@ def get_cached_away_path(creep, targets):
     :type creep: creeps.base.RoleBase
     """
 
-    if '_away_path' in creep.memory and creep.memory._away_path.reset > Game.time:
-        return Room.deserializePath(creep.memory._away_path.path)
+    if '_away_path' in creep.memory and creep.memory._away_path['reset'] > Game.time:
+        return Room.deserializePath(creep.memory._away_path['path'])
     else:
         path = get_path_away(creep.pos, targets)
         creep.memory._away_path = {"reset": Game.time + 10, "path": Room.serializePath(path)}

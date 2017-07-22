@@ -1,4 +1,5 @@
 import math
+from typing import Callable, TYPE_CHECKING, Union, List
 
 import random
 
@@ -11,6 +12,13 @@ from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
+
+if TYPE_CHECKING:
+    __pragma__('skip')
+
+    from rooms.room_mind import RoomMind
+
+    __pragma__('noskip')
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -52,10 +60,7 @@ max_priority_for_non_wall_sites = 5
 
 
 def get_priority(room, structure_type):
-    """
-    :type room: rooms.room_mind.RoomMind
-    :type structure_type: str
-    """
+    # type: (RoomMind, str) -> int
     if not room.spawn:
         if structure_type == STRUCTURE_SPAWN:
             if room.being_bootstrapped():
@@ -82,12 +87,13 @@ def get_priority(room, structure_type):
     return default_priority
 
 
-def not_road(id):
-    thing = Game.getObjectById(id)
+def not_road(_id):
+    # type: (str) -> bool
+    thing = Game.getObjectById(_id)  # type: Union[Structure, ConstructionSite]
     if thing is not None:
         return thing.structureType != STRUCTURE_ROAD
     else:
-        flag = Game.flags[id]
+        flag = Game.flags[_id]
         return flag is not undefined and flags.flag_secondary_to_sub[flag.secondaryColor] != flags.SUB_ROAD
 
 
@@ -116,6 +122,7 @@ class ConstructionMind:
     """
 
     def __init__(self, room):
+        # type: (RoomMind) -> None
         """
         :type room: rooms.room_mind.RoomMind
         :param room:
@@ -123,10 +130,13 @@ class ConstructionMind:
         self.room = room
         self.hive = room.hive
 
+    # noinspection PyPep8Naming
     def toString(self):
+        # type: () -> str
         return "ConstructionMind[room: {}]".format(self.room.name)
 
     def refresh_building_targets(self, now=False):
+        # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
             self.room.delete_cached_property('building_targets')
@@ -138,6 +148,7 @@ class ConstructionMind:
             self.room.expire_property_next_tick('sieged_walls_unbuilt')
 
     def refresh_repair_targets(self, now=False):
+        # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
             self.room.delete_cached_property('repair_targets')
@@ -147,9 +158,11 @@ class ConstructionMind:
             self.room.expire_property_next_tick('big_repair_targets')
 
     def refresh_destruction_targets(self):
+        # type: () -> None
         self.room.delete_cached_property('destruct_targets')
 
     def _max_hits_at(self, struct, big_repair=False):
+        # type: (Structure, bool) -> int
         if struct.structureType == STRUCTURE_WALL:
             if big_repair:
                 return self.room.max_sane_wall_hits
@@ -164,8 +177,10 @@ class ConstructionMind:
             return struct.hitsMax
 
     def _get_is_relatively_decayed_callback(self, big_repair=False):
+        # type: (bool) -> Callable[[str], bool]
         def is_relatively_decayed(thing_id):
-            thing = Game.getObjectById(thing_id)
+            # type: (str) -> bool
+            thing = Game.getObjectById(thing_id)  # type: Structure
             if thing is None:
                 return False
             if thing.structureType == STRUCTURE_ROAD:
@@ -178,7 +193,8 @@ class ConstructionMind:
         return is_relatively_decayed
 
     def _hits_left_to_repair_at(self, thing_id):
-        thing = Game.getObjectById(thing_id)
+        # type: (str) -> int
+        thing = Game.getObjectById(thing_id)  # type: Structure
         if thing is None:
             return 0
         if thing.structureType != STRUCTURE_RAMPART and thing.structureType != STRUCTURE_WALL:
@@ -186,6 +202,7 @@ class ConstructionMind:
         return max(0, self.room.max_sane_wall_hits - thing.hits)
 
     def get_target_num_builders(self):
+        # type: () -> int
         num = self.room.get_cached_property("builders_needed")
         if num is not None:
             return num
@@ -212,51 +229,54 @@ class ConstructionMind:
         return num
 
     def get_max_builder_work_parts(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if site and site.progressTotal:
                 construction += site.progressTotal - site.progress
         repair = _.sum(self.get_big_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def get_max_builder_work_parts_noextra(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts_noextra")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if site and site.progressTotal:
                 construction += site.progressTotal - site.progress
         repair = _.sum(self.get_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts_noextra", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def get_max_builder_work_parts_urgent(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts_urgent_only")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if not site:
                 continue
             if site and (site.structureType == STRUCTURE_WALL or site.structureType == STRUCTURE_RAMPART
@@ -264,7 +284,7 @@ class ConstructionMind:
                 construction += site.progressTotal - site.progress
         repair = 0
         for struct_id in self.get_repair_targets():
-            struct = Game.getObjectById(struct_id)
+            struct = Game.getObjectById(struct_id)  # type: Structure
             if struct and struct.hits:
                 if struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART:
                     repair += max(0, self.room.min_sane_wall_hits / 2 - struct.hits)
@@ -274,12 +294,13 @@ class ConstructionMind:
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts_urgent_only", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def refresh_num_builders(self, now=False):
+        # type: (bool) -> None
         if now:
             self.room.delete_cached_property('builders_needed')
             self.room.delete_cached_property('max_builder_work_parts')
@@ -292,6 +313,7 @@ class ConstructionMind:
             self.room.expire_property_next_tick('max_builder_work_parts_urgent_only')
 
     def get_high_value_construction_targets(self):
+        # type: () -> List[str]
         if self.room.under_siege():
             targets = self.room.get_cached_property("sieged_walls_unbuilt")
             if targets is not None:

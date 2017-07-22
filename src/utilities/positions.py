@@ -1,3 +1,5 @@
+from typing import Optional, Tuple, Union
+
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -11,6 +13,7 @@ __pragma__('noalias', 'update')
 
 
 def parse_xy_arguments(pos, optional_y):
+    # type: (Union[RoomPosition, RoomObject, int], Optional[int]) -> Tuple[int, int, Optional[str]]
     """
     Parses x/optional_y arguments into x, y, and roomName
     :param pos: The first argument
@@ -28,30 +31,35 @@ def parse_xy_arguments(pos, optional_y):
 
 
 def clamp_room_x_or_y(coord):
+    # type: (int) -> int
     return (coord if coord < 49 else 49) if coord > 0 else 0
 
 
 def serialize_xy(x, y):
+    # type: (int, int) -> int
     return x | y << 6
 
 
 def serialize_pos_xy(pos):
-    pos = pos.pos or pos
+    # type: (RoomPosition) -> int
     return pos.x | pos.y << 6
 
 
 def deserialize_xy(xy):
+    # type: (int) -> Tuple[int, int]
     return (xy & 0x3F), (xy >> 6 & 0x3F)
 
 
 def deserialize_xy_to_pos(xy, room_name):
+    # type: (int, str) -> RoomPosition
     return __new__(RoomPosition(xy & 0x3F, xy >> 6 & 0x3F, room_name))
 
 
 def serialize_xy_room(x, y, room_name):
+    # type: (int, int, str) -> str
     return str(x | y << 6) + '|' + room_name
 
 
 def serialize_xy_room_pos(pos):
-    pos = pos.pos or pos
+    # type: (RoomPosition) -> str
     return str(pos.x | pos.y << 6) + '|' + pos.roomName

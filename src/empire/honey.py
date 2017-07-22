@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict
 
 from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, global_cache_mining_paths_suffix, \
@@ -42,7 +43,7 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
                         pos.roomName, origin, input_path[len(input_path) - 1]
                     )
                 )
-                console.log(msg)
+                print(msg)
                 Game.notify(msg)
                 # still, let's try to support it the best we can
                 current_path = result_obj[pos.roomName]
@@ -140,88 +141,29 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
     return result_obj
 
 
-def get_global_cache_key(origin, destination, opts):
-    if opts:
-        if opts['sk_ok']:
-            if opts['ignore_swamp']:  # Default false
-                return '_'.join([
-                    'path',
-                    origin.roomName,
-                    origin.x,
-                    origin.y,
-                    destination.roomName,
-                    destination.x,
-                    destination.y,
-                    global_cache_swamp_paths_suffix,
-                    global_cache_warpath_suffix,
-                ])
-            elif opts['paved_for']:  # Default false
-                return '_'.join([
-                    'path',
-                    origin.roomName,
-                    origin.x,
-                    origin.y,
-                    destination.roomName,
-                    destination.x,
-                    destination.y,
-                    global_cache_mining_paths_suffix,
-                    global_cache_warpath_suffix,
-                ])
-            elif 'use_roads' in opts and not opts['use_roads']:  # Default true
-                return '_'.join([
-                    'path',
-                    origin.roomName,
-                    origin.x,
-                    origin.y,
-                    destination.roomName,
-                    destination.x,
-                    destination.y,
-                    global_cache_roadless_paths_suffix,
-                    global_cache_warpath_suffix,
-                ])
-        if opts['ignore_swamp']:  # Default false
-            return '_'.join([
-                'path',
-                origin.roomName,
-                origin.x,
-                origin.y,
-                destination.roomName,
-                destination.x,
-                destination.y,
-                global_cache_swamp_paths_suffix,
-            ])
-        elif opts['paved_for']:  # Default false
-            return '_'.join([
-                'path',
-                origin.roomName,
-                origin.x,
-                origin.y,
-                destination.roomName,
-                destination.x,
-                destination.y,
-                global_cache_mining_paths_suffix
-            ])
-        elif 'use_roads' in opts and not opts['use_roads']:  # Default true
-            return '_'.join([
-                'path',
-                origin.roomName,
-                origin.x,
-                origin.y,
-                destination.roomName,
-                destination.x,
-                destination.y,
-                global_cache_roadless_paths_suffix,
-            ])
-
-    return '_'.join([
+def get_global_cache_key(origin: RoomPosition, destination: RoomPosition, opts: Dict[str, Any]) -> str:
+    parts = [
         'path',
         origin.roomName,
-        origin.x,
-        origin.y,
+        str(origin.x),
+        str(origin.y),
         destination.roomName,
-        destination.x,
-        destination.y,
-    ])
+        str(destination.x),
+        str(destination.y),
+    ]
+
+    if opts:
+        if opts['ignore_swamp']:  # Default false
+            parts.append(global_cache_swamp_paths_suffix)
+        elif opts['paved_for']:  # Default false
+            parts.append(global_cache_mining_paths_suffix)
+        elif 'use_roads' in opts and not opts['use_roads']:  # Default true
+            parts.append(global_cache_roadless_paths_suffix)
+
+        if opts['sk_ok']:  # Default false
+            parts.append(global_cache_warpath_suffix)
+
+    return '_'.join(parts)
 
 
 __pragma__('skip')  # Real class defined below
@@ -813,10 +755,15 @@ class HoneyTrails:
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
     def _get_raw_path(self, origin, destination, opts=None):
+        """
+        :type origin: RoomPosition | RoomObject
+        :type destination: RoomPosition | RoomObject
+        """
+
         if origin.pos:
-            origin = origin.pos
+            origin = origin.pos  # type: RoomPosition
         if destination.pos:
-            destination = destination.pos
+            destination = destination.pos  # type: RoomPosition
 
         if opts:
             roads_better = opts["use_roads"] if "use_roads" in opts else True

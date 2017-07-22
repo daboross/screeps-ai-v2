@@ -1,4 +1,9 @@
-# noinspection PyUnboundLocalVariable,PyUnresolvedReferences
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    __pragma__('skip')
+    from transcrypt.modules.org.transcrypt.stubs.browser import __pragma__
+
 __pragma__('skip')
 
 from .constants import *
@@ -357,7 +362,18 @@ __all__ = [
     "Room",
     "Flag",
     "RoomPosition",
+    "RoomObject",
     "PathFinder",
+    "Structure",
+    "StructureSpawn",
+    "StructureStorage",
+    "StructureTerminal",
+    "StructureController",
+    "OwnedStructure",
+    "ConstructionSite",
+    "Source",
+    "Mineral",
+    "_PathPos",
     "Object",
     "Math",
 

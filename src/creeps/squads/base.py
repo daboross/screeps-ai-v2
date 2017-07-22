@@ -33,7 +33,9 @@ def __squad_get_mem():
     })
     return mem
 
+
 squadmemkey_origin = 'o'
+
 
 class Squad:
     """
