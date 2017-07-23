@@ -11,5 +11,6 @@ __pragma__('noalias', 'update')
 
 
 def random_digits():
+    # type: () -> str
     # JavaScript trickery here - TODO: pythonize
-    return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+    return __pragma__('js', '{}', 'Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)')

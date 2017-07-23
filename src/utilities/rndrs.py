@@ -12,6 +12,7 @@ __pragma__('noalias', 'update')
 
 
 def pnk():
+    # type: () -> str
     me = stored_data.get_my_username()
     color = _.sample(["PINK", "RED", "BLUE", "ORANGE"])
     return _.sample([
@@ -19,10 +20,11 @@ def pnk():
         "Territory of {}. Accept {} as the one true color, or perish.".format(me, color),
         "There is only one true color, and it is {}!".format(color),
         "Be {} or be purged!".format(color),
-    ]),
+    ])
 
 
 def auto():
+    # type: () -> str
     me = stored_data.get_my_username()
     return _.sample([
         "Powered by BonzAI: https://github.com/bonzaiferroni/bonzAI",
@@ -34,6 +36,7 @@ def auto():
 
 
 def coal():
+    # type: () -> str
     if len(Memory.meta.friends):
         all = Memory.meta.friends.concat([stored_data.get_my_username()])
     else:
@@ -42,10 +45,11 @@ def coal():
         lambda: "NYXR ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all)),
         lambda: "NYXR ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all)),
         lambda: "NYXR ❤️ {} ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all), _.sample(all)),
-    ])(),
+    ])()
 
 
 def crcl():
+    # type: () -> str
     return _.sample([
         "Territory of INTEGER_MIN",
         "◯",
@@ -57,6 +61,7 @@ def crcl():
 
 
 def pwrd():
+    # type: () -> str
     return _.sample([
         "Powered by Protocol Buffers: https://git.io/vyEdW",
         "Powered by Transcrypt: https://git.io/vyEdZ",
@@ -66,6 +71,7 @@ def pwrd():
 
 
 def strw():
+    # type: () -> str
     message = _.sample([
         "Territory Of INTEGER_MAX",
         "CIRCLE WORLD!",
@@ -90,4 +96,5 @@ def strw():
 
 
 def rs():
+    # type: () -> str
     return _.sample([auto, pnk, coal, crcl, pwrd, strw])()

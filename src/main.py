@@ -1,5 +1,5 @@
 import math
-from typing import Callable, TypeVar, List, Dict
+from typing import Callable, Dict, List, TypeVar
 
 import constants
 import creeps.roles.squads
@@ -249,8 +249,6 @@ def main():
     records.finish_record('locations.init')
 
     records.start_record()
-
-    PathFinder.use(True)
 
     targets = TargetMind()
     hive = HiveMind(targets)

@@ -1,5 +1,5 @@
 import math
-from typing import Callable, TYPE_CHECKING, Union, List
+from typing import Callable, List, TYPE_CHECKING, Union
 
 import random
 

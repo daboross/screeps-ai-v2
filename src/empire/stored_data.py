@@ -91,7 +91,7 @@ def _find_obstacles(room):
         else:
             stored_type = StoredObstacleType.OTHER_IMPASSABLE
         result.append(__new__(StoredObstacle(structure.pos.x, structure.pos.y, stored_type)))
-    for source in room.find(FIND_SOURCES): # type: Source
+    for source in room.find(FIND_SOURCES):  # type: Source
         if any_lairs:
             stored_type = StoredObstacleType.SOURCE_KEEPER_SOURCE
         else:

@@ -19,4 +19,4 @@ __all__ = [
     'js_global',
 ]
 
-__except0__ = TypeError()
+__except0__ = None  # type: Exception

@@ -21,19 +21,14 @@ __pragma__('skip')
 
 # Python-style class imitating DeserializedPos
 # noinspection PyPep8Naming
-class Location:
+class Location(RoomPosition):
     """
-    :type x: int
-    :type y: int
-    :type roomName: str
     :type name: str
     :type hint: int
     """
 
     def __init__(self, x, y, roomName, name, hint):
-        self.x = x
-        self.y = y
-        self.roomName = roomName
+        super().__init__(x, y, roomName)
         self.name = name
         self.hint = hint
 

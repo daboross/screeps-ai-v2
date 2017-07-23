@@ -12,14 +12,17 @@ __pragma__('noalias', 'update')
 
 
 def is_offensive(creep):
+    # type: (Creep) -> bool
     return not not _.find(creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK)
 
 
 def not_sk(creep):
+    # type: (Creep) -> bool
     return creep.owner.username != "Source Keeper"
 
 
 def enemy_using_room(room_name):
+    # type: (str) -> bool
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False
@@ -29,6 +32,7 @@ def enemy_using_room(room_name):
 
 
 def enemy_owns_room(room_name):
+    # type: (str) -> bool
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False

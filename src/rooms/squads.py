@@ -1,3 +1,6 @@
+import math
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union
+
 from constants import SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, \
     SQUAD_SIGN_CLEAR, SQUAD_TOWER_DRAIN, creep_base_full_move_attack, creep_base_scout, creep_base_squad_dismantle, \
     creep_base_squad_healer, creep_base_squad_ranged, request_priority_attack, rmem_key_alive_quads, \
@@ -13,6 +16,11 @@ from jstools.screeps import *
 from position_management import flags, locations
 from utilities import movement, positions
 
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from position_management.locations import Location
+    from creeps.base import RoleBase
+
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
@@ -24,6 +32,7 @@ __pragma__('noalias', 'update')
 
 
 def can_renew(creep):
+    # type: (creep) -> bool
     return not creep.creep.spawning and (
         creep.creep.ticksToLive <
         CREEP_LIFE_TIME
@@ -32,15 +41,17 @@ def can_renew(creep):
 
 
 def ticks_to_renew(creep):
+    # type: (creep) -> int
     if creep.creep.spawning:
         return 0
-    return (
+    return int(math.ceil(
         (CREEP_LIFE_TIME - creep.creep.ticksToLive)
         / (SPAWN_RENEW_RATIO * CREEP_LIFE_TIME / CREEP_SPAWN_TIME / len(creep.creep.body))
-    )
+    ))
 
 
 def roles_required_for(flag):
+    # type: (Flag) -> Dict[str, int]
     hint = flag.hint
     if hint == SQUAD_KITING_PAIR:
         return {HEAL: 1, RANGED_ATTACK: 1}
@@ -62,6 +73,7 @@ def roles_required_for(flag):
 
 
 def get_base_for(flag, specialty):
+    # type: (Flag, str) -> Tuple[str, int]
     if flag.name in Memory.flags and Memory.flags[flag.name].size:
         size = Memory.flags[flag.name].size
     else:
@@ -82,6 +94,7 @@ def get_base_for(flag, specialty):
 
 
 def get_drone_role(target_hint, specialty):
+    # type: (int, str) -> Optional[str]
     if target_hint == SQUAD_TOWER_DRAIN:
         return role_squad_heal
     if target_hint == SQUAD_KITING_PAIR:
@@ -130,6 +143,7 @@ class SquadTactics:
     """
 
     def __init__(self, room):
+        # type: (RoomMind) -> None
         self.room = room
         __pragma__('skip')
         self._squad_targets = undefined
@@ -145,6 +159,7 @@ class SquadTactics:
     __pragma__('fcall')
 
     def squad_targets(self):
+        # type: () -> List[Union[Flag, Location]]
         """
         :rtype: list[Flag | position_management.locations.Location]
         """
@@ -177,9 +192,11 @@ class SquadTactics:
         return targets
 
     def reset_squad_targets(self):
+        # type: () -> None
         self.room.delete_cached_property(cache_key_squads)
 
     def renew_or_depot(self, creep):
+        # type: (RoleBase) -> None
         """
         :type creep: creeps.base.RoleBase
         """
@@ -194,6 +211,7 @@ class SquadTactics:
         self._renewing_registered.append(creep)
 
     def boost_or_depot(self, creep):
+        # type: (RoleBase) -> None
         """
         :type creep: creeps.base.RoleBase
         """
@@ -210,6 +228,7 @@ class SquadTactics:
         specialty_list.append(creep)
 
     def can_boost(self, creep):
+        # type: (RoleBase) -> bool
         specialty = creep.findSpecialty()
         mineral = _boosts_to_use[specialty]
         if not mineral:
@@ -224,6 +243,7 @@ class SquadTactics:
         return _.some(creep.creep.body, lambda part: part.type == specialty and not part.boost)
 
     def run(self):
+        # type: () -> None
         if (Game.time + self.room.get_unique_owned_index()) % 25 == 5:
             targets_with_active_squads = []
         else:
@@ -246,6 +266,7 @@ class SquadTactics:
             self.request_spawns_for_targets_excluding(targets_with_active_squads)
 
     def note_stage0_creep(self, creep, target):
+        # type: (RoleBase, Union[Flag, Location]) -> None
         """
         :type creep: creeps.base.RoleBase
         :type target: Flag | position_management.locations.Location
@@ -259,6 +280,7 @@ class SquadTactics:
         registered_so_far_tuple[1].append(creep)
 
     def note_stage1_creep(self, creep, squad_id):
+        # type: (RoleBase, Union[Flag, str]) -> None
         """
         :type creep: creeps.base.RoleBase
         :type squad_id: str
@@ -272,6 +294,7 @@ class SquadTactics:
         members.push(creep)
 
     def note_stage2_creep(self, creep, squad_id):
+        # type: (RoleBase, Union[Flag, str]) -> None
         """
         :type creep: creeps.base.RoleBase
         :type squad_id: str
@@ -285,6 +308,7 @@ class SquadTactics:
         members.push(creep)
 
     def note_stage3_creep(self, creep, squad_id):
+        # type: (RoleBase, Union[Flag, str]) -> None
         """
         :type creep: creeps.base.RoleBase
         :type squad_id: str
@@ -298,6 +322,7 @@ class SquadTactics:
         members.push(creep)
 
     def any_high_priority_renew(self):
+        # type: () -> bool
         if self._renewing_registered is undefined:
             return False
         length = len(self._renewing_registered)
@@ -313,6 +338,7 @@ class SquadTactics:
         return any_high_priority
 
     def run_renewal(self):
+        # type: () -> None
         reset_high_prio_renew_status = False
         min_time_till_done = Infinity
         next_open_spawn = None
@@ -371,6 +397,7 @@ class SquadTactics:
         self._any_high_priority_renew = [len(self._renewing_registered), reset_high_prio_renew_status]
 
     def run_boosts(self):
+        # type: () -> None
         for specialty, creeps in list(self._boost_registered.entries()):
             mineral = _boosts_to_use[specialty]
             creeps = _.sortBy(creeps, lambda c: c.ticksToLive)
@@ -405,6 +432,7 @@ class SquadTactics:
                     creep.move_to(closest_lab)
 
     def run_stage0(self):
+        # type: () -> None
         for target, registered_so_far in list(self._stage0_registered_for_target.values()):
             required = roles_required_for(target)
             for to_check in registered_so_far:
@@ -430,6 +458,7 @@ class SquadTactics:
                     }
 
     def run_stage1(self, tracking_for_targets_with_active_squads):
+        # type: (Optional[List[str]]) -> None
         for squad_id, squad_members in list(self._stage1_registered_for_squad_id.entries()):
             target = locations.get(squad_id)
             if not target:
@@ -455,6 +484,7 @@ class SquadTactics:
                 tracking_for_targets_with_active_squads.append(positions.serialize_xy_room_pos(target))
 
     def run_stage2(self, tracking_for_targets_with_active_squads):
+        # type: (Optional[List[str]]) -> None
         for squad_id, squad_members in list(self._stage2_registered_for_squad_id.entries()):
             target = locations.get(squad_id)
             if not target:
@@ -475,6 +505,7 @@ class SquadTactics:
                 tracking_for_targets_with_active_squads.append(positions.serialize_xy_room_pos(target))
 
     def run_stage3(self, targets_fully_alive):
+        # type: (Optional[List[str]]) -> None
         for squad_id, squad_members in list(self._stage3_registered_for_squad_id.entries()):
             target = locations.get(squad_id)
             if not target:
@@ -504,6 +535,7 @@ class SquadTactics:
                     targets_fully_alive.append(positions.serialize_xy_room_pos(target))
 
     def spawn_time_for(self, target):
+        # type: (Union[Flag, Location]) -> int
         required = roles_required_for(target)
 
         time_accumulator = 0
@@ -525,6 +557,7 @@ class SquadTactics:
         return time_accumulator
 
     def request_spawns_for_targets_excluding(self, targets_already_active):
+        # type: (List[str]) -> None
         """
         :type targets_already_active: list
         """
