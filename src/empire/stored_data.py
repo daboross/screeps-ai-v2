@@ -73,11 +73,11 @@ def get_my_username() -> str:
 def _find_obstacles(room: Room) -> List[StoredObstacle]:
     result = []
     any_lairs = False
-    for structure in room.find(FIND_STRUCTURES):  # type: OwnedStructure
+    for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
         orig_type = structure.structureType
         if orig_type == STRUCTURE_PORTAL or orig_type == STRUCTURE_CONTAINER:
             continue
-        elif orig_type == STRUCTURE_RAMPART and structure.my:
+        elif orig_type == STRUCTURE_RAMPART and cast(StructureRampart, structure).my:
             continue
         elif orig_type == STRUCTURE_ROAD:
             stored_type = StoredObstacleType.ROAD
@@ -89,13 +89,13 @@ def _find_obstacles(room: Room) -> List[StoredObstacle]:
         else:
             stored_type = StoredObstacleType.OTHER_IMPASSABLE
         result.append(__new__(StoredObstacle(structure.pos.x, structure.pos.y, stored_type)))
-    for source in room.find(FIND_SOURCES):  # type: Source
+    for source in cast(List[Source], room.find(FIND_SOURCES)):
         if any_lairs:
             stored_type = StoredObstacleType.SOURCE_KEEPER_SOURCE
         else:
             stored_type = StoredObstacleType.SOURCE
         result.append(__new__(StoredObstacle(source.pos.x, source.pos.y, stored_type, source.energyCapacity)))
-    for mineral in room.find(FIND_MINERALS):
+    for mineral in cast(List[Mineral], room.find(FIND_MINERALS)):
         if any_lairs:
             stored_type = StoredObstacleType.SOURCE_KEEPER_MINERAL
         else:
@@ -124,7 +124,7 @@ def _find_room_owner(room: Room) -> Optional[StoredEnemyRoomOwner]:
             state = StoredEnemyRoomState.RESERVED
 
     if state is None:
-        enemy_creeps = room.find(FIND_HOSTILE_CREEPS)
+        enemy_creeps = cast(List[Creep], room.find(FIND_HOSTILE_CREEPS))
         if len(enemy_creeps):
             for source in room.find(FIND_SOURCES).concat(room.find(FIND_MINERALS)):
                 near = _.find(enemy_creeps, lambda c: (c.owner.username != INVADER_USERNAME

@@ -97,9 +97,9 @@ def enemy_purposes_cost_matrix(room_name):
 
     cost_matrix = __new__(PathFinder.CostMatrix())
 
-    for struct in room.find(FIND_STRUCTURES):
+    for struct in cast(List[Structure], room.find(FIND_STRUCTURES)):
         if struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER \
-                and (struct.structureType != STRUCTURE_RAMPART or struct.my):
+                and (struct.structureType != STRUCTURE_RAMPART or cast(StructureRampart, struct).my):
             cost_matrix.set(struct.pos.x, struct.pos.y, 255)
 
     cache.set(room_name, cost_matrix)
@@ -197,9 +197,9 @@ def instinct_do_heal(creep):
         return
     damaged = None
     most_damage = 0
-    for ally_obj in creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1):
-        ally = ally_obj.creep
-        if not ally.my and not Memory.meta.friends.includes(ally.owner.username.toLowerCase()):
+    for ally_obj in cast(List[Dict[str, Creep]], creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1)):
+        ally = ally_obj[LOOK_CREEPS]
+        if not ally.my and not Memory.meta.friends.includes(ally.owner.username.lower()):
             continue
         damage = ally.hitsMax - ally.hits
         if damage > most_damage:
@@ -220,7 +220,7 @@ def instinct_do_attack(creep):
         return
     best = None
     best_priority = -Infinity
-    for enemy in creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.pos):
+    for enemy in cast(List[Creep], creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.pos)):
         priority = enemy.hitsMax - enemy.hits
         if enemy.hasActiveBodyparts(RANGED_ATTACK):
             priority += 3000
@@ -312,7 +312,7 @@ def running_check_room(room):
     """
     if room.my and room.room.controller.safeMode:
         return
-    my_creeps = room.find(FIND_MY_CREEPS)
+    my_creeps = cast(List[Creep], room.find(FIND_MY_CREEPS))
     if not len(my_creeps):
         return
     if not len(room.defense.dangerous_hostiles()):
@@ -347,10 +347,10 @@ def cleanup_running_memory():
 
 def pickup_check_room(room):
     # type: (RoomMind) -> None
-    energy = room.find(FIND_DROPPED_RESOURCES)
+    energy = cast(List[Resource], room.find(FIND_DROPPED_RESOURCES))
     if not len(energy):
         return
-    creeps = room.find(FIND_MY_CREEPS)
+    creeps = cast(List[Creep], room.find(FIND_MY_CREEPS))
     if not len(creeps):
         return
     for pile in energy:

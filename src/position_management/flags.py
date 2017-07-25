@@ -580,9 +580,9 @@ def look_for(room, position, main, sub=None):
     if not room.look_at:
         raise ValueError("Invalid room argument")
     if sub:
-        return _.find(room.look_at(LOOK_FLAGS, position),
-                      lambda f: f.color == main_to_flag_primary[main] and
-                                f.secondaryColor == sub_to_flag_secondary[sub])
+        return cast(Optional[Flag], _.find(room.look_at(LOOK_FLAGS, position),
+                                           lambda f: f.color == main_to_flag_primary[main] and
+                                                     f.secondaryColor == sub_to_flag_secondary[sub]))
     else:
         flag_def = flag_definitions[main]
         if not flag_def:

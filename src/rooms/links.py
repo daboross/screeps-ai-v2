@@ -47,8 +47,8 @@ class LinkingMind:
         :rtype: list[StructureLink]
         """
         if self._links is undefined:
-            self._links = _.filter(self.room.find(FIND_MY_STRUCTURES),
-                                   {"structureType": STRUCTURE_LINK})
+            self._links = cast(List[StructureLink], _.filter(self.room.find(FIND_MY_STRUCTURES),
+                                                             {"structureType": STRUCTURE_LINK}))
         return self._links
 
     def get_main_link(self):
@@ -56,7 +56,7 @@ class LinkingMind:
         if self._main_link is undefined:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
                 for link in self.links:
-                    if movement.chebyshev_distance_room_pos(self.room.room.storage, link) <= 2:
+                    if movement.chebyshev_distance_room_pos(self.room.room.storage, link.pos) <= 2:
                         if self._main_link is undefined:
                             self._main_link = link
                         else:

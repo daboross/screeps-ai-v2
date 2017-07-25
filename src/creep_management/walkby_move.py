@@ -162,7 +162,7 @@ def apply_move_prototype():
 def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_role_cost, same_role_swamp_cost,
                                         existing_cost_addition):
     # type: (int, Room, PathFinder.CostMatrix, int, int, int) -> None
-    for creep in room.find(FIND_MY_CREEPS):
+    for creep in cast(List[Creep], room.find(FIND_MY_CREEPS)):
         role = creep.memory.running or creep.memory.role
         priority = role_movement_types[role] or MOVE_THEN_WORK
         # Constant movement creeps constantly move.
@@ -190,8 +190,9 @@ def _create_basic_room_cost_matrix(room_name):
     room = Game.rooms[room_name]
     if room:
         any_lairs = False
-        for structure in room.find(FIND_STRUCTURES):
-            if structure.structureType == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
+        for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
+            if structure.structureType == STRUCTURE_RAMPART and (
+                        cast(StructureRampart, structure).my or cast(StructureRampart, structure).isPublic):
                 continue
             if structure.structureType == STRUCTURE_ROAD:
                 if matrix.get(structure.pos.x, structure.pos.y) <= 2:
@@ -202,7 +203,7 @@ def _create_basic_room_cost_matrix(room_name):
             if structure.structureType == STRUCTURE_KEEPER_LAIR:
                 any_lairs = True
             matrix.set(structure.pos.x, structure.pos.y, 255)
-        for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+        for site in cast(List[ConstructionSite], room.find(FIND_MY_CONSTRUCTION_SITES)):
             # type: ConstructionSite
             if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
                     or site.structureType == STRUCTURE_CONTAINER:

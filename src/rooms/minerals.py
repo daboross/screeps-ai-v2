@@ -337,8 +337,8 @@ class MineralMind:
         # type: () -> List[str]
         if not self._my_mineral_deposit_minerals:
             result = []
-            for deposit in self.room.find(FIND_MINERALS):
-                if _.some(self.room.look_at(LOOK_STRUCTURES, deposit),
+            for deposit in cast(List[Mineral], self.room.find(FIND_MINERALS)):
+                if _.some(self.room.look_at(LOOK_STRUCTURES, deposit.pos),
                           {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
                     result.append(deposit.mineralType)
             self._my_mineral_deposit_minerals = result
@@ -400,7 +400,7 @@ class MineralMind:
             for resource in Object.keys(self.terminal.store):
                 target = self.get_all_terminal_targets()[resource] or 0
                 if self.terminal.store[resource] > target:
-                    removing.append([resource, self.terminal.store[resource] - target])
+                    removing.append((resource, self.terminal.store[resource] - target))
             self._removing_from_terminal = removing
         return self._removing_from_terminal
 
@@ -420,7 +420,8 @@ class MineralMind:
     def labs(self):
         # type: () -> List[StructureLab]
         if self._labs is undefined:
-            self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
+            self._labs = cast(List[StructureLab], _.filter(self.room.find(FIND_MY_STRUCTURES),
+                                                           {'structureType': STRUCTURE_LAB}))
         return self._labs
 
     def labs_for(self, mineral):
@@ -1125,7 +1126,7 @@ class MineralMind:
         if deposit.pos:
             pos = deposit.pos
         else:
-            pos = deposit
+            pos = cast(RoomPosition, deposit)
 
         # TODO: this will break if there are 5 containers which aren't next to the mineral.
 
@@ -1150,32 +1151,32 @@ class MineralMind:
                 or self.room.mem[rmem_key_currently_under_siege]:
             return 0
         # TODO: cache this
-        for mineral in self.room.find(FIND_MINERALS):
+        for mineral in cast(List[Mineral], self.room.find(FIND_MINERALS)):
             if mineral and mineral.mineralAmount > 0:
-                structures = self.room.look_at(LOOK_STRUCTURES, mineral)
+                structures = cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, mineral.pos))
                 if _.some(structures, {'my': True, 'structureType': STRUCTURE_EXTRACTOR}):
                     have_now = self.get_total_room_resource_counts()
                     if _.sum(have_now) - (have_now[RESOURCE_ENERGY] or 0) >= max_minerals_to_keep:
                         return 0
-                    container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral),
+                    container = _.find(self.room.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
                                        lambda s: s.structureType == STRUCTURE_CONTAINER)
                     if container:
                         return 1
                     else:
-                        container_site = _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral),
+                        container_site = _.find(self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 2, mineral.pos),
                                                 lambda s: s.structureType == STRUCTURE_CONTAINER)
                         if not container_site:
                             self.place_container_construction_site(mineral)
                 elif len(structures):
-                    if structures[0].owner and not structures[0].my:
+                    if isinstance(structures[0], OwnedStructure) and not cast(OwnedStructure, structures[0]).my:
                         structures[0].destroy()
                     else:
                         msg = "[minerals] WARNING: Non-extractor {} located at {}'s mineral, {}!".format(
                             structures[0], self.room.name, mineral)
                         Game.notify(msg)
-                        console.log(msg)
+                        print(msg)
                 elif self.room.rcl >= 7:
-                    sites = self.room.look_at(LOOK_CONSTRUCTION_SITES, mineral)
+                    sites = cast(List[ConstructionSite], self.room.look_at(LOOK_CONSTRUCTION_SITES, mineral.pos))
                     if len(sites):
                         if not sites[0].my:
                             sites[0].destroy()

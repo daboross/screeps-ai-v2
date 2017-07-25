@@ -61,7 +61,7 @@ _R = TypeVar('R')
 
 def try_thing(thing, *args):
     # type: (Callable[_A, _R], _A) -> _R
-    return errorlog.try_exec('main', thing, thing.err_desc, *args)
+    return errorlog.try_exec('main', thing, cast(Any, thing).err_desc, *args)
 
 
 def try_thing2(thing, err_desc, *args):

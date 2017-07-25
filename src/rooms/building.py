@@ -428,7 +428,7 @@ class ConstructionMind:
                         continue
                 if CONTROLLER_STRUCTURES[structure_type][self.room.rcl] \
                         > (currently_existing[structure_type] or 0) and \
-                        not flags.look_for(self.room, flag, flags.MAIN_DESTRUCT,
+                        not flags.look_for(self.room, flag.pos, flags.MAIN_DESTRUCT,
                                            flags.structure_type_to_flag_sub[structure_type]) \
                         and not (_.find(self.room.look_at(LOOK_STRUCTURES, flag.pos), {"structureType": structure_type})
                                  or _.find(self.room.look_at(LOOK_CONSTRUCTION_SITES, flag.pos))):
@@ -556,7 +556,7 @@ class ConstructionMind:
             structure_type = flags.flag_sub_to_structure_type[secondary]
             if structure_type == STRUCTURE_ROAD:
                 continue
-            structures = _.filter(self.room.look_at(LOOK_STRUCTURES, flag.pos),
+            structures = _.filter(cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, flag.pos)),
                                   lambda s: s.structureType == structure_type)
             if structure_type != STRUCTURE_RAMPART and _.find(self.room.look_at(LOOK_STRUCTURES, flag.pos),
                                                               {"structureType": STRUCTURE_RAMPART}):
@@ -663,8 +663,8 @@ class ConstructionMind:
                         continue
                     else:
                         checked_here.add(xy_key)
-                    structures = room.look_at(LOOK_STRUCTURES, position.x, position.y)
-                    if not _.some(structures, 'structureType', STRUCTURE_ROAD):
+                    structures = cast(List[Structure], room.look_at(LOOK_STRUCTURES, position.x, position.y))
+                    if not _.some(structures, lambda s: s.structureType == STRUCTURE_ROAD):
                         if site_count >= MAX_CONSTRUCTION_SITES * 0.9:
                             need_more_sites += 1
                         else:
@@ -673,24 +673,24 @@ class ConstructionMind:
 
         honey = self.hive.honey
         if deposit_point.pos.isNearTo(mine_flag):
-            route_to_mine = honey.get_serialized_path_obj(self.room.spawn, mine_flag, {
+            route_to_mine = honey.get_serialized_path_obj(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
             check_route(route_to_mine, None, None)
 
-            all_positions = honey.list_of_room_positions_in_path(self.room.spawn, mine_flag, {
+            all_positions = honey.list_of_room_positions_in_path(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
         else:
-            route_to_mine = honey.get_serialized_path_obj(mine_flag, deposit_point, {
+            route_to_mine = honey.get_serialized_path_obj(mine_flag.pos, deposit_point, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
             check_route(route_to_mine, (mine_flag.pos or mine_flag).roomName, None)
 
-            all_positions = honey.list_of_room_positions_in_path(mine_flag, deposit_point, {
+            all_positions = honey.list_of_room_positions_in_path(mine_flag.pos, deposit_point, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -702,7 +702,7 @@ class ConstructionMind:
                 closest_distance = Infinity
                 for index, pos in enumerate(all_positions):
                     # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
-                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    distance = movement.chebyshev_distance_room_pos(spawn.pos, pos) - index * 0.7
                     if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -717,7 +717,7 @@ class ConstructionMind:
                 no_pave_end = closest.roomName
             if closest.isNearTo(spawn):
                 continue
-            route_to_spawn = honey.get_serialized_path_obj(spawn, closest, {
+            route_to_spawn = honey.get_serialized_path_obj(spawn.pos, closest, {
                 'paved_for': [mine_flag, spawn],
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -728,8 +728,8 @@ class ConstructionMind:
             room = hive.get_room(room_name)
             if room and not room.my:
                 all_planned_sites_set = mining_paths.get_set_of_all_serialized_positions_in(room_name)
-                for site in room.find(FIND_MY_CONSTRUCTION_SITES):
-                    xy = positions.serialize_pos_xy(site)
+                for site in cast(List[ConstructionSite], room.find(FIND_MY_CONSTRUCTION_SITES)):
+                    xy = positions.serialize_pos_xy(site.pos)
                     if site.structureType == STRUCTURE_ROAD and not all_planned_sites_set.has(xy):
                         print("[building] Removing {} at {}.".format(site, site.pos))
                         site.remove()
@@ -756,18 +756,18 @@ class ConstructionMind:
         hive_honey = self.hive.honey
 
         if deposit_point.pos.isNearTo(mine_flag):
-            mine_path = hive_honey.completely_repath_and_get_raw_path(self.room.spawn, mine_flag, {
+            mine_path = hive_honey.completely_repath_and_get_raw_path(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
         else:
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            mine_path = hive_honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
+            mine_path = hive_honey.completely_repath_and_get_raw_path(mine_flag.pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-            honey.clear_cached_path(deposit_point, mine_flag)
+            honey.clear_cached_path(deposit_point.pos, mine_flag.pos)
 
         for spawn in self.room.spawns:
             # TODO: this is used in both this method and the one above, and should be a utility.
@@ -776,7 +776,7 @@ class ConstructionMind:
                 closest_distance = Infinity
                 for index, pos in enumerate(mine_path):
                     # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
-                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    distance = movement.chebyshev_distance_room_pos(spawn.pos, pos) - index * 0.7
                     if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -785,11 +785,11 @@ class ConstructionMind:
             else:
                 closest = mine_flag.pos or mine_flag
             if closest.isNearTo(spawn):
-                mining_paths.register_new_mining_path([mine_flag, spawn], [])
+                mining_paths.register_new_mining_path((mine_flag, spawn), [])
                 continue
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            hive_honey.completely_repath_and_get_raw_path(spawn, closest, {
+            hive_honey.completely_repath_and_get_raw_path(spawn.pos, closest, {
                 'paved_for': [mine_flag, spawn],
                 # NOTE: We really aren't going to be using this path for anything besides paving,
                 #  but it should be small.
@@ -823,7 +823,7 @@ class ConstructionMind:
         ramparts = new_set()
         need_ramparts = new_map()
 
-        for structure in self.room.find(FIND_MY_STRUCTURES):
+        for structure in cast(List[OwnedStructure], self.room.find(FIND_MY_STRUCTURES)):
             pos_key = structure.pos.x * 64 + structure.pos.y
             if structure.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
@@ -831,7 +831,7 @@ class ConstructionMind:
                     and (structure.structureType != STRUCTURE_EXTENSION or len(self.room.mining.active_mines) > 1):
                 need_ramparts.set(pos_key, structure)
 
-        for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
+        for site in cast(List[ConstructionSite], self.room.find(FIND_MY_CONSTRUCTION_SITES)):
             pos_key = site.pos.x * 64 + site.pos.y
             if site.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
@@ -910,7 +910,7 @@ def clean_up_all_road_construction_sites():
             continue
         planned_roads = mining_paths.get_set_of_all_serialized_positions_in(room_name)
         for site in rooms_to_sites[room_name]:
-            xy = positions.serialize_pos_xy(site)
+            xy = positions.serialize_pos_xy(site.pos)
             if site.structureType == STRUCTURE_ROAD:
                 if not planned_roads.has(xy):
                     print("[building] Removing {} at {}.".format(site, site.pos))
@@ -927,13 +927,13 @@ def clean_up_owned_room_roads(hive):
     for room in hive.my_rooms:
         roads = []  # type: List[Structure]
         non_roads = new_set()
-        for structure in room.find(FIND_STRUCTURES):
+        for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
             if structure.structureType == STRUCTURE_ROAD:
                 roads.push(structure)
             elif structure.structureType != STRUCTURE_RAMPART and structure.structureType != STRUCTURE_CONTAINER:
-                non_roads.add(positions.serialize_pos_xy(structure))
+                non_roads.add(positions.serialize_pos_xy(structure.pos))
         for road in roads:
-            if non_roads.has(positions.serialize_pos_xy(road)):
+            if non_roads.has(positions.serialize_pos_xy(road.pos)):
                 road.destroy()
 
 

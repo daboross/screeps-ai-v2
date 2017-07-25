@@ -522,7 +522,8 @@ class SquadTactics:
                       .format(self.room.name, target_type))
                 squad_obj = Squad(self.room, squad_members, target)
             if targets_fully_alive:
-                distance = self.room.hive.honey.find_path_length(self.room.spawn, target, squad_obj.new_movement_opts())
+                distance = self.room.hive.honey.find_path_length(self.room.spawn.pos, target,
+                                                                 squad_obj.new_movement_opts())
                 spawn_time = self.spawn_time_for(target)
                 total_ttl = 0
                 for member in squad_members:

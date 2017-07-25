@@ -330,7 +330,7 @@ class TargetMind:
         if func:
             return func(creep, extra_var)
         else:
-            raise Error("Couldn't find find_function for '{}'!".format(ttype))
+            raise ValueError("Couldn't find find_function for '{}'!".format(ttype))
 
     def _get_existing_target_id(self, ttype, targeter_id):
         # type: (int, str) -> Optional[str]
@@ -435,9 +435,11 @@ class TargetMind:
         closest_distance = Infinity
         best_id = None
         stealing_from = None
-        structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
-                              lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN)
-                                        and s.energy < s.energyCapacity)
+        structures = cast(List[Union[StructureExtension, StructureSpawn]],
+                          _.filter(creep.home.find(FIND_MY_STRUCTURES),
+                                   lambda s: ((s.structureType == STRUCTURE_EXTENSION
+                                               or s.structureType == STRUCTURE_SPAWN)
+                                              and s.energy < s.energyCapacity)))
         if len(structures):
             for structure in structures:
                 structure_id = structure.id
@@ -446,8 +448,8 @@ class TargetMind:
                 current_carry = self.workforce_of(target_spawn_deposit, structure_id)
                 distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                 if distance < closest_distance:
-                    max = structure.energyCapacity / 50.0
-                    if not current_carry or current_carry < max:
+                    max_to_deposit = structure.energyCapacity / 50.0
+                    if not current_carry or current_carry < max_to_deposit:
                         closest_distance = distance
                         best_id = structure_id
                         stealing_from = None
@@ -494,7 +496,7 @@ class TargetMind:
             if site_id.startsWith("flag-"):
                 max_work = _MAX_BUILDERS
             else:
-                site = Game.getObjectById(site_id)
+                site = cast(ConstructionSite, Game.getObjectById(site_id))
                 if not site:
                     continue
                 max_work = min(_MAX_BUILDERS, math.ceil((site.progressTotal - site.progress) / 50))
@@ -528,13 +530,13 @@ class TargetMind:
         best = None
         second_best = None
         for struct_id in repair_targets:
-            structure = Game.getObjectById(struct_id)
+            structure = cast(Structure, Game.getObjectById(struct_id))
             if not structure:
                 continue
             # TODO: merge this logic with ConstructionMind _efficiently!_
             this_hits_max = min(structure.hitsMax, max_hits)
             if structure and structure.hits < this_hits_max * 0.9:
-                distance = movement.chebyshev_distance_room_pos(structure, creep)
+                distance = movement.chebyshev_distance_room_pos(structure.pos, creep.pos)
                 ticks_to_repair = (structure.hitsMax - structure.hits) \
                                   / (creep.creep.getActiveBodyparts(WORK) * REPAIR_POWER)
                 if ticks_to_repair < 10 and distance < 3:
@@ -573,7 +575,7 @@ class TargetMind:
         smallest_num = Infinity
         smallest_hits = Infinity
         for struct_id in creep.home.building.get_big_repair_targets():
-            struct = Game.getObjectById(struct_id)
+            struct = cast(Structure, Game.getObjectById(struct_id))
             if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
                 struct_num = self.workforce_of(target_big_repair, struct_id)
                 if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
@@ -593,7 +595,7 @@ class TargetMind:
         smallest_num = Infinity
         smallest_hits = Infinity
         for struct_id in creep.home.building.get_big_repair_targets():
-            struct = Game.getObjectById(struct_id)
+            struct = cast(Structure, Game.getObjectById(struct_id))
             if struct and struct.hits < struct.hitsMax \
                     and (struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART):
                 struct_num = self.workforce_of(target_big_big_repair, struct_id)
@@ -610,7 +612,7 @@ class TargetMind:
         """
         construct_count = {}
         for struct_id in creep.home.building.get_destruction_targets():
-            struct = Game.getObjectById(struct_id)
+            struct = cast(Structure, Game.getObjectById(struct_id))
             if struct:
                 current_num = self.targets[target_destruction_site][struct_id]
                 if not current_num or current_num < _MAX_BUILDERS:
@@ -718,7 +720,7 @@ class TargetMind:
                 flag_id = "flag-{}".format(flag.name)
                 current_targets = self.targets[target_reserve_now][flag_id]
                 if not current_targets or current_targets < 1:
-                    distance = movement.distance_squared_room_pos(creep.creep.pos,
+                    distance = movement.distance_squared_room_pos(creep.pos,
                                                                   __new__(RoomPosition(25, 25, room_name)))
 
                     if distance < closest_distance:
@@ -736,21 +738,21 @@ class TargetMind:
         nearest_distance = Infinity
         for location in hot_spots:
             if not self.targets[target_rampart_defense][location.name]:
-                distance = movement.chebyshev_distance_room_pos(location, creep)
+                distance = movement.chebyshev_distance_room_pos(location, creep.pos)
                 if distance < nearest_distance:
                     nearest = location
                     nearest_distance = distance
         if nearest is None:
             for location in cold_spots:
                 if not self.targets[target_rampart_defense][location.name]:
-                    distance = movement.chebyshev_distance_room_pos(location, creep)
+                    distance = movement.chebyshev_distance_room_pos(location, creep.pos)
                     if distance < nearest_distance:
                         nearest = location
                         nearest_distance = distance
             if nearest is None:
                 for location in creep.home.defense.get_old_defender_spots():
                     if not self.targets[target_rampart_defense][location.name]:
-                        distance = movement.chebyshev_distance_room_pos(location, creep)
+                        distance = movement.chebyshev_distance_room_pos(location, creep.pos)
                         if distance < nearest_distance:
                             nearest = location
                             nearest_distance = distance

@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 from cache import volatile_cache
 from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_3000miner, creep_base_4000miner, \
     creep_base_carry3000miner, creep_base_half_move_hauler, creep_base_hauler, creep_base_reserving, \
-    creep_base_work_half_move_hauler, role_hauler, role_miner, role_remote_mining_reserve, \
+    creep_base_work_half_move_hauler, role_hauler, role_miner, role_remote_mining_reserve, roleobj_key_base, \
+    roleobj_key_initial_memory, roleobj_key_num_sections, roleobj_key_role, roleobj_key_run_after_spawning, \
     target_energy_hauler_mine, target_energy_miner_mine, roleobj_key_initial_targets
 from creep_management import spawning
 from creep_management.spawning import fit_num_sections
@@ -73,7 +74,8 @@ class MiningMind:
             upgrader_link_id = upgrader_link and upgrader_link.id or None
             storage = self.room.room.storage
             if storage and storage.storeCapacity > 0:
-                distance = movement.chebyshev_distance_room_pos(storage, flag)
+                # TODO: see if this produces an error...? it should
+                distance = movement.chebyshev_distance_room_pos(storage, flag.pos)
                 if distance <= 2:
                     best_priority = -40
                     best = storage
@@ -87,7 +89,7 @@ class MiningMind:
                 for link in self.room.links.links:
                     if link.energyCapacity <= 0 or link.id == main_link_id:
                         continue
-                    distance = movement.chebyshev_distance_room_pos(link, flag)
+                    distance = movement.chebyshev_distance_room_pos(link.pos, flag.pos)
                     if distance <= 2:
                         priority = -20
                     elif link.id == upgrader_link_id:
@@ -125,9 +127,9 @@ class MiningMind:
         deposit_point = self.closest_deposit_point_to_mine(flag)
         if deposit_point:
             if deposit_point.structureType == STRUCTURE_SPAWN:
-                return self.hive.honey.find_path_length(deposit_point, flag, {"use_roads": False}) + 20
+                return self.hive.honey.find_path_length(deposit_point.pos, flag.pos, {"use_roads": False}) + 20
             else:
-                return self.hive.honey.find_path_length(deposit_point, flag, {"use_roads": False})
+                return self.hive.honey.find_path_length(deposit_point.pos, flag.pos, {"use_roads": False})
         else:
             # This will happen if we have no storage nor spawn
             return Infinity
@@ -179,7 +181,7 @@ class MiningMind:
 
         max_damage = 0
         for room_name, serialized_path in self.hive.honey \
-                .get_ordered_list_of_serialized_path_segments(flag, deposit_point, {'paved_for': flag}):
+                .get_ordered_list_of_serialized_path_segments(flag.pos, deposit_point.pos, {'paved_for': flag}):
             cut_off_start = room_name == flag.pos.roomName
             room = Game.rooms[room_name]
             if not room:
@@ -191,14 +193,15 @@ class MiningMind:
             for i in range(4, path_len):
                 if (not cut_off_start or i > 8) and 0 < x < 49 and 0 < y < 49:
                     road_list = room.lookForAt(LOOK_STRUCTURES, x, y)
-                    road = _.find(road_list, {'structureType': STRUCTURE_ROAD})
+                    road = cast(Optional[StructureRoad], _.find(road_list, {'structureType': STRUCTURE_ROAD}))
                     if road:
                         damage = road.hitsMax - road.hits
                     else:
                         site_list = room.lookForAt(LOOK_CONSTRUCTION_SITES, x, y)
-                        road = _.find(site_list, {'structureType': STRUCTURE_ROAD})
-                        if road:
-                            damage = (road.progressTotal - road.progress) * REPAIR_POWER / BUILD_POWER
+                        road_site = cast(Optional[ConstructionSite],
+                                         _.find(site_list, {'structureType': STRUCTURE_ROAD}))
+                        if road_site:
+                            damage = (road_site.progressTotal - road_site.progress) * REPAIR_POWER / BUILD_POWER
                         else:
                             room.createConstructionSite(x, y, STRUCTURE_ROAD)
                             if Game.map.getTerrainAt(x, y, room_name)[0] == "s":
@@ -219,7 +222,7 @@ class MiningMind:
             # Half the time is spent moving towards the target, during which no roads are repaired
             / 2
             # The remaining life is divided between each road segment
-            / self.hive.honey.find_path_length(flag, deposit_point, {'paved_for': flag})
+            / self.hive.honey.find_path_length(flag.pos, deposit_point.pos, {'paved_for': flag})
             # each work part can do one REPAIR_POWER work per tick
             * REPAIR_POWER
         )
@@ -250,7 +253,7 @@ class MiningMind:
         if 'sitting' not in flag.memory or Game.time > flag.memory.sitting_set + 10:
             room = self.hive.get_room(flag.pos.roomName)
             if room:
-                flag.memory.sitting = _.sum(room.look_for_in_area_around(LOOK_RESOURCES, flag, 1),
+                flag.memory.sitting = _.sum(room.look_for_in_area_around(LOOK_RESOURCES, flag.pos, 1),
                                             'resource.amount')
             elif 'sitting_set' in flag.memory:
                 flag.memory.sitting = max(0, flag.memory.sitting + flag.memory.sitting_set - Game.time)
@@ -264,9 +267,9 @@ class MiningMind:
         if self._local_mining_flags is None:
             result = []
             for source in self.room.sources:
-                flag = flags.look_for(self.room, source, LOCAL_MINE)
+                flag = flags.look_for(self.room, source.pos, LOCAL_MINE)
                 if not flag:
-                    name = flags.create_flag(source, LOCAL_MINE, self.room.name)
+                    name = flags.create_flag(source.pos, LOCAL_MINE, self.room.name)
                     if not name:
                         print("[{}][mining] Warning: Couldn't create local mining flag!".format(self.room.name))
                         continue
@@ -394,13 +397,13 @@ class MiningMind:
                 Memory.no_controller[room_name] = True
             else:
                 return {
-                    'role': role_remote_mining_reserve,
-                    'base': creep_base_reserving,
-                    'num_sections': min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
-                    'memory': {
+                    roleobj_key_role: role_remote_mining_reserve,
+                    roleobj_key_base: creep_base_reserving,
+                    roleobj_key_num_sections: min(5, spawning.max_sections_of(self.room, creep_base_reserving)),
+                    roleobj_key_initial_memory: {
                         'claiming': room_name
                     },
-                    'run_after': '(name) => Memory.reserving[\'{}\'] = name'.format(room_name),
+                    roleobj_key_run_after_spawning: '(name) => Memory.reserving[\'{}\'] = name'.format(room_name),
                 }
         else:
             return None
@@ -521,10 +524,10 @@ class MiningMind:
             if self.room.paving():
                 num_sections = spawning.ceil_sections(num_sections / 2, base)
             return {
-                'role': role_miner,
-                'base': base,
-                'num_sections': num_sections,
-                'targets': [
+                roleobj_key_role: role_miner,
+                roleobj_key_base: base,
+                roleobj_key_num_sections: num_sections,
+                roleobj_key_initial_targets: [
                     [target_energy_miner_mine, flag_id],
                 ]
             }

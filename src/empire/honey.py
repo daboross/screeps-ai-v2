@@ -517,7 +517,7 @@ class HoneyTrails:
             else:
                 avoid_extensions = True
                 if destination.roomName == room_name:
-                    for s in room.look_at(LOOK_STRUCTURES, destination):
+                    for s in cast(List[Structure], room.look_at(LOOK_STRUCTURES, destination)):
                         if s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_EXTENSION:
                             avoid_extensions = False
             upgrader_wait_flags = flags.find_flags(room, UPGRADER_SPOT)
@@ -626,9 +626,10 @@ class HoneyTrails:
         # Use data even if we have vision, to avoid extra find calls
         if room and (room.my or probably_mining or paved_for or not room_data):
             any_lairs = False
-            for struct in room.find(FIND_STRUCTURES):
+            for struct in cast(List[Structure], room.find(FIND_STRUCTURES)):
                 structure_type = struct.structureType
-                if structure_type == STRUCTURE_CONTAINER or (structure_type == STRUCTURE_RAMPART and struct.my):
+                if structure_type == STRUCTURE_CONTAINER or (structure_type == STRUCTURE_RAMPART
+                                                             and cast(StructureRampart, struct).my):
                     continue
                 elif structure_type == STRUCTURE_ROAD:
                     sstype = StoredObstacleType.ROAD
@@ -640,7 +641,7 @@ class HoneyTrails:
                 else:
                     sstype = StoredObstacleType.OTHER_IMPASSABLE
                 set_matrix(struct.pos.x, struct.pos.y, sstype, False, structure_type)
-            for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+            for site in cast(List[ConstructionSite], room.find(FIND_MY_CONSTRUCTION_SITES)):
                 structure_type = site.structureType
                 if structure_type == STRUCTURE_CONTAINER or structure_type == STRUCTURE_RAMPART:
                     continue
@@ -738,8 +739,8 @@ class HoneyTrails:
             sk_ok = False
 
         if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-            reroute_start = Game.flags['reroute']
-            reroute_destination = Game.flags['reroute_destination']
+            reroute_start = Game.flags['reroute'].pos
+            reroute_destination = Game.flags['reroute_destination'].pos
             if movement.chebyshev_distance_room_pos(origin, reroute_start) \
                     + movement.chebyshev_distance_room_pos(reroute_destination, destination) \
                     < movement.chebyshev_distance_room_pos(origin, destination):
@@ -747,13 +748,13 @@ class HoneyTrails:
                 origin_opts = Object.create(opts)
                 origin_opts.range = 1
                 path1 = self._get_raw_path(origin, reroute_start, origin_opts)
-                if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start.pos)):
-                    pos = __new__(RoomPosition(reroute_start.pos.x, reroute_start.pos.y, reroute_start.pos.roomName))
+                if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start)):
+                    pos = __new__(RoomPosition(reroute_start.x, reroute_start.y, reroute_start.roomName))
                     pos.end_of_reroute = True
                     path1.push(pos)
                 else:
                     path1[len(path1) - 1].end_of_reroute = True
-                path1.push(reroute_destination.pos)
+                path1.push(reroute_destination)
                 path2 = self._get_raw_path(reroute_destination, destination, opts)
                 return path1.concat(path2)
 
@@ -1076,7 +1077,7 @@ class HoneyTrails:
             return len(serialized_path_obj[_path_cached_data_key_full_path]) \
                    - _.sum(Object.keys(serialized_path_obj), lambda n: movement.is_valid_room_name(n)) - 2
         elif _path_cached_data_key_length in serialized_path_obj:  # Version two stored path
-            return serialized_path_obj[_path_cached_data_key_length]
+            return cast(int, serialized_path_obj[_path_cached_data_key_length])
         else:  # Unknown format, let's just guesstimate
             total = 1
             for room_name in Object.keys(serialized_path_obj):

@@ -255,11 +255,12 @@ def is_block_clear(room, x, y):
         return False
     if len(room.look_at(LOOK_CREEPS, x, y)) != 0:
         return False
-    for struct in room.look_at(LOOK_STRUCTURES, x, y):
-        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+    for struct in cast(List[Structure], room.look_at(LOOK_STRUCTURES, x, y)):
+        if (struct.structureType != STRUCTURE_RAMPART or
+                not cast(StructureRampart, struct).my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
-    for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+    for site in cast(List[ConstructionSite], room.look_at(LOOK_CONSTRUCTION_SITES, x, y)):
         if site.my and site.structureType != STRUCTURE_RAMPART \
                 and site.structureType != STRUCTURE_CONTAINER and site.structureType != STRUCTURE_ROAD:
             return False
@@ -275,11 +276,12 @@ def is_block_empty(room, x, y):
         return False
     if Game.map.getTerrainAt(x, y, room.room.name) == 'wall':
         return False
-    for struct in room.look_at(LOOK_STRUCTURES, x, y):
-        if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+    for struct in cast(List[Structure], room.look_at(LOOK_STRUCTURES, x, y)):
+        if (struct.structureType != STRUCTURE_RAMPART or
+                not cast(STRUCTURE_RAMPART, struct).my) \
                 and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
             return False
-    for site in room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+    for site in cast(List[ConstructionSite], room.look_at(LOOK_CONSTRUCTION_SITES, x, y)):
         if site.my and site.structureType != STRUCTURE_RAMPART \
                 and site.structureType != STRUCTURE_CONTAINER and site.structureType != STRUCTURE_ROAD:
             return False

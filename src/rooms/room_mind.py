@@ -20,7 +20,7 @@ from rooms.minerals import MineralMind
 from rooms.mining import MiningMind
 from rooms.room_constants import *
 from rooms.squads import SquadTactics
-from utilities import hostile_utils, movement, rndrs, speech, naming
+from utilities import hostile_utils, movement, naming, rndrs, speech
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
 if TYPE_CHECKING:
@@ -60,7 +60,7 @@ class RoomMind:
     def __init__(self, hive, room):
         # type: (HiveMind, Room) -> None
         self.hive = hive
-        self.room = room
+        self.room = room  # type: Room
         Object.defineProperty(self, 'name', {'value': self.room.name})
         __pragma__('skip')
         self.name = str(self.room.name)
@@ -68,19 +68,19 @@ class RoomMind:
         self.my = room.controller and room.controller.my
         if self.my:
             self.rcl = self.room.controller.level
-            self.building = ConstructionMind(self)
-            self.links = LinkingMind(self)
-            self.mining = MiningMind(self)
-            self.minerals = MineralMind(self)
-            self.squads = SquadTactics(self)
+            self.building = ConstructionMind(self)  # type: Optional[ConstructionMind]
+            self.links = LinkingMind(self)  # type: Optional[LinkingMind]
+            self.mining = MiningMind(self)  # type: Optional[MiningMind]
+            self.minerals = MineralMind(self)  # type: Optional[MineralMind]
+            self.squads = SquadTactics(self)  # type: Optional[SquadTactics]
         else:
             self.rcl = 0
             __pragma__('skip')
-            self.building = None
-            self.links = None
-            self.mining = None
-            self.minerals = None
-            self.squads = None
+            self.building = None  # type: Optional[ConstructionMind]
+            self.links = None  # type: Optional[LinkingMind]
+            self.mining = None  # type: Optional[MiningMind]
+            self.minerals = None  # type: Optional[MineralMind]
+            self.squads = None  # type: Optional[SquadTactics]
             __pragma__('noskip')
 
         self.defense = RoomDefense(self)
@@ -301,8 +301,6 @@ class RoomMind:
         :return: A single result
         :rtype: RoomObject
         """
-        if pos.pos:
-            pos = pos.pos
         raw_find_results = self.find(find_type)
         if lodash_filter:
             raw_find_results = _.filter(raw_find_results, lodash_filter)
@@ -864,7 +862,7 @@ class RoomMind:
                                           (not self.spawn and self.room.storage.store[RESOURCE_ENERGY] > 0)):
                 self._full_storage_use = True
             elif self.room.storage and not self.room.storage.storeCapacity:
-                if self.room.storage.store.energy > 0:
+                if self.room.storage.store[RESOURCE_ENERGY] > 0:
                     self._full_storage_use = True
                 else:
                     self._full_storage_use = False
@@ -899,38 +897,42 @@ class RoomMind:
         if not self.full_storage_use:
             return False
         if self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) < max_total_resume_remote_mining \
-                or self.room.storage.store.energy < max_energy_resume_remote_mining:
+                or self.room.storage.store[RESOURCE_ENERGY] < max_energy_resume_remote_mining:
             del self.mem[mem_key_focusing_home]
         if not self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) > min_total_pause_remote_mining \
-                and self.room.storage.store.energy > min_energy_pause_remote_mining:
+                and self.room.storage.store[RESOURCE_ENERGY]> min_energy_pause_remote_mining:
             self.mem[mem_key_focusing_home] = True
         return not not self.mem[mem_key_focusing_home]
 
     def upgrading_paused(self):
         # type: () -> bool
+        if self.room.storage:
+            current_store_energy = self.room.storage.store[RESOURCE_ENERGY]
+        else:
+            current_store_energy = 0
         if '_upgrading_paused' not in self:
             if self.rcl < 4 or not self.room.storage or self.room.storage.storeCapacity <= 0 \
                     or self.being_bootstrapped():
                 self._upgrading_paused = False
             # TODO: constant here and below in upgrader_work_mass
-            elif self.conducting_siege() and (
-                            self.room.storage.store.energy < (self.constant_energy_to_keep_in_reserve() / 4) or (
-                                    self.rcl < 7 and self.room.storage.store.energy < self.constant_energy_to_keep_in_reserve())):
+            elif self.conducting_siege() and (current_store_energy < (self.constant_energy_to_keep_in_reserve() / 4)
+                    or (self.rcl < 7 and current_store_energy < self.constant_energy_to_keep_in_reserve())
+            ):
                 self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
             else:
                 if self.rcl >= 8:
                     if self.mem[mem_key_upgrading_paused] \
-                            and self.room.storage.store.energy > rcl8_energy_to_resume_upgrading:
+                            and current_store_energy > rcl8_energy_to_resume_upgrading:
                         del self.mem[mem_key_upgrading_paused]
                     if not self.mem[mem_key_upgrading_paused] \
-                            and self.room.storage.store.energy < rcl8_energy_to_pause_upgrading:
+                            and current_store_energy < rcl8_energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
                 else:
                     if self.mem[mem_key_upgrading_paused] \
-                            and self.room.storage.store.energy > energy_to_resume_upgrading:
+                            and current_store_energy > energy_to_resume_upgrading:
                         del self.mem[mem_key_upgrading_paused]
                     if not self.mem[mem_key_upgrading_paused] \
-                            and self.room.storage.store.energy < energy_to_pause_upgrading:
+                            and current_store_energy < energy_to_pause_upgrading:
                         self.mem[mem_key_upgrading_paused] = True
                 self._upgrading_paused = not not self.mem[mem_key_upgrading_paused]
         return self._upgrading_paused
@@ -943,9 +945,10 @@ class RoomMind:
             elif self.conducting_siege() and self.rcl < 7:
                 self._building_paused = True  # Don't build while we're taking someone down.
             else:
-                if self.mem[mem_key_building_paused] and self.room.storage.store.energy > energy_to_resume_building:
+                energy = self.room.storage.store[RESOURCE_ENERGY]
+                if self.mem[mem_key_building_paused] and energy > energy_to_resume_building:
                     del self.mem[mem_key_building_paused]
-                if not self.mem[mem_key_building_paused] and self.room.storage.store.energy < energy_to_pause_building:
+                if not self.mem[mem_key_building_paused] and energy < energy_to_pause_building:
                     self.mem[mem_key_building_paused] = True
                 if self.mem[mem_key_building_paused]:
                     # this is somewhat expensive, so do this calculation last
@@ -998,7 +1001,7 @@ class RoomMind:
                 or (self.under_siege() and (not self.room.storage or self.room.storage.storeCapacity))
             )
             and self.room.controller.ticksToDowngrade >= 1000
-            and (not self.room.storage or self.room.storage.store.energy < STORAGE_CAPACITY * 0.7)
+            and (not self.room.storage or self.room.storage.store[RESOURCE_ENERGY] < STORAGE_CAPACITY * 0.7)
         )
         self.store_cached_property("upgrading_deprioritized", deprioritized, 15)
         return deprioritized
@@ -1076,7 +1079,7 @@ class RoomMind:
                     structure = Game.getObjectById(structure_id)
                     if structure:
                         self._upgrader_source = structure
-                        return structure
+                        return cast(Any, structure)
             structure = None
             if self.room.storage and not self.being_bootstrapped():
                 if self.room.storage.pos.inRangeTo(self.room.controller, 4):
@@ -1085,14 +1088,14 @@ class RoomMind:
                     all_structs_near = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos))
                     if self.links.main_link and all_structs_near.find({'structureType': STRUCTURE_LINK, 'my': True}):
                         structure = all_structs_near.filter({'structureType': STRUCTURE_LINK}) \
-                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s.pos, self.room.controller.pos))
                     elif all_structs_near.find({'structureType': STRUCTURE_CONTAINER}):
                         structure = all_structs_near.filter({'structureType': STRUCTURE_CONTAINER}) \
-                            .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                            .min(lambda s: movement.chebyshev_distance_room_pos(s.pos, self.room.controller.pos))
             else:
                 structure = _(self.find_in_range(FIND_STRUCTURES, 4, self.room.controller.pos)).filter(
                     {'structureType': STRUCTURE_CONTAINER}) \
-                    .min(lambda s: movement.chebyshev_distance_room_pos(s, self.room.controller))
+                    .min(lambda s: movement.chebyshev_distance_room_pos(s.pos, self.room.controller.pos))
                 if structure == Infinity or structure == -Infinity:
                     structure = None
             if structure:
@@ -1262,7 +1265,7 @@ class RoomMind:
     __pragma__('nofcall')
 
     def _any_closest_to_me(self, flag_type):
-        # type: (str) -> bool
+        # type: (int) -> bool
         for flag in flags.find_flags_global(flag_type):
             if flags.flag_sponsor(flag, self.hive) == self.name:
                 return True
@@ -1270,7 +1273,7 @@ class RoomMind:
         return False
 
     def flags_without_target(self, flag_type, filter_func=None):
-        # type: (str, Optional[Callable[[Flag], bool]]) -> List[Flag]
+        # type: (int, Optional[Callable[[Flag], bool]]) -> List[Flag]
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
             if flags.flag_sponsor(flag, self.hive) == self.name:
@@ -1307,7 +1310,7 @@ class RoomMind:
 
     def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0,
                                  filter_func=None):
-        # type: (str, str, str, str, int, Optional[Callable[[Flag], bool]]) -> Optional[Dict[str, Any]]
+        # type: (int, str, str, str, int, Optional[Callable[[Flag], bool]]) -> Optional[Dict[str, Any]]
         flag_list = self.flags_without_target(flag_type, filter_func)
         if len(flag_list):
             return self.get_spawn_for_flag(role, half_move_base, full_move_base, flag_list[0], max_sections)
@@ -1376,7 +1379,7 @@ class RoomMind:
                                    lambda c: c.hasBodyparts(ATTACK) or c.hasBodyparts(RANGED_ATTACK)):
                     continue
                 distance = self.hive.honey.find_path_length(
-                    self.spawn, movement.center_pos(room.name), {'range': 15})
+                    self.spawn.pos, movement.center_pos(room.name), {'range': 15})
                 room_work_mass = 0
                 rt_map = room.rt_map
                 for role in Object.keys(room.work_mass_map):
@@ -1390,13 +1393,13 @@ class RoomMind:
                             else:
                                 break  # this is sorted
                 if room.room.storage:
-                    target = min(10.0, 5 + room.room.storage.store.energy / 20 * 1000) * worker_mass
+                    target = min(10.0, 5 + room.room.storage.store[RESOURCE_ENERGY] / 20 * 1000) * worker_mass
                 elif len(room.sources) >= 2:
                     target = 5 * worker_mass
                 else:
                     target = 10
                 needed += max(0, target - room_work_mass)
-                if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store.energy \
+                if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store[RESOURCE_ENERGY]\
                         and room.room.storage.storeCapacity <= 0:
                     mineral_steal += hauler_mass
             if Game.cpu.bucket < 4000:
@@ -1492,13 +1495,15 @@ class RoomMind:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_rcl8_building:
-                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy()
+                extra = self.minerals.get_estimate_total_energy() - \
+                        self.constant_balance_point_for_rcl8_building_energy()
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
                     wm += math.floor(extra / 2500)
                 wm = min(wm, self.building.get_max_builder_work_parts())
             elif spending == room_spending_state_selling_and_rcl8building:
-                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy() \
+                extra = self.minerals.get_estimate_total_energy() - \
+                        self.constant_balance_point_for_rcl8_building_energy() \
                         - energy_for_terminal_when_selling
                 wm = min(4, spawning.max_sections_of(self, creep_base_worker))
                 if extra > 0:
@@ -1510,13 +1515,15 @@ class RoomMind:
                 if self.minerals.get_estimate_total_energy() < self.constant_energy_to_keep_in_reserve() / 2:
                     wm = self.building.get_max_builder_work_parts_urgent()
                 else:
-                    extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_rcl8_building_energy()
+                    extra = self.minerals.get_estimate_total_energy() - \
+                            self.constant_balance_point_for_rcl8_building_energy()
                     wm = spawning.max_sections_of(self, creep_base_worker) * 3
                     if extra > 0:
                         wm += math.floor(extra / 2500)
                     wm = min(wm, self.building.get_max_builder_work_parts())
             else:
-                extra = self.minerals.get_estimate_total_energy() - self.constant_balance_point_for_pre_rcl8_backup_energy_spending()
+                extra = self.minerals.get_estimate_total_energy() - \
+                        self.constant_balance_point_for_pre_rcl8_backup_energy_spending()
                 if extra > 0:
                     wm = min(
                         min(4, spawning.max_sections_of(self, creep_base_worker)) + math.floor(extra / 2500),
@@ -1560,11 +1567,12 @@ class RoomMind:
                     self._target_upgrade_fill_work_mass = 1
                 else:
                     if self.room.storage:
-                        distance = self.hive.honey.find_path_length(self.room.storage, target, {'use_roads': False})
+                        distance = self.hive.honey.find_path_length(self.room.storage.pos, target.pos,
+                                                                    {'use_roads': False})
                     else:
                         distance = 0
                         for source in self.sources:
-                            distance += self.hive.honey.find_path_length(source, target, {'use_roads': False})
+                            distance += self.hive.honey.find_path_length(source.pos, target.pos, {'use_roads': False})
                         distance /= len(self.sources)
                     carry_per_tick_per_part = CARRY_CAPACITY / (distance * 2) + 5
                     need_per_tick = upgrader_work_mass * UPGRADE_CONTROLLER_POWER
@@ -1661,10 +1669,11 @@ class RoomMind:
 
             energy_struct = self.get_upgrader_energy_struct()
             if energy_struct and energy_struct.structureType == STRUCTURE_LINK:
-                distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct)
+                distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct.pos)
                 total_throughput = LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / distance
                 if self.links.secondary_link:
-                    secondary_distance = movement.chebyshev_distance_room_pos(self.links.secondary_link, energy_struct)
+                    secondary_distance = movement.chebyshev_distance_room_pos(self.links.secondary_link,
+                                                                              energy_struct.pos)
                     total_throughput += LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / secondary_distance
                 wm = min(wm, math.ceil(total_throughput))
         self._target_upgrader_work_mass = wm
@@ -1945,7 +1954,7 @@ class RoomMind:
             return next_role
 
         mining_role = self.mining.next_mining_role(len(self.sources))
-        if mining_role is not None and mining_role.role == role_miner:
+        if mining_role is not None and mining_role[roleobj_key_role] == role_miner:
             return mining_role
 
         next_role = self._check_role_reqs([
@@ -2119,14 +2128,15 @@ class RoomMind:
             return
 
         def is_energy_grab_efficient(flag):
+            # type: (Flag) -> bool
             home_point = self.room.storage
             add_extra = 0
             if not home_point:
                 home_point = self.spawn
                 add_extra = 20
             round_trip_distance = (
-                self.hive.honey.find_path_length(home_point, flag, {'use_roads': False})
-                + self.hive.honey.find_path_length(flag, home_point)
+                self.hive.honey.find_path_length(home_point.pos, flag.pos, {'use_roads': False})
+                + self.hive.honey.find_path_length(flag.pos, home_point.pos)
                 + add_extra
             )
             # assuming full energy grab on recycling

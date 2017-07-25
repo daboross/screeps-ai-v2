@@ -108,15 +108,15 @@ class Room:
     def __init__(self, controller: Optional[StructureController], storage: Optional[StructureStorage],
                  terminal: Optional[StructureTerminal], energyAvailable: int, energyCapacityAvailable: int,
                  memory: _Memory, mode: str, name: str, visual: Any) -> None:
-        self.controller = controller
-        self.storage = storage
-        self.terminal = terminal
-        self.energyAvailable = energyAvailable
-        self.energyCapacityAvailable = energyCapacityAvailable
-        self.memory = memory
-        self.mode = mode
-        self.name = name
-        self.visual = visual
+        self.controller = controller  # type: Optional[StructureController]
+        self.storage = storage  # type: Optional[StructureStorage]
+        self.terminal = terminal  # type: Optional[StructureTerminal]
+        self.energyAvailable = energyAvailable  # type: int
+        self.energyCapacityAvailable = energyCapacityAvailable  # type: int
+        self.memory = memory  # type: _Memory
+        self.mode = mode  # type: str
+        self.name = name  # type: str
+        self.visual = visual  # type: Any
 
     @classmethod
     def serializePath(cls, path: List[Union[_PathPos, Dict[str, Any], RoomPosition]]) -> str:

@@ -26,9 +26,11 @@ def enemy_using_room(room_name):
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False
-    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
-           or data.owner.state is StoredEnemyRoomState.RESERVED \
-           or data.owner.state is StoredEnemyRoomState.JUST_MINING
+    return (
+        data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL
+        or data.owner.state is StoredEnemyRoomState.RESERVED
+        or data.owner.state is StoredEnemyRoomState.JUST_MINING
+    )
 
 
 def enemy_owns_room(room_name):
@@ -36,5 +38,7 @@ def enemy_owns_room(room_name):
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False
-    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
-           or data.owner.state is StoredEnemyRoomState.OWNED_DEAD
+    return (
+        data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL
+        or data.owner.state is StoredEnemyRoomState.OWNED_DEAD
+    )
