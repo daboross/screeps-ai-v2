@@ -2,7 +2,7 @@ from typing import Dict, List, Optional, Union
 
 __all__ = ['Memory', 'RawMemory', '_Memory', '_MemoryValue']
 
-_MemoryValue = Union[str, int, float, bool, '_Me    mory', List['_MemoryValue'], None]
+_MemoryValue = Union[str, int, float, bool, '_Memory', List['_MemoryValue'], None]
 
 
 class _Memory(dict):

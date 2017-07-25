@@ -14,6 +14,9 @@ class _LodashChain:
     def __init__(self, value):
         self.__inner = value
 
+    def concat(self, other: _Collection) -> '_LodashChain':
+        pass
+
     def chunk(self, size: int = 1) -> '_LodashChain':
         pass
 
@@ -41,10 +44,10 @@ class _LodashChain:
     def first(self) -> Optional[_L1]:
         pass
 
-    def flatten(array: List[List[_L1]]) -> '_LodashChain':
+    def flatten(self) -> '_LodashChain':
         pass
 
-    def flattenDeep(array: List[Any]) -> '_LodashChain':
+    def flattenDeep(self) -> '_LodashChain':
         pass
 
     def initial(self) -> List[_L1]:
@@ -95,13 +98,16 @@ class _LodashChain:
     def union(self, arrays: List[List[_L1]]) -> '_LodashChain':
         pass
 
+    def unique(self, isSorted: bool = False, iteratee: _LodashIteratee = None, thisArg: Any = None):
+        pass
+
     def uniq(self, isSorted: bool = False, iteratee: _LodashIteratee = None, thisArg: Any = None):
         pass
 
     def unzip(self) -> '_LodashChain':
         pass
 
-    def unzipWith(self, iteratee: Optional[Callable[[Any, Any, Any, Any]]] = None,
+    def unzipWith(self, iteratee: Optional[Callable[[Any, Any, Any, Any], Any]] = None,
                   thisArg: Any = None) -> '_LodashChain':
         pass
 
@@ -129,13 +135,13 @@ class _LodashChain:
     def at(self, *props: Any) -> List[_L1]:
         pass
 
-    def countBy(self, iteratee: _LodashIteratee = None, thisArg: Any = None) -> Dict[_L2, int]:
+    def countBy(self, iteratee: _LodashIteratee = None, thisArg: Any = None) -> '_LodashChain':
         pass
 
     def every(self, predicate: _LodashPredicate = None, thisArg: Any = None) -> bool:
         pass
 
-    def filter(self, predicate: _LodashPredicate = None, thisArg: Any = None) -> List[_L1]:
+    def filter(self, predicate: _LodashPredicate = None, thisArg: Any = None) -> '_LodashChain':
         pass
 
     def find(self, predicate: _LodashPredicate = None, thisArg: Any = None) -> _L1:
@@ -153,7 +159,7 @@ class _LodashChain:
     def forEachRight(self, iteratee: Callable[[_L1], Optional[bool]] = None, thisArg: Any = None):
         pass
 
-    def groupBy(self, iteratee: _LodashIteratee = None, thisArg: Any = None) -> Dict[_L2, List[_L1]]:
+    def groupBy(self, iteratee: _LodashIteratee = None, thisArg: Any = None) -> '_LodashChain':
         pass
 
     def includes(self, value: _L1, fromIndex: int = 0) -> bool:
@@ -216,7 +222,7 @@ class _LodashChain:
     def toPlainObject(value: Any) -> '_LodashChain':
         pass
 
-    def sum(self, iteratee: Callable[[_L1], _L3] = lambda x: x, thisArg: Any = None) -> '_LodashChain':
+    def sum(self, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L2:
         pass
 
     def keys(_object: Any) -> '_LodashChain':
@@ -238,6 +244,12 @@ class _LodashChain:
         pass
 
     def value(self) -> Any:
+        pass
+
+    def max(self, iteratee: Callable[[_L1], _L3] = None, thisArg: Any = None) -> _L1:
+        pass
+
+    def min(self, iteratee: Callable[[_L1], _L3] = None, thisArg: Any = None) -> _L1:
         pass
 
 
@@ -367,6 +379,10 @@ class _:
         pass
 
     @staticmethod
+    def unique(array: List[_L1], isSorted: bool = False, iteratee: _LodashIteratee = None, thisArg: Any = None):
+        pass
+
+    @staticmethod
     def uniq(array: List[_L1], isSorted: bool = False, iteratee: _LodashIteratee = None, thisArg: Any = None):
         pass
 
@@ -375,7 +391,8 @@ class _:
         pass
 
     @staticmethod
-    def unzipWith(array: List[Any], iteratee: Optional[Callable[[Any, Any, Any, Any]]] = None, thisArg: Any = None):
+    def unzipWith(array: List[Any], iteratee: Optional[Callable[[Any, Any, Any, Any], Any]] = None,
+                  thisArg: Any = None):
         pass
 
     @staticmethod
@@ -646,11 +663,11 @@ class _:
         pass
 
     @staticmethod
-    def max(collection: _Collection, iteratee: Callable[[_L1], _L3] = lambda x: x, thisArg: Any = None) -> _L1:
+    def max(collection: _Collection, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L1:
         pass
 
     @staticmethod
-    def min(collection: _Collection, iteratee: Callable[[_L1], _L3] = lambda x: x, thisArg: Any = None) -> _L1:
+    def min(collection: _Collection, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L1:
         pass
 
     @staticmethod
@@ -658,7 +675,7 @@ class _:
         pass
 
     @staticmethod
-    def sum(collection: _Collection, iteratee: Callable[[_L1], _L3] = lambda x: x, thisArg: Any = None) -> _L3:
+    def sum(collection: _Collection, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L3:
         pass
 
     @staticmethod

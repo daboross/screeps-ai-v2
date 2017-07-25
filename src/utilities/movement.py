@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Iterable, List, Optional, TYPE_CHECKING, Tuple, TypeVar, Union
+from typing import Callable, Iterable, List, Optional, TYPE_CHECKING, Tuple, TypeVar, Union, cast
 
 from jstools.screeps import *
 from utilities import positions
@@ -80,7 +80,7 @@ def center_pos(room_name):
     return __new__(RoomPosition(25, 25, room_name))
 
 
-_T = TypeVar('T')
+_T = TypeVar('_T')
 
 
 def do_a_50x50_spiral(func):

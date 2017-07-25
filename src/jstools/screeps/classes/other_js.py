@@ -1,7 +1,7 @@
-from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, TypeVar, Union
 
-_K = TypeVar('K')
-_V = TypeVar('V')
+_K = TypeVar('_K')
+_V = TypeVar('_V')
 
 
 # noinspection PyPep8Naming
@@ -61,6 +61,12 @@ class Math:
         pass
 
 
+class String:
+    @staticmethod
+    def fromCodePoint(int) -> str:
+        pass
+
+
 # noinspection PyUnusedLocal
 def typeof(x: Any) -> str:
     pass
@@ -113,6 +119,34 @@ class RegExp(str):
         pass
 
     def test(self, string: str) -> bool:
+        pass
+
+
+_T = TypeVar('_T')
+
+
+class Array(list):
+    @staticmethod
+    def js_from(v: Iterable[_T]) -> List[_T]:
+        pass
+
+
+# noinspection PyPep8Naming
+class console:
+    @staticmethod
+    def log(string: str) -> None:
+        pass
+
+    @staticmethod
+    def addVisual(roomName: str, data: Any) -> None:
+        pass
+
+    @staticmethod
+    def getVisualSize(roomName: str) -> int:
+        pass
+
+    @staticmethod
+    def clearVisual(roomName: str) -> None:
         pass
 
 

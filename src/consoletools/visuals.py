@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 from constants import rmem_key_currently_under_siege
 from creep_management import mining_paths
 from jstools import js_visuals
 from jstools.screeps import *
 from utilities import positions
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -15,6 +20,7 @@ __pragma__('noalias', 'update')
 
 
 def visualize_room(hive, room_name):
+    # type: (HiveMind, str) -> None
     """
     :type hive: empire.hive.HiveMind
     :type room_name: str

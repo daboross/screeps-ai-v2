@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Dict, List, TypeVar
+from typing import Any, Callable, Dict, List, TypeVar, cast
 
 import constants
 import creeps.roles.squads
@@ -42,6 +42,7 @@ _memory_init = None
 
 
 def init_memory():
+    # type: () -> None
     start = Game.cpu.getUsed()
     x = Memory
     end = Game.cpu.getUsed()

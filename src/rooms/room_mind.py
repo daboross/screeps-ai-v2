@@ -327,8 +327,6 @@ class RoomMind:
         :param look_range:
         :return:
         """
-        if pos.pos:
-            pos = pos.pos
         return self.room.lookForAtArea(look_type,
                                        clamp_room_x_or_y(pos.y - look_range),
                                        clamp_room_x_or_y(pos.x - look_range),
@@ -447,7 +445,7 @@ class RoomMind:
         return self.mem[mem_key_creeps_by_role_and_replacement_time]
 
     def role_count(self, role):
-        # type: () -> int
+        # type: (str) -> int
         count = self.role_counts[role]
         if count:
             return count
@@ -455,7 +453,7 @@ class RoomMind:
             return 0
 
     def carry_mass_of(self, role):
-        # type: () -> int
+        # type: (str) -> int
         mass = self.carry_mass_map[role]
         if mass:
             return mass
@@ -463,7 +461,7 @@ class RoomMind:
             return 0
 
     def work_mass_of(self, role):
-        # type: () -> int
+        # type: (str) -> int
         mass = self.work_mass_map[role]
         if mass:
             return mass
@@ -1014,7 +1012,7 @@ class RoomMind:
         return self.mem[mem_key_currently_under_siege] or self.mem[mem_key_remotes_explicitly_marked_under_attack]
 
     def remote_under_siege(self, flag):
-        # type: () -> bool
+        # type: (Flag) -> bool
         return self.any_remotes_under_siege() \
                and flag.pos.roomName != self.name \
                and (not self.mem[mem_key_remotes_safe_when_under_siege]
@@ -1132,7 +1130,7 @@ class RoomMind:
         return oss
 
     def get_open_source_spaces_around(self, source):
-        # type: () -> int
+        # type: (Source) -> int
         key = 'oss-{}'.format(source.id)
         cached = self.get_cached_property(key)
         if cached:
@@ -2319,7 +2317,7 @@ class RoomMind:
         return self.mem[mem_key_planned_role_to_spawn]
 
     def sing(self, creeps_here_now):
-        # type: () -> None
+        # type: (List[Creep]) -> None
         if self.name not in Memory['_ly']:
             Memory['_ly'][self.name] = [_(speech.songs).keys().sample(), 0]
         song_key, position = Memory['_ly'][self.name]

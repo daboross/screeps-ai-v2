@@ -24,7 +24,7 @@ class RoomPosition:
     def createConstructionSite(self, structureType: str) -> int:
         pass
 
-    def createFlag(self, name: str = None, color: str = None, secondaryColor: str = None) -> int:
+    def createFlag(self, name: str = None, color: int = None, secondaryColor: int = None) -> Union[str, int]:
         pass
 
     def findClosestByPath(self, source: _FindParameter, opts: Dict[str, Any]) -> Optional[RoomObject]:
@@ -119,7 +119,7 @@ class Room:
         self.visual = visual
 
     @classmethod
-    def serializePath(cls, path: List[Dict[str, Union[_PathPos, Dict[str, Any]]]]) -> str:
+    def serializePath(cls, path: List[Union[_PathPos, Dict[str, Any], RoomPosition]]) -> str:
         pass
 
     @classmethod

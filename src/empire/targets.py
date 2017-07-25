@@ -1,4 +1,5 @@
 import math
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from cache import volatile_cache
 from constants import *
@@ -6,6 +7,10 @@ from creep_management import spawning
 from jstools.screeps import *
 from position_management import flags, locations
 from utilities import movement
+
+if TYPE_CHECKING:
+    from creeps.base import RoleBase
+    from position_management.locations import Location
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -21,6 +26,7 @@ _MAX_REPAIR_WORKFORCE = 10
 
 
 def _mass_count(name):
+    # type: (str) -> int
     # set in spawning and role base.
     if name in Memory.creeps and (Memory.creeps[name].carry or Memory.creeps[name].work):
         carry = Memory.creeps[name].carry or 0
@@ -39,8 +45,10 @@ __pragma__('fcall')
 
 
 def target_to_target_id(target):
-    if Game.getObjectById(target.id) == target:
+    # type: (Union[Structure, Flag]) -> str
+    if Game.getObjectById(cast(Structure, target).id) == target:
         return target.id
+    target = cast(Flag, target)
     if target.name and target.name in Game.flags:
         return "flag-{}".format(target.name)
     if target.name:
@@ -48,6 +56,7 @@ def target_to_target_id(target):
 
 
 def update_targeters_memory_0_to_1(targeters):
+    # type: (Dict[str, Dict[str, str]]) -> Dict[str, Dict[int, str]]
     string_target_names_to_numbers = {
         'source': 0,
         'generic_deposit': 1,
@@ -169,13 +178,16 @@ class TargetMind:
     reverse_targets = property(__get_reverse_targets, __set_reverse_targets)
 
     def workforce_of(self, ttype, target_id):
+        # type: (int, str) -> int
         return (self.targets[ttype] and self.targets[ttype][target_id]
                 and self.targets_workforce[ttype] and self.targets_workforce[ttype][target_id]) or 0
 
     def creeps_now_targeting(self, ttype, target_id):
+        # type: (int, str) -> List[str]
         return (ttype in self.reverse_targets and self.reverse_targets[ttype][target_id]) or []
 
     def _register_new_targeter(self, ttype, targeter_id, target_id):
+        # type: (int, str, str) -> None
         if targeter_id not in self.targeters:
             self.targeters[targeter_id] = {
                 ttype: target_id
@@ -215,6 +227,7 @@ class TargetMind:
             self.reverse_targets[ttype][target_id].push(targeter_id)
 
     def _recreate_all_from_targeters(self):
+        # type: () -> None
         new_targets = {}
         new_workforce = {}
         new_reverse = {}
@@ -250,6 +263,7 @@ class TargetMind:
         self.reverse_targets = new_reverse
 
     def _unregister_targeter(self, ttype, targeter_id):
+        # type: (int, str) -> None
         existing_target = self._get_existing_target_id(ttype, targeter_id)
         if existing_target:
             if ttype in self.targets and existing_target in self.targets[ttype]:
@@ -263,6 +277,7 @@ class TargetMind:
             del self.targeters[targeter_id][ttype]
 
     def _unregister_all(self, targeter_id):
+        # type: (str) -> None
         if self.targeters[targeter_id]:
             mass = _mass_count(targeter_id)
             for ttype in Object.keys(self.targeters[targeter_id]):
@@ -278,6 +293,7 @@ class TargetMind:
         del self.targeters[targeter_id]
 
     def _move_targets(self, old_targeter_id, new_targeter_id):
+        # type: (str, str) -> None
         if self.targeters[old_targeter_id]:
             self.targeters[new_targeter_id] = self.targeters[old_targeter_id]
             old_mass = _mass_count(old_targeter_id)
@@ -298,6 +314,7 @@ class TargetMind:
             del self.targeters[old_targeter_id]
 
     def _find_new_target(self, ttype, creep, extra_var):
+        # type: (int, RoleBase, Optional[Any]) -> Optional[str]
         """
         :type ttype: str
         :type creep: creeps.base.RoleBase
@@ -316,11 +333,13 @@ class TargetMind:
             raise Error("Couldn't find find_function for '{}'!".format(ttype))
 
     def _get_existing_target_id(self, ttype, targeter_id):
+        # type: (int, str) -> Optional[str]
         if targeter_id in self.targeters and ttype in self.targeters[targeter_id]:
             return self.targeters[targeter_id][ttype]
         return None
 
     def _get_new_target_id(self, ttype, targeter_id, creep, extra_var):
+        # type: (int, str, RoleBase, Optional[Any]) -> Optional[str]
         if targeter_id in self.targeters and ttype in self.targeters[targeter_id]:
             return self.targeters[targeter_id][ttype]
         new_target = self._find_new_target(ttype, creep, extra_var)
@@ -330,6 +349,7 @@ class TargetMind:
         return new_target
 
     def get_new_target(self, creep, ttype, extra_var=None, second_time=False):
+        # type: (RoleBase, int, Optional[Any], bool) -> Optional[Union[RoomObject, Location]]
         target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:
             return None
@@ -345,6 +365,7 @@ class TargetMind:
         return target
 
     def get_existing_target(self, creep, ttype):
+        # type: (RoleBase, int) -> Optional[Union[RoomObject, Location]]
         target_id = self._get_existing_target_id(ttype, creep.name)
         if not target_id:
             return None
@@ -360,18 +381,23 @@ class TargetMind:
         return target
 
     def manually_register(self, creep, ttype, target_id):
+        # type: (Union[RoleBase, Creep], int, str) -> None
         self._register_new_targeter(ttype, creep.name, target_id)
 
     def untarget(self, creep, ttype):
+        # type: (Union[RoleBase, Creep], int) -> None
         self._unregister_targeter(ttype, creep.name)
 
     def untarget_all(self, creep):
+        # type: (Union[RoleBase, Creep]) -> None
         self._unregister_all(creep.name)
 
     def assume_identity(self, old_name, new_name):
+        # type: (str, str) -> None
         self._move_targets(old_name, new_name)
 
     def _find_new_source(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -402,6 +428,7 @@ class TargetMind:
         return best_source
 
     def _find_new_spawn_fill_site(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -453,6 +480,7 @@ class TargetMind:
         return best_id
 
     def _find_new_construction_site(self, creep, walls_only=False):
+        # type: (RoleBase, Optional[bool]) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -485,6 +513,7 @@ class TargetMind:
         return best_id
 
     def _find_new_repair_site(self, creep, max_hits, max_work=_MAX_REPAIR_WORKFORCE):
+        # type: (RoleBase, int, int) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -534,6 +563,7 @@ class TargetMind:
             return second_best
 
     def _find_new_big_repair_site(self, creep, max_hits):
+        # type: (RoleBase, int) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -553,6 +583,7 @@ class TargetMind:
         return best_id
 
     def _find_new_big_big_repair_site(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -573,6 +604,7 @@ class TargetMind:
         return best_id
 
     def _find_new_destruction_site(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -590,6 +622,7 @@ class TargetMind:
                         return struct_id
 
     def _find_new_tower(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -608,6 +641,7 @@ class TargetMind:
         return best_id
 
     def _find_new_energy_miner_mine(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -625,6 +659,7 @@ class TargetMind:
         return best_id
 
     def _find_new_energy_hauler_mine(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -650,6 +685,7 @@ class TargetMind:
         return best_id
 
     def _find_closest_deposit_site(self, creep, pos):
+        # type: (RoleBase, Optional[RoomPosition]) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -671,9 +707,7 @@ class TargetMind:
             return None
 
     def _find_top_priority_reservable_room(self, creep):
-        """
-        :type creep: creeps.base.RoleBase
-        """
+        # type: (RoleBase) -> Optional[str]
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(RESERVE_NOW):
@@ -693,6 +727,7 @@ class TargetMind:
         return closest_flag
 
     def _find_new_defendable_wall(self, creep):
+        # type: (RoleBase) -> Optional[str]
         """
         :type creep: creeps.base.RoleBase
         """
@@ -724,11 +759,12 @@ class TargetMind:
         else:
             return None
 
-    def _find_closest_flag(self, creep, flag_type, pos):
-        if not pos:
+    def _find_closest_flag(self, creep, flag_type, center_pos):
+        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
+        if center_pos:
+            pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
+        else:
             pos = creep.pos
-        elif pos.pos:
-            pos = pos.pos
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
@@ -741,11 +777,12 @@ class TargetMind:
                     closest_flag = flag_id
         return closest_flag
 
-    def _find_closest_flag2(self, creep, flag_type, pos):
-        if not pos:
+    def _find_closest_flag2(self, creep, flag_type, center_pos):
+        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
+        if center_pos:
+            pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
+        else:
             pos = creep.pos
-        elif pos.pos:
-            pos = pos.pos
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
@@ -758,11 +795,12 @@ class TargetMind:
                     closest_flag = flag_id
         return closest_flag
 
-    def _find_closest_home_flag(self, creep, flag_type, pos):
-        if not pos:
+    def _find_closest_home_flag(self, creep, flag_type, center_pos):
+        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
+        if center_pos:
+            pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
+        else:
             pos = creep.pos
-        elif pos.pos:
-            pos = pos.pos
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags(creep.home, flag_type):
@@ -776,9 +814,7 @@ class TargetMind:
         return closest_flag
 
     def _find_refill_target(self, creep):
-        """
-        :type creep: creeps.base.RoleBase
-        """
+        # type: (RoleBase) -> Optional[str]
         best_priority = Infinity
         best_id = None
         stealing_from = None

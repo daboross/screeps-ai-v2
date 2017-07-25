@@ -1,5 +1,5 @@
 # noinspection PyPep8Naming
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, Type
 
 from .room import Room, RoomPosition
 
@@ -24,6 +24,7 @@ class Flag(RoomObject):
     :type memory: dict[str, Any]
     :type name: str
     """
+    prototype = None  # type: Type[Flag]
 
     def __init__(self, pos: RoomPosition, room: Optional[Room], color: int, secondaryColor: int,
                  memory: Dict[str, Any], name: str) -> None:
@@ -42,6 +43,11 @@ class Flag(RoomObject):
     def setPosition(self, x: Union[int, RoomPosition, RoomObject], y: int = None) -> int:
         pass
 
+    @property
+    def hint(self) -> int:
+        return 0
+
+Flag.prototype = Flag
 
 # noinspection PyPep8Naming
 class Source(RoomObject):

@@ -162,7 +162,7 @@ class _GameMarket:
     def cancelOrder(self, orderId: str) -> int:
         pass
 
-    def changeOrderPrice(self, orderId: str, newPrice: int) -> int:
+    def changeOrderPrice(self, orderId: str, newPrice: float) -> int:
         pass
 
     def createOrder(self, _type: str, resourceType: str, price: float, totalAmount: int, roomName: str = None) \
@@ -213,7 +213,7 @@ class Game:
     time = 0  # type: int
 
     @classmethod
-    def getObjectById(cls, _id: str) -> RoomObject:
+    def getObjectById(cls, _id: str) -> Optional[RoomObject]:
         pass
 
     @classmethod
@@ -229,7 +229,7 @@ class _PathFinderResult:
     :type incomplete: bool
     """
 
-    def __init__(self, path: List[RoomPosition], ops: int, cost: int, incomplete: bool):
+    def __init__(self, path: List[RoomPosition], ops: int, cost: int, incomplete: bool) -> None:
         self.path = path
         self.ops = ops
         self.cost = cost
@@ -241,3 +241,23 @@ class PathFinder:
     def search(origin: RoomPosition, goal: Union[Dict[str, Any], List[Dict[str, Any]]],
                opts: Optional[Dict[str, Any]] = None) -> _PathFinderResult:
         pass
+
+    class CostMatrix:
+        def __init__(self):
+            pass
+
+        def set(self, x: int, y: int, cost: int) -> None:
+            pass
+
+        def get(self, x: int, y: int) -> int:
+            pass
+
+        def clone(self) -> 'PathFinder.CostMatrix':
+            pass
+
+        def serialize(self) -> List[int]:
+            pass
+
+        @staticmethod
+        def deserialize(x: List[int]) -> 'PathFinder.CostMatrix':
+            pass

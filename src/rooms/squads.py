@@ -1,5 +1,5 @@
 import math
-from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from constants import SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, \
     SQUAD_SIGN_CLEAR, SQUAD_TOWER_DRAIN, creep_base_full_move_attack, creep_base_scout, creep_base_squad_dismantle, \
@@ -17,6 +17,7 @@ from position_management import flags, locations
 from utilities import movement, positions
 
 if TYPE_CHECKING:
+    from jstools.js_set_map import JSMap
     from rooms.room_mind import RoomMind
     from position_management.locations import Location
     from creeps.base import RoleBase
@@ -51,7 +52,7 @@ def ticks_to_renew(creep):
 
 
 def roles_required_for(flag):
-    # type: (Flag) -> Dict[str, int]
+    # type: (Union[Flag, Location]) -> Dict[str, int]
     hint = flag.hint
     if hint == SQUAD_KITING_PAIR:
         return {HEAL: 1, RANGED_ATTACK: 1}
@@ -150,10 +151,10 @@ class SquadTactics:
         self._renewing_registered = undefined
         self._boost_registered = undefined
         self._any_high_priority_renew = undefined
-        self._stage0_registered_for_target = undefined
-        self._stage1_registered_for_squad_id = undefined
-        self._stage2_registered_for_squad_id = undefined
-        self._stage3_registered_for_squad_id = undefined
+        self._stage0_registered_for_target = undefined  # type: JSMap[str, Tuple[Union[Flag, Location], List[RoleBase]]]
+        self._stage1_registered_for_squad_id = undefined  # type: JSMap[str, List[RoleBase]]
+        self._stage2_registered_for_squad_id = undefined  # type: JSMap[str, List[RoleBase]]
+        self._stage3_registered_for_squad_id = undefined  # type: JSMap[str, List[RoleBase]]
         __pragma__('noskip')
 
     __pragma__('fcall')
@@ -275,7 +276,7 @@ class SquadTactics:
             self._stage0_registered_for_target = new_map()
         registered_so_far_tuple = self._stage0_registered_for_target.get(target.name)
         if not registered_so_far_tuple:
-            registered_so_far_tuple = [target, []]
+            registered_so_far_tuple = (target, [])
             self._stage0_registered_for_target.set(target.name, registered_so_far_tuple)
         registered_so_far_tuple[1].append(creep)
 
@@ -451,11 +452,11 @@ class SquadTactics:
                       .format(squad_target, [c.name for c in registered_so_far].join(', ')))
                 for creep in registered_so_far:
                     creep.targets.untarget_all(creep)
-                    creep.memory = Memory.creeps[creep.name] = {
+                    creep.memory = Memory.creeps[creep.name] = cast(_Memory, {
                         'home': creep.memory.home,
                         'role': role_squad_final_renew,
                         'squad': squad_target.name
-                    }
+                    })
 
     def run_stage1(self, tracking_for_targets_with_active_squads):
         # type: (Optional[List[str]]) -> None

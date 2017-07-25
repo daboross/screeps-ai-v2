@@ -30,7 +30,7 @@ class JSMap(Generic[K, V]):
     def delete(self, key: K) -> None:
         pass
 
-    def entries(self) -> Iterable[(K, V)]:
+    def entries(self) -> Iterable[Tuple[K, V]]:
         pass
 
     def keys(self) -> Iterable[K]:
@@ -62,7 +62,7 @@ def new_map(iterable=undefined):
     """
     :rtype: JSMap
     """
-    return __new__(Map(iterable))
+    return __new__(__pragma__('js', 'Map')(iterable))
 
 
 def new_set(iterable=undefined):
@@ -70,4 +70,4 @@ def new_set(iterable=undefined):
     """
     :rtype: JSSet
     """
-    return __new__(Set(iterable))
+    return __new__(__pragma__('js', 'Set')(iterable))

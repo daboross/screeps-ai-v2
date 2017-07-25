@@ -112,7 +112,7 @@ White:
     Grey:
     White:
 """
-from typing import Dict, Optional, TYPE_CHECKING
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
     RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
@@ -125,6 +125,8 @@ from utilities import naming
 
 if TYPE_CHECKING:
     from rooms.room_mind import RoomMind
+    from empire.hive import HiveMind
+    from rooms.defense import RoomDefense
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -227,6 +229,7 @@ structure_type_to_flag_sub = {}
 
 
 def define_reverse_maps():
+    # type: () -> None
     for flag_type in Object.keys(flag_definitions):
         primary, secondary = flag_definitions[flag_type]
         if primary in reverse_definitions:
@@ -258,6 +261,7 @@ _ALL_OF_PRIMARY = '__all__'
 
 
 def refresh_flag_caches():
+    # type: () -> None
     global _last_flag_len, _last_checked_flag_len, _cache_refresh_time, \
         _room_name_to_flag_type_to_flags, _flag_type_to_flags, _flag_color_to_flag_secondary_color_to_flags
 
@@ -328,6 +332,7 @@ def refresh_flag_caches():
 
 
 def __check_new_flags():
+    # type: () -> None
     global _last_flag_len, _last_checked_flag_len
     if _last_checked_flag_len < Game.time:
         _last_checked_flag_len = Game.time + 1  # check every 2 ticks
@@ -339,6 +344,7 @@ def __check_new_flags():
 
 
 def move_flags():
+    # type: () -> None
     if Memory.flags_to_move:
         for name, pos in Memory.flags_to_move:
             pos = __new__(RoomPosition(pos.x, pos.y, pos.roomName))
@@ -347,9 +353,16 @@ def move_flags():
         del Memory.flags_to_move
 
 
-def __get_room_name(room):
-    if room.room:
-        room = room.room
+_HasRoom = Union[Room, RoomMind, RoomDefense]
+_IsRoom = Union[_HasRoom, str]
+
+
+def __get_room_name(room_arg):
+    # type: (_IsRoom) -> str
+    if cast(Union[RoomMind, RoomDefense], room_arg).room:
+        room = cast(Union[RoomMind, RoomDefense], room_arg).room
+    else:
+        room = cast(Room, room_arg)
     if room.name:
         return room.name
     else:
@@ -357,6 +370,7 @@ def __get_room_name(room):
 
 
 def find_flags(room, flag_type):
+    # type: (_IsRoom, int) -> List[Flag]
     room_name = __get_room_name(room)
 
     __check_new_flags()
@@ -372,6 +386,7 @@ def find_flags(room, flag_type):
 
 
 def find_by_main_with_sub(room, main_type):
+    # type: (_IsRoom, int) -> List[Tuple[Flag, int]]
     room_name = __get_room_name(room)
 
     __check_new_flags()
@@ -388,12 +403,13 @@ def find_by_main_with_sub(room, main_type):
     for flag in of_this_main.get(_ALL_OF_PRIMARY):
         sub_type = flag_secondary_to_sub[flag.secondaryColor]
         if sub_type:
-            result.append([flag, sub_type])
+            result.append((flag, sub_type))
 
     return result
 
 
 def find_ms_flags(room, main_type, sub_type):
+    # type: (_IsRoom, int, int) -> List[Flag]
     room_name = __get_room_name(room)
 
     __check_new_flags()
@@ -415,6 +431,7 @@ def find_ms_flags(room, main_type, sub_type):
 
 
 def find_flags_global(flag_type):
+    # type: (int) -> List[Flag]
     __check_new_flags()
 
     result = _flag_type_to_flags.get(flag_type)
@@ -426,6 +443,7 @@ def find_flags_global(flag_type):
 
 
 def find_flags_global_multitype_shared_primary(flag_types):
+    # type: (List[int]) -> List[Flag]
     __check_new_flags()
 
     shared_primary_color = None
@@ -453,6 +471,7 @@ def find_flags_global_multitype_shared_primary(flag_types):
 
 
 def find_flags_ms_global(main_type, sub_type):
+    # type: (int, int) -> List[Flag]
     __check_new_flags()
 
     of_this_main = _flag_color_to_flag_secondary_color_to_flags.get(main_to_flag_primary[main_type])
@@ -468,6 +487,7 @@ def find_flags_ms_global(main_type, sub_type):
 
 
 def find_by_main_with_sub_global(main_type):
+    # type: (int) -> List[Tuple[Flag, int]]
     __check_new_flags()
 
     of_this_main = _flag_color_to_flag_secondary_color_to_flags.get(main_to_flag_primary[main_type])
@@ -478,14 +498,13 @@ def find_by_main_with_sub_global(main_type):
     for flag in of_this_main.get(_ALL_OF_PRIMARY):
         sub_type = flag_secondary_to_sub[flag.secondaryColor]
         if sub_type:
-            result.append([flag, sub_type])
+            result.append((flag, sub_type))
 
     return result
 
 
 def __create_flag(position, flag_type, primary, secondary, name_prefix):
-    if position.pos:
-        position = position.pos
+    # type: (RoomPosition, Union[str, int], int, int, Optional[str]) -> Union[str, int]
     name = "{}_{}".format(flag_type, naming.random_digits())
     if name_prefix:
         name = "{}_{}".format(name_prefix, name)
@@ -507,16 +526,19 @@ def __create_flag(position, flag_type, primary, secondary, name_prefix):
 
 
 def create_flag(position, flag_type, sponsor=None):
+    # type: (RoomPosition, int, Optional[str]) -> Union[str, int]
     flag_def = flag_definitions[flag_type]
     return __create_flag(position, flag_type, flag_def[0], flag_def[1], sponsor)
 
 
 def create_ms_flag(position, main, sub):
+    # type: (RoomPosition, int, int) -> Union[str, int]
     return __create_flag(position, "{}_{}".format(main, sub), main_to_flag_primary[main], sub_to_flag_secondary[sub],
                          None)
 
 
 def rename_flags():
+    # type: () -> Optional[str]
     refresh_flag_caches()
     for name in Object.keys(flag_definitions):
         for flag in find_flags_global(name):
@@ -547,8 +569,8 @@ def rename_flags():
     refresh_flag_caches()
 
 
-def look_for(room, position, main, sub):
-    # type: (RoomMind, RoomPosition, int, int) -> Optional[RoomObject]
+def look_for(room, position, main, sub=None):
+    # type: (RoomMind, RoomPosition, int, Optional[int]) -> Optional[Flag]
     """
     :type room: rooms.room_mind.RoomMind
     :type position: RoomPosition
@@ -569,14 +591,15 @@ def look_for(room, position, main, sub):
             # if there is no flag for a given structure, sub will be undefined, and thus this side will be called
             # and not the above branch.
             return None
-        return _.find(room.look_at(LOOK_FLAGS, position),
-                      lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1])
+        return cast(Optional[Flag], _.find(room.look_at(LOOK_FLAGS, position),
+                                           lambda f: f.color == flag_def[0] and f.secondaryColor == flag_def[1]))
 
 
 _flag_sponsor_regex = __new__(RegExp("^(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})"))
 
 
 def flag_sponsor(flag, backup_search_by=None):
+    # type: (Flag, Optional[HiveMind]) -> Optional[str]
     """
     :type backup_search_by: empire.hive.HiveMind
     :param flag: Flag to find the sponsor of
@@ -601,6 +624,7 @@ def flag_sponsor(flag, backup_search_by=None):
 
 
 def _flag_hint():
+    # type: () -> Optional[int]
     reverse_primary = reverse_definitions[this.color]
     result = None
     if reverse_primary:

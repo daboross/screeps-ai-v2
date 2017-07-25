@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union
 
 from .memory import _Memory
 from .misc_obj import Mineral, Resource, RoomObject, Source
@@ -37,6 +37,8 @@ class Creep(RoomObject):
     :type spawning: bool
     :type ticksToLive: int
     """
+
+    prototype = ClassVar(None)  # type: ClassVar[Any]
 
     def __init__(self, pos: RoomPosition, room: Room, body: List[_CreepPart], carry: Dict[str, int],
                  carryCapacity: int, fatigue: int, hits: int, hitsMax: int, _id: str, memory: _Memory,
@@ -136,4 +138,42 @@ class Creep(RoomObject):
         pass
 
     def withdraw(self, target: Structure, resourceType: str, amount: int = None) -> int:
+        pass
+
+    # Custom methods
+
+    def hasActiveBodyparts(self, _type: str) -> bool:
+        pass
+
+    def hasActiveBoostedBodyparts(self, _type: str) -> bool:
+        pass
+
+    def hasActiveOffenseBodyparts(self) -> bool:
+        pass
+
+    def getBodyparts(self, _type: str) -> int:
+        pass
+
+    def hasBodyparts(self, _type: str) -> bool:
+        pass
+
+    def hasBoostedBodyparts(self, _type: str) -> bool:
+        pass
+
+    def hasOffenseBodyparts(self) -> bool:
+        pass
+
+    def getActiveBodypartsBoostEquivalent(self, _type: str, action: str) -> int:
+        pass
+
+    def getBodypartsBoostEquivalent(self, _type: str, action: str) -> int:
+        pass
+
+    def findSpecialty(self) -> str:
+        pass
+
+    def findIndexAndDirectionInPath(self, path: str) -> Tuple[int, int, int]:
+        pass
+
+    def findNextPathPos(self, path: str) -> Union[RoomPosition, int]:
         pass

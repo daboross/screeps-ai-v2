@@ -1,3 +1,5 @@
+from typing import Callable, List, Optional, Union, cast
+
 from cache import volatile_cache
 from constants import *
 from empire import stored_data
@@ -159,6 +161,7 @@ def apply_move_prototype():
 
 def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_role_cost, same_role_swamp_cost,
                                         existing_cost_addition):
+    # type: (int, Room, PathFinder.CostMatrix, int, int, int) -> None
     for creep in room.find(FIND_MY_CREEPS):
         role = creep.memory.running or creep.memory.role
         priority = role_movement_types[role] or MOVE_THEN_WORK
@@ -182,6 +185,7 @@ def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_rol
 
 
 def _create_basic_room_cost_matrix(room_name):
+    # type: (str) -> PathFinder.CostMatrix
     matrix = __new__(PathFinder.CostMatrix())
     room = Game.rooms[room_name]
     if room:
@@ -237,6 +241,7 @@ def _create_basic_room_cost_matrix(room_name):
 
 
 def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
+    # type: (str, PathFinder.CostMatrix, bool) -> None
     multiplier = 2 if roads else 1
     # Add a small avoidance for exits
     for x in [0, 49]:
@@ -264,6 +269,7 @@ def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
 
 
 def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
+    # type: (Creep, str, bool, Optional[str]) -> Union[PathFinder.CostMatrix, bool]
     if hostile_utils.enemy_using_room(room_name) and room_name != target_room:
         return False
     if room_name not in Game.rooms:
@@ -300,6 +306,7 @@ def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
 
 
 def get_basic_cost_matrix(room_name, roads=False):
+    # type: (str, bool) -> PathFinder.CostMatrix
     if room_name not in Game.rooms:
         return __new__(PathFinder.CostMatrix())  # TODO: pull cached data here
     cache = volatile_cache.submem('matrices', room_name)
@@ -317,4 +324,5 @@ def get_basic_cost_matrix(room_name, roads=False):
 
 
 def create_cost_callback(me, roads, target_room=None):
+    # type: (Creep, bool, Optional[str]) -> Callable[str, Union[PathFinder.CostMatrix, bool]]
     return lambda room_name: get_cost_matrix_for_creep(me, room_name, roads, target_room)

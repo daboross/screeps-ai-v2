@@ -1,3 +1,5 @@
+from typing import List, Optional, TYPE_CHECKING, Union, cast
+
 from constants import *
 from creep_management import creep_wrappers
 from empire.honey import HoneyTrails
@@ -8,6 +10,10 @@ from position_management import flags
 from rooms.room_constants import room_spending_state_visual
 from rooms.room_mind import RoomMind
 from utilities import movement
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
+    from creeps.base import RoleBase
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -28,6 +34,7 @@ class HiveMind:
     """
 
     def __init__(self, targets):
+        # type: (TargetMind) -> None
         self.targets = targets
         self.honey = HoneyTrails(self)
         self.states = StateCalc(self)
@@ -37,6 +44,7 @@ class HiveMind:
         self.has_polled_for_creeps = False
 
     def find_my_rooms(self):
+        # type: () -> List[RoomMind]
         """
         :rtype: list[RoomMind]
         """
@@ -65,6 +73,7 @@ class HiveMind:
         return self._my_rooms
 
     def find_visible_rooms(self):
+        # type: () -> List[RoomMind]
         if not self._all_rooms:
             self.find_my_rooms()
         return self._all_rooms
@@ -72,6 +81,7 @@ class HiveMind:
     __pragma__('fcall')
 
     def get_room(self, room_name):
+        # type: (str) -> Optional[RoomMind]
         """
         Gets a visible room given its room name.
         :rtype: RoomMind
@@ -83,6 +93,7 @@ class HiveMind:
     __pragma__('nofcall')
 
     def poll_remote_mining_flags(self):
+        # type: () -> None
         flag_list = flags.find_flags_global(REMOTE_MINE)
         room_to_flags = {}
         for flag in flag_list:
@@ -114,6 +125,7 @@ class HiveMind:
     __pragma__('fcall')
 
     def get_closest_owned_room(self, current_room_name):
+        # type: (str) -> Optional[RoomMind]
         current_room = self.get_room(current_room_name)
         if current_room and current_room.my:
             return current_room
@@ -144,6 +156,7 @@ class HiveMind:
     __pragma__('nofcall')
 
     def poll_all_creeps(self):
+        # type: () -> None
         new_creep_lists = {}
         for name in Object.keys(Game.creeps):
             creep = Game.creeps[name]
@@ -174,7 +187,8 @@ class HiveMind:
         self.has_polled_for_creeps = True
 
     def send_everything(self, target_room):
-        target_room = target_room.name or target_room
+        # type: (Union[RoomMind, Room, str]) -> None
+        target_room = cast(RoomMind, target_room).name or cast(str, target_room)
 
         for room in self.my_rooms:
             if room.name != target_room and not room.minerals.has_no_terminal_or_storage():
@@ -182,6 +196,7 @@ class HiveMind:
                 room.minerals.send_minerals(target_room, RESOURCE_ENERGY, 200 * 1000)
 
     def mineral_report(self):
+        # type: () -> str
         result = ['Hive Mineral Report:']
         tally = {}
         for room in self.my_rooms:
@@ -198,6 +213,7 @@ class HiveMind:
         return "\n".join(result)
 
     def status(self):
+        # type: () -> str
         result = ['Hive Status Report:']
         for room in self.my_rooms:
             room_result = []
@@ -214,6 +230,7 @@ class HiveMind:
         return '\n'.join(result)
 
     def checkup(self):
+        # type: () -> str
         result = ['Hive Structures Checkup:']
         for room in self.my_rooms:
             room_result = []
@@ -250,6 +267,7 @@ class HiveMind:
         return '\n'.join(result)
 
     def sing(self):
+        # type: () -> None
         if '_ly' not in Memory:
             Memory['_ly'] = {}
         creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName')
@@ -266,6 +284,7 @@ class HiveMind:
                     del Memory['_ly'][name]
 
     def wrap_creep(self, creep):
+        # type: (Creep) -> Optional[RoleBase]
         """
         :type creep: Creep
         :rtype: creeps.base.RoleBase
@@ -278,6 +297,7 @@ class HiveMind:
                              .format(creep, JSON.stringify(creep.memory)))
 
     def toString(self):
+        # type: () -> str
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))
 
     my_rooms = property(find_my_rooms)

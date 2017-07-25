@@ -3,6 +3,8 @@ A copy of the Screeps RoomVisual class, allowing direct access without creating 
 
 Copied from https://github.com/screeps/engine/blob/36e76eacb7d8295a2767ad75a5d859153928301b/src/game/rooms.js#L1054.
 """
+from typing import Any, List, Tuple, Union
+
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -16,6 +18,7 @@ __pragma__('noalias', 'update')
 
 
 def circle(room_name, x, y, style=undefined):
+    # type: (str, int, int, Any) -> None
     """
     Draw a line
     :param room_name: The room name
@@ -42,6 +45,7 @@ def circle(room_name, x, y, style=undefined):
 
 
 def line(room_name, x1, y1, x2, y2, style=undefined):
+    # type: (str, int, int, int, int, Any) -> None
     """
     Draw a line.
     :param room_name: The room name
@@ -72,6 +76,7 @@ def line(room_name, x1, y1, x2, y2, style=undefined):
 
 
 def rect(room_name, x, y, w, h, style=undefined):
+    # type: (str, int, int, int, int, Any) -> None
     """
     Draw a rectangle.
     :param room_name: The room name
@@ -103,6 +108,7 @@ def rect(room_name, x, y, w, h, style=undefined):
 
 
 def poly(room_name, points, style=undefined):
+    # type: (str, List[Union[List[int], Tuple[int, int]]], Any) -> None
     """
     Draw a polyline.
     :param room_name: The room name
@@ -124,6 +130,7 @@ def poly(room_name, points, style=undefined):
 
 
 def text(room_name, x, y, text, style=undefined):
+    # type: (str, int, int, str, Any) -> None
     """
     Draw a text label.
     :param room_name: The room name
@@ -151,8 +158,10 @@ def text(room_name, x, y, text, style=undefined):
 
 
 def get_size(room_name):
+    # type: (str) -> int
     return console.getVisualSize(room_name)
 
 
 def clear(room_name):
+    # type: (str) -> None
     return console.clearVisual(room_name)

@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
+
 import random
 
 from cache import context, volatile_cache
@@ -6,6 +8,10 @@ from creep_management import walkby_move
 from jstools.screeps import *
 from rooms import defense
 from utilities import hostile_utils, movement
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from creeps.base import RoleBase
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -18,6 +24,7 @@ __pragma__('noalias', 'update')
 
 
 def is_room_mostly_safe(room_name):
+    # type: (str) -> bool
     room = context.hive().get_room(room_name)
     if not room or not room.my:
         return False
@@ -30,6 +37,7 @@ def is_room_mostly_safe(room_name):
 
 
 def pathfinder_enemy_array_for_room(room_name):
+    # type: (str) -> List[Dict[str, Any]]
     cache = volatile_cache.mem("enemy_lists")
     if cache.has(room_name):
         return cache.get(room_name)
@@ -64,19 +72,21 @@ def pathfinder_enemy_array_for_room(room_name):
 
 
 def room_hostile(room_name):
+    # type: (str) -> bool
     cache = volatile_cache.mem("rua")
     if cache.has(room_name):
         return cache.get(room_name)
 
     # This will only get "active" hostiles, which doesn't count source keepers, or non-ATTACK/RANGED_ATTACK creeps in
     # owned rooms.
-    room_under_attack = len(defense.stored_hostiles_in(room_name))
+    room_under_attack = not not len(defense.stored_hostiles_in(room_name))
 
     cache.set(room_name, room_under_attack)
     return room_under_attack
 
 
 def enemy_purposes_cost_matrix(room_name):
+    # type: (str) -> PathFinder.CostMatrix
     cache = volatile_cache.mem("super_simple_cost_matrix")
     if cache.has(room_name):
         return cache.get(room_name)
@@ -97,6 +107,7 @@ def enemy_purposes_cost_matrix(room_name):
 
 
 def simple_cost_matrix(room_name):
+    # type: (str) -> Union[PathFinder.CostMatrix, bool]
     cache = volatile_cache.mem("enemy_cost_matrix")
     # TODO: some of this is duplicated in honey.HoneyTrails
 
@@ -134,6 +145,7 @@ def simple_cost_matrix(room_name):
 
 
 def get_path_away(origin, targets):
+    # type: (RoomPosition, List[Dict[str, Any]]) -> Optional[List[RoomPosition]]
     # TODO: any path caching here? I don't think it'd be beneficiary, since enemy creeps generally move each tick...
     # TODO: This current search does avoid enemies, but can very easily lead to creeps getting cornered. I'm thinking
     # a path to the nearest exit might be better.
@@ -169,9 +181,7 @@ def get_path_away(origin, targets):
 
 
 def get_cached_away_path(creep, targets):
-    """
-    :type creep: creeps.base.RoleBase
-    """
+    # type: (Creep, List[Dict[str, Any]]) -> List[Union[_PathPos, RoomPosition]]
 
     if '_away_path' in creep.memory and creep.memory._away_path['reset'] > Game.time:
         return Room.deserializePath(creep.memory._away_path['path'])
@@ -182,9 +192,7 @@ def get_cached_away_path(creep, targets):
 
 
 def instinct_do_heal(creep):
-    """
-    :type creep: creeps.base.RoleBase
-    """
+    # type: (RoleBase) -> None
     if not creep.creep.hasActiveBodyparts(HEAL):
         return
     damaged = None
@@ -204,6 +212,7 @@ def instinct_do_heal(creep):
 
 
 def instinct_do_attack(creep):
+    # type: (RoleBase) -> None
     """
     :type creep: creeps.base.RoleBase
     """
@@ -227,9 +236,7 @@ def instinct_do_attack(creep):
 
 
 def run_away_check(creep, hostile_path_targets):
-    """
-    :type creep: Creep
-    """
+    # type: (Creep, List[Dict[str, Any]]) -> bool
 
     check_path = is_room_mostly_safe(creep.pos.roomName)
 
@@ -299,6 +306,7 @@ def run_away_check(creep, hostile_path_targets):
 
 
 def running_check_room(room):
+    # type: (RoomMind) -> None
     """
     :type room: rooms.room_mind.RoomMind
     """
@@ -329,6 +337,7 @@ def running_check_room(room):
 
 
 def cleanup_running_memory():
+    # type: () -> None
     for creep in _.values(Game.creeps):
         if not creep.defense_override and '_away_path' in creep.memory or '_safe' in creep.memory:
             del creep.memory._away_path
@@ -337,9 +346,7 @@ def cleanup_running_memory():
 
 
 def pickup_check_room(room):
-    """
-    :type room: rooms.room_mind.RoomMind
-    """
+    # type: (RoomMind) -> None
     energy = room.find(FIND_DROPPED_RESOURCES)
     if not len(energy):
         return

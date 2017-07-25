@@ -233,6 +233,8 @@ class StructureLink(OwnedStructure):
         self.energy = energy
         self.energyCapacity = energyCapacity
 
+    def transferEnergy(self, target: 'StructureLink', amount: int = 0):
+        pass
 
 # noinspection PyPep8Naming
 class StructureNuker(OwnedStructure):
@@ -311,7 +313,7 @@ class _ShardPortalDestination:
     :type room: str
     """
 
-    def __init__(self, shard: str, room: str):
+    def __init__(self, shard: str, room: str) -> None:
         self.shard = shard
         self.room = room
 
@@ -385,7 +387,8 @@ class StructureSpawn(OwnedStructure):
     def canCreateCreep(self, body: List[str], name: Optional[str] = None) -> int:
         pass
 
-    def createCreep(self, body: List[str], name: Optional[str] = None, memory: Optional[Dict[str, Any]] = None) -> int:
+    def createCreep(self, body: List[str], name: Optional[str] = None, memory: Optional[Dict[str, Any]] = None) \
+            -> Union[int, str]:
         pass
 
     def recycleCreep(self, target: Creep) -> int:

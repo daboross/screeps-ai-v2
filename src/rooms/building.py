@@ -1,5 +1,5 @@
 import math
-from typing import Callable, List, TYPE_CHECKING, Union
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 import random
 
@@ -14,11 +14,8 @@ from position_management import flags
 from utilities import movement, positions
 
 if TYPE_CHECKING:
-    __pragma__('skip')
-
     from rooms.room_mind import RoomMind
-
-    __pragma__('noskip')
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -345,6 +342,7 @@ class ConstructionMind:
             return targets
 
     def get_construction_targets(self):
+        # type: () -> List[str]
         targets = self.room.get_cached_property("building_targets")
         if targets is not None:
             last_rcl = self.room.get_cached_property("bt_last_checked_rcl")
@@ -458,6 +456,7 @@ class ConstructionMind:
         return self.room.get_cached_property("building_targets")
 
     def get_repair_targets(self):
+        # type: () -> List[str]
         structures = self.room.get_cached_property("repair_targets")
         if structures is not None:
             last_rcl = self.room.get_cached_property("rt_last_checked_rcl")
@@ -509,6 +508,7 @@ class ConstructionMind:
         return structures
 
     def get_big_repair_targets(self):
+        # type: () -> List[str]
         target_list = self.room.get_cached_property("big_repair_targets")
         if target_list is not None:
             return target_list
@@ -533,6 +533,7 @@ class ConstructionMind:
         return target_list
 
     def get_destruction_targets(self):
+        # type: () -> List[str]
         target_list = self.room.get_cached_property("destruct_targets")
         if target_list is not None:
             return target_list
@@ -573,6 +574,7 @@ class ConstructionMind:
         return target_list
 
     def build_most_needed_road(self):
+        # type: () -> bool
         for mine_flag in self.room.mining.active_mines:
             re_checked = self.build_road(mine_flag)
             if re_checked:
@@ -580,6 +582,7 @@ class ConstructionMind:
         return False
 
     def reset_inactive_mines(self):
+        # type: () -> None
         mines = self.room.mining.active_mines
         all_mines = self.room.possible_remote_mining_operations
         for mine in all_mines:
@@ -587,9 +590,11 @@ class ConstructionMind:
                 self.reset_last_paved(mine)
 
     def reset_last_paved(self, mine_flag):
+        # type: (Flag) -> None
         self.room.delete_cached_property(_cache_key_placed_roads_for_mine + mine_flag.name)
 
     def build_road(self, mine_flag):
+        # type: (Flag) -> bool
         current_method_version = 1
 
         last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name
@@ -747,6 +752,7 @@ class ConstructionMind:
         return True
 
     def _repath_roads_for(self, mine_flag, deposit_point):
+        # type: (Flag, Optional[Structure]) -> None
         hive_honey = self.hive.honey
 
         if deposit_point.pos.isNearTo(mine_flag):
@@ -791,6 +797,7 @@ class ConstructionMind:
             })
 
     def place_home_ramparts(self):
+        # type: () -> None
         last_run = self.room.get_cached_property("placed_ramparts")
         if last_run:
             return
@@ -849,11 +856,11 @@ class ConstructionMind:
         self.room.store_cached_property("placed_ramparts", 1, random.randint(500, 600))
 
     def re_place_home_ramparts(self):
+        # type: () -> None
         self.room.expire_property_next_tick('placed_ramparts')
 
     def find_loc_near_away_from(self, near, away_from):
-        if near.pos:
-            near = near.pos
+        # type: (RoomPosition, List[Dict[str, Any]]) -> Optional[RoomPosition]
         path = PathFinder.search(near, away_from, {
             'roomCallback': self.hive.honey._get_callback(near, near, {}),
             'flee': True,
@@ -867,6 +874,7 @@ class ConstructionMind:
         return path.path[len(path) - 1]
 
     def place_depot_flag(self):
+        # type: () -> None
         center = self.room.spawn
         if not center:
             center = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)[0]
@@ -889,12 +897,13 @@ class ConstructionMind:
             away_from.append({'pos': flag.pos, 'range': 1})
         for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART):
             away_from.append({'pos': flag.pos, 'range': 1})
-        target = self.find_loc_near_away_from(center, away_from)
+        target = self.find_loc_near_away_from(center.pos, away_from)
         flags.create_flag(target, DEPOT)
         cache.add(cache_key)
 
 
 def clean_up_all_road_construction_sites():
+    # type: () -> None
     rooms_to_sites = _.groupBy(Game.constructionSites, 'pos.roomName')
     for room_name in Object.keys(rooms_to_sites):
         if _.get(Game.rooms, [room_name, 'controller', 'my'], False):
@@ -914,11 +923,9 @@ def clean_up_all_road_construction_sites():
 
 
 def clean_up_owned_room_roads(hive):
-    """
-    :type hive: empire.hive.HiveMind
-    """
+    # type: (HiveMind) -> None
     for room in hive.my_rooms:
-        roads = []
+        roads = []  # type: List[Structure]
         non_roads = new_set()
         for structure in room.find(FIND_STRUCTURES):
             if structure.structureType == STRUCTURE_ROAD:
@@ -931,6 +938,7 @@ def clean_up_owned_room_roads(hive):
 
 
 def repave(mine_name):
+    # type: (str) -> Optional[str]
     """
     Command which is useful for use from console.
     :param mine_name: The name of a mine flag

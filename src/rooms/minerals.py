@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict
+from typing import Any, Dict, TYPE_CHECKING, cast, Optional, List, Tuple
 
 from cache import volatile_cache
 from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
@@ -11,6 +11,9 @@ from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_b
     room_spending_state_selling, room_spending_state_selling_and_supporting, room_spending_state_supporting, \
     room_spending_state_supporting_sieged
 from utilities import movement
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -65,6 +68,7 @@ tier_one_minerals = [
 
 
 def add_reaction_prices():
+    # type: () -> None
     for i in range(0, 10):
         any_added = False
         for resource_1 in Object.keys(REACTIONS):
@@ -101,7 +105,7 @@ to_buy_when_defending = [
     RESOURCE_CATALYZED_UTRIUM_ACID
 ]
 
-_EMPTY_MEM_OBJ = {}  # type: Dict[str, Any]
+_EMPTY_MEM_OBJ = cast(_Memory, {})
 
 Object.freeze(_EMPTY_MEM_OBJ)
 
@@ -115,7 +119,7 @@ class MineralMind:
     :type targets: empire.targets.TargetMind
     """
 
-    def __init__(self, room):
+    def __init__(self, room: RoomMind):
         self.room = room
         self.hive = room.hive
         self.targets = self.hive.targets
@@ -143,6 +147,7 @@ class MineralMind:
         __pragma__('noskip')
 
     def ro_mem(self):
+        # type: () -> _Memory
         # Memory format:
         # market: {
         #     total_energy_needed: TARGET_TERMINAL_ENERGY,
@@ -164,6 +169,7 @@ class MineralMind:
             return _EMPTY_MEM_OBJ
 
     def ro_last_sold_mem(self):
+        # type: () -> _Memory
         mem = self.ro_mem()
         if 'last_sold' in mem:
             return mem['last_sold']
@@ -171,6 +177,7 @@ class MineralMind:
             return _EMPTY_MEM_OBJ
 
     def ro_last_sold_at_mem(self):
+        # type: () -> _Memory
         mem = self.ro_mem()
         if 'last_sold_at' in mem:
             return mem['last_sold_at']
@@ -178,6 +185,7 @@ class MineralMind:
             return _EMPTY_MEM_OBJ
 
     def ro_fulfilling_mem(self):
+        # type: () -> _Memory
         mem = self.ro_mem()
         if 'fulfilling' in mem:
             return mem['fulfilling']
@@ -185,6 +193,7 @@ class MineralMind:
             return _EMPTY_MEM_OBJ
 
     def ro_total_energy_needed(self):
+        # type: () -> int
         mem = self.ro_mem()
         if 'total_energy_needed' in mem:
             return mem['total_energy_needed']
@@ -192,35 +201,42 @@ class MineralMind:
             return 0
 
     def mem(self):
+        # type: () -> _Memory
         if rmem_key_mineral_mind_storage not in self.room.mem:
             self.room.mem[rmem_key_mineral_mind_storage] = {}
         return self.room.mem[rmem_key_mineral_mind_storage]
 
     def last_sold_mem(self):
+        # type: () -> _Memory
         mem = self.mem()
         if 'last_sold' not in mem:
             mem['last_sold'] = {}
         return mem['last_sold']
 
     def last_sold_at_mem(self):
+        # type: () -> _Memory
         mem = self.mem()
         if 'last_sold_at' not in mem:
             mem['last_sold_at'] = {}
         return mem['last_sold_at']
 
     def fulfilling_mem(self):
+        # type: () -> _Memory
         mem = self.mem()
         if 'fulfilling' not in mem:
             mem['fulfilling'] = {}
         return mem['fulfilling']
 
     def has_no_terminal_or_storage(self):
+        # type: () -> bool
         return self._has_no_terminal_or_storage
 
     def fully_setup(self):
+        # type: () -> bool
         return not self._has_no_terminal_or_storage
 
     def storage_terminal_access_pos(self):
+        # type: () -> Optional[List[int]]
         cached = self.room.get_cached_property('storage_terminal_access_pos')
         if cached is not None:
             return cached or None
@@ -233,12 +249,15 @@ class MineralMind:
             return None
 
     def note_mineral_hauler(self, name):
+        # type: (str) -> None
         self.mem().mineral_hauler = name
 
     def send_minerals(self, target_room, mineral, amount):
+        # type: (str, str, int) -> None
         self.fulfill_market_order(target_room, mineral, amount, None)
 
     def fill_order(self, order_id, target_amount=Infinity):
+        # type: (str, int) -> None
         info = Game.market.getOrderById(order_id)
         if not info:
             self.log("WARNING: Tried to fill market order which didn't exit: {}".format(order_id))
@@ -252,6 +271,7 @@ class MineralMind:
         return self.fulfill_market_order(target_room, mineral, amount, order_id)
 
     def fulfill_market_order(self, target_room, mineral, amount, order_id=None):
+        # type: (str, str, int, Optional[str]) -> None
         would_have_needed_haulers_before = self.get_target_mineral_hauler_count() \
                                            or self.room.role_count(role_mineral_hauler)
 
@@ -282,6 +302,7 @@ class MineralMind:
             self.room.reset_planned_role()
 
     def recalculate_energy_needed(self):
+        # type: () -> None
         energy_needed = 0
         for mineral, order_list in _.pairs(self.ro_fulfilling_mem()):
             for order in order_list:
@@ -297,12 +318,15 @@ class MineralMind:
             del self.mem()['total_energy_needed']
 
     def log(self, message):
+        # type: (str) -> None
         print("[{}][market] {}".format(self.room.name, message))
 
     def get_mineral_hauler(self):
+        # type: () -> Optional[Creep]
         return Game.creeps[self.ro_mem().mineral_hauler]
 
     def mineral_hauler_carry(self):
+        # type: () -> Dict[str, int]
         hauler = self.get_mineral_hauler()
         if hauler:
             return hauler.carry
@@ -310,6 +334,7 @@ class MineralMind:
             return {}
 
     def my_mineral_deposit_minerals(self):
+        # type: () -> List[str]
         if not self._my_mineral_deposit_minerals:
             result = []
             for deposit in self.room.find(FIND_MINERALS):
@@ -320,6 +345,7 @@ class MineralMind:
         return self._my_mineral_deposit_minerals
 
     def minerals_to_sell(self):
+        # type: () -> List[str]
         if not self._minerals_to_sell:
             result = []
             buying = self.minerals_to_stock()
@@ -331,6 +357,7 @@ class MineralMind:
         return self._minerals_to_sell
 
     def get_all_terminal_targets(self):
+        # type: () -> Dict[str, int]
         if self._target_mineral_counts is not undefined:
             return self._target_mineral_counts
         target_counts = {}
@@ -367,6 +394,7 @@ class MineralMind:
         return target_counts
 
     def removing_from_terminal(self):
+        # type: () -> List[Tuple[str, int]]
         if self._removing_from_terminal is undefined:
             removing = []
             for resource in Object.keys(self.terminal.store):
@@ -377,6 +405,7 @@ class MineralMind:
         return self._removing_from_terminal
 
     def adding_to_terminal(self):
+        # type: () -> List[Tuple[str, int]]
         if self._adding_to_terminal is undefined:
             adding = []
             all_targets = self.get_all_terminal_targets()
@@ -384,16 +413,18 @@ class MineralMind:
                 target = all_targets[resource]
                 current = self.terminal.store[resource] or 0
                 if current < target:
-                    adding.append([resource, target - current])
+                    adding.append((resource, target - current))
             self._adding_to_terminal = adding
         return self._adding_to_terminal
 
     def labs(self):
+        # type: () -> List[StructureLab]
         if self._labs is undefined:
             self._labs = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_LAB})
         return self._labs
 
     def labs_for(self, mineral):
+        # type: (str) -> List[StructureLab]
         if self._labs_for is undefined:
             self._labs_for = (_(self.labs())
                               .filter(lambda l: l.mineralAmount >= LAB_BOOST_MINERAL and l.energy >= LAB_BOOST_ENERGY)
@@ -402,6 +433,7 @@ class MineralMind:
         return self._labs_for[mineral] or []
 
     def energy_needed_in_labs(self):
+        # type: () -> int
         if self._energy_needed_in_labs is undefined:
             labs = _(self.labs())
             capacity = labs.sum('energyCapacity')
@@ -412,6 +444,7 @@ class MineralMind:
         return self._energy_needed_in_labs
 
     def get_lab_targets(self):
+        # type: () -> List[Tuple[StructureLab, str, int]]
         """
         Gets labs and the mineral they need.
         :rtype: list[(StructureLab, str, int)]
@@ -447,6 +480,7 @@ class MineralMind:
         return result
 
     def get_labs_needing_mineral(self):
+        # type: () -> Dict[str, List[Tuple[StructureLab, int]]]
         """
         Get labs per mineral
         :rtype: dict[str, (StructureLab, int)]
@@ -466,6 +500,7 @@ class MineralMind:
         return result
 
     def get_total_room_resource_counts(self):
+        # type: () -> Dict[str, int]
         if self._total_resource_counts is not undefined:
             return self._total_resource_counts
         counts = {}
@@ -498,6 +533,7 @@ class MineralMind:
         return counts
 
     def get_estimate_total_energy(self):
+        # type: () -> int
         if self._total_resource_counts is not undefined:
             return self._total_resource_counts[RESOURCE_ENERGY] or 0
         if self._estimate_energy is not undefined:
@@ -514,6 +550,7 @@ class MineralMind:
         return energy
 
     def get_estimate_total_non_energy(self):
+        # type: () -> int
         if self._estimate_non_energy is not undefined:
             return self._estimate_non_energy
         if self._total_resource_counts is not undefined:
@@ -541,6 +578,7 @@ class MineralMind:
         return result
 
     def sell_orders_by_mineral(self):
+        # type: () -> Dict[str, _Memory]
         vmem = volatile_cache.mem("market")
         if vmem.has("grouped_sell_orders"):
             return vmem.get("grouped_sell_orders")[self.room.name] or {}
@@ -560,6 +598,7 @@ class MineralMind:
             return all_sell_orders[self.room.name] or {}
 
     def _terminal_target_for_resource(self, mineral, currently_have):
+        # type: (str, int) -> Tuple[int, int]
         if mineral == RESOURCE_ENERGY:
             if currently_have < 50 * 1000:
                 return 0, 0
@@ -616,6 +655,7 @@ class MineralMind:
             return min(currently_have, _MAX_KEEP_IN_TERMINAL_OTHER_MINERALS), 0
 
     def tick_terminal(self):
+        # type: () -> None
         time = Game.time + self.room.get_unique_owned_index()
         if time % 5 == 0:
             self.run_spending_state_tick()
@@ -636,6 +676,7 @@ class MineralMind:
             self.run_empty2()
 
     def find_emptying_mineral_and_cost(self):
+        # type: () -> Tuple[Optional[str], int]
         if not self._next_mineral_to_empty:
             energy = self.terminal.store[RESOURCE_ENERGY]
             minerals = _.sum(self.terminal.store) - energy
@@ -654,6 +695,7 @@ class MineralMind:
         return self._next_mineral_to_empty
 
     def run_emptying_terminal(self):
+        # type: () -> None
         energy = self.terminal.store[RESOURCE_ENERGY]
         mineral, cost = self.find_emptying_mineral_and_cost()
         if energy < cost:
@@ -666,6 +708,7 @@ class MineralMind:
                            "Emptying to {}".format(self.room.mem[rmem_key_empty_all_resources_into_room]))
 
     def run_empty2(self):
+        # type: () -> None
         sending_to = self.room.mem[rmem_key_sell_all_but_empty_resources_to]
         if sending_to in Game.rooms and not Game.rooms[sending_to].terminal:
             return
@@ -680,6 +723,7 @@ class MineralMind:
                          .format(amount, sending_to, result))
 
     def run_fulfillment(self):
+        # type: () -> None
         vmem = volatile_cache.mem("market")
         for mineral in Object.keys(self.ro_fulfilling_mem()):
             if mineral in self.terminal.store:
@@ -706,6 +750,7 @@ class MineralMind:
                 del self.fulfilling_mem()[mineral]
 
     def run_spending_state_tick(self):
+        # type: () -> None
         if not self.terminal or not self.terminal.store[RESOURCE_ENERGY] \
                 or self.terminal.store[RESOURCE_ENERGY] < 5000 or self.terminal.cooldown:
             return
@@ -722,10 +767,9 @@ class MineralMind:
             self.run_execute_buy()
 
     def run_support(self, spending_state):
+        # type: (str) -> None
         """
         Run spending state. Don't call if we don't have a terminal or there isn't energy in it.
-        :param spending_state:
-        :return:
         """
         if spending_state == room_spending_state_supporting:
             min_via_spending = self.get_estimate_total_energy() - energy_balance_point_for_rcl8_supporting
@@ -766,6 +810,7 @@ class MineralMind:
                          .format(amount, sending_to, result))
 
     def stock(self, mineral):
+        # type: (str) -> str
         mem = self.mem()
         if not mem.stock:
             mem.stock = []
@@ -778,6 +823,7 @@ class MineralMind:
             return "stocked {}.".format(mineral)
 
     def clear_stock(self):
+        # type: () -> str
         mem = self.mem()
         if 'stock' in mem:
             del mem['stock']
@@ -786,6 +832,7 @@ class MineralMind:
             return "stock already empty."
 
     def minerals_to_stock(self):
+        # type: () -> List[str]
         mem_stock = self.ro_mem().stock
         defenders = self.room.defense.needs_boosted_defenders()
         if defenders:
@@ -800,6 +847,7 @@ class MineralMind:
                 return []
 
     def buy_boosts(self):
+        # type: () -> None
         to_buy = self.minerals_to_stock()
         if not len(to_buy):
             return
@@ -858,6 +906,7 @@ class MineralMind:
                               .format(self.room.name, best_order.id, amount, self.room.name, result))
 
     def run_execute_buy(self):
+        # type: () -> None
         """
         Execute buy orders. Don't call if we don't have a terminal or there isn't energy in it (this assumes both).
         """
@@ -932,6 +981,7 @@ class MineralMind:
                               .format(self.room.name, best_order.id, amount, self.room.name, result))
 
     def fulfill_now(self, mineral, target_obj):
+        # type: (str, _Memory) -> None
         if self.terminal.store[mineral] < 1000 <= target_obj.amount:
             self.log("WARNING: fulfill_now() called with mineral: {}, target: {},"
                      "but {} < {}".format(mineral, JSON.stringify(target_obj), self.terminal.store[mineral], 1000))
@@ -1012,6 +1062,7 @@ class MineralMind:
         return result
 
     def check_orders(self):
+        # type: () -> None
         ro_fulfilling = self.ro_fulfilling_mem()
         for mineral in self.my_mineral_deposit_minerals():
             if (mineral in ro_fulfilling and len(ro_fulfilling[mineral])) \
@@ -1068,6 +1119,7 @@ class MineralMind:
                 self.last_sold_mem()[mineral] = Game.time
 
     def place_container_construction_site(self, deposit):
+        # type: (RoomObject) -> None
         # TODO: finding in range is duplicated below (in method which calls this)
         # TODO: should this be part of ConstructionMind?
         if deposit.pos:
@@ -1134,10 +1186,11 @@ class MineralMind:
                                    " {}.createConstructionSite(STRUCTURE_EXTRACTOR): {}"
                                    .format(mineral.pos, result))
                             Game.notify(msg)
-                            console.log(msg)
+                            print(msg)
         return 0
 
     def get_target_mineral_hauler_count(self):
+        # type: () -> int
         if self.has_no_terminal_or_storage():
             return 0
         elif self.get_target_mineral_miner_count() or len(self.adding_to_terminal()) or self.energy_needed_in_labs() \
@@ -1151,6 +1204,7 @@ class MineralMind:
             return 0
 
     def get_target_mineral_hauler_size(self):
+        # type: () -> int
         total = _.sum(self.adding_to_terminal(), lambda t: t[1]) \
                 + _.sum(self.removing_from_terminal(), lambda t: t[1])
         print("[{}][minerals] total workload: {}".format(self.room.name, total))
@@ -1160,6 +1214,7 @@ class MineralMind:
             return 10
 
     def get_target_sacrifice_count(self):
+        # type: () -> int
         if self.has_no_terminal_or_storage():
             return 0
 
@@ -1175,6 +1230,7 @@ class MineralMind:
         return 10
 
     def mineral_report(self):
+        # type: () -> str
         minstrings = []
         for mineral, amount in _.pairs(self.get_total_room_resource_counts()):
             minstrings.append("{} {}".format(amount, mineral))
@@ -1200,6 +1256,7 @@ class MineralMind:
 
 
 def find_credits_one_energy_is_worth():
+    # type: () -> int
     cache = volatile_cache.mem('market_orders')
     if cache.has('energy_price'):
         return cache.get('energy_price')

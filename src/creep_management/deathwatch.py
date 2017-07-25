@@ -1,3 +1,5 @@
+from typing import List, TYPE_CHECKING, cast
+
 from constants import INVADER_USERNAME, SK_USERNAME
 from jstools.screeps import *
 from utilities import movement
@@ -11,8 +13,12 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+
 
 def start_of_tick_check():
+    # type: () -> None
     if Memory.deathwatch:
         for name, home_name, threats, room_name in Memory.deathwatch:
             if name not in Game.creeps:
@@ -39,6 +45,7 @@ def start_of_tick_check():
 
 
 def mark_creeps(room):
+    # type: (RoomMind) -> None
     """
     :type room: rooms.room_mind.RoomMind
     """

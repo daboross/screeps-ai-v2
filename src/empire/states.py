@@ -1,5 +1,10 @@
+from typing import TYPE_CHECKING
+
 from constants import rmem_key_currently_under_siege
 from jstools.screeps import *
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -19,10 +24,10 @@ class StateCalc:
     :type hive: empire.hive.HiveMind
     """
 
-    def __init__(self, hive):
+    def __init__(self, hive: HiveMind):
         self.hive = hive
 
-    def calculate_room_states(self):
+    def calculate_room_states(self) -> None:
         under_siege = []
         not_under_siege = []
         for room in self.hive.my_rooms:

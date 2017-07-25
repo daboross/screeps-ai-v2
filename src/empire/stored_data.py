@@ -3,6 +3,8 @@ Stored data!
 
 Stores data in memory via room name keys, using the metadata module powered by Protocol Buffers to encode data.
 """
+from typing import Dict, List, Optional, Tuple, cast
+
 from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data
 from jstools.js_set_map import new_map, new_set
@@ -23,18 +25,18 @@ _cache_created = Game.time
 _cached_data = new_map()
 
 
-def _mem():
+def _mem() -> Dict[str, str]:
     mem = Memory[global_mem_key_room_data]
     if not mem:
         mem = Memory[global_mem_key_room_data] = {}
     return mem
 
 
-def _get_serialized_data(room_name):
+def _get_serialized_data(room_name) -> Optional[str]:
     return _mem()[room_name] or None
 
 
-def _deserialize_data(data):
+def _deserialize_data(data: str) -> StoredRoom:
     # NOTE: this cache is only ever reset as a last resort, in normal operation the server should reset the global
     # before this is reached.
     global _cached_data, _cache_created
@@ -49,7 +51,7 @@ def _deserialize_data(data):
     return deserialized
 
 
-def _set_new_data(room_name, data):
+def _set_new_data(room_name: str, data: StoredRoom) -> None:
     _mem()[room_name] = encoded = data.encode()
     _cached_data.set(encoded, data)
     if not len(encoded):
@@ -57,10 +59,10 @@ def _set_new_data(room_name, data):
         del _mem()[room_name]
 
 
-_my_username = None
+_my_username = None  # type: Optional[str]
 
 
-def get_my_username():
+def get_my_username() -> str:
     global _my_username
     if _my_username is None:
         struct = _.find(Game.structures, 'my')
@@ -68,11 +70,7 @@ def get_my_username():
     return _my_username
 
 
-def _find_obstacles(room):
-    """
-    :type room: Room
-    :rtype: list[StoredObstacle]
-    """
+def _find_obstacles(room: Room) -> List[StoredObstacle]:
     result = []
     any_lairs = False
     for structure in room.find(FIND_STRUCTURES):  # type: OwnedStructure
@@ -106,22 +104,14 @@ def _find_obstacles(room):
     return result
 
 
-def _find_room_reservation_end(room):
-    """
-    :type room: Room
-    :rtype: int
-    """
+def _find_room_reservation_end(room: Room) -> int:
     if room.controller and room.controller.reservation and room.controller.reservation.username == get_my_username():
         return Game.time + room.controller.reservation.ticksToEnd
     else:
         return 0
 
 
-def _find_room_owner(room):
-    """
-    :type room: Room
-    :rtype: StoredEnemyRoomOwner
-    """
+def _find_room_owner(room: Room) -> Optional[StoredEnemyRoomOwner]:
     name = None
     state = None
     controller = room.controller
@@ -152,7 +142,7 @@ def _find_room_owner(room):
         return __new__(StoredEnemyRoomOwner(name, state))
 
 
-def update_data_for_visible_rooms():
+def update_data_for_visible_rooms() -> None:
     """
     Updates all visible rooms with structure, owner and reservation data.
     """
@@ -162,7 +152,7 @@ def update_data_for_visible_rooms():
             update_data(room)
 
 
-def update_old_structure_data_for_visible_rooms():
+def update_old_structure_data_for_visible_rooms() -> None:
     """
     Updates structure data older than 3000 ticks for visible rooms.
     """
@@ -174,6 +164,7 @@ def update_old_structure_data_for_visible_rooms():
 
 
 def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=None):
+    # type: (str, Optional[int]) -> Tuple[int, List[str]]
     """
     :type saved_pos: int
     :type center_room_name: str
@@ -213,7 +204,7 @@ def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=
     return new_saved_pos, result
 
 
-def update_data(room):
+def update_data(room: Room) -> None:
     """
     Updates stored data about the given room, based off of the room's current state.
 
@@ -235,7 +226,7 @@ def update_data(room):
     _set_new_data(room_name, data)
 
 
-def get_data(room_name):
+def get_data(room_name: str) -> Optional[StoredRoom]:
     """
     Gets the full stored information on a room
     :param room_name: The room name
@@ -250,7 +241,7 @@ def get_data(room_name):
         return None
 
 
-def get_reservation_end_time(room_name):
+def get_reservation_end_time(room_name: str) -> int:
     """
     Returns the end time of our reservation on a room, or 0 if not found.
     :param room_name: The room name
@@ -263,7 +254,7 @@ def get_reservation_end_time(room_name):
         return 0
 
 
-def get_last_updated_tick(room_name):
+def get_last_updated_tick(room_name: str) -> int:
     """
     Returns the last time the structure data for a room was updated, or 0 if not found.
     :param room_name: The room name
@@ -276,7 +267,7 @@ def get_last_updated_tick(room_name):
         return 0
 
 
-def set_reservation_time(room_name, reservation_time):
+def set_reservation_time(room_name: str, reservation_time: int) -> None:
     """
     Sets / updates the reservation time in room data.
     :param room_name: The room name
@@ -294,7 +285,7 @@ def set_reservation_time(room_name, reservation_time):
     _set_new_data(room_name, data)
 
 
-def migrate_old_data():
+def migrate_old_data() -> None:
     definition = flags.flag_definitions[flags.SK_LAIR_SOURCE_NOTED]
     if Memory.enemy_rooms:
         for room_name in Memory.enemy_rooms:
@@ -335,7 +326,7 @@ def migrate_old_data():
                 flag.remove()
 
 
-def set_as_enemy(room_name, username=None):
+def set_as_enemy(room_name: str, username: str = None) -> None:
     if username is None:
         username = "Manually set"
     stored = get_data(room_name)
@@ -351,7 +342,7 @@ def set_as_enemy(room_name, username=None):
     _set_new_data(room_name, new_data)
 
 
-def avoid_always(room_name):
+def avoid_always(room_name: str) -> str:
     stored = get_data(room_name)
     if stored:
         if stored.avoid_always:
@@ -365,7 +356,7 @@ def avoid_always(room_name):
     return "set {} as always avoid room.".format(room_name)
 
 
-def unavoid_always(room_name):
+def unavoid_always(room_name: str) -> str:
     stored = get_data(room_name)
     if stored:
         if not stored.avoid_always:

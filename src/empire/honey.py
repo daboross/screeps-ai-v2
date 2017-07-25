@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union, cast, Tuple
 
 from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, global_cache_mining_paths_suffix, \
@@ -10,6 +10,9 @@ from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
 from utilities.movement import dxdy_to_direction
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -27,6 +30,7 @@ _path_cached_data_key_length = 'l'
 
 
 def pathfinder_path_to_room_to_path_obj(origin, input_path):
+    # type: (RoomPosition, List[RoomPosition]) -> Optional[Dict[str, List[Dict[str, Any]]]]
     result_obj = {}
     list_of_rooms = []
     last_room = None
@@ -141,7 +145,8 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
     return result_obj
 
 
-def get_global_cache_key(origin: RoomPosition, destination: RoomPosition, opts: Dict[str, Any]) -> str:
+def get_global_cache_key(origin, destination, opts):
+    # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> str
     parts = [
         'path',
         origin.roomName,
@@ -174,20 +179,10 @@ class CustomCostMatrix:
     :type room_name: str
     :type plain_cost: int
     :type swamp_cost: int
-    :type cost_matrix: CustomCostMatrix.CostMatrix
+    :type cost_matrix: PathFinder.CostMatrix
     """
 
-    class CostMatrix:
-        def __init__(self):
-            self.data = []
-
-        def get(self, x, y):
-            return self.data[x * 50 + y]
-
-        def set(self, x, y, value):
-            self.data[x * 50 + y] = value
-
-    def __init__(self, room_name, plain_cost, swamp_cost, debug):
+    def __init__(self, room_name: str, plain_cost: int, swamp_cost: int, debug: bool = False):
         """
         :type room_name: str
         :type plain_cost: int
@@ -196,55 +191,27 @@ class CustomCostMatrix:
         self.room_name = room_name
         self.plain_cost = plain_cost
         self.swamp_cost = swamp_cost
-        self.cost_matrix = CustomCostMatrix.CostMatrix()
+        self.cost_matrix = PathFinder.CostMatrix()
         self.debug = not not debug
         raise NotImplementedError
 
-    def get(self, x, y):
-        """
-        :type x: int
-        :type y: int
-        :rtype: int
-        """
-        raise NotImplementedError
+    def get(self, x: int, y: int) -> int:
+        pass
 
-    def get_existing(self, x, y):
-        """
-        :type x: int
-        :type y: int
-        :rtype: int
-        """
-        raise NotImplementedError
+    def get_existing(self, x: int, y: int) -> int:
+        pass
 
-    def set(self, x, y, value):
-        """
-        :type x: int
-        :type y: int
-        "type value: int
-        """
-        raise NotImplementedError
+    def set(self, x: int, y: int, value: int):
+        pass
 
-    def set_impassable(self, x, y):
-        """
-        :type x: int
-        :type y: int
-        """
-        raise NotImplementedError
+    def set_impassable(self, x: int, y: int):
+        pass
 
-    def increase_at(self, x, y, cost_type, added):
-        """
-        :type x: int
-        :type y: int
-        :type cost_type: int | None
-        :type added: int
-        """
-        raise NotImplementedError
+    def increase_at(self, x: int, y: int, cost_type: Optional[int], added: int):
+        pass
 
-    def visual(self):
-        """
-        :rtype str
-        """
-        raise NotImplementedError
+    def visual(self) -> str:
+        pass
 
 
 __pragma__('noskip')
@@ -317,6 +284,7 @@ def _cma_increase_at(x, y, cost_type, added):
         if cost_type in this.added_at:
             cost_map = this.added_at[cost_type]
         else:
+            # noinspection PyUnresolvedReferences
             cost_map = this.added_at[cost_type] = __new__(Set())
         if cost_map.has(ser):
             return
@@ -381,10 +349,7 @@ COST_TYPE_CUSTOM_2 = 9
 _LINKED_SOURCE_CONSTANT_STRUCTURE_TYPE = '--linked--'
 
 
-def mark_exit_tiles(matrix):
-    """
-    :type matrix: CustomCostMatrix
-    """
+def mark_exit_tiles(matrix: CustomCostMatrix):
     plain_cost = matrix.plain_cost
     room_name = matrix.room_name
 
@@ -407,10 +372,7 @@ def mark_exit_tiles(matrix):
                 matrix.increase_at(x, y, _COST_TYPE_EXIT_TILES, 2 * plain_cost)
 
 
-def mark_flags(matrix):
-    """
-    :type matrix: CustomCostMatrix
-    """
+def mark_flags(matrix: CustomCostMatrix):
     slightly_avoid = flags.find_flags(matrix.room_name, SLIGHTLY_AVOID) \
         .concat(flags.find_flags(matrix.room_name, UPGRADER_SPOT))
     if len(slightly_avoid):
@@ -418,11 +380,7 @@ def mark_flags(matrix):
             matrix.increase_at(flag.pos.x, flag.pos.y, _COST_TYPE_SLIGHTLY_AVOID, 2 * matrix.plain_cost)
 
 
-def set_max_avoid(matrix, opts):
-    """
-    :type matrix: CustomCostMatrix
-    :type opts: dict[str, object]
-    """
+def set_max_avoid(matrix: CustomCostMatrix, opts: Dict[str, Any]):
     if opts['max_avoid']:
         room_name = matrix.room_name
         plain_cost = matrix.plain_cost
@@ -455,6 +413,7 @@ __pragma__('fcall')
 
 
 def get_default_max_ops(origin, destination, opts):
+    # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> int
     linear_distance = movement.chebyshev_distance_room_pos(origin, destination)
     ops = linear_distance * 200
     if opts['paved_for']:
@@ -464,16 +423,14 @@ def get_default_max_ops(origin, destination, opts):
     return ops
 
 
-def clear_cached_path(origin, destination, opts=None):
-    if origin.pos:
-        origin = origin.pos
-    if destination.pos:
-        destination = destination.pos
+def clear_cached_path(origin, destination, opts = None):
+    # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> None
     key = get_global_cache_key(origin, destination, opts)
     global_cache.rem(key)
 
 
 def get_room_list_from_serialized_obj(path_obj):
+    # type: (Dict[str, Any]) -> List[str]
     if _path_cached_data_key_room_order in path_obj:
         return path_obj[_path_cached_data_key_room_order]
     elif _path_cached_data_key_metadata in path_obj:
@@ -487,10 +444,11 @@ class HoneyTrails:
     :type hive: empire.hive.HiveMind
     """
 
-    def __init__(self, hive):
+    def __init__(self, hive: HiveMind):
         self.hive = hive
 
     def _new_cost_matrix(self, room_name, origin, destination, opts):
+        # type: (str, RoomPosition, RoomPosition, Dict[str, Any]) -> Union[PathFinder.CostMatrix, bool]
         paved_for = opts['paved_for']
 
         room_data = stored_data.get_data(room_name)
@@ -752,18 +710,11 @@ class HoneyTrails:
         return matrix.cost_matrix
 
     def _get_callback(self, origin, destination, opts):
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> Callable[[str], Union[PathFinder.CostMatrix, bool]]
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
     def _get_raw_path(self, origin, destination, opts=None):
-        """
-        :type origin: RoomPosition | RoomObject
-        :type destination: RoomPosition | RoomObject
-        """
-
-        if origin.pos:
-            origin = origin.pos  # type: RoomPosition
-        if destination.pos:
-            destination = destination.pos  # type: RoomPosition
+        # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[RoomPosition]
 
         if opts:
             roads_better = opts["use_roads"] if "use_roads" in opts else True
@@ -939,10 +890,7 @@ class HoneyTrails:
         return path
 
     def get_serialized_path_obj(self, origin, destination, opts=None):
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
+        # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]
 
         if opts and 'keep_for' in opts:
             keep_for = opts["keep_for"]
@@ -1000,10 +948,7 @@ class HoneyTrails:
         return serialized_path_obj
 
     def completely_repath_and_get_raw_path(self, origin, destination, opts):
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> List[RoomPosition]
         if "keep_for" in opts:
             keep_for = opts["keep_for"]
         else:
@@ -1025,6 +970,7 @@ class HoneyTrails:
         return path
 
     def find_serialized_path(self, origin, destination, opts):
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> Optional[str]
         if opts and "current_room" in opts:
             current_room = opts["current_room"]
             if current_room:
@@ -1042,7 +988,8 @@ class HoneyTrails:
             return ''
 
     def find_path(self, origin, destination, opts):
-        if opts and "current_room" in opts:
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> List[_PathPos]
+        if "current_room" in opts:
             current_room = opts["current_room"]
             if current_room:
                 current_room = current_room.name or current_room
@@ -1070,14 +1017,11 @@ class HoneyTrails:
         return path
 
     def list_of_room_positions_in_path(self, origin, destination, opts=None):
+        # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[RoomPosition]
         """
         Gets a list of room positions in the path, with guaranteed order. This is retrieved from cached memory, but a
         new list to return is created each call, and each RoomPosition is created fresh each call.
         """
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
 
         path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
@@ -1095,15 +1039,11 @@ class HoneyTrails:
         return final_list
 
     def get_ordered_list_of_serialized_path_segments(self, origin, destination, opts=None):
+        # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[Tuple[str, str]]
         """
         Gets a list of serialized path segments in order for the path from origin to destination.
         :rtype: list[(str, str)]
         """
-        if origin.pos:
-            origin = origin.pos
-        if destination.pos:
-            destination = destination.pos
-
         path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
         result = []
@@ -1117,6 +1057,7 @@ class HoneyTrails:
         return result
 
     def find_path_length(self, origin, destination, opts=None):
+        # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> int
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
         # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
 

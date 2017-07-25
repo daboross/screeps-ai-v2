@@ -1,4 +1,4 @@
-from typing import Optional, Tuple, Union
+from typing import Optional, Tuple, Union, cast
 
 from jstools.screeps import *
 
@@ -22,12 +22,12 @@ def parse_xy_arguments(pos, optional_y):
     :rtype: (int, int, str)
     """
     if optional_y is not None and optional_y is not undefined:
-        return pos, optional_y, None
+        return cast(int, pos), optional_y, None
     else:
-        if pos.pos:
-            return pos.pos.x, pos.pos.y, pos.pos.roomName
+        if cast(RoomObject, pos).pos:
+            return cast(RoomObject, pos).pos.x, cast(RoomObject, pos).pos.y, cast(RoomObject, pos).pos.roomName
         else:
-            return pos.x, pos.y, pos.roomName
+            return cast(RoomPosition, pos).x, cast(RoomPosition, pos).y, cast(RoomPosition, pos).roomName
 
 
 def clamp_room_x_or_y(coord):
@@ -41,7 +41,7 @@ def serialize_xy(x, y):
 
 
 def serialize_pos_xy(pos):
-    # type: (RoomPosition) -> int
+    # type: (Union[RoomPosition, StoredObstacle, _PathPos]) -> int
     return pos.x | pos.y << 6
 
 

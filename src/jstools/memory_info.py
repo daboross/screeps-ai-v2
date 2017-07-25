@@ -1,3 +1,5 @@
+from typing import Any, Dict, Optional
+
 from empire.honey import _path_cached_data_key_full_path, _path_cached_data_key_length, _path_cached_data_key_metadata
 from jstools.screeps import *
 
@@ -12,6 +14,7 @@ __pragma__('noalias', 'update')
 
 
 def analyse_memory(path=None):
+    # type: (Optional[str]) -> None
     mem = Memory
     if path is not None:
         mem = _.get(mem, path)
@@ -24,6 +27,7 @@ def analyse_memory(path=None):
 
 
 def count_total_keys(mem):
+    # type: (Dict[str, Any]) -> int
     total_count = 0
     for key, submem in _.pairs(mem):
         total_count += 1
@@ -33,6 +37,7 @@ def count_total_keys(mem):
 
 
 def cache_stats():
+    # type: () -> str
     total_path_v1 = 0
     total_path_v2 = 0
     total_path_v3 = 0

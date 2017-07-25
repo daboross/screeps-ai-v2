@@ -1,10 +1,11 @@
 import math
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, cast
 
 from cache import volatile_cache
 from constants import LOCAL_MINE, REMOTE_MINE, creep_base_1500miner, creep_base_3000miner, creep_base_4000miner, \
     creep_base_carry3000miner, creep_base_half_move_hauler, creep_base_hauler, creep_base_reserving, \
-    creep_base_work_half_move_hauler, role_hauler, role_miner, \
-    role_remote_mining_reserve, target_energy_hauler_mine, target_energy_miner_mine
+    creep_base_work_half_move_hauler, role_hauler, role_miner, role_remote_mining_reserve, \
+    target_energy_hauler_mine, target_energy_miner_mine, roleobj_key_initial_targets
 from creep_management import spawning
 from creep_management.spawning import fit_num_sections
 from empire import stored_data
@@ -12,6 +13,9 @@ from jstools.screeps import *
 from position_management import flags
 from rooms import defense
 from utilities import movement, paths
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -26,6 +30,7 @@ __pragma__('fcall')
 
 
 def is_sk(flag):
+    # type: (Flag) -> bool
     return (flag.name in Memory.flags and flag.memory.sk_room) \
            or (Memory.no_controller and Memory.no_controller[flag.pos.roomName])
 
@@ -39,15 +44,16 @@ class MiningMind:
     :type available_mines: list[Flag]
     """
 
-    def __init__(self, room):
+    def __init__(self, room: RoomMind):
         self.room = room
         self.hive = room.hive
         self.targets = self.hive.targets
-        self._available_mining_flags = None
-        self._local_mining_flags = None
-        self._active_mining_flags = None
+        self._available_mining_flags = None  # type: Optional[List[Flag]]
+        self._local_mining_flags = None  # type: Optional[List[Flag]]
+        self._active_mining_flags = None  # type: Optional[List[Flag]]
 
     def closest_deposit_point_to_mine(self, flag):
+        # type: (Flag) -> Optional[Structure]
         """
         Gets the closest deposit point to the mine. Currently just returns storage or spawn, since we need to do more
         changes in order to support links well anyways.
@@ -57,7 +63,7 @@ class MiningMind:
         key = "mine_{}_deposit".format(flag.name)
         target_id = self.room.get_cached_property(key)
         if target_id:
-            target = Game.getObjectById(target_id)
+            target = cast(Structure, Game.getObjectById(target_id))
             if target:
                 return target
         # Even if we don't have a link manager active right now, we will soon if there is a main link
@@ -104,6 +110,7 @@ class MiningMind:
         return target
 
     def mine_priority(self, flag):
+        # type: (Flag) -> int
         priority = self.distance_to_mine(flag)
         if flag.pos.roomName == self.room.name:
             priority -= 50
@@ -114,6 +121,7 @@ class MiningMind:
         return priority
 
     def distance_to_mine(self, flag):
+        # type: (Flag) -> int
         deposit_point = self.closest_deposit_point_to_mine(flag)
         if deposit_point:
             if deposit_point.structureType == STRUCTURE_SPAWN:
@@ -125,6 +133,7 @@ class MiningMind:
             return Infinity
 
     def calculate_ideal_mass_for_mine(self, flag):
+        # type: (Flag) -> int
         key = "mine_{}_ideal_mass".format(flag.name)
         target_mass = self.room.get_cached_property(key)
         if target_mass:
@@ -147,9 +156,11 @@ class MiningMind:
         return target_mass
 
     def calculate_current_target_mass_for_mine(self, flag):
+        # type: (Flag) -> int
         return self.calculate_ideal_mass_for_mine(flag)
 
     def road_repair_work_needed_now(self, flag):
+        # type: (Flag) -> int
         """
         Gets road health from storage to flag, returning the ideal number of creeps with 2 work parts each who should be
         on this mine.
@@ -223,6 +234,7 @@ class MiningMind:
         return needed_parts
 
     def cleanup_old_flag_sitting_values(self):
+        # type: () -> None
         for flag in self.available_mines:
             if flag.name not in Memory.flags:
                 continue
@@ -234,6 +246,7 @@ class MiningMind:
                 del Memory.flags[flag.name]
 
     def energy_sitting_at(self, flag):
+        # type: (Flag) -> int
         if 'sitting' not in flag.memory or Game.time > flag.memory.sitting_set + 10:
             room = self.hive.get_room(flag.pos.roomName)
             if room:
@@ -247,6 +260,7 @@ class MiningMind:
         return max(0, flag.memory.sitting - (Game.time - flag.memory.sitting_set)) or 0
 
     def get_local_mining_flags(self):
+        # type: () -> List[Flag]
         if self._local_mining_flags is None:
             result = []
             for source in self.room.sources:
@@ -268,6 +282,7 @@ class MiningMind:
     local_mines = property(get_local_mining_flags)
 
     def get_available_mining_flags(self):
+        # type: () -> List[Flag]
         if self._available_mining_flags is None:
             if self.room.any_remotes_under_siege():
                 result = list(_(self.get_local_mining_flags())
@@ -286,6 +301,7 @@ class MiningMind:
     available_mines = property(get_available_mining_flags)
 
     def get_active_mining_flags(self):
+        # type: () -> List[Flag]
         if self._active_mining_flags is None:
             max_count = len(self.room.sources) + self.room.get_max_mining_op_count()
             if max_count > len(self.available_mines):
@@ -296,6 +312,7 @@ class MiningMind:
     active_mines = property(get_active_mining_flags)
 
     def calculate_creep_num_sections_for_mine(self, flag, base):
+        # type: (Flag, str) -> float
         maximum = spawning.max_sections_of(self.room, base)
         needed = self.calculate_ideal_mass_for_mine(flag)
         if base == creep_base_half_move_hauler or base == creep_base_work_half_move_hauler:
@@ -306,6 +323,7 @@ class MiningMind:
             return fit_num_sections(needed, maximum)
 
     def should_reserve(self, room_name):
+        # type: (str) -> bool
         if self.room.room.energyCapacityAvailable < (BODYPART_COST[CLAIM] + BODYPART_COST[MOVE]) * 2:
             return False
         if Memory.no_controller and Memory.no_controller[room_name]:
@@ -320,6 +338,7 @@ class MiningMind:
         return True
 
     def open_spaces_around(self, flag):
+        # type: (Flag) -> int
         if 'osa' not in flag.memory:
             osa = 0
             room = self.hive.get_room(flag.pos.roomName)
@@ -335,6 +354,7 @@ class MiningMind:
         return flag.memory.osa
 
     def reserver_needed(self, flag):
+        # type: (Flag) -> Optional[Dict[str, Any]]
         """
         Gets the spawn data for a reserver if a reserver is needed. Separate method so that early return statements can
         be used and we don't get tons and tons of nested if statements.
@@ -386,6 +406,7 @@ class MiningMind:
             return None
 
     def get_ideal_miner_workmass_for(self, flag):
+        # type: (Flag) -> float
         if is_sk(flag):
             return math.ceil((SOURCE_ENERGY_KEEPER_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
         elif flag.pos.roomName == self.room.name or self.should_reserve(flag.pos.roomName):
@@ -394,6 +415,7 @@ class MiningMind:
             return math.ceil((SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME) / HARVEST_POWER)
 
     def haulers_can_target_mine(self, flag):
+        # type: (Flag) -> bool
         # TODO: duplicated in get_next_needed_mining_role_for
 
         miner_carry_no_haulers = (
@@ -409,7 +431,8 @@ class MiningMind:
         return not miner_carry_no_haulers and not no_haulers
 
     def is_mine_linked(self, source):
-        flag = flags.look_for(self.room, source, LOCAL_MINE)
+        # type: (Source) -> bool
+        flag = flags.look_for(self.room, source.pos, LOCAL_MINE)
         if flag:
             deposit_point = self.closest_deposit_point_to_mine(flag)
             if deposit_point:
@@ -428,6 +451,7 @@ class MiningMind:
             return False
 
     def get_next_needed_mining_role_for(self, flag):
+        # type: (Flag) -> Optional[Dict[str, Any]]
         flag_id = "flag-{}".format(flag.name)
         miner_carry_no_haulers = (
             flag.pos.roomName == self.room.name
@@ -561,6 +585,7 @@ class MiningMind:
         return None
 
     def next_mining_role(self, max_to_check=Infinity):
+        # type: (int) -> Optional[Dict[str, Any]]
         if max_to_check <= 0:
             return None
         mines = self.active_mines
