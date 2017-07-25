@@ -20,7 +20,7 @@ from rooms.minerals import MineralMind
 from rooms.mining import MiningMind
 from rooms.room_constants import *
 from rooms.squads import SquadTactics
-from utilities import hostile_utils, movement, rndrs, speech
+from utilities import hostile_utils, movement, rndrs, speech, naming
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
 if TYPE_CHECKING:
@@ -1294,10 +1294,10 @@ class RoomMind:
         if flag.memory.size:
             sections = min(sections, flag.memory.size)
         obj = {
-            "role": role,
-            "base": base,
-            "num_sections": sections,
-            "targets": [
+            roleobj_key_role: role,
+            roleobj_key_base: base,
+            roleobj_key_num_sections: sections,
+            roleobj_key_initial_targets: [
                 [target_single_flag, "flag-{}".format(flag.name)],
             ]
         }
@@ -1739,18 +1739,18 @@ class RoomMind:
         :param opts: Any additional spawning options (described as role_obj in register_creep_request)
         """
 
-        req_key = Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+        req_key = naming.random_digits()
         if mem_key_spawn_requests in self.mem:
             while req_key in self.mem[mem_key_spawn_requests]['s']:
-                req_key += Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1)
+                req_key += naming.random_digits()
         self.register_creep_request(
             req_key,
             request_priority_low,
             Game.time + 50 * 1000,
             _.merge({
-                'role': role,
-                'base': self.get_variable_base(role),
-                'num_sections': self.get_max_sections_for_role(role)
+                roleobj_key_role: role,
+                roleobj_key_base: self.get_variable_base(role),
+                roleobj_key_num_sections: self.get_max_sections_for_role(role)
             }, opts)
         )
 
@@ -1850,10 +1850,10 @@ class RoomMind:
             # TODO: this is all mostly a conversion of the old system to the new.
             # Ideally we'd be creating a more complete package with the above (at least for replacement name)
             return {
-                "role": role_needed,
-                "base": self.get_variable_base(role_needed),
+                roleobj_key_role: role_needed,
+                roleobj_key_base: self.get_variable_base(role_needed),
                 "replacing": self.get_next_replacement_name(role_needed),
-                "num_sections": self.get_max_sections_for_role(role_needed),
+                roleobj_key_num_sections: self.get_max_sections_for_role(role_needed),
             }
         else:
             return None
@@ -2180,18 +2180,18 @@ class RoomMind:
             wall_flag_id = "flag-{}".format(wall_flag.name)
             if self.count_noneol_creeps_targeting(target_support_miner_mine, mine_flag_id) < 1:
                 return {
-                    'role': role_support_miner,
-                    'base': creep_base_1500miner,
-                    'num_sections': min(3, spawning.max_sections_of(self, creep_base_1500miner)),
+                    roleobj_key_role: role_support_miner,
+                    roleobj_key_base: creep_base_1500miner,
+                    roleobj_key_num_sections: min(3, spawning.max_sections_of(self, creep_base_1500miner)),
                     'targets': [
                         [target_support_miner_mine, mine_flag_id],
                     ]
                 }
             if self.count_noneol_creeps_targeting(target_support_builder_wall, wall_flag_id) < 1:
                 return {
-                    'role': role_support_builder,
-                    'base': creep_base_worker,
-                    'num_sections': min(6, spawning.max_sections_of(self, creep_base_worker)),
+                    roleobj_key_role: role_support_builder,
+                    roleobj_key_base: creep_base_worker,
+                    roleobj_key_num_sections: min(6, spawning.max_sections_of(self, creep_base_worker)),
                     'targets': [
                         [target_support_builder_wall, wall_flag_id],
                     ]
@@ -2207,10 +2207,10 @@ class RoomMind:
             if current_noneol_hauler_mass < needed_hauler_mass:
                 print("[{}] Spawning hauler for {}:{}!".format(self.name, mine_flag_id, wall_flag_id))
                 return {
-                    'role': role_support_hauler,
-                    'base': creep_base_hauler,
-                    'num_sections': fit_num_sections(needed_hauler_mass,
-                                                     spawning.max_sections_of(self, creep_base_hauler)),
+                    roleobj_key_role: role_support_hauler,
+                    roleobj_key_base: creep_base_hauler,
+                    roleobj_key_num_sections: fit_num_sections(needed_hauler_mass,
+                                                               spawning.max_sections_of(self, creep_base_hauler)),
                     'targets': [
                         [target_support_hauler_mine, mine_flag_id],
                         [target_support_hauler_fill, wall_flag_id]
@@ -2242,9 +2242,9 @@ class RoomMind:
         if (self.room.controller.sign == undefined or message != self.room.controller.sign.text) \
                 and self.role_count(role_sign) < 1:
             return {
-                'role': role_sign,
-                'base': creep_base_scout,
-                'num_sections': 1,
+                roleobj_key_role: role_sign,
+                roleobj_key_base: creep_base_scout,
+                roleobj_key_num_sections: 1,
             }
 
     def reset_planned_role(self):
@@ -2295,10 +2295,11 @@ class RoomMind:
         for func in funcs_to_try:
             next_role = func()
             if next_role:
-                maximum = spawning.max_sections_of(self, next_role.base)
+                maximum = spawning.max_sections_of(self, next_role[roleobj_key_base])
                 if next_role.num_sections is not None and next_role.num_sections > maximum:
                     print("[{}] Function decided on {} sections for {} (a {}), which is more than the allowed {}."
-                          .format(self.name, next_role.num_sections, next_role.base, next_role.role, maximum))
+                          .format(self.name, next_role.num_sections, next_role[roleobj_key_base],
+                                  next_role[roleobj_key_role], maximum))
                     next_role.num_sections = maximum
                 break
         if next_role:

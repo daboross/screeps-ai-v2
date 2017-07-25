@@ -156,10 +156,10 @@ def run(room, spawn):
         #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.name))
         #     room.mem.spawning_already_reported_no_next_role = True
         return
-    role = role_obj.role
-    base = role_obj.base
-    num_sections = role_obj.num_sections or 0
-    replacing = role_obj.replacing
+    role = role_obj[roleobj_key_role]
+    base = role_obj[roleobj_key_base]
+    num_sections = role_obj[roleobj_key_num_sections] or 0
+    replacing = role_obj[roleobj_key_replacing]
 
     ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
     if ubos_cache.has(room.name):
@@ -184,7 +184,7 @@ def run(room, spawn):
             print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!"
                   .format(room.name, base))
             num_sections = 1
-            role_obj.num_sections = 1
+            role_obj[roleobj_key_num_sections] = 1
         cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
         if not cost:
             print("[{}][spawning] ERROR: Unknown cost retrieved from cost_of_sections({}, {}, {}): {}"
@@ -204,7 +204,7 @@ def run(room, spawn):
                       .format(room.name, num_sections, new_size))
                 # Since the literal memory object is returned, this mutation will stick for until this creep has been
                 # spawned, or the target creep has been refreshed
-                num_sections = role_obj.num_sections = new_size
+                num_sections = role_obj[roleobj_key_num_sections] = new_size
                 half_section = 1 if num_sections % 1 else 0
                 num_sections -= num_sections % 1
                 cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
@@ -583,9 +583,9 @@ def run(room, spawn):
     else:
         memory = {"home": home, "role": role}
 
-    if role_obj.memory:
+    if role_obj[roleobj_key_initial_memory]:
         # Add whatever memory seems to be necessary
-        _.extend(memory, role_obj.memory)
+        _.extend(memory, role_obj[roleobj_key_initial_memory])
 
     if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.name):
         print("[{}][spawning] Warning: Generated too costly of a body for a {}! Available energy: {}, cost: {}."
@@ -626,13 +626,13 @@ def run(room, spawn):
         used += postspawn_calculate_cost_of(parts)
         ubos_cache.set(room.name, used)
         room.reset_planned_role()
-        if role_obj.targets:
-            for target_type, target_id in role_obj.targets:
-                room.hive.targets.manually_register({'name': name}, target_type, target_id)
-        if role_obj.rkey:
-            room.successfully_spawned_request(role_obj.rkey)
-        if role_obj.run_after:
-            __pragma__('js', '(eval(role_obj.run_after))')(name)
+        if role_obj[roleobj_key_initial_targets]:
+            for target_type, target_id in role_obj[roleobj_key_initial_targets]:
+                room.hive.targets.manually_register(cast(Creep, {'name': name}), target_type, target_id)
+        if role_obj[roleobj_key_request_identifier]:
+            room.successfully_spawned_request(role_obj[roleobj_key_request_identifier])
+        if role_obj[roleobj_key_run_after_spawning]:
+            __pragma__('js', '(eval(role_obj[roleobj_key_run_after_spawning]))')(name)
         if replacing:
             room.register_new_replacing_creep(replacing, result)
         else:
@@ -643,15 +643,15 @@ def validate_role(role_obj):
     # type: (Dict[str, Any]) -> None
     if role_obj is None:
         return
-    if not role_obj.role:
-        raise __new__(Error("Invalid role: no .role property"))
-    if not role_obj.base:
-        raise __new__(Error("Invalid role: no .base property"))
-    if not role_obj.num_sections:
-        role_obj.num_sections = Infinity
-    if 'replacing' in role_obj and not role_obj.replacing:
-        del role_obj.replacing
-    role_obj.num_sections = ceil_sections(role_obj.num_sections, role_obj.base)
+    if not role_obj[roleobj_key_role]:
+        raise __new__(ValueError("Invalid role: no .role property"))
+    if not role_obj[roleobj_key_base]:
+        raise __new__(ValueError("Invalid role: no .base property"))
+    if not role_obj[roleobj_key_num_sections]:
+        role_obj[roleobj_key_num_sections] = Infinity
+    if roleobj_key_replacing in role_obj and not role_obj[roleobj_key_replacing]:
+        del role_obj[roleobj_key_replacing]
+    role_obj.num_sections = ceil_sections(role_obj.num_sections, role_obj['base'])
 
 
 def find_base_type(_creep):
