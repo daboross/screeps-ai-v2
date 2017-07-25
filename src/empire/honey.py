@@ -682,10 +682,10 @@ class HoneyTrails:
                 ml = room.links.main_link
                 storage = room.room.storage
                 if ml.pos.x == storage.pos.x and abs(ml.pos.y - storage.pos.y) == 2 \
-                        and movement.is_block_empty(room, ml.pos.x, (ml.pos.y + storage.pos.y) / 2):
+                        and movement.is_block_empty(room, ml.pos.x, int((ml.pos.y + storage.pos.y) / 2)):
                     matrix.set_impassable(ml.pos.x, int((ml.pos.y + storage.pos.y) / 2))
                 elif ml.pos.y == storage.pos.y and abs(ml.pos.x - storage.pos.x) == 2 \
-                        and movement.is_block_empty(room, (ml.pos.x + storage.pos.x) / 2, ml.pos.y):
+                        and movement.is_block_empty(room, int((ml.pos.x + storage.pos.x) / 2), ml.pos.y):
                     matrix.set_impassable(int((ml.pos.x + storage.pos.x) / 2), ml.pos.y)
                 else:
                     for sxx in range(ml.pos.x - 1, ml.pos.x + 2):

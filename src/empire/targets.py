@@ -460,8 +460,9 @@ class TargetMind:
                                 if not Game.creeps[name] or movement.distance_squared_room_pos(
                                         Game.creeps[name].pos, structure.pos) > distance * 2.25:
                                     # If we're at least 1.5x closer than them, let's steal their place.
-                                    # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing squared distances.
-                                    # d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is equivalent to d1^2 > d2^2 * 2.25
+                                    # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing
+                                    # squared distances. d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is
+                                    # equivalent to d1^2 > d2^2 * 2.25
                                     closest_distance = distance
                                     best_id = structure_id
                                     stealing_from = name

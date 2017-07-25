@@ -289,7 +289,7 @@ class Dismantler(MilitaryBase):
         return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
 
 
-class EnergyGrab(TransportPickup, EnergyHauler):
+class EnergyGrab(EnergyHauler):
     def run(self):
         target = self.targets.get_new_target(self, target_single_flag, ENERGY_GRAB)
         if not target:

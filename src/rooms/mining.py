@@ -153,7 +153,7 @@ class MiningMind:
         else:
             mining_per_tick = SOURCE_ENERGY_NEUTRAL_CAPACITY / ENERGY_REGEN_TIME
         produce_per_tick = mining_per_tick
-        target_mass = math.ceil(produce_per_tick / carry_per_tick) + 1
+        target_mass = int(math.ceil(produce_per_tick / carry_per_tick)) + 1
         self.room.store_cached_property(key, target_mass, 50)
         return target_mass
 
@@ -229,9 +229,7 @@ class MiningMind:
 
         # TODO: we should have something here to make sure that no roads can decay within one creep lifetime,
         # in case the constants change (I don't think it's possible with the current game constants).
-        needed_parts = max(
-            math.floor(max_damage / work_part_max_per_road / 2) * 2
-        )
+        needed_parts = int(math.floor(max_damage / work_part_max_per_road / 2) * 2)
 
         self.room.store_cached_property(key, needed_parts, CREEP_LIFE_TIME)
         return needed_parts

@@ -99,9 +99,9 @@ def would_be_emergency(room):
     """
     :type room: rooms.room_mind.RoomMind
     """
-    spawn_mass = room.carry_mass_of(role_spawn_fill) \
-                 + room.carry_mass_of(role_spawn_fill_backup) \
-                 + room.carry_mass_of(role_tower_fill)
+    spawn_mass = (room.carry_mass_of(role_spawn_fill)
+                  + room.carry_mass_of(role_spawn_fill_backup)
+                  + room.carry_mass_of(role_tower_fill))
     return spawn_mass <= 0 or (spawn_mass < room.get_target_total_spawn_fill_mass() / 2)
 
 
@@ -759,7 +759,7 @@ def cost_of_sections(base, num_sections, energy_available):
     if initial_cost + per_section_energy > energy_available:
         per_section_energy = lower_energy_per_section(base)
     if num_sections % 1 > 0:
-        return initial_cost + math.floor(num_sections) * per_section_energy \
+        return initial_cost + int(math.floor(num_sections)) * per_section_energy \
                + half_section_cost(base)
     else:
         return initial_section_cost(base) + num_sections * per_section_energy
@@ -771,7 +771,7 @@ def max_sections_of(room, base):
         energy = room.room.energyAvailable
     else:
         energy = room.room.energyCapacityAvailable
-    max_by_cost = floor((energy - initial_section_cost(base)) / energy_per_section(base))
+    max_by_cost = int(floor((energy - initial_section_cost(base)) / energy_per_section(base)))
     if max_by_cost == 0:
         max_by_cost = floor((energy - initial_section_cost(base)) / lower_energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
