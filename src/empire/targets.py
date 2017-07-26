@@ -25,6 +25,11 @@ _MAX_BUILDERS = 4
 _MAX_REPAIR_WORKFORCE = 10
 
 
+tmkey_targets_used = "targets_used"
+tmkey_targeters_using = "targeters_using"
+tmkey_workforce = "targets_workforce"
+tmkey_stealable = "targets_stealable"
+
 def _mass_count(name):
     # type: (str) -> int
     # set in spawning and role base.
@@ -105,26 +110,26 @@ class TargetMind:
     def __init__(self):
         if not Memory.targets:
             Memory.targets = {
-                "targets_used": {},
-                "targeters_using": {},
+                tmkey_targets_used: {},
+                tmkey_targeters_using: {},
                 "last_clear": Game.time,
                 "version": 1,
             }
-        self.mem = Memory.targets
+        self.mem = cast(Dict[str, Any], Memory.targets)
         if 'version' not in self.mem or self.mem.version < 1:
-            targeters = self.mem.targeters_using or {}
-            self.mem.targeters_using = update_targeters_memory_0_to_1(targeters)
+            targeters = self.mem[tmkey_targeters_using] or {}
+            self.mem[tmkey_targeters_using] = update_targeters_memory_0_to_1(targeters)
             self._recreate_all_from_targeters()
             self.mem.version = 1
             self.mem.last_clear = Game.time
-        if not self.mem.targets_used:
-            self.mem.targets_used = {}
-        if not self.mem.targets_workforce:
-            self.mem.targets_workforce = {}
-        if not self.mem.targeters_using:
-            self.mem.targeters_using = {}
-        if not self.mem.targets_stealable:
-            self.mem.targets_stealable = {}
+        if not self.mem[tmkey_targets_used]:
+            self.mem[tmkey_targets_used] = {}
+        if not self.mem[tmkey_workforce]:
+            self.mem[tmkey_workforce] = {}
+        if not self.mem[tmkey_targeters_using]:
+            self.mem[tmkey_targeters_using] = {}
+        if not self.mem[tmkey_stealable]:
+            self.mem[tmkey_stealable] = {}
         if (self.mem.last_clear or 0) + 1000 < Game.time:
             self._recreate_all_from_targeters()
             self.mem.last_clear = Game.time
@@ -149,28 +154,36 @@ class TargetMind:
         }
 
     def __get_targets(self):
-        return self.mem.targets_used
+        # type: () -> Dict[int, Dict[str, int]]
+        return self.mem[tmkey_targets_used]
 
     def __set_targets(self, value):
-        self.mem.targets_used = value
+        # type: (Dict[int, Dict[str, int]]) -> None
+        self.mem[tmkey_targets_used] = value
 
     def __get_targeters(self):
-        return self.mem.targeters_using
+        # type: () -> Dict[str, Dict[int, str]]
+        return self.mem[tmkey_targeters_using]
 
     def __set_targeters(self, value):
-        self.mem.targeters_using = value
+        # type: (Dict[str, Dict[int, str]]) -> None
+        self.mem[tmkey_targeters_using] = value
 
     def __get_targets_workforce(self):
-        return self.mem.targets_workforce
+        # type: () -> Dict[int, Dict[str, int]]
+        return self.mem[tmkey_workforce]
 
     def __set_targets_workforce(self, value):
-        self.mem.targets_workforce = value
+        # type: (Dict[int, Dict[str, int]]) -> None
+        self.mem[tmkey_workforce] = value
 
     def __get_reverse_targets(self):
-        return self.mem.targets_stealable
+        # type: () -> Dict[int, Dict[str, List[str]]]
+        return self.mem[tmkey_stealable]
 
     def __set_reverse_targets(self, value):
-        self.mem.targets_stealable = value
+        # type: (Dict[int, Dict[str, List[str]]]) -> None
+        self.mem[tmkey_stealable] = value
 
     targets = property(__get_targets, __set_targets)
     targeters = property(__get_targeters, __set_targeters)
