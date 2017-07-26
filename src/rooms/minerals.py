@@ -637,7 +637,7 @@ class MineralMind:
 
             return min(currently_have - 50 * 1000, max_so_far), 2
         elif minerals_to_keep_on_hand.includes(mineral):
-            return 0
+            return 0, 0
         else:
             if self.my_mineral_deposit_minerals().includes(mineral):
                 return min(currently_have, _KEEP_IN_TERMINAL_MY_MINERAL), 1
@@ -686,7 +686,7 @@ class MineralMind:
                 mineral_chosen = _.find(Object.keys(self.terminal.store),
                                         lambda r: r != RESOURCE_ENERGY and self.terminal.store[r] >= 100)
                 if not mineral_chosen:
-                    return
+                    return None, 0
                 amount = self.terminal.store[mineral_chosen]
                 cost = Game.market.calcTransactionCost(
                     amount, self.room.name, self.room.mem[rmem_key_empty_all_resources_into_room])
@@ -1179,7 +1179,7 @@ class MineralMind:
                     sites = cast(List[ConstructionSite], self.room.look_at(LOOK_CONSTRUCTION_SITES, mineral.pos))
                     if len(sites):
                         if not sites[0].my:
-                            sites[0].destroy()
+                            sites[0].remove()
                     else:
                         result = mineral.pos.createConstructionSite(STRUCTURE_EXTRACTOR)
                         if result != OK:

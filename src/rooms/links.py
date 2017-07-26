@@ -226,8 +226,8 @@ class LinkingMind:
                     elif mem.last_withdraw and (not mem.last_deposit or mem.last_withdraw > mem.last_deposit):
                         future_output_links.append({'link': link, 'amount': link.energy, 'priority': 10})
 
-        current_input_links.sort(None, key=lambda x: x.priority)
-        current_output_links.sort(None, key=lambda x: x.priority)
+        current_input_links.sort(key=lambda x: x.priority)
+        current_output_links.sort(key=lambda x: x.priority)
         if Memory.links_debug == self.room.name:
             if len(current_input_links):
                 print("Current Input: {}".format(

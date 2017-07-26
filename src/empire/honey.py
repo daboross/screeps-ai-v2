@@ -547,8 +547,8 @@ class HoneyTrails:
         if set_max_avoid(matrix, opts):
             return matrix.cost_matrix
 
-        is_origin_room = room_name == origin.room_name
-        is_dest_room = room_name == destination.room_name
+        is_origin_room = room_name == origin.roomName
+        is_dest_room = room_name == destination.roomName
 
         # IGNORE: Rampart that's mine, container
         def set_matrix(x, y, stored_type, planned, structure_type):

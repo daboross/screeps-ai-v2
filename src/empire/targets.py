@@ -200,8 +200,14 @@ class TargetMind:
             if old_target_id == target_id:
                 return  # everything beyond here would be redundant
             self.targets[ttype][old_target_id] -= 1
-            if len(self.targets[ttype][old_target_id]) <= 0:
+            if self.targets[ttype][old_target_id] <= 0:
                 del self.targets[ttype][old_target_id]
+            if ttype in self.targets_workforce and old_target_id in self.targets_workforce[ttype]:
+                self.targets_workforce[ttype][old_target_id] -= _mass_count(targeter_id)
+            if ttype in self.reverse_targets and old_target_id in self.reverse_targets[ttype]:
+                index = self.reverse_targets[ttype][old_target_id].indexOf(targeter_id)
+                if index > -1:
+                    self.reverse_targets[ttype][old_target_id].splice(index, 1)
 
         if ttype not in self.targets:
             self.targets[ttype] = {
@@ -541,7 +547,7 @@ class TargetMind:
                 ticks_to_repair = (structure.hitsMax - structure.hits) \
                                   / (creep.creep.getActiveBodyparts(WORK) * REPAIR_POWER)
                 if ticks_to_repair < 10 and distance < 3:
-                    return structure
+                    return structure.id
                 elif distance + ticks_to_repair < 15:
                     best = structure
                 if second_best:
@@ -554,16 +560,16 @@ class TargetMind:
                 if not current_workforce or current_workforce < current_max:
                     #     or current_workforce < smallest_num_builders + 1:
                     # Already priority sorted
-                    second_best = struct_id
+                    second_best = structure
                     # distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                     # if distance < closest_distance:
                     #     smallest_num_builders = current_workforce
                     #     closest_distance = distance
                     #     best_id = struct_id
         if best:
-            return best
+            return best.id
         else:
-            return second_best
+            return second_best.id
 
     def _find_new_big_repair_site(self, creep, max_hits):
         # type: (RoleBase, int) -> Optional[str]

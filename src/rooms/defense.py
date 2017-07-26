@@ -853,7 +853,7 @@ class RoomDefense:
                                                lambda s: s.structureType == STRUCTURE_WALL
                                                or s.structureType == STRUCTURE_RAMPART):
                             self.room.building.refresh_building_targets(True)
-                    elif wall.hits < self.room.get_min_sane_wall_hits:
+                    elif wall.hits < self.room.min_sane_wall_hits:
                         self.room.building.refresh_repair_targets(True)
                 self.room.building.get_construction_targets()
 

@@ -868,10 +868,10 @@ class ConstructionMind:
         })
         if path.incomplete:
             print("[{}][building] WARNING: Couldn't find full path near {} and away from {}!"
-                  .format(self.room.name, near, [x.pos for x in away_from]))
+                  .format(self.room.name, near, [x['pos'] for x in away_from]))
             if not len(path.path):
-                return
-        return path.path[len(path) - 1]
+                return None
+        return path.path[len(path.path) - 1]
 
     def place_depot_flag(self):
         # type: () -> None

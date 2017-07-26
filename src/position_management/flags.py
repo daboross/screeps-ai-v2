@@ -454,7 +454,7 @@ def find_flags_global_multitype_shared_primary(flag_types):
             shared_primary_color = definition[0]
         elif shared_primary_color != definition[0]:
             print('[flags][find_flags_global_multitype_shared_first] Called with diverse firsts! {}'.format(flag_types))
-            return None
+            return []
         secondary_colors.append(definition[1])
 
     result = []

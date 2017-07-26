@@ -148,7 +148,7 @@ def update_data_for_visible_rooms() -> None:
     """
     for name in Object.keys(Game.rooms):
         room = Game.rooms[name]
-        if not room.my:
+        if not room.controller or not room.controller.my:
             update_data(room)
 
 
@@ -158,7 +158,7 @@ def update_old_structure_data_for_visible_rooms() -> None:
     """
     for name in Object.keys(Game.rooms):
         room = Game.rooms[name]
-        if not room.my:
+        if not room.controller or not room.controller.my:
             if get_last_updated_tick(name) + 3000 < Game.time:
                 update_data(room)
 
