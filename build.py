@@ -5,12 +5,14 @@ import subprocess
 import sys
 import urllib.parse
 import urllib.request
+from argparse import ArgumentParser
 
 import base64
 import os
 import shutil
 
-transcrypt_arguments = ['-n', '-b', '-p', '.none']
+transcrypt_arguments = ['-n', '-p', '.none']
+transcrypt_clean_args = ['-n', '-b', '-p', '.none']
 
 
 class Configuration:
@@ -19,10 +21,12 @@ class Configuration:
     :type username: str
     :type password: str
     :type branch: str
+    :type url: str
     :type ptr: bool
+    :type clean_build: bool
     """
 
-    def __init__(self, base_dir, config_json):
+    def __init__(self, base_dir, config_json, clean_build=True):
         """
         :type base_dir: str
         :type config_json: dict[str, str | bool]
@@ -31,7 +35,10 @@ class Configuration:
         self.username = config_json.get('username') or config_json.get('email')
         self.password = config_json['password']
         self.branch = config_json.get('branch', 'default')
+        self.url = config_json.get('url', 'https://screeps.com')
         self.ptr = config_json.get('ptr', False)
+
+        self.clean_build = clean_build
 
 
 def load_config(base_dir):
@@ -39,12 +46,19 @@ def load_config(base_dir):
     :type base_dir: str
     :rtype: Configuration
     """
-    config_file = os.path.join(base_dir, 'config.json')
+    parser = ArgumentParser()
+    parser.add_argument("-c", "--config-file", type=str, default='config.json',
+                        help="file to load configuration from")
+    parser.add_argument("-d", "--dirty-build", action='store_true',
+                        help="if true, use past built files for files who haven't changed")
+    args = parser.parse_args()
+
+    config_file = os.path.join(base_dir, args.config_file)
 
     with open(os.path.join(base_dir, config_file)) as f:
         config_json = json.load(f)
 
-    return Configuration(base_dir, config_json)
+    return Configuration(base_dir, config_json, clean_build=not args.dirty_build)
 
 
 def run_transcrypt(config):
@@ -54,7 +68,14 @@ def run_transcrypt(config):
     transcrypt_executable = os.path.join(config.base_dir, 'env', 'bin', 'transcrypt')
     source_main = os.path.join(config.base_dir, 'src', 'main.py')
 
-    args = [transcrypt_executable] + transcrypt_arguments + [source_main]
+    if config.clean_build:
+        cmd_args = transcrypt_clean_args
+    else:
+
+        cmd_args = transcrypt_arguments
+
+    args = [transcrypt_executable] + cmd_args + [source_main]
+
     source_dir = os.path.join(config.base_dir, 'src')
 
     ret = subprocess.Popen(args, cwd=source_dir).wait()
@@ -115,9 +136,9 @@ def upload(config):
             module_files[os.path.splitext(file_name)[0]] = f.read()
 
     if config.ptr:
-        post_url = 'https://screeps.com/ptr/api/user/code'
+        post_url = '{}/ptr/api/user/code'.format(config.url)
     else:
-        post_url = 'https://screeps.com/api/user/code'
+        post_url = '{}/api/user/code'.format(config.url)
 
     post_data = json.dumps({'modules': module_files, 'branch': config.branch}).encode('utf-8')
 
@@ -129,7 +150,11 @@ def upload(config):
     }
     request = urllib.request.Request(post_url, post_data, headers)
 
-    print("uploading files to branch {}{}...".format(config.branch, " on PTR" if config.ptr else ""))
+    if config.url != 'https://screeps.com':
+        print(
+            "uploading files to {}, branch {}{}...".format(config.url, config.branch, " on PTR" if config.ptr else ""))
+    else:
+        print("uploading files to branch {}{}...".format(config.branch, " on PTR" if config.ptr else ""))
 
     # any errors will be thrown.
     with urllib.request.urlopen(request) as response:

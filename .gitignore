@@ -94,6 +94,7 @@ env
 .screeps-password
 .screeps-email
 config.json
+config2.json
 
 # Misc files #
 ##############
