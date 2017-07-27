@@ -275,7 +275,7 @@ class SquadKitingRangedAttack(SquadDrone):
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
-                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room) <= 5)):
+                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 5):
                 hostiles_nearby = _.filter(hostiles_nearby, 'offensive')
             nearby = _.filter(hostiles_nearby,
                               lambda h: movement.chebyshev_distance_room_pos(

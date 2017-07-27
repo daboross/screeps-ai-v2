@@ -26,7 +26,7 @@ def kiting_cost_matrix(room_name, target):
     cache = volatile_cache.mem("kiting_cost_matrix")
     if cache.has(room_name):
         return cache.get(room_name)
-    if hostile_utils.enemy_using_room(room_name):
+    if hostile_utils.enemy_using_room(room_name) and room_name != target.pos.roomName:
         return False
     # TODO: some of this is duplicated in honey.HoneyTrails
 
@@ -202,7 +202,7 @@ class KitingOffense(MilitaryBase):
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
-                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room) <= 5)):
+                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 5):
                 hostiles_nearby = _.filter(hostiles_nearby, 'offensive')
             nearby = _.filter(hostiles_nearby,
                               lambda h: movement.chebyshev_distance_room_pos(
@@ -214,7 +214,7 @@ class KitingOffense(MilitaryBase):
             )
             closest_pos = positions.deserialize_xy_to_pos(closest.pos, closest.room)
             harmless = not _.some(nearby, lambda x: x.attack or x.ranged)
-            ranged = _.some(nearby, lambda x: x.ranged)
+            ranged = _.some(nearby, lambda x: x.ranged and x.ranged > x.attack)
             only_ranged = not _.some(nearby,
                                      lambda h: movement.chebyshev_distance_room_pos(
                                          self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 4 and h.attack)
@@ -241,7 +241,9 @@ class KitingOffense(MilitaryBase):
                 harmless = not _.some(nearby,
                                       lambda h: h.hasActiveBodyparts(ATTACK) or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
-                ranged = _.some(nearby, lambda h: h.hasActiveBodyparts(RANGED_ATTACK))
+                ranged = _.some(nearby, lambda h: h.hasActiveBodyparts(RANGED_ATTACK)
+                                                  and h.getActiveBodyparts(RANGED_ATTACK)
+                                                      > h.getActiveBodyparts(ATTACK))
                 only_ranged = not _.some(nearby,
                                          lambda h:
                                          movement.chebyshev_distance_room_pos(self.pos, h.pos) <= 4
