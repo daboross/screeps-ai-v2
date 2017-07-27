@@ -857,6 +857,171 @@ class ConstructionMind:
 
         self.room.store_cached_property("placed_ramparts", 1, random.randint(500, 600))
 
+    def finish_bubbling(self, to_protect):
+        # type: (str) -> None
+        volatile = volatile_cache.volatile()
+
+        site_count = len(Game.constructionSites)
+        sites_placed_now = volatile.get("construction_sites_placed") or 0
+
+        if site_count + sites_placed_now >= MAX_CONSTRUCTION_SITES * 0.9:
+            return
+
+        any_found = False
+
+        for i in range(0, len(to_protect)):
+            xy = robjs.get_str_codepoint(to_protect, i)
+            x = xy & 0x3F
+            y = xy >> 6 & 0x3F
+            if Game.map.getTerrainAt(x, y, self.room.name)[0] != 'w' \
+                    and not _.find(self.room.look_at(LOOK_STRUCTURES, x, y), {'structureType': STRUCTURE_RAMPART}):
+                self.room.room.createConstructionSite(x, y, STRUCTURE_RAMPART)
+                sites_placed_now += 1
+                any_found = True
+                if site_count + sites_placed_now >= MAX_CONSTRUCTION_SITES:
+                    break
+
+        volatile.set("construction_sites_placed", sites_placed_now)
+
+        if any_found:
+            self.refresh_building_targets()
+            self.room.store_cached_property("bubble_wrapped", 3, random.randint(400, 500))
+        else:
+            self.room.store_cached_property("bubble_wrapped", 4, random.randint(40000, 45000))
+
+    def bubble_wrapping(self) -> Optional[str]:
+        return self.room.get_cached_property('to_bubble_wrap')
+
+    def bubble_wrap(self):
+        # type: () -> None
+        last_run = self.room.get_cached_property("bubble_wrapped")
+        if last_run:
+            if _.isString(last_run):
+                self.finish_bubbling(last_run)
+            return
+        if self.room.rcl < 3 or not len(self.room.defense.towers()):
+            self.room.store_cached_property("bubble_wrapped", 1, 100)
+            return
+        if len(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART)):
+            self.room.store_cached_property("bubble_wrapped", 2, 40000)
+            return
+
+        pre_calculated = self.room.get_cached_property("to_bubble_wrap")
+        if pre_calculated:
+            self.finish_bubbling(pre_calculated)
+            return
+
+        # north, east, south, west
+        groups = [[], [], [], []]  # type: List[List[List[int]]]
+        current_group = [None, None, None, None]  # type: List[List[int]]
+
+        for x in range(0, 50):
+            if Game.map.getTerrainAt(x, 0, self.room.name)[0] == 'w':
+                if current_group[0]:
+                    groups[0].append(current_group[0])
+                    current_group[0] = None
+            else:
+                if current_group[0]:
+                    current_group[0].push(x)
+                else:
+                    current_group[0] = [x]
+            if Game.map.getTerrainAt(x, 49, self.room.name)[0] == 'w':
+                if current_group[2]:
+                    groups[2].append(current_group[2])
+                    current_group[2] = None
+            else:
+                if current_group[2]:
+                    current_group[2].push(x)
+                else:
+                    current_group[2] = [x]
+        for y in range(0, 50):
+            if Game.map.getTerrainAt(0, y, self.room.name)[0] == 'w':
+                if current_group[3]:
+                    groups[3].append(current_group[3])
+                    current_group[3] = None
+            else:
+                if current_group[0]:
+                    current_group[0].push(y)
+                else:
+                    current_group[0] = [y]
+            if Game.map.getTerrainAt(49, y, self.room.name)[0] == 'w':
+                if current_group[1]:
+                    groups[1].append(current_group[1])
+                    current_group[1] = None
+            else:
+                if current_group[1]:
+                    current_group[1].push(y)
+                else:
+                    current_group[1] = [y]
+
+        to_protect = []
+
+        def add(x, y):
+            # type: (int, int) -> None
+            to_protect.append(String.fromCodePoint(x | y << 6))
+
+        for group in groups[0]:
+            first_x = group[0]
+            add(first_x - 2, 1)
+            add(first_x - 2, 2)
+            add(first_x - 1, 2)
+            y = 2
+            for x in group:
+                add(x, y)
+            last_x = group[len(group) - 1]
+            add(last_x + 1, 2)
+            add(last_x + 2, 2)
+            add(last_x + 2, 1)
+        for group in groups[1]:
+            first_y = group[0]
+            add(48, first_y - 2)
+            add(47, first_y - 2)
+            add(47, first_y - 1)
+            x = 47
+            for y in group:
+                add(x, y)
+            last_y = group[len(group) - 1]
+            add(47, last_y + 1)
+            add(47, last_y + 2)
+            add(48, last_y + 2)
+        for group in groups[2]:
+            first_x = group[0]
+            add(first_x - 2, 48)
+            add(first_x - 2, 47)
+            add(first_x - 1, 47)
+            y = 47
+            for x in group:
+                add(x, y)
+            last_x = group[len(group) - 1]
+            add(last_x + 1, 47)
+            add(last_x + 2, 47)
+            add(last_x + 2, 48)
+        for group in groups[3]:
+            first_y = group[0]
+            add(1, first_y - 2)
+            add(2, first_y - 2)
+            add(2, first_y - 1)
+            x = 2
+            for y in group:
+                add(x, y)
+            last_y = group[len(group) - 1]
+            add(2, last_y + 1)
+            add(2, last_y + 2)
+            add(1, last_y + 2)
+
+        to_store = ''.join(to_protect)
+        self.room.store_cached_property("to_bubble_wrap", to_store, random.randint(40000, 45000))
+        self.finish_bubbling(to_store)
+
+    def re_bubble_wrap(self):
+        # type: () -> None
+        self.room.expire_property_next_tick('bubble_wrapped')
+
+    def re_calc_bubble_wrap(self):
+        # type: () -> None
+        self.room.expire_property_next_tick('bubble_wrapped')
+        self.room.expire_property_next_tick('to_bubble_wrap')
+
     def re_place_home_ramparts(self):
         # type: () -> None
         self.room.expire_property_next_tick('placed_ramparts')

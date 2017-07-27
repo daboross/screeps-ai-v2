@@ -119,7 +119,20 @@ def _find_room_owner(room: Room) -> Optional[StoredEnemyRoomOwner]:
     if controller:
         if controller.owner and not controller.my:
             name = controller.owner.username
-            state = StoredEnemyRoomState.FULLY_FUNCTIONAL
+            if (len(room.find(FIND_HOSTILE_STRUCTURES, {
+                'filter': {
+                    'owner': {'username': name},
+                    'structureType': STRUCTURE_SPAWN
+                }
+            })) and len(room.find(FIND_HOSTILE_STRUCTURES, {
+                'filter': {
+                    'owner': {'username': name},
+                    'structureType': STRUCTURE_TOWER
+                }
+            }))):
+                state = StoredEnemyRoomState.FULLY_FUNCTIONAL
+            else:
+                state = StoredEnemyRoomState.OWNED_DEAD
         elif controller.reservation and controller.reservation.username != get_my_username():
             name = controller.reservation.username
             state = StoredEnemyRoomState.RESERVED

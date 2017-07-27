@@ -171,6 +171,9 @@ def run_room(targets, creeps_skipped, room):
         room.building.place_home_ramparts()
         records.finish_record('building.ramparts')
         records.start_record()
+        room.building.bubble_wrap()
+        records.finish_main_record('building.bubble-wrap')
+        records.start_record()
         room.squads.run()
         records.finish_record('squads.run')
         for spawn in room.spawns:
