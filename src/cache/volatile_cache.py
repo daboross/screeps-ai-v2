@@ -14,6 +14,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _volatile_memory = None
 _tick_stored_for = 0

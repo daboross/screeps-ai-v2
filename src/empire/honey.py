@@ -22,6 +22,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _path_cached_data_key_metadata = 'm'
 _path_cached_data_key_full_path = 'full'

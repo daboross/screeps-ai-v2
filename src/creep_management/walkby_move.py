@@ -14,6 +14,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 IDLE_ABOUT = 6
 MOVE_THEN_WORK = 5

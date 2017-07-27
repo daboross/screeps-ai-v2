@@ -21,6 +21,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def is_room_mostly_safe(room_name):

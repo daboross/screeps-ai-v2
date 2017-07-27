@@ -1,4 +1,4 @@
-from typing import Any, Callable, Union
+from typing import Any
 
 
-def __pragma__(*args: Any) -> Union[None, Callable]: ...
+def __pragma__(*args: Any) -> Any: ...

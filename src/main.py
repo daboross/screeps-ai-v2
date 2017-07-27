@@ -28,6 +28,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 # Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
 # code works correctly.

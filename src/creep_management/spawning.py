@@ -19,6 +19,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, WORK, MOVE, MOVE],

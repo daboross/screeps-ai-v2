@@ -23,6 +23,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _SINGLE_MINERAL_FULFILLMENT_MAX = int(math.floor(TERMINAL_CAPACITY / 6))
 _SELL_ORDER_SIZE = 10 * 1000
