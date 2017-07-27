@@ -50,7 +50,9 @@ def _get_mem():
         return cast(_Memory, mem)
 
 
+__pragma__('skip')
 _MineData = Union[Flag, Tuple[Flag, StructureSpawn]]
+__pragma__('noskip')
 
 
 def _parse_mine_data(mine_data):
@@ -92,7 +94,7 @@ def register_new_mining_path(mine_data, raw_path):
     # type: (_MineData, List[RoomPosition]) -> None
     mine_name, spawn_id = _parse_mine_data(mine_data)
     if mine_name is None or spawn_id is None:
-        raise ValueError("Invalid mine data ({}): no name/id".format(mine_data))
+        raise AssertionError("Invalid mine data ({}): no name/id".format(mine_data))
     serialized_string = []
     if len(raw_path):
         last_room = raw_path[0].roomName

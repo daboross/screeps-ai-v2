@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Union, cast
+
 from cache import context, volatile_cache
 from constants import PYFIND_HURT_CREEPS, RAID_OVER, RANGED_DEFENSE, target_single_flag
 from creeps.behaviors.military import MilitaryBase
@@ -19,7 +21,8 @@ __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
 
-def kiting_cost_matrix(room_name):
+def kiting_cost_matrix(room_name, target):
+    # type: (str, Flag) -> Union[PathFinder.CostMatrix, bool]
     cache = volatile_cache.mem("kiting_cost_matrix")
     if cache.has(room_name):
         return cache.get(room_name)
@@ -56,7 +59,7 @@ def kiting_cost_matrix(room_name):
 
     if room:
         any_lairs = False
-        for struct in room.find(FIND_STRUCTURES):
+        for struct in cast(List[OwnedStructure], room.find(FIND_STRUCTURES)):
             if struct.structureType == STRUCTURE_ROAD:
                 cost_matrix.set(struct.pos.x, struct.pos.y, 1)
             elif struct.structureType != STRUCTURE_CONTAINER and (struct.structureType != STRUCTURE_RAMPART
@@ -119,9 +122,10 @@ def kiting_cost_matrix(room_name):
     return cost_matrix
 
 
-def kiting_away_raw_path(origin, targets):
+def kiting_away_raw_path(origin, targets, final_target):
+    # type: (RoomPosition,  Union[Dict[str, Any], List[Dict[str, Any]]], Flag) -> List[RoomPosition]
     return PathFinder.search(origin, targets, {
-        "roomCallback": kiting_cost_matrix,
+        "roomCallback": lambda room_name: kiting_cost_matrix(room_name, final_target),
         "flee": True,
         "maxRooms": 8,
         "swampCost": 25,
@@ -133,13 +137,13 @@ _MOVE_TO_OPTIONS = {'reusePath': 2}
 
 class KitingOffense(MilitaryBase):
     def boost(self):
-        labs = _(self.home.minerals.labs()).filter(lambda l: l.mineralAmount and l.energy)
+        labs = _.filter(self.home.minerals.labs(), lambda l: l.mineralAmount and l.energy)
         if not len(labs):
             self.memory.boosted = 2
             return False
 
         if self.memory.boosted == 0:
-            lab = labs.find(lambda l: l.mineralType == RESOURCE_CATALYZED_KEANIUM_ALKALIDE)
+            lab = _.find(labs, lambda l: l.mineralType == RESOURCE_CATALYZED_KEANIUM_ALKALIDE)
             if lab:
                 if self.pos.isNearTo(lab):
                     result = lab.boostCreep(self.creep)
@@ -155,7 +159,7 @@ class KitingOffense(MilitaryBase):
                 self.memory.boosted = 1
 
         if self.memory.boosted == 1:
-            lab = labs.find(lambda l: l.mineralType == RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE)
+            lab = _.find(labs, lambda l: l.mineralType == RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE)
             if lab:
                 if self.pos.isNearTo(lab):
                     result = lab.boostCreep(self.creep)
@@ -187,14 +191,14 @@ class KitingOffense(MilitaryBase):
                                 self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 3)):
             self.creep.heal(self.creep)
 
-        marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)
+        marker_flag = cast(Flag, self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE))
         if marker_flag is None:
             if self.pos.roomName == self.home.name and len(flags.find_flags(self.home, RAID_OVER)):
                 if len(hostiles_nearby) or self.creep.hits < self.creep.hitsMax:
                     self.creep.heal(self.creep)
                 return False
             else:
-                marker_flag = {'pos': self.find_depot()}
+                marker_flag = cast(Flag, {'pos': self.find_depot()})
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
@@ -233,7 +237,7 @@ class KitingOffense(MilitaryBase):
             if len(enemies):
                 closest = _.min(enemies, lambda h: movement.chebyshev_distance_room_pos(self.pos, h.pos))
                 closest_pos = closest.pos
-                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 5)
+                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h.pos, self.pos) <= 5)
                 harmless = not _.some(nearby,
                                       lambda h: h.hasActiveBodyparts(ATTACK) or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
@@ -256,7 +260,7 @@ class KitingOffense(MilitaryBase):
             del self.memory.last_enemy_pos
             # self.creep.say("🐾 💚 🐾", True)
             if self.pos.roomName == marker_flag.pos.roomName and self.creep.hits >= self.creep.hitsMax:
-                hurt = self.room.find(PYFIND_HURT_CREEPS)
+                hurt = cast(List[Creep], self.room.find(PYFIND_HURT_CREEPS))
                 if len(hurt):
                     damaged = _.min(hurt, lambda p: movement.chebyshev_distance_room_pos(p.pos, self.pos))
                     if self.pos.isNearTo(damaged):
@@ -284,7 +288,7 @@ class KitingOffense(MilitaryBase):
                         self.memory.checkpoint = self.home.spawn or movement.find_an_open_space(self.home.name)
 
                     self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint),
-                                              marker_flag, {'range': 1})
+                                              marker_flag.pos, {'range': 1})
                     self.creep.say("G1")
                 elif distance >= 1:
                     self.move_to(marker_flag, _MOVE_TO_OPTIONS)
@@ -293,7 +297,7 @@ class KitingOffense(MilitaryBase):
                     self.basic_move_to(marker_flag)
                     self.creep.say("G3")
             return False
-        closest_creep = Game.getObjectById(closest.id)
+        closest_creep = cast(Creep, Game.getObjectById(closest.id))
         min_distance = movement.chebyshev_distance_room_pos(closest_pos, self.pos)
         if Game.time % 2:
             self.creep.say("{},{}: {}".format(closest_pos.x, closest_pos.y, min_distance))
@@ -312,7 +316,6 @@ class KitingOffense(MilitaryBase):
             if mass_attack:
                 self.creep.rangedMassAttack()
             else:
-                closest_creep = Game.getObjectById(closest.id)
                 self.creep.rangedAttack(closest_creep)
 
         if (min_distance <= 6) and self.pos.roomName != closest_pos.roomName:
@@ -347,7 +350,8 @@ class KitingOffense(MilitaryBase):
                 [{
                     'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
                     'range': 10,
-                } for h in hostiles_nearby]
+                } for h in hostiles_nearby],
+                marker_flag
             )
             if kiting_path is True:
                 # errored
@@ -362,5 +366,5 @@ class KitingOffense(MilitaryBase):
         marker_flag = self.targets.get_new_target(self, target_single_flag, RANGED_DEFENSE)
         if not marker_flag:
             return -1
-        path_len = self.get_military_path_length(self.home.spawn, marker_flag)
+        path_len = self.get_military_path_length(self.home.spawn.pos, marker_flag)
         return path_len * 1.05 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 20

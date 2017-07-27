@@ -83,7 +83,7 @@ class JSON:
         pass
 
     @classmethod
-    def stringify(cls, v: Any) -> str:
+    def stringify(cls, v: Any, _filter: Any = None, indent: int = 0) -> str:
         pass
 
 

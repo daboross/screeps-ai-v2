@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, TYPE_CHECKING, cast, Optional, List, Tuple
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from cache import volatile_cache
 from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
@@ -131,20 +131,20 @@ class MineralMind:
         if self.has_no_terminal_or_storage():
             return
         __pragma__('skip')
-        self._target_mineral_counts = undefined
-        self._total_resource_counts = undefined
-        self._estimate_energy = undefined
-        self._estimate_non_energy = undefined
-        self._next_mineral_to_empty = undefined
-        self._removing_from_terminal = undefined
-        self._adding_to_terminal = undefined
-        self._my_mineral_deposit_minerals = undefined
-        self._minerals_to_sell = undefined
-        self._labs = undefined
-        self._labs_for = undefined
-        self._lab_targets = undefined
-        self._labs_for_mineral = undefined
-        self._energy_needed_in_labs = undefined
+        self._target_mineral_counts = undefined  # type: Optional[Dict[str, int]]
+        self._total_resource_counts = undefined  # type: Optional[Dict[str, int]]
+        self._estimate_energy = undefined  # type: Optional[int]
+        self._estimate_non_energy = undefined  # type: Optional[int]
+        self._next_mineral_to_empty = undefined  # type: Optional[Tuple[Optional[str], int]]
+        self._removing_from_terminal = undefined  # type: Optional[List[Tuple[str, int]]]
+        self._adding_to_terminal = undefined  # type: Optional[List[Tuple[str, int]]]
+        self._my_mineral_deposit_minerals = undefined  # type: Optional[List[str]]
+        self._minerals_to_sell = undefined  # type: Optional[List[str]]
+        self._labs = undefined  # type: Optional[List[StructureLab]]
+        self._labs_for = undefined  # type: Optional[Dict[str, List[StructureLab]]]
+        self._lab_targets = undefined  # type: Optional[List[Tuple[StructureLab, str, int]]]
+        self._labs_for_mineral = undefined  # type: Optional[Dict[str, List[Tuple[StructureLab, int]]]]
+        self._energy_needed_in_labs = undefined  # type: Optional[int]
         __pragma__('noskip')
 
     def ro_mem(self):
@@ -241,7 +241,7 @@ class MineralMind:
         cached = self.room.get_cached_property('storage_terminal_access_pos')
         if cached is not None:
             return cached or None
-        in_between = movement.find_clear_inbetween_spaces(self.room, self.storage, self.terminal)
+        in_between = movement.find_clear_inbetween_spaces(self.room, self.storage.pos, self.terminal.pos)
         if len(in_between) > 0:
             self.room.store_cached_property('storage_terminal_access_pos', in_between, 1000)
             return in_between
@@ -361,10 +361,10 @@ class MineralMind:
         # type: () -> Dict[str, int]
         if self._target_mineral_counts is not undefined:
             return self._target_mineral_counts
-        target_counts = {}
+        target_counts = {}  # type: Dict[str, int]
 
         counts = self.get_total_room_resource_counts()
-        priorities = {}
+        priorities = {}  # type: Dict[int, List[str]]
         for rtype, have in _.pairs(counts):
             if have > 0:
                 target, priority = self._terminal_target_for_resource(rtype, have)
@@ -485,8 +485,6 @@ class MineralMind:
         # type: () -> Dict[str, List[Tuple[StructureLab, int]]]
         """
         Get labs per mineral
-        :rtype: dict[str, (StructureLab, int)]
-        :return:
         """
         if self._labs_for_mineral is not undefined:
             return self._labs_for_mineral
@@ -983,7 +981,7 @@ class MineralMind:
                               .format(self.room.name, best_order.id, amount, self.room.name, result))
 
     def fulfill_now(self, mineral, target_obj):
-        # type: (str, _Memory) -> None
+        # type: (str, _Memory) -> int
         if self.terminal.store[mineral] < 1000 <= target_obj.amount:
             self.log("WARNING: fulfill_now() called with mineral: {}, target: {},"
                      "but {} < {}".format(mineral, JSON.stringify(target_obj), self.terminal.store[mineral], 1000))

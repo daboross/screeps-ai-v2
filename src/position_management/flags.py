@@ -124,6 +124,7 @@ from jstools.screeps import *
 from utilities import naming
 
 if TYPE_CHECKING:
+    from jstools.js_set_map import JSMap
     from rooms.room_mind import RoomMind
     from empire.hive import HiveMind
     from rooms.defense import RoomDefense
@@ -253,10 +254,10 @@ _last_checked_flag_len = 0
 
 _cache_refresh_time = 0
 
-_flag_type_to_flags = new_map()
-_flag_color_to_flag_secondary_color_to_flags = new_map()
-_room_name_to_flag_type_to_flags = new_map()
-_room_name_to_color_to_secondary_to_flags = new_map()
+_flag_type_to_flags = new_map()  # type: JSMap[int, List[Flag]]
+_flag_color_to_flag_secondary_color_to_flags = new_map()  # type: JSMap[int, JSMap[int, List[Flag]]]
+_room_name_to_flag_type_to_flags = new_map()  # type: JSMap[str, JSMap[int, List[Flag]]]
+_room_name_to_color_to_secondary_to_flags = new_map()  # type: JSMap[str, JSMap[int, JSMap[int, List[Flag]]]]
 
 _ALL_OF_PRIMARY = '__all__'
 
@@ -353,10 +354,10 @@ def move_flags():
             print("[flags] Moving flag {} to {}. Result: {}".format(name, pos, result))
         del Memory.flags_to_move
 
-
+__pragma__('skip')
 _HasRoom = Union[Room, RoomMind, RoomDefense]
 _IsRoom = Union[_HasRoom, str]
-
+__pragma__('noskip')
 
 def __get_room_name(room_arg):
     # type: (_IsRoom) -> str
@@ -520,7 +521,7 @@ def __create_flag(position, flag_type, primary, secondary, name_prefix):
         known_position = Game.spawns[Object.keys(Game.spawns)[0]].pos
         flag_name = known_position.createFlag(name, primary, secondary)
         if Memory.flags_to_move:
-            Memory.flags_to_move.push((flag_name, position))
+            cast(List, Memory.flags_to_move.push((flag_name, position)))
         else:
             Memory.flags_to_move = [(flag_name, position)]
         return flag_name
@@ -579,7 +580,7 @@ def look_for(room, position, main, sub=None):
     :type sub: int
     """
     if not room.look_at:
-        raise ValueError("Invalid room argument")
+        raise AssertionError("Invalid room argument")
     if sub:
         return cast(Optional[Flag], _.find(room.look_at(LOOK_FLAGS, position),
                                            lambda f: f.color == main_to_flag_primary[main] and

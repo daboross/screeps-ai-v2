@@ -8,7 +8,7 @@ from creep_management import mining_paths
 from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
-from utilities import movement, positions
+from utilities import movement, positions, robjs
 from utilities.movement import dxdy_to_direction
 
 if TYPE_CHECKING:
@@ -794,6 +794,19 @@ class HoneyTrails:
         else:
             enemy_ok = False
 
+        if not isinstance(origin, RoomPosition):
+            try:
+                to_str = str(origin)
+            except:
+                to_str = "<non-displayable>"
+            raise AssertionError("Struct {} is not a room position! ({})".format(to_str, JSON.stringify(origin)))
+        if not isinstance(destination, RoomPosition):
+            try:
+                to_str = str(destination)
+            except:
+                to_str = "<non-displayable>"
+            raise AssertionError("Struct {} is not a room position! ({})".format(to_str, JSON.stringify(destination)))
+
         result = PathFinder.search(origin, {"pos": destination, "range": pf_range}, {
             "plainCost": plain_cost,
             "swampCost": swamp_cost,
@@ -894,6 +907,9 @@ class HoneyTrails:
     def get_serialized_path_obj(self, origin, destination, opts=None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]
 
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         if opts and 'keep_for' in opts:
             keep_for = opts["keep_for"]
         else:
@@ -951,10 +967,13 @@ class HoneyTrails:
 
     def completely_repath_and_get_raw_path(self, origin, destination, opts):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> List[RoomPosition]
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         if "keep_for" in opts:
             keep_for = opts["keep_for"]
         else:
-            raise ValueError("force_complete_repath_and_get_raw_path requires an options object with a"
+            raise AssertionError("force_complete_repath_and_get_raw_path requires an options object with a"
                              " keep_for property")
 
         cache_key = get_global_cache_key(origin, destination, opts)
@@ -973,14 +992,17 @@ class HoneyTrails:
 
     def find_serialized_path(self, origin, destination, opts):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> Optional[str]
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         if opts and "current_room" in opts:
             current_room = opts["current_room"]
             if current_room:
                 current_room = current_room.name or current_room
             else:
-                raise ValueError("find_serialized_path requires a current_room argument.")
+                raise AssertionError("find_serialized_path requires a current_room argument.")
         else:
-            raise ValueError("find_serialized_path requires a current_room argument.")
+            raise AssertionError("find_serialized_path requires a current_room argument.")
 
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
@@ -991,14 +1013,17 @@ class HoneyTrails:
 
     def find_path(self, origin, destination, opts):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> List[_PathPos]
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         if "current_room" in opts:
             current_room = opts["current_room"]
             if current_room:
                 current_room = current_room.name or current_room
             else:
-                raise ValueError("find_path requires a current_room argument.")
+                raise AssertionError("find_path requires a current_room argument.")
         else:
-            raise ValueError("find_path requires a current_room argument.")
+            raise AssertionError("find_path requires a current_room argument.")
 
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
@@ -1024,6 +1049,8 @@ class HoneyTrails:
         Gets a list of room positions in the path, with guaranteed order. This is retrieved from cached memory, but a
         new list to return is created each call, and each RoomPosition is created fresh each call.
         """
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
 
         path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
@@ -1046,6 +1073,9 @@ class HoneyTrails:
         Gets a list of serialized path segments in order for the path from origin to destination.
         :rtype: list[(str, str)]
         """
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         path_obj = self.get_serialized_path_obj(origin, destination, opts)
 
         result = []
@@ -1060,6 +1090,9 @@ class HoneyTrails:
 
     def find_path_length(self, origin, destination, opts=None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> int
+        origin = robjs.pos(origin)
+        destination = robjs.pos(destination)
+
         serialized_path_obj = self.get_serialized_path_obj(origin, destination, opts)
         # TODO: should be we accounting for the path containing two position in the case of edge positions? yes!
 

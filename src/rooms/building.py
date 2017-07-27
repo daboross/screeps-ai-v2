@@ -11,7 +11,7 @@ from empire import honey
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
-from utilities import movement, positions
+from utilities import movement, positions, robjs
 
 if TYPE_CHECKING:
     from rooms.room_mind import RoomMind
@@ -655,9 +655,9 @@ class ConstructionMind:
                 room = hive.get_room(room_name)
                 path = Room.deserializePath(serialized_obj[room_name])
                 if room_name == not_near_end_of:
-                    path = path.slice(0, -2)
+                    path = robjs.slice_list(path, 0, -2)
                 if room_name == not_near_start_of:
-                    path = path.slice(2)
+                    path = robjs.slice_list(path, 2)
                 for position in path:
                     xy_key = positions.serialize_pos_xy(position)
                     if checked_here.has(xy_key):
@@ -685,13 +685,14 @@ class ConstructionMind:
                 'keep_for': min_repath_mine_roads_every * 2,
             })
         else:
-            route_to_mine = honey.get_serialized_path_obj(mine_flag.pos, deposit_point, {
+            route_to_mine = honey.get_serialized_path_obj(mine_flag.pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-            check_route(route_to_mine, (mine_flag.pos or mine_flag).roomName, None)
+            mine_flag_pos = cast(Flag, mine_flag).pos or cast(RoomPosition, mine_flag)
+            check_route(route_to_mine, mine_flag_pos.roomName, None)
 
-            all_positions = honey.list_of_room_positions_in_path(mine_flag.pos, deposit_point, {
+            all_positions = honey.list_of_room_positions_in_path(mine_flag_pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -714,7 +715,7 @@ class ConstructionMind:
                 else:
                     no_pave_end = None
             else:
-                closest = mine_flag.pos or mine_flag
+                closest = cast(Flag, mine_flag).pos or cast(RoomPosition, mine_flag)
                 no_pave_end = closest.roomName
             if closest.isNearTo(spawn):
                 continue
@@ -807,8 +808,8 @@ class ConstructionMind:
             self.room.store_cached_property("placed_ramparts", "lower_rcl", 20)
             return
         if _(self.get_construction_targets()).concat(self.get_repair_targets()) \
-                .map(lambda x: Game.getObjectById(x)).sum(
-            lambda c: c and c.structureType == STRUCTURE_RAMPART or 0) >= 3:
+                .map(lambda x: Game.getObjectById(x)) \
+                .sum(lambda c: c and c.structureType == STRUCTURE_RAMPART or 0) >= 3:
             self.room.store_cached_property("placed_ramparts", "existing_sites", 20)
             return
 

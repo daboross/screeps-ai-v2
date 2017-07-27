@@ -127,7 +127,7 @@ class WallDefender(RoleBase):
             self.log('no new target! target: {}'.format(target))
             return
 
-        nearby_enemies = self.room.look_for_in_area_around(LOOK_CREEPS, self, 1)
+        nearby_enemies = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
 
         if len(nearby_enemies):
             biggest_threat = _.max(nearby_enemies, lambda x: self.home.defense.danger_level(x.creep))

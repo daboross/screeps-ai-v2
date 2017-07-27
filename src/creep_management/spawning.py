@@ -215,7 +215,7 @@ def run(room, spawn):
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.name, filled, energy))
         return
 
-    descriptive_level = None
+    descriptive_level = None # type: Any
 
     if base is creep_base_1500miner:
         parts = []
@@ -645,9 +645,9 @@ def validate_role(role_obj):
     if role_obj is None:
         return
     if not role_obj[roleobj_key_role]:
-        raise __new__(ValueError("Invalid role: no .role property"))
+        raise AssertionError("Invalid role: no .role property")
     if not role_obj[roleobj_key_base]:
-        raise __new__(ValueError("Invalid role: no .base property"))
+        raise AssertionError("Invalid role: no .base property")
     if not role_obj[roleobj_key_num_sections]:
         role_obj[roleobj_key_num_sections] = Infinity
     if roleobj_key_replacing in role_obj and not role_obj[roleobj_key_replacing]:

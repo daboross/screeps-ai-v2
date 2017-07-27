@@ -1,10 +1,10 @@
 import math
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, cast
 
 from creeps.base import RoleBase
 from empire import honey
 from jstools.screeps import *
-from utilities import movement
+from utilities import movement, robjs
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
     get_entrance_for_exit_pos, is_block_clear, parse_room_to_xy, room_xy_to_name
 
@@ -157,6 +157,8 @@ class MilitaryBase(RoleBase):
     # TODO: A lot of this is copied directly (and shared with) transport.TransportPickup
     def follow_military_path(self, origin, target, opts=None):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> None
+        origin = robjs.pos(origin)
+        target = robjs.pos(target)
         if opts and "to_home" in opts:
             to_home = opts["to_home"]
         else:
@@ -231,7 +233,8 @@ class MilitaryBase(RoleBase):
                             self.move_to(target)
                             return
                 else:
-                    portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
+                    portals = cast(List[StructurePortal], _.filter(self.room.find(FIND_STRUCTURES),
+                                                                   {'structureType': STRUCTURE_PORTAL}))
                     if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
                             + movement.chebyshev_distance_room_pos(portals[0].destination, target) \
                             < movement.chebyshev_distance_room_pos(self.pos, target):
@@ -313,6 +316,8 @@ class MilitaryBase(RoleBase):
 
     def get_military_path_length(self, spawn, target, opts=None):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> int
+        spawn = robjs.pos(spawn)
+        target = robjs.pos(target)
         if opts:
             path_opts = opts
         else:

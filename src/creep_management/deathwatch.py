@@ -65,10 +65,10 @@ def mark_creeps(room):
             ])
     elif count > 0:
         for creep in cast(List[Creep], room.find(FIND_MY_CREEPS)):
-            if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h, creep.pos) < 4):
+            if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h.pos, creep.pos) < 4):
                 Memory.deathwatch.append([
                     creep.name, creep.memory.home,
-                    _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h, creep.pos) < 4)
+                    _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h.pos, creep.pos) < 4)
                         .map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value(),
                     room.name,
                 ])

@@ -98,7 +98,7 @@ class Creep(RoomObject):
     def moveByPath(self, path: Union[list, str]) -> int:
         pass
 
-    def moveTo(self, target: RoomPosition, opts: Dict[str, Any]) -> int:
+    def moveTo(self, target: RoomPosition, opts: Optional[Dict[str, Any]] = None) -> int:
         pass
 
     def notifyWhenAttacked(self, enabled: bool) -> int:

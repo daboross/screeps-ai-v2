@@ -81,7 +81,9 @@ def center_pos(room_name):
     return __new__(RoomPosition(25, 25, room_name))
 
 
+__pragma__('skip')
 _T = TypeVar('_T')
+__pragma__('noskip')
 
 
 def do_a_50x50_spiral(func):
@@ -201,6 +203,9 @@ def distance_squared_room_pos(room_position_1, room_position_2):
 
 def chebyshev_distance_room_pos(pos1, pos2):
     # type: (RoomPosition, RoomPosition) -> int
+    if pos1.x == undefined or pos2.x == undefined or pos1.roomName == undefined or pos2.roomName == undefined:
+        raise AssertionError('chebyshev_distance_room_pos called with non-RoomPosition: ({}, {})'
+                             .format(pos1, pos2))
     if pos1.roomName == pos2.roomName:
         return max(abs(pos1.x - pos2.x), abs(pos1.y - pos2.y))
     room_1_pos = parse_room_to_xy(pos1.roomName)
@@ -225,7 +230,7 @@ def minimum_chebyshev_distance(comparison_pos, targets):
     # type: (RoomPosition, Iterable[Union[RoomPosition, RoomObject]]) -> int
     min_distance = Infinity
     for target in targets:
-        pos = target.pos or target  # type: RoomPosition
+        pos = cast(RoomObject, target).pos or cast(RoomPosition, target)
         distance = chebyshev_distance_room_pos(comparison_pos, pos)
         if distance < min_distance:
             min_distance = distance

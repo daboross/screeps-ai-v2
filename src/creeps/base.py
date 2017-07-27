@@ -1,11 +1,17 @@
 import math
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from constants import DEPOT, basic_reuse_path, recycle_time, role_miner, role_recycling, role_spawn_fill, \
     role_tower_fill, target_closest_energy_site, target_source
 from creep_management import walkby_move
 from jstools.screeps import *
 from position_management import flags
-from utilities import movement
+from utilities import movement, robjs
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
+    from empire.targets import TargetMind
+    from rooms.room_mind import RoomMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -43,19 +49,20 @@ class RoleBase:
     """
 
     def __init__(self, hive, targets, home, creep):
+        # type: (HiveMind, TargetMind, RoomMind, Creep) -> None
         self.hive = hive
         self.targets = targets
         self.home = home
         self.creep = creep
         if creep.memory:
-            self.memory = creep.memory
+            self.memory = creep.memory  # type: _Memory
         elif Memory.creeps[creep.name]:
-            self.memory = Memory.creeps[creep.name]
+            self.memory = Memory.creeps[creep.name]  # type: _Memory
         else:
-            memory = {
+            memory = cast(_Memory, {
                 "targets": {},
                 "path": {},
-            }
+            })
             Memory.creeps[creep.name] = memory
             self.memory = memory
         self._room = None
@@ -63,19 +70,19 @@ class RoleBase:
     __pragma__('fcall')
 
     def get_name(self):
+        # type: () -> str
         return self.creep.name
 
     name = property(get_name)
 
     def get_pos(self):
+        # type: () -> RoomPosition
         return self.creep.pos
 
     pos = property(get_pos)
 
     def get_room(self):
-        """
-        :rtype: rooms.room_mind.RoomMind
-        """
+        # type: () -> RoomMind
         if not self._room:
             self._room = self.hive.get_room(self.creep.room.name)
             if not self._room:
@@ -85,8 +92,9 @@ class RoleBase:
     room = property(get_room)
 
     def get_replacement_time(self):
+        # type: () -> int
         if "calculated_replacement_time" in self.memory:
-            return self.memory.calculated_replacement_time
+            return cast(int, self.memory.calculated_replacement_time)
         else:
             store = True
             ticks_to_live = self.creep.ticksToLive
@@ -102,13 +110,15 @@ class RoleBase:
                 store = False
             replacement_time = Game.time + ticks_to_live - ttr
             if store:
-                self.memory.calculated_replacement_time = math.floor(replacement_time)
+                self.memory.calculated_replacement_time = int(math.floor(replacement_time))
             return self.memory.calculated_replacement_time
 
     def _calculate_time_to_replace(self):
+        # type: () -> int
         return recycle_time + _.size(self.creep.body) * CREEP_SPAWN_TIME
 
     def run(self):
+        # type: () -> Optional[bool]
         """
         Runs this role's actions.
         :return: False if completed successfully, true if this method should be called a second time.
@@ -117,6 +127,7 @@ class RoleBase:
         pass
 
     def _move_options(self, target_room, opts):
+        # type: (str, Dict[str, Any]) -> Dict[str, Any]
         roads = self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2
         if roads:
             options = _WITH_ROAD_PF_OPTIONS
@@ -145,6 +156,7 @@ class RoleBase:
     __pragma__('nofcall')
 
     def _try_move_to(self, pos, opts):
+        # type: (RoomPosition, Dict[str, Any]) -> int
         here = self.creep.pos
 
         if here == pos:
@@ -159,10 +171,10 @@ class RoleBase:
             self.basic_move_to(pos)
         return result
 
-    def move_to(self, target, opts=None):
+    def move_to(self, _target, opts=None):
+        # type: (Union[RoomPosition, RoomObject, RoleBase], Dict[str, Any]) -> None
         if self.creep.fatigue <= 0:
-            if target.pos:
-                target = target.pos
+            target = robjs.pos(_target)
             result = self._try_move_to(target, opts)
 
             if result == ERR_NO_BODYPART:
@@ -179,15 +191,17 @@ class RoleBase:
                              target.roomName, target.x, target.y, result)
 
     def harvest_energy(self):
+        # type: () -> bool
         if self.home.full_storage_use or (self.home.room.storage and not self.home.any_local_miners() and (
                         self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill)):
             # Full storage use enabled! Just do that.
             storage = self.home.room.storage
-            if self.carry_sum() == self.creep.carry.energy:  # don't do this if we have minerals
-                target = self.targets.get_new_target(self, target_closest_energy_site)
+            if self.carry_sum() == self.creep.carry[RESOURCE_ENERGY]:  # don't do this if we have minerals
+                target = cast(Union[StructureStorage, StructureLink],
+                              self.targets.get_new_target(self, target_closest_energy_site))
                 if not target:
                     target = storage
-                elif target.energy <= 0 and not self.home.links.enabled:
+                elif isinstance(target, StructureLink) and target.energy <= 0 and not self.home.links.enabled:
                     target = storage
                 # TODO: this is a special case mostly for W47N26
                 elif target.pos.inRangeTo(self.home.room.controller, 4):
@@ -196,14 +210,15 @@ class RoleBase:
                     target = storage
                 if target.structureType == STRUCTURE_LINK:
                     self.home.links.register_target_withdraw(target, self,
-                                                             self.creep.carryCapacity - self.creep.carry.energy,
+                                                             self.creep.carryCapacity
+                                                             - self.creep.carry[RESOURCE_ENERGY],
                                                              self.pos.getRangeTo(target))
             else:
                 target = storage
 
             if not self.pos.isNearTo(target):
                 # TODO: 5 should ideally be instead 1/4 of the distance to this creep's next target.
-                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
+                if self.creep.carry[RESOURCE_ENERGY] > 0.4 * self.creep.carryCapacity and \
                                 self.pos.getRangeTo(target) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     # TODO: some unified dual-interface for harvesting and jobs
@@ -211,7 +226,7 @@ class RoleBase:
                 self.move_to(target)
                 return False
 
-            if self.carry_sum() > self.creep.carry.energy:
+            if self.carry_sum() > self.creep.carry[RESOURCE_ENERGY]:
                 resource = _.findKey(self.creep.carry)
                 result = self.creep.transfer(target, resource)
             else:
@@ -229,12 +244,12 @@ class RoleBase:
                 self.log("Unknown result from creep.withdraw({}): {}", target, result)
             return False
 
-        source = self.targets.get_new_target(self, target_source)
+        source = cast(Source, self.targets.get_new_target(self, target_source))
         if not source:
             if self.creep.hasActiveBodyparts(WORK):
                 self.log("Wasn't able to find a source!")
                 self.finished_energy_harvest()
-            if self.creep.carry.energy > 10 and self.memory.filling:
+            if self.creep.carry[RESOURCE_ENERGY] > 10 and self.memory.filling:
                 self.memory.filling = False
                 return True
             self.go_to_depot()
@@ -244,11 +259,11 @@ class RoleBase:
             self.move_to(source)
             return False
 
-        piles = self.room.find_in_range(FIND_DROPPED_RESOURCES, 3, source.pos)
+        piles = cast(List[Resource], self.room.find_in_range(FIND_DROPPED_RESOURCES, 3, source.pos))
         if len(piles) > 0:
             pile = _.max(piles, 'amount')
             if not self.creep.pos.isNearTo(pile):
-                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                if self.creep.carry[RESOURCE_ENERGY] > 0.4 * self.creep.carryCapacity \
                         and self.pos.getRangeTo(pile) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
@@ -262,12 +277,12 @@ class RoleBase:
                 self.log("Unknown result from creep.pickup({}): {}", pile, result)
             return False
 
-        containers = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, source.pos),
-                              {"structureType": STRUCTURE_CONTAINER})
+        containers = cast(List[StructureContainer], _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, source.pos),
+                                                             {"structureType": STRUCTURE_CONTAINER}))
         if len(containers) > 0:
             container = containers[0]
             if not self.pos.isNearTo(container):
-                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity \
+                if self.creep.carry[RESOURCE_ENERGY] > 0.4 * self.creep.carryCapacity \
                         and self.pos.getRangeTo(container) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
@@ -280,10 +295,10 @@ class RoleBase:
             return False
 
         # TODO: this assumes that different sources are at least 3 away.
-        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source), lambda c: c.memory.role == role_miner)
+        miner = _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, source.pos), lambda c: c.memory.role == role_miner)
         if miner:
             if not self.pos.isNearTo(miner):
-                if self.creep.carry.energy > 0.4 * self.creep.carryCapacity and \
+                if self.creep.carry[RESOURCE_ENERGY] > 0.4 * self.creep.carryCapacity and \
                                 self.pos.getRangeTo(miner) > 5:
                     # a spawn fill has given use some extra energy, let's go use it.
                     self.memory.filling = False
@@ -304,7 +319,7 @@ class RoleBase:
         if source.energy <= 2 and Game.time % 10 == 5 and source.ticksToRegeneration >= 50:
             if _.find(self.home.sources, lambda s: s.energy > 0):
                 self.targets.untarget(self, target_source)
-            elif self.creep.carry.energy >= 100:
+            elif self.creep.carry[RESOURCE_ENERGY] >= 100:
                 self.memory.filling = False
         if not self.pos.isNearTo(source):
             self.move_to(source)
@@ -317,16 +332,18 @@ class RoleBase:
         return False
 
     def finished_energy_harvest(self):
+        # type: () -> None
         self.targets.untarget(self, target_source)
         self.targets.untarget(self, target_closest_energy_site)
 
     def repair_nearby_roads(self):
+        # type: () -> bool
         if not self.creep.hasActiveBodyparts(WORK):
             return False
-        if self.creep.carry.energy <= 0:
+        if self.creep.carry[RESOURCE_ENERGY] <= 0:
             return False
-        road = _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
-                      lambda s: s.structureType == STRUCTURE_ROAD)
+        road = cast(Optional[StructureRoad], _.find(self.room.look_at(LOOK_STRUCTURES, self.pos),
+                                                    lambda s: s.structureType == STRUCTURE_ROAD))
         if road:
             if road.hits < road.hitsMax and road.hitsMax - road.hits \
                     >= REPAIR_POWER * self.creep.getActiveBodyparts(WORK):
@@ -336,9 +353,9 @@ class RoleBase:
                 else:
                     self.log("Unknown result from passingby-road-repair on {}: {}".format(road, result))
         else:
-            build = self.room.look_at(LOOK_CONSTRUCTION_SITES, self.pos)
-            if len(build):
-                build = _.find(build, lambda s: s.structureType == STRUCTURE_ROAD)
+            build_list = cast(List[ConstructionSite], self.room.look_at(LOOK_CONSTRUCTION_SITES, self.pos))
+            if len(build_list):
+                build = _.find(build_list, lambda s: s.structureType == STRUCTURE_ROAD)
                 if build:
                     result = self.creep.build(build)
                     if result == OK:
@@ -348,6 +365,7 @@ class RoleBase:
         return False
 
     def find_depot(self):
+        # type: () -> RoomPosition
         depots = flags.find_flags(self.home, DEPOT)
         if len(depots):
             depot = depots[0].pos
@@ -356,7 +374,7 @@ class RoleBase:
             self.home.building.place_depot_flag()
             depots = flags.find_flags_global(DEPOT)
             if len(depots):
-                depot = _.min(depots, lambda d: movement.chebyshev_distance_room_pos(self, d)).pos
+                depot = _.min(depots, lambda d: movement.chebyshev_distance_room_pos(self.pos, d)).pos
             elif self.home.spawn:
                 depot = self.home.spawn.pos
             else:
@@ -364,12 +382,14 @@ class RoleBase:
         return depot
 
     def go_to_depot(self):
+        # type: () -> None
         depot = self.find_depot()
         if not (self.pos.isEqualTo(depot) or (self.pos.isNearTo(depot)
                                               and not movement.is_block_clear(self.home, depot.x, depot.y))):
             self.move_to(depot)
 
     def _log_recycling(self):
+        # type: () -> None
         if self.creep.ticksToLive > 50:
             if self.memory.role == role_recycling:
                 self.log("{} recycled (ttl: {}).", self.memory.last_role, self.creep.ticksToLive)
@@ -377,6 +397,7 @@ class RoleBase:
                 self.log("{} committed suicide (ttl: {}).", self.memory.role, self.creep.ticksToLive)
 
     def recycle_me(self):
+        # type: () -> None
         spawn = self.home.spawns[0]
         if not spawn:
             if self.creep.ticksToLive > 50:
@@ -401,6 +422,7 @@ class RoleBase:
                 self.go_to_depot()
 
     def empty_to_storage(self):
+        # type: () -> bool
         total = self.carry_sum()
         if total > 0:
             storage = self.home.room.storage
@@ -431,12 +453,14 @@ class RoleBase:
     #     if self.home.room.energyAvailable < min(self.home.room.energyCapacityAvailable / 2.0, )
 
     def move_around(self, target):
+        # type: (RoomObject) -> None
         if Game.time % 7 < 4:
             self.move_around_clockwise(target)
         else:
             self.move_around_counter_clockwise(target)
 
     def move_around_clockwise(self, target):
+        # type: (RoomObject) -> None
         if self.creep.fatigue > 0:
             return
         direction = target.pos.getDirectionTo(self.pos)
@@ -450,6 +474,7 @@ class RoleBase:
             self.creep.move(TOP)
 
     def move_around_counter_clockwise(self, target):
+        # type: (RoomObject) -> None
         if self.creep.fatigue > 0:
             return
         direction = target.pos.getDirectionTo(self.pos)
@@ -463,17 +488,17 @@ class RoleBase:
             self.creep.move(BOTTOM)
 
     def basic_move_to(self, target):
+        # type: (Union[RoomPosition, RoomObject]) -> bool
         if self.creep.fatigue > 0:
             return True
-        if target.pos:
-            target = target.pos
+        pos = robjs.pos(target)
         if self.pos.isEqualTo(target):
             return False
-        adx = target.x - self.pos.x
-        ady = target.y - self.pos.y
-        if target.roomName != self.pos.roomName:
+        adx = pos.x - self.pos.x
+        ady = pos.y - self.pos.y
+        if pos.roomName != self.pos.roomName:
             room1x, room1y = movement.parse_room_to_xy(self.pos.roomName)
-            room2x, room2y = movement.parse_room_to_xy(target.roomName)
+            room2x, room2y = movement.parse_room_to_xy(pos.roomName)
             adx += (room2x - room1x) * 50
             ady += (room2y - room1y) * 50
         dx = Math.sign(adx)
@@ -521,6 +546,7 @@ class RoleBase:
     __pragma__('fcall')
 
     def _try_force_move_to(self, x, y, creep_cond=lambda x: True):
+        # type: (int, int, Callable[[Creep], bool]) -> bool
         """
         Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
         (copied from movement.py)
@@ -529,15 +555,15 @@ class RoleBase:
             return False
         if Game.map.getTerrainAt(x, y, self.room.room.name) == 'wall':
             return False
-        for struct in self.room.look_at(LOOK_STRUCTURES, x, y):
-            if (struct.structureType != STRUCTURE_RAMPART or not struct.my) \
+        for struct in cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, x, y)):
+            if (struct.structureType != STRUCTURE_RAMPART or not cast(StructureRampart, struct).my) \
                     and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
                 return False
-        for struct in self.room.look_at(LOOK_CONSTRUCTION_SITES, x, y):
+        for struct in cast(List[ConstructionSite], self.room.look_at(LOOK_CONSTRUCTION_SITES, x, y)):
             if struct.my and struct.structureType != STRUCTURE_RAMPART \
                     and struct.structureType != STRUCTURE_CONTAINER and struct.structureType != STRUCTURE_ROAD:
                 return False
-        creeps = self.room.look_at(LOOK_CREEPS, x, y)
+        creeps = cast(List[Creep], self.room.look_at(LOOK_CREEPS, x, y))
         if len(creeps):
             other = creeps[0]
             if not other or not other.my:
@@ -553,6 +579,7 @@ class RoleBase:
     __pragma__('nofcall')
 
     def force_basic_move_to(self, target, creep_cond=lambda x: True):
+        # type: (Union[RoomObject, RoomPosition], Callable[[Creep], bool]) -> bool
         """
         Tries to do a basic move in the direction, forcing place switching with an creep for which creep_cond(creep) returns True.
         :param target: The location (pos or object with pos property) to move to
@@ -561,8 +588,7 @@ class RoleBase:
         """
         if self.creep.fatigue > 0:
             return True
-        if target.pos:
-            target = target.pos
+        target = robjs.pos(target)
         if self.pos.isNearTo(target):
             return True
         adx = target.x - self.pos.x
@@ -599,10 +625,9 @@ class RoleBase:
         return False
 
     def log(self, format_string, *args):
+        # type: (str, *Any) -> None
         """
-        Logs a given string
-        :type format_string: str
-        :type args: any
+        Logs a given string, formatted using str.format.
         """
         if len(args):
             print("[{}][{}] {}".format(self.home.name, self.name, format_string.format(*args)))
@@ -612,23 +637,31 @@ class RoleBase:
     __pragma__('fcall')
 
     def should_pickup(self, resource_type=None):
+        # type: (Optional[str]) -> bool
         return resource_type is None or resource_type == RESOURCE_ENERGY
 
     def carry_sum(self):
+        # type: () -> int
         if '_carry_sum' not in self.creep:
             self.creep._carry_sum = _.sum(self.creep.carry)
         return self.creep._carry_sum
 
-    def new_target(self, type):
-        return self.hive.targets.get_new_target(self, type)
+    def new_target(self, ttype):
+        # type: (int) -> RoomObject
+        return self.hive.targets.get_new_target(self, ttype)
 
-    def target(self, type):
-        return self.hive.targets.get_existing_target(self, type)
+    def target(self, ttype):
+        # type: (int) -> RoomObject
+        return self.hive.targets.get_existing_target(self, ttype)
 
+    # noinspection PyPep8Naming
     def toString(self):
+        # type: () -> str
         return "Creep[{}, role: {}, home: {}]".format(self.name, self.memory.role, self.home.name)
 
+    # noinspection PyPep8Naming
     def findSpecialty(self):
+        # type: () -> str
         return self.creep.findSpecialty()
 
     __pragma__('nofcall')

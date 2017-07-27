@@ -4,7 +4,7 @@ _L1 = TypeVar('_L1')
 _L2 = TypeVar('_L2')
 _L3 = TypeVar('_L3', int, float)
 
-_LodashPredicate = Union[Dict[str, Any], Callable[[_L1], bool], None]
+_LodashPredicate = Union[Dict[str, Any], Callable[[_L1], bool], None, str]
 _LodashIteratee = Union[str, Callable[[_L1], _L2], None]
 _Collection = Union[List[_L1], Dict[str, _L1]]
 
@@ -216,19 +216,19 @@ class _LodashChain:
     def where(self, source: Any) -> '_LodashChain':
         pass
 
-    def toArray(value: Any) -> '_LodashChain':
+    def toArray(self) -> '_LodashChain':
         pass
 
-    def toPlainObject(value: Any) -> '_LodashChain':
+    def toPlainObject(self) -> '_LodashChain':
         pass
 
     def sum(self, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L2:
         pass
 
-    def keys(_object: Any) -> '_LodashChain':
+    def keys(self) -> '_LodashChain':
         pass
 
-    def mapKeys(_object: Any, iteratee: Callable[[str], str] = None, thisArg: Any = None) -> '_LodashChain':
+    def mapKeys(self, iteratee: Callable[[str], str] = None, thisArg: Any = None) -> '_LodashChain':
         pass
 
     def mapValues(self, iteratee: Callable[[Any], Any] = None, thisArg: Any = None) -> '_LodashChain':
@@ -678,6 +678,9 @@ class _:
     def sum(collection: _Collection, iteratee: _LodashIteratee = lambda x: x, thisArg: Any = None) -> _L3:
         pass
 
+    @staticmethod
+    def extend(_object: Any, *sources: Any) -> Any:
+        pass
     @staticmethod
     def assign(_object: Any, *sources: Any) -> Any:
         pass

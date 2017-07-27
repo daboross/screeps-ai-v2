@@ -27,13 +27,14 @@ class RoomPosition:
     def createFlag(self, name: str = None, color: int = None, secondaryColor: int = None) -> Union[str, int]:
         pass
 
-    def findClosestByPath(self, source: _FindParameter, opts: Dict[str, Any]) -> Optional[RoomObject]:
+    def findClosestByPath(self, source: _FindParameter, opts: Optional[Dict[str, Any]] = None) -> Optional[RoomObject]:
         pass
 
-    def findClosestByRange(self, source: _FindParameter, opts: Dict[str, Any]) -> Optional[RoomObject]:
+    def findClosestByRange(self, source: _FindParameter, opts: Optional[Dict[str, Any]] = None) -> Optional[RoomObject]:
         pass
 
-    def findInRange(self, source: _FindParameter, _range: int, opts: Dict[str, Any]) -> List[RoomObject]:
+    def findInRange(self, source: _FindParameter, _range: int, opts: Optional[Dict[str, Any]] = None) \
+            -> List[RoomObject]:
         pass
 
     def getDirectionTo(self, x: Union[int, 'RoomPosition', RoomObject], y: int = None) -> int:
@@ -123,7 +124,7 @@ class Room:
         pass
 
     @classmethod
-    def deserializePath(cls, path: str) -> List[Union[_PathPos, Dict[str, Any]]]:
+    def deserializePath(cls, path: str) -> List[_PathPos]:
         pass
 
     def createConstructionSite(self, x: Union[int, RoomPosition, RoomObject], y: Union[int, str],
@@ -134,7 +135,9 @@ class Room:
                    secondaryColor: int = None) -> Union[str, int]:
         pass
 
-    def find(self, _type: _FindParameter, opts: Dict[str, Callable[[RoomObject], bool]] = None) -> List[RoomObject]:
+    def find(self, _type: _FindParameter,
+             opts: Optional[Dict[str, Union[Callable[[RoomObject], bool], Dict[str, Any]]]] = None) \
+            -> List[RoomObject]:
         pass
 
     def findExitTo(self, room: str) -> int:

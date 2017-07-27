@@ -60,7 +60,7 @@ class HiveMind:
                     my_rooms.append(room_mind)
                     if not room_mind.spawn and room_mind.sponsor_name:
                         if sponsoring[room_mind.sponsor_name]:
-                            sponsoring[room_mind.sponsor_name].push(room_mind)
+                            sponsoring[room_mind.sponsor_name].append(room_mind)
                         else:
                             sponsoring[room_mind.sponsor_name] = [room_mind]
                 self._room_to_mind[name] = room_mind
@@ -68,7 +68,7 @@ class HiveMind:
                 sponsor = self._room_to_mind[sponsor_name]
                 if sponsor:
                     for subsidiary in sponsoring[sponsor_name]:
-                        sponsor.subsidiaries.push(subsidiary)
+                        sponsor.subsidiaries.append(subsidiary)
             self._my_rooms = my_rooms
             self._all_rooms = _.sortBy(all_rooms, 'room_name')
         return self._my_rooms
@@ -110,7 +110,7 @@ class HiveMind:
                     ))
                     continue
                 if room_to_flags[sponsor]:
-                    room_to_flags[sponsor].push(flag)
+                    room_to_flags[sponsor].append(flag)
                 else:
                     room_to_flags[sponsor] = [flag]
         for room in self.my_rooms:
@@ -208,7 +208,7 @@ class HiveMind:
                         tally[mineral] += amount
                     else:
                         tally[mineral] = amount
-        result.push("totals:\t{}".format(
+        result.append("totals:\t{}".format(
             "\t".join(["{} {}".format(amount, mineral) for mineral, amount in _.pairs(tally)])
         ))
         return "\n".join(result)
@@ -219,15 +219,15 @@ class HiveMind:
         for room in self.my_rooms:
             room_result = []
             if room.mem[rmem_key_currently_under_siege]:
-                room_result.push('under attack')
+                room_result.append('under attack')
             if room.mem.pause:
-                room_result.push('paused')
+                room_result.append('paused')
             if room.mem[rmem_key_now_supporting]:
-                room_result.push('supporting {}'.format(room.mem[rmem_key_now_supporting]))
+                room_result.append('supporting {}'.format(room.mem[rmem_key_now_supporting]))
             if room.mem[rmem_key_prepping_defenses]:
-                room_result.push('prepping defenses')
-            room_result.push('spending on {}.'.format(room_spending_state_visual[room.get_spending_target()]))
-            result.push('{}: {}'.format(room.name, ', '.join(room_result)))
+                room_result.append('prepping defenses')
+            room_result.append('spending on {}.'.format(room_spending_state_visual[room.get_spending_target()]))
+            result.append('{}: {}'.format(room.name, ', '.join(room_result)))
         return '\n'.join(result)
 
     def checkup(self):
@@ -239,32 +239,32 @@ class HiveMind:
 
             if room.rcl >= 8:
                 if (counts[STRUCTURE_OBSERVER] or 0) < 1:
-                    room_result.push('no observer')
+                    room_result.append('no observer')
                 if (counts[STRUCTURE_POWER_SPAWN] or 0) < 1:
-                    room_result.push('no power spawn')
+                    room_result.append('no power spawn')
             if room.rcl >= 6:
                 if (counts[STRUCTURE_LAB] or 0) < 3:
                     if STRUCTURE_LAB not in counts:
-                        room_result.push('no labs')
+                        room_result.append('no labs')
                     else:
-                        room_result.push('{} labs'.format(counts[STRUCTURE_LAB]))
+                        room_result.append('{} labs'.format(counts[STRUCTURE_LAB]))
             if (counts[STRUCTURE_SPAWN] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.rcl]:
-                room_result.push('{} / {} spawns'.format(counts[STRUCTURE_SPAWN] or 0,
-                                                         CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.rcl]))
+                room_result.append('{} / {} spawns'.format(counts[STRUCTURE_SPAWN] or 0,
+                                                           CONTROLLER_STRUCTURES[STRUCTURE_SPAWN][room.rcl]))
             if (counts[STRUCTURE_TOWER] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.rcl]:
-                room_result.push('{} / {} towers'.format(counts[STRUCTURE_TOWER] or 0,
-                                                         CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.rcl]))
+                room_result.append('{} / {} towers'.format(counts[STRUCTURE_TOWER] or 0,
+                                                           CONTROLLER_STRUCTURES[STRUCTURE_TOWER][room.rcl]))
             if (counts[STRUCTURE_EXTENSION] or 0) < CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.rcl]:
-                room_result.push('{} / {} extensions'.format(counts[STRUCTURE_EXTENSION] or 0,
-                                                             CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.rcl]))
+                room_result.append('{} / {} extensions'.format(counts[STRUCTURE_EXTENSION] or 0,
+                                                               CONTROLLER_STRUCTURES[STRUCTURE_EXTENSION][room.rcl]))
             if (counts[STRUCTURE_WALL] or 0) > (counts[STRUCTURE_RAMPART] or 0):
-                room_result.push('more walls than ramparts: {} walls, {} ramparts'
-                                 .format(counts[STRUCTURE_WALL] or 0, counts[STRUCTURE_RAMPART] or 0))
+                room_result.append('more walls than ramparts: {} walls, {} ramparts'
+                                   .format(counts[STRUCTURE_WALL] or 0, counts[STRUCTURE_RAMPART] or 0))
 
             if len(room_result):
-                result.push('{}:\n\t{}'.format(room.name, '\n\t'.join(room_result)))
+                result.append('{}:\n\t{}'.format(room.name, '\n\t'.join(room_result)))
             else:
-                result.push('{}: ✓'.format(room.name))
+                result.append('{}: ✓'.format(room.name))
         return '\n'.join(result)
 
     def sing(self):
@@ -294,7 +294,7 @@ class HiveMind:
         if home:
             return errorlog.execute(creep_wrappers.wrap_creep, self, self.targets, home, creep)
         else:
-            raise ValueError("[hive]Invalid value to wrap_creep: {} with memory {}"
+            raise AssertionError("[hive]Invalid value to wrap_creep: {} with memory {}"
                              .format(creep, JSON.stringify(creep.memory)))
 
     def toString(self):

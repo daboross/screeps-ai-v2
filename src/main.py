@@ -56,8 +56,10 @@ def report_error(err, description):
     return errorlog.report_error('main', err, description)
 
 
-_A = TypeVar('A')
-_R = TypeVar('R')
+__pragma__('skip')
+_A = TypeVar('_A')
+_R = TypeVar('_R')
+__pragma__('noskip')
 
 
 def try_thing(thing, *args):

@@ -1,5 +1,5 @@
 import math
-from typing import Callable, Dict, List, TYPE_CHECKING, Tuple, cast
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Tuple, cast
 
 from cache import volatile_cache
 from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, rmem_key_building_priority_walls, \
@@ -8,9 +8,10 @@ from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAM
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags, locations
-from utilities import hostile_utils, movement, positions
+from utilities import hostile_utils, movement, positions, robjs
 
 if TYPE_CHECKING:
+    from jstools.js_set_map import JSMap
     from empire.hive import HiveMind
     from rooms.room_mind import RoomMind
     from position_management.locations import Location
@@ -256,7 +257,7 @@ class RoomDefense:
 
     def __init__(self, room: RoomMind):
         self.room = room
-        self._cache = new_map()
+        self._cache = new_map()  # type: JSMap[str, Any]
         if self.room.my:
             self.mem = self.room.mem[rmem_key_defense_mind_storage]
             if self.mem == undefined:
@@ -552,19 +553,19 @@ class RoomDefense:
                                 # More defenders = more important
                                 - len(self.defenders_near(c)) * 500
                                 # Further away from closest target = less important
-                                + movement.minimum_chebyshev_distance(c, protect)
-                                # Further away average distance from targets = less important
+                                + movement.minimum_chebyshev_distance(c.pos, protect)
                                 + self.healing_possible_on(c) * 300
+                                # Further away average distance from targets = less important
+                                + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
+                                  / len(protect) / 50
                                 # More hits = less important
-                                + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
-                                  / 50
                                 - (c.hitsMax - c.hits) / c.hitsMax / 100
                                 ) \
                         .value()
                     if self.mem.debug:
                         print("Chose hostiles:\n{}".format(
                             '\n'.join(
-                                ["{},{}: {}, {}, {}, {}, {}".format(
+                                ["{},{}: {}, {}, {}, {}, {}, {}".format(
                                     c.pos.x, c.pos.y,
 
                                     # Higher danger level = more important
@@ -572,10 +573,11 @@ class RoomDefense:
                                     # More defenders = more important
                                     - len(self.defenders_near(c)) * 500,
                                     # Further away from closest target = less important
-                                    + movement.minimum_chebyshev_distance(c, protect),
+                                    + movement.minimum_chebyshev_distance(c.pos, protect),
+                                    + self.healing_possible_on(c) * 300,
                                     # Further away average distance from targets = less important
-                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(
-                                        protect) / 50,
+                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
+                                    / len(protect) / 50,
                                     # More hits = less important
                                     - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100,
                                 ) for c in hostiles]
@@ -660,7 +662,8 @@ class RoomDefense:
             enemy_positions = self.room.find(FIND_EXIT)
         already_checked = []
         for enemy in enemy_positions:
-            if _.some(already_checked, lambda x: movement.chebyshev_distance_room_pos(x, enemy) <= 4):
+            if _.some(already_checked, lambda x: movement.chebyshev_distance_room_pos(robjs.pos(x),
+                                                                                      robjs.pos(enemy)) <= 4):
                 continue
             already_checked.append(enemy)
 
@@ -791,7 +794,7 @@ class RoomDefense:
                         tower = towers.splice(closest_index, 1)[0]
                         tower.heal(creep)
             elif len(damaged) > 1:
-                towers[0].heal(_.min(damaged, lambda c: movement.chebyshev_distance_room_pos(c, towers[0].pos)))
+                towers[0].heal(_.min(damaged, lambda c: movement.chebyshev_distance_room_pos(c.pos, towers[0].pos)))
             else:
                 towers[0].heal(damaged[0])
         elif Game.time % 7 == 0:

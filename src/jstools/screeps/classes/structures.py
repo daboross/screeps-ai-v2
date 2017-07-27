@@ -236,6 +236,7 @@ class StructureLink(OwnedStructure):
     def transferEnergy(self, target: 'StructureLink', amount: int = 0):
         pass
 
+
 # noinspection PyPep8Naming
 class StructureNuker(OwnedStructure):
     """
@@ -424,7 +425,7 @@ class StructureTerminal(OwnedStructure):
                  my: bool, owner: _Owner, cooldown: int, store: Dict[str, int], storeCapacity: int) -> None:
         super().__init__(pos, room, structureType, _id, hits, hitsMax, my, owner)
         self.cooldown = cooldown
-        self.store = store
+        self.store = store  # type: Dict[str, int]
         self.storeCapacity = storeCapacity
 
     def send(self, resourceType: str, amount: Union[int, float], destination: str, description: str = None) -> int:

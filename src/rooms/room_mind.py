@@ -321,10 +321,6 @@ class RoomMind:
         """
         Runs Room.lookForAtArea(look_type, ..., true) on an area a specific range around the pos, ensuring to clamp
         positions to relative room positions
-        :param look_type:
-        :param pos:
-        :param look_range:
-        :return:
         """
         return self.room.lookForAtArea(look_type,
                                        clamp_room_x_or_y(pos.y - look_range),
@@ -901,7 +897,7 @@ class RoomMind:
                 or self.room.storage.store[RESOURCE_ENERGY] < max_energy_resume_remote_mining:
             del self.mem[mem_key_focusing_home]
         if not self.mem[mem_key_focusing_home] and _.sum(self.room.storage.store) > min_total_pause_remote_mining \
-                and self.room.storage.store[RESOURCE_ENERGY]> min_energy_pause_remote_mining:
+                and self.room.storage.store[RESOURCE_ENERGY] > min_energy_pause_remote_mining:
             self.mem[mem_key_focusing_home] = True
         return not not self.mem[mem_key_focusing_home]
 
@@ -917,8 +913,9 @@ class RoomMind:
                 self._upgrading_paused = False
             # TODO: constant here and below in upgrader_work_mass
             elif self.conducting_siege() and (current_store_energy < (self.constant_energy_to_keep_in_reserve() / 4)
-                    or (self.rcl < 7 and current_store_energy < self.constant_energy_to_keep_in_reserve())
-            ):
+                                              or (
+                                self.rcl < 7 and current_store_energy < self.constant_energy_to_keep_in_reserve())
+                                              ):
                 self._upgrading_paused = True  # Don't upgrade while we're taking someone down.
             else:
                 if self.rcl >= 8:
@@ -1400,7 +1397,7 @@ class RoomMind:
                 else:
                     target = 10
                 needed += max(0, target - room_work_mass)
-                if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store[RESOURCE_ENERGY]\
+                if room.room.storage and _.sum(room.room.storage.store) > room.room.storage.store[RESOURCE_ENERGY] \
                         and room.room.storage.storeCapacity <= 0:
                     mineral_steal += hauler_mass
             if Game.cpu.bucket < 4000:
@@ -1571,7 +1568,7 @@ class RoomMind:
                         distance = self.hive.honey.find_path_length(self.room.storage.pos, target.pos,
                                                                     {'use_roads': False})
                     else:
-                        distance = 0
+                        distance = 0  # type: Union[float, int]
                         for source in self.sources:
                             distance += self.hive.honey.find_path_length(source.pos, target.pos, {'use_roads': False})
                         distance /= len(self.sources)
@@ -1670,10 +1667,10 @@ class RoomMind:
 
             energy_struct = self.get_upgrader_energy_struct()
             if energy_struct and energy_struct.structureType == STRUCTURE_LINK:
-                distance = movement.chebyshev_distance_room_pos(self.links.main_link, energy_struct.pos)
+                distance = movement.chebyshev_distance_room_pos(self.links.main_link.pos, energy_struct.pos)
                 total_throughput = LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / distance
                 if self.links.secondary_link:
-                    secondary_distance = movement.chebyshev_distance_room_pos(self.links.secondary_link,
+                    secondary_distance = movement.chebyshev_distance_room_pos(self.links.secondary_link.pos,
                                                                               energy_struct.pos)
                     total_throughput += LINK_CAPACITY * (1 - LINK_LOSS_RATIO) / secondary_distance
                 wm = min(wm, math.ceil(total_throughput))
@@ -2367,3 +2364,10 @@ class RoomMind:
     full_storage_use = property(get_full_storage_use)
     max_sane_wall_hits = property(get_max_sane_wall_hits)
     min_sane_wall_hits = property(get_min_sane_wall_hits)
+
+    __pragma__('skip')
+
+    def __contains__(self, item):
+        pass
+
+    __pragma__('noskip')

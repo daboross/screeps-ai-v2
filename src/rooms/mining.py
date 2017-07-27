@@ -33,7 +33,7 @@ __pragma__('fcall')
 
 def is_sk(flag):
     # type: (Flag) -> bool
-    return (flag.name in Memory.flags and flag.memory.sk_room) \
+    return (Memory.flags and flag.name in Memory.flags and flag.memory.sk_room) \
            or (Memory.no_controller and Memory.no_controller[flag.pos.roomName])
 
 
@@ -76,7 +76,7 @@ class MiningMind:
             storage = self.room.room.storage
             if storage and storage.storeCapacity > 0:
                 # TODO: see if this produces an error...? it should
-                distance = movement.chebyshev_distance_room_pos(storage, flag.pos)
+                distance = movement.chebyshev_distance_room_pos(storage.pos, flag.pos)
                 if distance <= 2:
                     best_priority = -40
                     best = storage
@@ -178,7 +178,7 @@ class MiningMind:
         deposit_point = self.closest_deposit_point_to_mine(flag)
 
         if not deposit_point:
-            raise ValueError("mine_road_health called for mine with no deposit point.")
+            raise AssertionError("mine_road_health called for mine with no deposit point.")
 
         max_damage = 0
         for room_name, serialized_path in self.hive.honey \

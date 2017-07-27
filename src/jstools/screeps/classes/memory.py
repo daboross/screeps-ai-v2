@@ -1,8 +1,8 @@
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional
 
 __all__ = ['Memory', 'RawMemory', '_Memory', '_MemoryValue']
 
-_MemoryValue = Union[str, int, float, bool, '_Memory', List['_MemoryValue'], None]
+_MemoryValue = Any
 
 
 class _Memory(dict):

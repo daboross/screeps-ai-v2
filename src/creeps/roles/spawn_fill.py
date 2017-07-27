@@ -24,16 +24,16 @@ class SpawnFill(building.Builder, Refill):
             self.memory.role = role_recycling
             self.memory.last_role = role_spawn_fill
             return False
-        if self.memory.filling and self.creep.carry.energy >= self.creep.carryCapacity:
+        if self.memory.filling and self.creep.carry[RESOURCE_ENERGY] >= self.creep.carryCapacity:
             self.memory.filling = False
             if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:
                 self.targets.untarget_all(self)
             else:
                 return True
-        elif not self.memory.filling and (self.creep.carry.energy <= 0 or
-                                              (self.creep.carry.energy <= 20
+        elif not self.memory.filling and (self.creep.carry[RESOURCE_ENERGY] <= 0 or
+                                              (self.creep.carry[RESOURCE_ENERGY] <= 20
                                                and self.home.room.storage and movement.chebyshev_distance_room_pos(
-                                                  self.pos, self.home.room.storage) < 5)):
+                                                  self.pos, self.home.room.storage.pos) < 5)):
             self.memory.filling = True
             del self.memory.running
             if self.memory.role == role_spawn_fill or self.memory.role == role_tower_fill:

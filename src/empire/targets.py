@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast, Tuple
 
 from cache import volatile_cache
 from constants import *
@@ -96,13 +96,13 @@ def update_targeters_memory_0_to_1(targeters):
                         .format(ttype)
                     print(msg)
                     Game.notify(msg)
-                    raise ValueError
+                    raise AssertionError(msg)
             elif not _.isNumber(ttype):
                 msg = "WARNING: Error updating old TargetMind memory. Unknown type of ttype (not string nor int): {}!" \
                     .format(ttype)
                 print(msg)
                 Game.notify(msg)
-                raise ValueError
+                raise AssertionError(msg)
             new_targeter_map[ttype] = target_id
     return new_targeters
 
@@ -350,7 +350,7 @@ class TargetMind:
         if func:
             return func(creep, extra_var)
         else:
-            raise ValueError("Couldn't find find_function for '{}'!".format(ttype))
+            raise AssertionError("Couldn't find find_function for '{}'!".format(ttype))
 
     def _get_existing_target_id(self, ttype, targeter_id):
         # type: (int, str) -> Optional[str]
@@ -385,7 +385,7 @@ class TargetMind:
         return target
 
     def get_existing_target(self, creep, ttype):
-        # type: (RoleBase, int) -> Optional[Union[RoomObject, Location]]
+        # type: (Union[RoleBase, Creep], int) -> Optional[Union[RoomObject, Location]]
         target_id = self._get_existing_target_id(ttype, creep.name)
         if not target_id:
             return None
@@ -514,7 +514,7 @@ class TargetMind:
         else:
             sites = creep.home.building.get_construction_targets()
         for site_id in sites:
-            if site_id.startsWith("flag-"):
+            if site_id.startswith("flag-"):
                 max_work = _MAX_BUILDERS
             else:
                 site = cast(ConstructionSite, Game.getObjectById(site_id))
@@ -548,8 +548,8 @@ class TargetMind:
         # best_id = None
         if len(repair_targets) <= 1 and not len(creep.home.building.get_construction_targets()):
             max_work = Infinity
-        best = None
-        second_best = None
+        best_id = None
+        second_best_id = None
         for struct_id in repair_targets:
             structure = cast(Structure, Game.getObjectById(struct_id))
             if not structure:
@@ -563,8 +563,8 @@ class TargetMind:
                 if ticks_to_repair < 10 and distance < 3:
                     return structure.id
                 elif distance + ticks_to_repair < 15:
-                    best = structure
-                if second_best:
+                    best_id = structure.id
+                if second_best_id:
                     continue
                 if max_work is Infinity:
                     current_max = Infinity
@@ -574,16 +574,16 @@ class TargetMind:
                 if not current_workforce or current_workforce < current_max:
                     #     or current_workforce < smallest_num_builders + 1:
                     # Already priority sorted
-                    second_best = structure
+                    second_best_id = structure.id
                     # distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
                     # if distance < closest_distance:
                     #     smallest_num_builders = current_workforce
                     #     closest_distance = distance
                     #     best_id = struct_id
-        if best:
-            return best.id
+        if best_id:
+            return best_id
         else:
-            return second_best.id
+            return second_best_id
 
     def _find_new_big_repair_site(self, creep, max_hits):
         # type: (RoleBase, int) -> Optional[str]
@@ -782,12 +782,16 @@ class TargetMind:
         else:
             return None
 
-    def _find_closest_flag(self, creep, flag_type, center_pos):
-        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
-        if center_pos:
+    def _find_closest_flag(self, creep, args):
+        # type: (RoleBase, Union[Tuple[int, Union[RoomPosition, RoomObject, None]], None, int]) -> Optional[str]
+        pos = creep.pos
+        if _.isNumber(args):
+            flag_type = cast(int, args)
+        elif args != undefined:
+            flag_type, center_pos = cast(Tuple[int, Union[RoomPosition, RoomObject, None]], args)
             pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
         else:
-            pos = creep.pos
+            raise ValueError("_find_closest_flag called for creep {} without second parameter!".format(creep))
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
@@ -800,12 +804,16 @@ class TargetMind:
                     closest_flag = flag_id
         return closest_flag
 
-    def _find_closest_flag2(self, creep, flag_type, center_pos):
-        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
-        if center_pos:
+    def _find_closest_flag2(self, creep, args):
+        # type: (RoleBase, Union[Tuple[int, Union[RoomPosition, RoomObject, None]], None, int]) -> Optional[str]
+        pos = creep.pos
+        if _.isNumber(args):
+            flag_type = cast(int, args)
+        elif args != undefined:
+            flag_type, center_pos = cast(Tuple[int, Union[RoomPosition, RoomObject, None]], args)
             pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
         else:
-            pos = creep.pos
+            raise ValueError("_find_closest_flag2 called for creep {} without second parameter!".format(creep))
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags_global(flag_type):
@@ -818,12 +826,16 @@ class TargetMind:
                     closest_flag = flag_id
         return closest_flag
 
-    def _find_closest_home_flag(self, creep, flag_type, center_pos):
-        # type: (RoleBase, Optional[str], Union[RoomPosition, RoomObject, None]) -> Optional[str]
-        if center_pos:
+    def _find_closest_home_flag(self, creep, args):
+        # type: (RoleBase, Union[Tuple[int, Union[RoomPosition, RoomObject, None]], None, int]) -> Optional[str]
+        pos = creep.pos
+        if _.isNumber(args):
+            flag_type = cast(int, args)
+        elif args != undefined:
+            flag_type, center_pos = cast(Tuple[int, Union[RoomPosition, RoomObject, None]], args)
             pos = cast(RoomObject, center_pos).pos or cast(RoomPosition, center_pos)
         else:
-            pos = creep.pos
+            raise ValueError("_find_closest_home_flag called for creep {} without second parameter!".format(creep))
         closest_flag = None
         closest_distance = Infinity
         for flag in flags.find_flags(creep.home, flag_type):

@@ -57,7 +57,7 @@ class LinkingMind:
         if self._main_link is undefined:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
                 for link in self.links:
-                    if movement.chebyshev_distance_room_pos(self.room.room.storage, link.pos) <= 2:
+                    if movement.chebyshev_distance_room_pos(self.room.room.storage.pos, link.pos) <= 2:
                         if self._main_link is undefined:
                             self._main_link = link
                         else:

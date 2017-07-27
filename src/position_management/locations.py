@@ -160,7 +160,7 @@ def _serialize(position, expiration=None):
         pos = cast(RoomPosition, position)
 
     if pos.x == undefined or pos.y == undefined or pos.roomName == undefined:
-        raise ValueError("Invalid position: {}".format(pos))
+        raise AssertionError("Invalid position: {}".format(pos))
     parts = [str(pos.x | pos.y << 6), pos.roomName]
     if expiration != undefined:
         parts.append(str(expiration))

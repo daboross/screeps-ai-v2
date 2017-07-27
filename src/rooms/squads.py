@@ -411,15 +411,15 @@ class SquadTactics:
                 closest_distance = Infinity
                 if len(labs):
                     for lab in labs:
-                        distance = movement.chebyshev_distance_room_pos(lab, creep)
+                        distance = movement.chebyshev_distance_room_pos(lab.pos, creep.pos)
                         if distance < closest_distance:
                             closest_lab = lab
                             closest_distance = distance
-                    _.pull(labs, closest_lab)
+                    _.pull(labs, [closest_lab])
                     boost_if_close = True
                 else:
                     for lab in original_labs:
-                        distance = movement.chebyshev_distance_room_pos(lab, creep)
+                        distance = movement.chebyshev_distance_room_pos(lab.pos, creep.pos)
                         if distance < closest_distance:
                             closest_lab = lab
                             closest_distance = distance
@@ -565,7 +565,7 @@ class SquadTactics:
         :type targets_already_active: list
         """
         for target in self.squad_targets():
-            if not targets_already_active.includes(positions.serialize_xy_room_pos(target)):
+            if not targets_already_active.includes(positions.serialize_xy_room_pos(target.pos or target)):
                 required = roles_required_for(target)
                 if self._stage0_registered_for_target:
                     this_init_tuple = self._stage0_registered_for_target.get(target.name)

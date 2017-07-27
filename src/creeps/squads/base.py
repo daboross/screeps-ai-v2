@@ -1,9 +1,14 @@
+from typing import List, TYPE_CHECKING, cast, Any, Union, Dict
+
 import creeps.roles.squads
 from constants import rmem_key_squad_memory
 from empire import honey
 from jstools.errorlog import try_exec
 from jstools.screeps import *
-from utilities import movement, positions
+from utilities import movement, positions, robjs
+
+if TYPE_CHECKING:
+    from creeps.roles.squads import SquadDrone
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -17,6 +22,7 @@ __pragma__('noalias', 'values')
 
 
 def __squad_get_mem():
+    # type: () -> _Memory
     name = this.location.name
     room_mem = this.home.mem
     if not room_mem[rmem_key_squad_memory]:
@@ -58,37 +64,40 @@ class Squad:
         self.location = location
 
         __pragma__('skip')
-        self.__cached_members_movement_order = undefined
-        self.__origin = undefined
-        self.mem = {}
+        self.__cached_members_movement_order = undefined  # type: List[SquadDrone]
+        self.__origin = undefined  # type: RoomPosition
+        self.mem = cast(_Memory, {})
         __pragma__('noskip')
 
     def log(self, message, *args):
-        """
-        :type message: str
-        :type *args: any
-        """
+        # type: (str, *Any) -> None
         if len(args):
             print("[{}][squad-{}] {}".format(self.home.name, self.location.name, message.format(*args)))
         else:
             print("[{}][squad-{}] {}".format(self.home.name, self.location.name, message))
 
     def find_home(self):
-        return self.home.spawn or movement.find_an_open_space(self.home.name)
+        # type: () -> RoomPosition
+        spawn = self.home.spawn
+        if spawn:
+            return spawn.pos
+        else:
+            return movement.find_an_open_space(self.home.name)
 
     def find_origin(self):
+        # type: () -> RoomPosition
         if '__origin' not in self:
             origin_mem = self.mem[squadmemkey_origin]
             if origin_mem:
                 origin = positions.deserialize_xy_to_pos(origin_mem.xy, origin_mem.room)
             else:
-                origin = self.home.spawn or movement.find_an_open_space(self.home.name)
+                origin = self.find_home()
             self.__origin = origin
         return self.__origin
 
     def set_origin(self, origin):
-        if origin.pos:
-            origin = origin.pos
+        # type: (Union[RoomPosition, RoomObject]) -> None
+        origin = robjs.pos(origin)
         origin = __new__(RoomPosition(origin.x, origin.y, origin.roomName))
 
         self.__origin = origin
@@ -96,18 +105,15 @@ class Squad:
         self.mem[squadmemkey_origin] = {'xy': positions.serialize_pos_xy(origin), 'room': origin.roomName}
 
     def members_movement_order(self):
-        """
-        :rtype list[creeps.roles.squads.SquadDrone]
-        """
+        # type: () -> List[SquadDrone]
         if '__cached_members_movement_order' not in self:
             self.__cached_members_movement_order = self.calculate_movement_order()
         return self.__cached_members_movement_order
 
     def move_to_stage_0(self, target):
+        # type: (RoomPosition) -> None
         """
         Stage 0 movement, for when creeps have not left the home room.
-
-        :type target: position_management.locations.Location | RoomPosition
         """
         ordered_members = self.members_movement_order()
 
@@ -120,10 +126,9 @@ class Squad:
                 ordered_members[i].move_to(ordered_members[i - 1])
 
     def move_to_stage_1(self, target, any_hostiles):
+        # type: (RoomPosition, bool) -> None
         """
         Stage 1 movement, for when creeps are still far from target room but have definitely left the home room.
-
-        :type target: position_management.locations.Location | RoomPosition
         """
         ordered_members = self.members_movement_order()
 
@@ -188,7 +193,7 @@ class Squad:
 
                 else:
                     if member.pos.x <= 2 or member.pos.x >= 48 or member.pos.y <= 2 or member.pos.y >= 48 \
-                            or _.some(member.room.look_for_in_area_around(LOOK_STRUCTURES, member, 1),
+                            or _.some(member.room.look_for_in_area_around(LOOK_STRUCTURES, member.pos, 1),
                                       lambda s: s.destination):
                         moving_now = True
                     else:
@@ -196,7 +201,7 @@ class Squad:
                         for i2 in range(0, len(ordered_members)):
                             other_member = ordered_members[i2]
                             if members_path_positions[i2] is None \
-                                    and movement.chebyshev_distance_room_pos(other_member, member) \
+                                    and movement.chebyshev_distance_room_pos(other_member.pos, member.pos) \
                                             <= len(ordered_members) + 1:
                                 moving_now = True
                                 break
@@ -247,7 +252,7 @@ class Squad:
                 else:
                     if furthest_back_hurt_index > i:
                         drone.log("moving backwards to help out.")
-                        if not drone.pos.isNearTo(prev_drone) and any_fatigued:
+                        if not drone.pos.isNearTo(prev_drone.pos) and any_fatigued:
                             if move_obj.rev != -30:
                                 result = drone.creep.move(move_obj.rev)
                                 drone.creep.__direction_moved = move_obj.rev
@@ -310,12 +315,11 @@ class Squad:
                         # TODO: move backwards to re-unite when there are hostiles.
 
     def move_to_stage_2(self, target):
+        # type: (RoomPosition) -> None
         """
         Stage 2 movement, where we're near the enemy base and we need to keep tight formation.
 
         The default method is a tight line, recommended to replace this with something more intricate.
-
-        :type target: position_management.locations.Location | RoomPosition
         """
         ordered_members = self.members_movement_order()
 
@@ -337,14 +341,14 @@ class Squad:
                     if this_drone.creep.fatigue and not movement.is_edge_position(next_drone.pos):
                         self.log("drone {} at {},{} breaking due to fatigue", i, this_drone.pos.x, this_drone.pos.y)
                         break
-                    direction = movement.diff_as_direction(this_drone, next_drone)
+                    direction = movement.diff_as_direction(this_drone.pos, next_drone.pos)
                     this_drone.creep.move(direction)
                     this_drone.creep.__direction_moved = direction
-                elif movement.is_edge_position(this_drone):
+                elif movement.is_edge_position(this_drone.pos):
                     this_drone.move_to(next_drone)
-                elif movement.chebyshev_distance_room_pos(this_drone, next_drone) > 3 or (
-                                movement.chebyshev_distance_room_pos(this_drone, next_drone) > 1
-                        and not movement.is_edge_position(next_drone)
+                elif movement.chebyshev_distance_room_pos(this_drone.pos, next_drone.pos) > 3 or (
+                                movement.chebyshev_distance_room_pos(this_drone.pos, next_drone.pos) > 1
+                        and not movement.is_edge_position(next_drone.pos)
                 ):
                     this_drone.move_to(next_drone)
                     self.log("drone {} at {},{} breaking due to distance", i, this_drone.pos.x, this_drone.pos.y)
@@ -355,19 +359,19 @@ class Squad:
                     #         movement.diff_as_direction(ordered_members[j], ordered_members[j - 1]))
                     moved = False
 
-                    if movement.chebyshev_distance_room_pos(this_drone, next_drone) == 2:
+                    if movement.chebyshev_distance_room_pos(this_drone.pos, next_drone.pos) == 2:
                         # Note: we are guaranteed not to be in an edge position because if we were, the above
                         # if would be triggered instead! This allows us to ignore the room name of the next pos.
-                        next_pos = movement.next_pos_in_direction_to(this_drone, next_drone)
+                        next_pos = movement.next_pos_in_direction_to(this_drone.pos, next_drone.pos)
                         if movement.is_block_empty(this_drone.room, next_pos.x, next_pos.y):
-                            other_creeps_there = this_drone.room.look_at(LOOK_CREEPS, next_pos)
+                            other_creeps_there = cast(List[Creep], this_drone.room.look_at(LOOK_CREEPS, next_pos))
                             other_drone = _.find(other_creeps_there, 'my')
                             if other_drone:
-                                other_drone.move(movement.diff_as_direction(other_drone, this_drone))
-                                this_drone.creep.move(movement.diff_as_direction(this_drone, next_drone))
+                                other_drone.move(movement.diff_as_direction(other_drone.pos, this_drone.pos))
+                                this_drone.creep.move(movement.diff_as_direction(this_drone.pos, next_drone.pos))
                                 moved = True
                             elif not len(other_creeps_there):
-                                direction = movement.diff_as_direction(this_drone, next_drone)
+                                direction = movement.diff_as_direction(this_drone.pos, next_drone.pos)
                                 this_drone.creep.move(direction)
                                 this_drone.creep.__direction_moved = direction
                                 moved = True
@@ -375,10 +379,9 @@ class Squad:
                         this_drone.move_to(next_drone)
 
     def move_to(self, target):
+        # type: (RoomPosition) -> None
         """
         Method that judges distance to target, and then delegates to stage_0, stage_1 or stage_2 movement.
-
-        :type target: position_management.locations.Location | RoomPosition
         """
         hive = self.home.hive
         home = self.find_home()
@@ -388,13 +391,13 @@ class Squad:
 
         min_distance_from_home = Infinity
         min_distance_to_origin = Infinity
-        min_distance_to_target = movement.chebyshev_distance_room_pos(self.members_movement_order()[0], target)
+        min_distance_to_target = movement.chebyshev_distance_room_pos(self.members_movement_order()[0].pos, target)
         max_distance_to_target = -Infinity
         any_hostiles = False
         for member in self.members:
-            distance_to_home = movement.chebyshev_distance_room_pos(member, home)
-            distance_to_origin = movement.chebyshev_distance_room_pos(member, origin)
-            distance_to_target = movement.chebyshev_distance_room_pos(member, target)
+            distance_to_home = movement.chebyshev_distance_room_pos(member.pos, home)
+            distance_to_origin = movement.chebyshev_distance_room_pos(member.pos, origin)
+            distance_to_target = movement.chebyshev_distance_room_pos(member.pos, target)
             if distance_to_home < min_distance_from_home:
                 min_distance_from_home = distance_to_home
             if distance_to_target > max_distance_to_target:
@@ -428,33 +431,30 @@ class Squad:
             self.move_to_stage_2(target)
 
     def new_movement_opts(self):
-        """
-        :rtype: dict[str, any]
-        """
+        # type: () -> Dict[str, Any]
         if self.is_heavily_armed():
             return {'sk_ok': True, 'use_roads': False}
         else:
             return {'use_roads': False}
 
     def is_heavily_armed(self):
+        # type: () -> bool
         """
-        Recommended override function.
-
-        :rtype: bool
+        Recommended override function. True if we can go through dangerous areas which aren't our destination.
         """
         return False
 
     def calculate_movement_order(self):
+        # type: () -> List[SquadDrone]
         """
         Recommended override function.
 
         Returns all of self members in a deterministic order - called once per tick when used, then cached.
-
-        :rtype: list[creeps.roles.squads.SquadDrone]
         """
         return _.sortByAll(self.members, 'name')
 
     def run(self):
+        # type: () -> None
         """
         Recommended override function.
 
@@ -557,6 +557,6 @@ class KitingPairSquad(Squad):
             if result and not do_things:
                 do_things = True
         if do_things:
-            self.move_to_stage_2(members[0])
+            self.move_to_stage_2(members[0].pos)
         else:
             self.move_to(self.location)
