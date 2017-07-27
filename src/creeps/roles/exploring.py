@@ -33,8 +33,7 @@ class Scout(MilitaryBase):
             return
 
         still_exploring = ('explored_at' not in destination.memory) \
-                          or (positions.serialize_pos_xy(destination)
-                              + destination.pos.roomName) != destination.memory.explored_at
+                          or positions.serialize_xy_room_pos(destination.pos) != destination.memory.explored_at
 
         recalc = False
 
@@ -85,7 +84,7 @@ class Scout(MilitaryBase):
                 destination.memory.travel_time = CREEP_LIFE_TIME - self.creep.ticksToLive
                 self.log("Arrived at {} ({}), traveling from {} in {} ticks."
                          .format(destination, destination.pos, self.home.spawn, destination.memory.travel_time))
-                destination.memory.explored_at = positions.serialize_pos_xy(destination) + destination.pos.roomName
+                destination.memory.explored_at = positions.serialize_xy_room_pos(destination.pos)
         elif self.pos.isNearTo(destination):
             self.basic_move_to(destination)
         else:
