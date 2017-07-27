@@ -186,9 +186,9 @@ class RoleBase:
             elif result != OK:
                 if result != ERR_NOT_FOUND and (result != ERR_NO_PATH or (self.pos.x != 49 and self.pos.y != 49
                                                                           and self.pos.x != 0 and self.pos.y != 0)):
-                    self.log("WARNING: Unknown result from ({} at {}:{},{}).moveTo({}:{},{}): {}",
+                    self.log("WARNING: Unknown result from ({} at {}:{},{}).moveTo({}:{},{} ({})): {}",
                              self.memory.role, self.pos.roomName, self.pos.x, self.pos.y,
-                             target.roomName, target.x, target.y, result)
+                             target.roomName, target.x, target.y, target, result)
 
     def harvest_energy(self):
         # type: () -> bool
