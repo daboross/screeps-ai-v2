@@ -96,6 +96,19 @@ def strw():
     return "\"{}\" - starwar15432".format(message)
 
 
+def lolvl():
+    # type: () -> str
+    message = _.sample([
+        "greetings",
+        "hello",
+        "Tatramajjhattatā",
+    ])
+    return message
+
+
 def rs():
     # type: () -> str
-    return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
+    if Game.gcl.level < 5:
+        return lolvl()
+    else:
+        return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
