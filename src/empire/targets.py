@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast, Tuple
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from cache import volatile_cache
 from constants import *
@@ -25,11 +25,11 @@ __pragma__('noalias', 'values')
 _MAX_BUILDERS = 4
 _MAX_REPAIR_WORKFORCE = 10
 
-
 tmkey_targets_used = "targets_used"
 tmkey_targeters_using = "targeters_using"
 tmkey_workforce = "targets_workforce"
 tmkey_stealable = "targets_stealable"
+
 
 def _mass_count(name):
     # type: (str) -> int

@@ -1,7 +1,6 @@
-from typing import cast, Optional, List
+from typing import List, Optional, cast
 
 from constants import role_recycling, role_squad_dismantle, target_single_flag
-from creep_management import autoactions
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.roles.smart_offensive import kiting_away_raw_path

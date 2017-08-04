@@ -215,7 +215,7 @@ def run(room, spawn):
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.name, filled, energy))
         return
 
-    descriptive_level = None # type: Any
+    descriptive_level = None  # type: Any
 
     if base is creep_base_1500miner:
         parts = []

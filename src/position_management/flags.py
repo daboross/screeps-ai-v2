@@ -354,10 +354,12 @@ def move_flags():
             print("[flags] Moving flag {} to {}. Result: {}".format(name, pos, result))
         del Memory.flags_to_move
 
+
 __pragma__('skip')
 _HasRoom = Union[Room, RoomMind, RoomDefense]
 _IsRoom = Union[_HasRoom, str]
 __pragma__('noskip')
+
 
 def __get_room_name(room_arg):
     # type: (_IsRoom) -> str

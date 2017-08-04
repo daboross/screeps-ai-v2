@@ -1,5 +1,5 @@
 import math
-from typing import Any, Dict, List, Tuple, Union, cast, Callable, TYPE_CHECKING, Optional
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, role_squad_dismantle, role_squad_heal, \
     role_squad_ranged
@@ -414,7 +414,7 @@ def get_opts(room_name):
     if room_name in Memory.rooms:
         room_mem = Memory.rooms[room_name]
         if rmem_key_dismantler_squad_opts in room_mem:
-            return cast(Dict[str,bool], room_mem[rmem_key_dismantler_squad_opts])
+            return cast(Dict[str, bool], room_mem[rmem_key_dismantler_squad_opts])
 
     return {'just_vitals': True}
 

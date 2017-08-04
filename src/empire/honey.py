@@ -1,5 +1,5 @@
 import math
-from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union, cast, Tuple
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, global_cache_mining_paths_suffix, \
@@ -424,7 +424,7 @@ def get_default_max_ops(origin, destination, opts):
     return ops
 
 
-def clear_cached_path(origin, destination, opts = None):
+def clear_cached_path(origin, destination, opts=None):
     # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> None
     key = get_global_cache_key(origin, destination, opts)
     global_cache.rem(key)
@@ -974,7 +974,7 @@ class HoneyTrails:
             keep_for = opts["keep_for"]
         else:
             raise AssertionError("force_complete_repath_and_get_raw_path requires an options object with a"
-                             " keep_for property")
+                                 " keep_for property")
 
         cache_key = get_global_cache_key(origin, destination, opts)
 

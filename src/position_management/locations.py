@@ -1,4 +1,4 @@
-from typing import cast, Union, Optional
+from typing import Optional, Union, cast
 
 from jstools.screeps import *
 from utilities import naming
@@ -35,7 +35,7 @@ class Location(RoomPosition):
         self.name = name
         self.hint = hint
 
-    def update(self, x: int, y: int, roomName: str=None):
+    def update(self, x: int, y: int, roomName: str = None):
         """
         :type x: int
         :type y: int
@@ -63,6 +63,7 @@ def DeserializedPos(string, name):
     if expiration != undefined:
         _mem_expirations[name] = Game.time + expiration
     return cast(Location, undefined)
+
 
 __pragma__('js', '{}', """
 DeserializedPos.prototype = Object.create(RoomPosition.prototype);

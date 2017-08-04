@@ -1,4 +1,4 @@
-from typing import Any, Optional, cast
+from typing import Any, Optional
 
 from constants import global_cache_mining_paths_suffix, max_repath_mine_roads_every
 from jstools.screeps import *

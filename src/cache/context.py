@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import Optional, TYPE_CHECKING
 
 from jstools.screeps import *
 
@@ -15,7 +15,7 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
-_hive = None # type: Optional[HiveMind]
+_hive = None  # type: Optional[HiveMind]
 
 
 def hive():

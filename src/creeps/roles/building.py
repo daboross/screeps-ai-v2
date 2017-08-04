@@ -1,5 +1,5 @@
 import math
-from typing import Optional, cast, Union, List, Dict
+from typing import Dict, List, Optional, Union, cast
 
 from constants import recycle_time, rmem_key_building_priority_spawn, rmem_key_there_might_be_energy_lying_around, \
     role_builder, role_recycling, role_upgrader, target_big_big_repair, target_big_repair, target_construction, \
@@ -44,7 +44,7 @@ class Builder(upgrading.Upgrader):
             self.memory.role = role_recycling
             self.memory.last_role = role_builder
             return False
-        if self.memory.filling and self.creep.carry[RESOURCE_ENERGY]>= self.creep.carryCapacity:
+        if self.memory.filling and self.creep.carry[RESOURCE_ENERGY] >= self.creep.carryCapacity:
             self.memory.filling = False
             self.targets.untarget_all(self)
             if self.home.room.controller.ticksToDowngrade < 500 \

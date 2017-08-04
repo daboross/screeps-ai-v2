@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING, cast, Any, Union, Dict
+from typing import Any, Dict, List, TYPE_CHECKING, Union, cast
 
 import creeps.roles.squads
 from constants import rmem_key_squad_memory

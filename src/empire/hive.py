@@ -295,7 +295,7 @@ class HiveMind:
             return errorlog.execute(creep_wrappers.wrap_creep, self, self.targets, home, creep)
         else:
             raise AssertionError("[hive]Invalid value to wrap_creep: {} with memory {}"
-                             .format(creep, JSON.stringify(creep.memory)))
+                                 .format(creep, JSON.stringify(creep.memory)))
 
     def toString(self):
         # type: () -> str

@@ -74,5 +74,6 @@ def concat_lists(*lists: List[_L]) -> List[_L]:
 def slice_list(_list: List[_L], start: int, end: int = undefined) -> List[_L]:
     return cast(Any, _list).slice(start, end)
 
+
 def get_str_codepoint(_str: str, index: int) -> int:
     return cast(Any, _str).codePointAt(index)

@@ -681,6 +681,7 @@ class _:
     @staticmethod
     def extend(_object: Any, *sources: Any) -> Any:
         pass
+
     @staticmethod
     def assign(_object: Any, *sources: Any) -> Any:
         pass
