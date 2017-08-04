@@ -140,6 +140,7 @@ class KitingOffense(MilitaryBase):
         labs = _.filter(self.home.minerals.labs(), lambda l: l.mineralAmount and l.energy)
         if not len(labs):
             self.memory.boosted = 2
+            self.creep.notifyWhenAttacked(False)
             return False
 
         if self.memory.boosted == 0:
@@ -165,6 +166,7 @@ class KitingOffense(MilitaryBase):
                     result = lab.boostCreep(self.creep)
                     if result == OK or result == ERR_NOT_ENOUGH_RESOURCES:
                         self.memory.boosted = 2
+                        self.creep.notifyWhenAttacked(False)
                     else:
                         self.log("WARNING: Unknown result from {}.boostCreep({}): {}"
                                  .format(lab, self.creep, result))
@@ -173,6 +175,7 @@ class KitingOffense(MilitaryBase):
                 return True
             else:
                 self.memory.boosted = 2
+                self.creep.notifyWhenAttacked(False)
 
         return False
 
