@@ -25,6 +25,14 @@ __pragma__('noalias', 'values')
 __pragma__('fcall')
 
 
+def volatile_link_mem(link):
+    # type: (StructureLink) -> JSMap
+    if link.id:
+        link = link.id
+
+    return volatile_cache.submem('links', link)
+
+
 class LinkingMind:
     """
     :type room: rooms.room_mind.RoomMind
@@ -88,13 +96,6 @@ class LinkingMind:
             self.room.mem[rmem_key_linking_mind_storage][link] = {}
         return self.room.mem[rmem_key_linking_mind_storage][link]
 
-    def volatile_link_mem(self, link):
-        # type: (StructureLink) -> JSMap
-        if link.id:
-            link = link.id
-
-        return volatile_cache.submem('links', link)
-
     links = property(_get_links)
 
     def _enabled(self):
@@ -114,7 +115,7 @@ class LinkingMind:
         # type: (StructureLink, Union[Creep, RoleBase], int, int) -> None
         targeter = targeter.name
 
-        self.volatile_link_mem(target).set(targeter, {
+        volatile_link_mem(target).set(targeter, {
             'cap': -needed,
             'distance': distance
         })
@@ -124,7 +125,7 @@ class LinkingMind:
         # type: (StructureLink, Union[Creep, RoleBase], int, int) -> None
         targeter = targeter.name
 
-        self.volatile_link_mem(target).set(targeter, {
+        volatile_link_mem(target).set(targeter, {
             'cap': +depositing,
             'distance': distance
         })
@@ -176,7 +177,7 @@ class LinkingMind:
             if link.id == main_link.id or (secondary_link and link.id == secondary_link.id):
                 continue
             mem = self.link_mem(link)
-            vmem = self.volatile_link_mem(link)
+            vmem = volatile_link_mem(link)
             energy_change_now = 0
             for obj in Array.js_from(vmem.values()):
                 if obj.distance <= 1:

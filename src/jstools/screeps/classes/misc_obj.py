@@ -81,15 +81,16 @@ class Mineral(RoomObject):
     """
 
     def __init__(self, pos: RoomPosition, room: Optional[Room], density: int, mineralAmount: int, mineralType: str,
-                 id: str, ticksToRegeneration: int) -> None:
+                 _id: str, ticksToRegeneration: int) -> None:
         super().__init__(pos, room)
         self.density = density
         self.mineralAmount = mineralAmount
         self.mineralType = mineralType
-        self.id = id
+        self.id = _id
         self.ticksToRegeneration = ticksToRegeneration
 
 
+# noinspection PyPep8Naming
 class Resource(RoomObject):
     """
     :type amount: int

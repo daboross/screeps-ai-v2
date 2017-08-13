@@ -46,18 +46,19 @@ class DismantleSquad(BasicOffenseSquad):
         return _.sortByAll(self.members, lambda x: specialty_order.index(x.findSpecialty()), 'name')
 
     def move_to_stage_0(self, target):
+        # type: (RoomPosition) -> None
         self.new_move(target)
 
     def move_to_stage_1(self, target, any_hostiles):
-        """
-        :type target: position_management.locations.Location | RoomPosition
-        """
+        # type: (RoomPosition, bool) -> None
         self.new_move(target)
 
     def move_to_stage_2(self, target):
+        # type: (RoomPosition) -> None
         self.new_move(target)
 
     def move_to(self, target):
+        # type: (RoomPosition) -> None
         self.new_move(target)
 
     def new_move(self, target):

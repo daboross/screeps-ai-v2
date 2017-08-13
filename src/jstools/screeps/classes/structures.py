@@ -32,6 +32,7 @@ class Structure(RoomObject):
         pass
 
 
+# noinspection PyPep8Naming
 class OwnedStructure(Structure):
     """
     :type my: bool
@@ -366,6 +367,7 @@ class _SpawnSpawningCreep:
     pass
 
 
+# noinspection PyPep8Naming
 class StructureSpawn(OwnedStructure):
     """
     :type energy: int

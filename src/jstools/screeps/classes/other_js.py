@@ -61,9 +61,10 @@ class Math:
         pass
 
 
+# noinspection PyPep8Naming
 class String:
     @staticmethod
-    def fromCodePoint(int) -> str:
+    def fromCodePoint(number: int) -> str:
         pass
 
 

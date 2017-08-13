@@ -2347,6 +2347,7 @@ class RoomMind:
             self.store_cached_property("_msg", message, random.randint(500, 1000))
         return message
 
+    # noinspection PyPep8Naming
     def toString(self):
         # type: () -> str
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(

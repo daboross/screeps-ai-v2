@@ -39,13 +39,14 @@ def auto():
 def coal():
     # type: () -> str
     if len(Memory.meta.friends):
-        all = Memory.meta.friends.concat([stored_data.get_my_username()])
+        names = Memory.meta.friends.concat([stored_data.get_my_username()])
     else:
         return "NYXR ❤️ {}".format(stored_data.get_my_username())
     return _.sample([
-        lambda: "NYXR ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all)),
-        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all)),
-        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all), _.sample(all)),
+        lambda: "NYXR ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names)),
+        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names), _.sample(names)),
+        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names), _.sample(names),
+                                                      _.sample(names)),
     ])()
 
 

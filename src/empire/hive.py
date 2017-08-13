@@ -297,6 +297,7 @@ class HiveMind:
             raise AssertionError("[hive]Invalid value to wrap_creep: {} with memory {}"
                                  .format(creep, JSON.stringify(creep.memory)))
 
+    # noinspection PyPep8Naming
     def toString(self):
         # type: () -> str
         return "HiveMind[rooms: {}]".format(JSON.stringify([room.name for room in self.my_rooms]))

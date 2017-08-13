@@ -231,12 +231,14 @@ def _create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debu
 
 
 def create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debug):
+    # type: (str, int, int, int, bool) -> CustomCostMatrix
     """
     :rtype: CustomCostMatrix
     :param room_name: The room name
     :param plain_cost: The plain cost
     :param swamp_cost: The swamp cost
     :param min_cost: The minimum cost
+    :param debug: If true, enable debug output in console
     :return: The custom cost matrix
     """
     return __new__(_create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, debug))

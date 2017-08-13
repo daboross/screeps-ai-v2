@@ -248,8 +248,8 @@ def run_away_check(creep, hostile_path_targets):
 
     any_unsafe = False
     for obj in hostile_path_targets:
-        target = obj.pos
-        target_range = obj.range
+        target = obj['pos']
+        target_range = obj['range']
         # NOTE: target_range here is twice what we actually want, so that when passing to PathFinder we get a better
         # path. See NOTE above.
         distance = movement.chebyshev_distance_room_pos(target, creep.pos)

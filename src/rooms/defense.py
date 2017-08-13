@@ -43,21 +43,21 @@ def _init_tough_part_multipliers():
 TOUGH_HIT_MULTIPLIERS = _init_tough_part_multipliers()
 
 
-def tower_damage(range):
+def tower_damage(_range):
     # type: (int) -> int
     """
     Gets the damage a tower will inflict by using attack() on a target at a given linear distance.
 
-    :param range: The distance away
+    :param _range: The distance away
     :return: An integer attack damage
-    :type range: int
+    :type _range: int
     :rtype: int
     """
-    if range > 20:
+    if _range > 20:
         return 150
-    elif range < 5:
+    elif _range < 5:
         return 600
-    return (25 - range) * 30
+    return (25 - _range) * 30
 
 
 def poll_hostiles(hive, run_away_checks):

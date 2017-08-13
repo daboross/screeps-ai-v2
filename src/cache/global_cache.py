@@ -47,6 +47,7 @@ def has(key):
     return key in r
 
 
+# noinspection PyShadowingBuiltins
 def set(key, value, ttl):
     # type: (str, Any, int) -> None
     r = root()
