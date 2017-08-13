@@ -102,7 +102,6 @@ def lolvl():
     message = _.sample([
         "greetings",
         "hello",
-        "Tatramajjhattatā",
     ])
     return message
 
