@@ -733,7 +733,7 @@ class RoomDefense:
         hot = []
         cold = []
         for pos, priority in _.sortBy(Array.js_from(protect.entries()), lambda x: x[1]):
-            loc = locations.create(pos)
+            loc = locations.create(positions.deserialize_xy_to_pos(pos, self.room.name))
             spots.push(loc.name)
             if priority <= 1:
                 hot.push(loc.name)
