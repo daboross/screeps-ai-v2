@@ -1,9 +1,10 @@
 import math
+from typing import Any, Dict, List, Optional, cast
 
 from creeps.base import RoleBase
 from empire import honey
 from jstools.screeps import *
-from utilities import movement
+from utilities import movement, robjs
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
     get_entrance_for_exit_pos, is_block_clear, parse_room_to_xy, room_xy_to_name
 
@@ -15,14 +16,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def _find_nearest_junctions(pos):
-    """
-    :type pos: RoomPosition
-    """
-    if pos.pos:
-        pos = pos.pos
+    # type: (RoomPosition) -> List[RoomPosition]
     x, y = parse_room_to_xy(pos.roomName)
     if x == 0 and y == 0 and pos.roomName == 'sim':
         return []  # we're in sim
@@ -32,15 +30,15 @@ def _find_nearest_junctions(pos):
 
     def floor_thing(coord):
         if coord < 0:
-            return math.floor((coord + 1) / 10) * 10 - 1
+            return int(math.floor((coord + 1) / 10) * 10 - 1)
         else:
-            return math.floor(coord / 10) * 10
+            return int(math.floor(coord / 10) * 10)
 
     def ceil_thing(coord):
         if coord < 0:
-            return math.ceil((coord + 1) / 10) * 10 - 1
+            return int(math.ceil((coord + 1) / 10) * 10 - 1)
         else:
-            return math.ceil(coord / 10) * 10
+            return int(math.ceil(coord / 10) * 10)
 
     if rrx == 0:
         if rry == 0:
@@ -65,11 +63,10 @@ def _find_nearest_junctions(pos):
 
 
 def find_midpoint(pos, origin, target):
+    # type: (RoomPosition, RoomPosition, RoomPosition) -> Optional[RoomPosition]
     # This method calculates the angle at each junction made by drawing lines from the origin and destination to
     # that junction. pi*2/5 is just under 90 degrees, and is our cutoff point for deciding to path through an
     # intersection.
-    if pos.pos:
-        pos = pos.pos
     biggest_midpoint_angle = math.pi * 2 / 5
     best_midpoint = None
     for junction in _find_nearest_junctions(pos):
@@ -93,11 +90,12 @@ def find_midpoint(pos, origin, target):
 
 
 def is_path_portal(origin, target):
+    # type: (RoomPosition, RoomPosition) -> bool
     if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
         reroute_start = Game.flags['reroute']
         reroute_destination = Game.flags['reroute_destination']
-        if chebyshev_distance_room_pos(origin, reroute_start) \
-                + chebyshev_distance_room_pos(reroute_destination, target) \
+        if chebyshev_distance_room_pos(origin, reroute_start.pos) \
+                + chebyshev_distance_room_pos(reroute_destination.pos, target) \
                 < chebyshev_distance_room_pos(origin, target):
             return True
     return False
@@ -105,6 +103,7 @@ def is_path_portal(origin, target):
 
 class MilitaryBase(RoleBase):
     def recalc_military_path(self, origin, target, opts=None):
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> None
         # TODO: separate the majority of the code this shares with follow_military_path into a new module
         if opts and "to_home" in opts:
             to_home = opts["to_home"]
@@ -112,10 +111,6 @@ class MilitaryBase(RoleBase):
             to_home = False
         if not origin:
             origin = movement.find_an_open_space(self.memory.home)
-        if origin.pos:
-            origin = origin.pos
-        if target.pos:
-            target = target.pos
         if self.creep.fatigue > 0:
             return
         if self.pos.getRangeTo(target) < 10 or self.pos.roomName == target.roomName:
@@ -147,10 +142,10 @@ class MilitaryBase(RoleBase):
                     self.move_to(target)
                     return
             if not is_path_portal(origin, target):
-                origin_midpoint = find_midpoint(self, self, origin)
+                origin_midpoint = find_midpoint(self.pos, self.pos, origin)
                 if origin_midpoint is not None:
                     origin = origin_midpoint
-                dest_midpoint = find_midpoint(self, origin, target)
+                dest_midpoint = find_midpoint(self.pos, origin, target)
                 if dest_midpoint is not None:
                     if self.pos.roomName == dest_midpoint.roomName:
                         origin = dest_midpoint
@@ -161,16 +156,15 @@ class MilitaryBase(RoleBase):
 
     # TODO: A lot of this is copied directly (and shared with) transport.TransportPickup
     def follow_military_path(self, origin, target, opts=None):
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> None
+        origin = robjs.pos(origin)
+        target = robjs.pos(target)
         if opts and "to_home" in opts:
             to_home = opts["to_home"]
         else:
             to_home = False
         if not origin:
             origin = movement.find_an_open_space(self.memory.home)
-        if origin.pos:
-            origin = origin.pos
-        if target.pos:
-            target = target.pos
         if self.creep.fatigue > 0:
             return
         if self.pos.getRangeTo(target) < 10 or self.pos.roomName == target.roomName:
@@ -202,10 +196,10 @@ class MilitaryBase(RoleBase):
                     self.move_to(target)
                     return
             pass
-            origin_midpoint = find_midpoint(self, self, origin)
+            origin_midpoint = find_midpoint(self.pos, self.pos, origin)
             if origin_midpoint is not None:
                 origin = origin_midpoint
-            dest_midpoint = find_midpoint(self, origin, target)
+            dest_midpoint = find_midpoint(self.pos, origin, target)
             if dest_midpoint is not None:
                 if self.pos.roomName == dest_midpoint.roomName:
                     origin = dest_midpoint
@@ -219,8 +213,8 @@ class MilitaryBase(RoleBase):
         if result == ERR_NOT_FOUND:
             if self.memory.manual:
                 self.move_to(target)
-            elif not self.memory.next_ppos or movement.chebyshev_distance_room_pos(
-                    self, self.memory.next_ppos) > CREEP_LIFE_TIME:
+            elif not self.memory.next_ppos or movement.chebyshev_distance_room_pos(self.pos, self.memory.next_ppos) \
+                    > CREEP_LIFE_TIME:
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, path_opts)
                 closest = None
                 closest_distance = Infinity
@@ -239,7 +233,8 @@ class MilitaryBase(RoleBase):
                             self.move_to(target)
                             return
                 else:
-                    portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
+                    portals = cast(List[StructurePortal], _.filter(self.room.find(FIND_STRUCTURES),
+                                                                   {'structureType': STRUCTURE_PORTAL}))
                     if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
                             + movement.chebyshev_distance_room_pos(portals[0].destination, target) \
                             < movement.chebyshev_distance_room_pos(self.pos, target):
@@ -275,10 +270,10 @@ class MilitaryBase(RoleBase):
                             del self.memory.next_ppos
 
                         self.log("Lost the path from {} to {}! Pos: {}. Retargeting to: {} (path: {})".format(
-                            origin, target, self.pos, new_target, [
+                            origin, target, self.pos, new_target, ', '.join([
                                 "({},{})".format(p.x, p.y) for p in Room.deserializePath(
                                     _.get(self.memory, ['_move', 'path'], ''))
-                            ].join(', ')))
+                            ])))
         elif result != OK:
             self.log("Unknown result from follow_military_path: {}".format(result))
         else:
@@ -320,10 +315,9 @@ class MilitaryBase(RoleBase):
             del self.memory.standstill_for
 
     def get_military_path_length(self, spawn, target, opts=None):
-        if spawn.pos:
-            spawn = spawn.pos
-        if target.pos:
-            target = target.pos
+        # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> int
+        spawn = robjs.pos(spawn)
+        target = robjs.pos(target)
         if opts:
             path_opts = opts
         else:

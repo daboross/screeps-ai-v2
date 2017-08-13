@@ -1,3 +1,5 @@
+from typing import List
+
 from constants import *
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
@@ -13,8 +15,9 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
-immediately_replace_roles = []
+immediately_replace_roles = []  # type: List[str]
 let_live_roles = [
     role_spawn_fill_backup,
     role_spawn_fill,
@@ -133,13 +136,15 @@ class Recycling(Refill, MilitaryBase):
                 target = self.home.room.storage
             if target == undefined:
                 target = self.home.spawn
-            if target == undefined or self.creep.ticksToLive < movement.chebyshev_distance_room_pos(self, target):
+            if target == undefined or self.creep.ticksToLive < movement.chebyshev_distance_room_pos(self.pos,
+                                                                                                    target.pos):
                 self.creep.suicide()
                 return False
             if 'checkpoint' not in self.memory or \
                             movement.chebyshev_distance_room_pos(self.memory.checkpoint, self.pos) > 50:
                 self.memory.checkpoint = self.pos
-            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target, {'range': 1})
+            self.follow_military_path(_.create(RoomPosition.prototype, self.memory.checkpoint), target.pos,
+                                      {'range': 1})
             return False
         if self.carry_sum() > 0:
             storage = self.home.room.storage
@@ -158,7 +163,7 @@ class Recycling(Refill, MilitaryBase):
                 else:
                     self.move_to(storage)
                 return False
-            elif self.creep.carry.energy > 0:
+            elif self.creep.carry[RESOURCE_ENERGY] > 0:
                 return self.refill_creeps()
 
         self.recycle_me()

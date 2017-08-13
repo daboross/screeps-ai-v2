@@ -9,9 +9,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def pnk():
+    # type: () -> str
     me = stored_data.get_my_username()
     color = _.sample(["PINK", "RED", "BLUE", "ORANGE"])
     return _.sample([
@@ -19,10 +21,11 @@ def pnk():
         "Territory of {}. Accept {} as the one true color, or perish.".format(me, color),
         "There is only one true color, and it is {}!".format(color),
         "Be {} or be purged!".format(color),
-    ]),
+    ])
 
 
 def auto():
+    # type: () -> str
     me = stored_data.get_my_username()
     return _.sample([
         "Powered by BonzAI: https://github.com/bonzaiferroni/bonzAI",
@@ -34,18 +37,21 @@ def auto():
 
 
 def coal():
+    # type: () -> str
     if len(Memory.meta.friends):
-        all = Memory.meta.friends.concat([stored_data.get_my_username()])
+        names = Memory.meta.friends.concat([stored_data.get_my_username()])
     else:
         return "NYXR ❤️ {}".format(stored_data.get_my_username())
     return _.sample([
-        lambda: "NYXR ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all)),
-        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all)),
-        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {} ❤️ {}".format(_.sample(all), _.sample(all), _.sample(all), _.sample(all)),
-    ])(),
+        lambda: "NYXR ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names)),
+        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names), _.sample(names)),
+        lambda: "NYXR ❤️ {} ❤️ {} ❤️ {} ❤️ {}".format(_.sample(names), _.sample(names), _.sample(names),
+                                                      _.sample(names)),
+    ])()
 
 
 def crcl():
+    # type: () -> str
     return _.sample([
         "Territory of INTEGER_MIN",
         "◯",
@@ -57,6 +63,7 @@ def crcl():
 
 
 def pwrd():
+    # type: () -> str
     return _.sample([
         "Powered by Protocol Buffers: https://git.io/vyEdW",
         "Powered by Transcrypt: https://git.io/vyEdZ",
@@ -66,6 +73,7 @@ def pwrd():
 
 
 def strw():
+    # type: () -> str
     message = _.sample([
         "Territory Of INTEGER_MAX",
         "CIRCLE WORLD!",
@@ -89,5 +97,18 @@ def strw():
     return "\"{}\" - starwar15432".format(message)
 
 
+def lolvl():
+    # type: () -> str
+    message = _.sample([
+        "greetings",
+        "hello",
+    ])
+    return message
+
+
 def rs():
-    return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
+    # type: () -> str
+    if Game.gcl.level < 5:
+        return lolvl()
+    else:
+        return _.sample([auto, pnk, coal, crcl, pwrd, strw])()

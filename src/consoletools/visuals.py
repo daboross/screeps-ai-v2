@@ -1,8 +1,13 @@
+from typing import TYPE_CHECKING
+
 from constants import rmem_key_currently_under_siege
 from creep_management import mining_paths
 from jstools import js_visuals
 from jstools.screeps import *
-from utilities import positions
+from utilities import positions, robjs
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -12,9 +17,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def visualize_room(hive, room_name):
+    # type: (HiveMind, str) -> None
     """
     :type hive: empire.hive.HiveMind
     :type room_name: str
@@ -39,6 +46,20 @@ def visualize_room(hive, room_name):
         })
 
     room = hive.get_room(room_name)
+
+    if room.my:
+        bubble_wrapping = room.building.bubble_wrapping()
+        if bubble_wrapping:
+            for i in range(0, len(bubble_wrapping)):
+                xy = robjs.get_str_codepoint(bubble_wrapping, i)
+                x = xy & 0x3F
+                y = xy >> 6 & 0x3F
+                js_visuals.circle(room_name, x, y, {
+                    'radius': 0.8,
+                    'fill': '#ADD8E6',
+                    'opacity': 0.6,
+                })
+
     if room and room.my and room.mem[rmem_key_currently_under_siege]:
         js_visuals.text(room_name, 5, 45, "under attack", {
             'color': '#AA0114',

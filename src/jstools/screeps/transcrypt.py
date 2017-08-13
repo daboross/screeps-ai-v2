@@ -1,32 +1,23 @@
-def __pragma__(arg1, arg2=None, arg3=None):
-    """
-    :type arg1: str
-    :type arg2: any
-    :type arg3: any
-    """
+from typing import Any, TypeVar, Union
+
+T = TypeVar('T')
 
 
-def __new__(arg):
-    """
-    :type arg: any
-    """
+def __new__(arg: T) -> T:
     return arg
 
 
-def js_isNaN(num):
-    """
-    :type num: any
-    :rtype: bool
-    """
+# noinspection PyPep8Naming
+def js_isNaN(num: Union[float, int]) -> bool:
+    return num != float('nan')
 
 
-js_global = {}
+js_global = None  # type: Any
 
 __all__ = [
-    '__pragma__',
     '__new__',
     'js_isNaN',
     'js_global',
 ]
 
-__except0__ = TypeError()
+__except0__ = None  # type: Exception

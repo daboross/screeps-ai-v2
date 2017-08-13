@@ -1,3 +1,5 @@
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
+
 import random
 
 from cache import context, volatile_cache
@@ -7,6 +9,10 @@ from jstools.screeps import *
 from rooms import defense
 from utilities import hostile_utils, movement
 
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from creeps.base import RoleBase
+
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
 __pragma__('noalias', 'Infinity')
@@ -15,9 +21,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def is_room_mostly_safe(room_name):
+    # type: (str) -> bool
     room = context.hive().get_room(room_name)
     if not room or not room.my:
         return False
@@ -30,6 +38,7 @@ def is_room_mostly_safe(room_name):
 
 
 def pathfinder_enemy_array_for_room(room_name):
+    # type: (str) -> List[Dict[str, Any]]
     cache = volatile_cache.mem("enemy_lists")
     if cache.has(room_name):
         return cache.get(room_name)
@@ -64,19 +73,21 @@ def pathfinder_enemy_array_for_room(room_name):
 
 
 def room_hostile(room_name):
+    # type: (str) -> bool
     cache = volatile_cache.mem("rua")
     if cache.has(room_name):
         return cache.get(room_name)
 
     # This will only get "active" hostiles, which doesn't count source keepers, or non-ATTACK/RANGED_ATTACK creeps in
     # owned rooms.
-    room_under_attack = len(defense.stored_hostiles_in(room_name))
+    room_under_attack = not not len(defense.stored_hostiles_in(room_name))
 
     cache.set(room_name, room_under_attack)
     return room_under_attack
 
 
 def enemy_purposes_cost_matrix(room_name):
+    # type: (str) -> PathFinder.CostMatrix
     cache = volatile_cache.mem("super_simple_cost_matrix")
     if cache.has(room_name):
         return cache.get(room_name)
@@ -87,9 +98,9 @@ def enemy_purposes_cost_matrix(room_name):
 
     cost_matrix = __new__(PathFinder.CostMatrix())
 
-    for struct in room.find(FIND_STRUCTURES):
+    for struct in cast(List[Structure], room.find(FIND_STRUCTURES)):
         if struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER \
-                and (struct.structureType != STRUCTURE_RAMPART or struct.my):
+                and (struct.structureType != STRUCTURE_RAMPART or cast(StructureRampart, struct).my):
             cost_matrix.set(struct.pos.x, struct.pos.y, 255)
 
     cache.set(room_name, cost_matrix)
@@ -97,6 +108,7 @@ def enemy_purposes_cost_matrix(room_name):
 
 
 def simple_cost_matrix(room_name):
+    # type: (str) -> Union[PathFinder.CostMatrix, bool]
     cache = volatile_cache.mem("enemy_cost_matrix")
     # TODO: some of this is duplicated in honey.HoneyTrails
 
@@ -134,6 +146,7 @@ def simple_cost_matrix(room_name):
 
 
 def get_path_away(origin, targets):
+    # type: (RoomPosition, List[Dict[str, Any]]) -> Optional[List[RoomPosition]]
     # TODO: any path caching here? I don't think it'd be beneficiary, since enemy creeps generally move each tick...
     # TODO: This current search does avoid enemies, but can very easily lead to creeps getting cornered. I'm thinking
     # a path to the nearest exit might be better.
@@ -169,12 +182,10 @@ def get_path_away(origin, targets):
 
 
 def get_cached_away_path(creep, targets):
-    """
-    :type creep: creeps.base.RoleBase
-    """
+    # type: (Creep, List[Dict[str, Any]]) -> List[Union[_PathPos, RoomPosition]]
 
-    if '_away_path' in creep.memory and creep.memory._away_path.reset > Game.time:
-        return Room.deserializePath(creep.memory._away_path.path)
+    if '_away_path' in creep.memory and creep.memory._away_path['reset'] > Game.time:
+        return Room.deserializePath(creep.memory._away_path['path'])
     else:
         path = get_path_away(creep.pos, targets)
         creep.memory._away_path = {"reset": Game.time + 10, "path": Room.serializePath(path)}
@@ -182,16 +193,14 @@ def get_cached_away_path(creep, targets):
 
 
 def instinct_do_heal(creep):
-    """
-    :type creep: creeps.base.RoleBase
-    """
+    # type: (RoleBase) -> None
     if not creep.creep.hasActiveBodyparts(HEAL):
         return
     damaged = None
     most_damage = 0
-    for ally_obj in creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1):
-        ally = ally_obj.creep
-        if not ally.my and not Memory.meta.friends.includes(ally.owner.username.toLowerCase()):
+    for ally_obj in cast(List[Dict[str, Creep]], creep.room.look_for_in_area_around(LOOK_CREEPS, creep.pos, 1)):
+        ally = ally_obj[LOOK_CREEPS]
+        if not ally.my and not Memory.meta.friends.includes(ally.owner.username.lower()):
             continue
         damage = ally.hitsMax - ally.hits
         if damage > most_damage:
@@ -204,6 +213,7 @@ def instinct_do_heal(creep):
 
 
 def instinct_do_attack(creep):
+    # type: (RoleBase) -> None
     """
     :type creep: creeps.base.RoleBase
     """
@@ -211,7 +221,7 @@ def instinct_do_attack(creep):
         return
     best = None
     best_priority = -Infinity
-    for enemy in creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.pos):
+    for enemy in cast(List[Creep], creep.room.find_in_range(FIND_HOSTILE_CREEPS, 1, creep.pos)):
         priority = enemy.hitsMax - enemy.hits
         if enemy.hasActiveBodyparts(RANGED_ATTACK):
             priority += 3000
@@ -227,9 +237,7 @@ def instinct_do_attack(creep):
 
 
 def run_away_check(creep, hostile_path_targets):
-    """
-    :type creep: Creep
-    """
+    # type: (Creep, List[Dict[str, Any]]) -> bool
 
     check_path = is_room_mostly_safe(creep.pos.roomName)
 
@@ -240,8 +248,8 @@ def run_away_check(creep, hostile_path_targets):
 
     any_unsafe = False
     for obj in hostile_path_targets:
-        target = obj.pos
-        target_range = obj.range
+        target = obj['pos']
+        target_range = obj['range']
         # NOTE: target_range here is twice what we actually want, so that when passing to PathFinder we get a better
         # path. See NOTE above.
         distance = movement.chebyshev_distance_room_pos(target, creep.pos)
@@ -299,12 +307,13 @@ def run_away_check(creep, hostile_path_targets):
 
 
 def running_check_room(room):
+    # type: (RoomMind) -> None
     """
     :type room: rooms.room_mind.RoomMind
     """
     if room.my and room.room.controller.safeMode:
         return
-    my_creeps = room.find(FIND_MY_CREEPS)
+    my_creeps = cast(List[Creep], room.find(FIND_MY_CREEPS))
     if not len(my_creeps):
         return
     if not len(room.defense.dangerous_hostiles()):
@@ -329,6 +338,7 @@ def running_check_room(room):
 
 
 def cleanup_running_memory():
+    # type: () -> None
     for creep in _.values(Game.creeps):
         if not creep.defense_override and '_away_path' in creep.memory or '_safe' in creep.memory:
             del creep.memory._away_path
@@ -337,13 +347,11 @@ def cleanup_running_memory():
 
 
 def pickup_check_room(room):
-    """
-    :type room: rooms.room_mind.RoomMind
-    """
-    energy = room.find(FIND_DROPPED_RESOURCES)
+    # type: (RoomMind) -> None
+    energy = cast(List[Resource], room.find(FIND_DROPPED_RESOURCES))
     if not len(energy):
         return
-    creeps = room.find(FIND_MY_CREEPS)
+    creeps = cast(List[Creep], room.find(FIND_MY_CREEPS))
     if not len(creeps):
         return
     for pile in energy:

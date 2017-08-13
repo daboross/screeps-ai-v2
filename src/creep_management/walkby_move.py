@@ -1,8 +1,13 @@
+from typing import Callable, List, Optional, TYPE_CHECKING, Union, cast
+
 from cache import volatile_cache
 from constants import *
 from empire import stored_data
 from jstools.screeps import *
 from utilities import hostile_utils
+
+if TYPE_CHECKING:
+    from creeps.base import RoleBase
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -12,6 +17,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 IDLE_ABOUT = 6
 MOVE_THEN_WORK = 5
@@ -159,7 +165,8 @@ def apply_move_prototype():
 
 def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_role_cost, same_role_swamp_cost,
                                         existing_cost_addition):
-    for creep in room.find(FIND_MY_CREEPS):
+    # type: (int, Room, PathFinder.CostMatrix, int, int, int) -> None
+    for creep in cast(List[Creep], room.find(FIND_MY_CREEPS)):
         role = creep.memory.running or creep.memory.role
         priority = role_movement_types[role] or MOVE_THEN_WORK
         # Constant movement creeps constantly move.
@@ -182,12 +189,14 @@ def _add_only_blocking_creeps_to_matrix(my_priority, room, cost_matrix, same_rol
 
 
 def _create_basic_room_cost_matrix(room_name):
+    # type: (str) -> PathFinder.CostMatrix
     matrix = __new__(PathFinder.CostMatrix())
     room = Game.rooms[room_name]
     if room:
         any_lairs = False
-        for structure in room.find(FIND_STRUCTURES):
-            if structure.structureType == STRUCTURE_RAMPART and (structure.my or structure.isPublic):
+        for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
+            if structure.structureType == STRUCTURE_RAMPART and (
+                        cast(StructureRampart, structure).my or cast(StructureRampart, structure).isPublic):
                 continue
             if structure.structureType == STRUCTURE_ROAD:
                 if matrix.get(structure.pos.x, structure.pos.y) <= 2:
@@ -198,7 +207,8 @@ def _create_basic_room_cost_matrix(room_name):
             if structure.structureType == STRUCTURE_KEEPER_LAIR:
                 any_lairs = True
             matrix.set(structure.pos.x, structure.pos.y, 255)
-        for site in room.find(FIND_MY_CONSTRUCTION_SITES):
+        for site in cast(List[ConstructionSite], room.find(FIND_MY_CONSTRUCTION_SITES)):
+            # type: ConstructionSite
             if site.structureType == STRUCTURE_RAMPART or site.structureType == STRUCTURE_ROAD \
                     or site.structureType == STRUCTURE_CONTAINER:
                 continue
@@ -236,6 +246,7 @@ def _create_basic_room_cost_matrix(room_name):
 
 
 def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
+    # type: (str, PathFinder.CostMatrix, bool) -> None
     multiplier = 2 if roads else 1
     # Add a small avoidance for exits
     for x in [0, 49]:
@@ -263,6 +274,7 @@ def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
 
 
 def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
+    # type: (Union[Creep, RoleBase], str, bool, Optional[str]) -> Union[PathFinder.CostMatrix, bool]
     if hostile_utils.enemy_using_room(room_name) and room_name != target_room:
         return False
     if room_name not in Game.rooms:
@@ -299,6 +311,7 @@ def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
 
 
 def get_basic_cost_matrix(room_name, roads=False):
+    # type: (str, bool) -> PathFinder.CostMatrix
     if room_name not in Game.rooms:
         return __new__(PathFinder.CostMatrix())  # TODO: pull cached data here
     cache = volatile_cache.submem('matrices', room_name)
@@ -316,4 +329,5 @@ def get_basic_cost_matrix(room_name, roads=False):
 
 
 def create_cost_callback(me, roads, target_room=None):
+    # type: (Union[Creep, RoleBase], bool, Optional[str]) -> Callable[str, Union[PathFinder.CostMatrix, bool]]
     return lambda room_name: get_cost_matrix_for_creep(me, room_name, roads, target_room)

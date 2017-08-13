@@ -12,6 +12,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class LinkManager(RoleBase):
@@ -156,7 +157,7 @@ class LinkManager(RoleBase):
             return -1
         link_pos = link.pos
         # No leeway because we assume the path will be at least partially paved
-        return (self.hive.honey.find_path_length(self.home.spawn, link_pos) * 2
+        return (self.hive.honey.find_path_length(self.home.spawn.pos, link_pos) * 2
                 + _.size(self.creep.body) * CREEP_SPAWN_TIME)
 
 
@@ -191,7 +192,7 @@ class Cleanup(SpawnFill):
                                     break
 
                             # we've confirmed now that this is a valid target! congrats.
-                            distance = movement.distance_squared_room_pos(self.pos, resource)
+                            distance = movement.distance_squared_room_pos(self.pos, resource.pos)
                             if distance < closest_distance:
                                 closest = resource
                                 closest_distance = distance
@@ -237,7 +238,7 @@ class Cleanup(SpawnFill):
             # if target.energy >= target.energyCapacity:
             #     target = storage
             if target.structureType == STRUCTURE_LINK:
-                self.home.links.register_target_deposit(target, self, self.creep.carry.energy,
+                self.home.links.register_target_deposit(target, self, self.creep.carry[RESOURCE_ENERGY],
                                                         self.pos.getRangeTo(target))
 
             if not self.pos.isNearTo(target):

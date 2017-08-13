@@ -1,3 +1,5 @@
+from typing import List, TYPE_CHECKING, cast
+
 from constants import INVADER_USERNAME, SK_USERNAME
 from jstools.screeps import *
 from utilities import movement
@@ -10,9 +12,14 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
 
 
 def start_of_tick_check():
+    # type: () -> None
     if Memory.deathwatch:
         for name, home_name, threats, room_name in Memory.deathwatch:
             if name not in Game.creeps:
@@ -39,28 +46,29 @@ def start_of_tick_check():
 
 
 def mark_creeps(room):
+    # type: (RoomMind) -> None
     """
     :type room: rooms.room_mind.RoomMind
     """
     all_hostiles = room.room.find(FIND_HOSTILE_CREEPS)
     hostiles = []
-    for creep in all_hostiles:
+    for creep in cast(List[Creep], all_hostiles):
         if creep.hasActiveOffenseBodyparts():
             hostiles.append(creep)
     count = len(hostiles)
     if count > 3:
-        for creep in room.find(FIND_MY_CREEPS):
+        for creep in cast(List[Creep], room.find(FIND_MY_CREEPS)):
             Memory.deathwatch.append([
                 creep.name, creep.memory.home,
                 _(hostiles).map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value(),
                 room.name,
             ])
     elif count > 0:
-        for creep in room.find(FIND_MY_CREEPS):
-            if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4):
+        for creep in cast(List[Creep], room.find(FIND_MY_CREEPS)):
+            if _.some(hostiles, lambda h: movement.chebyshev_distance_room_pos(h.pos, creep.pos) < 4):
                 Memory.deathwatch.append([
                     creep.name, creep.memory.home,
-                    _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h, creep) < 4)
+                    _(hostiles).filter(lambda h: movement.chebyshev_distance_room_pos(h.pos, creep.pos) < 4)
                         .map(lambda h: _.get(h, ['owner', 'username'], 'unknown')).uniq().value(),
                     room.name,
                 ])

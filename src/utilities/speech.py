@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -8,22 +10,24 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def translate_lyrics(input_str):
-    result = []
-    next_lyric = []
+    # type: (str) -> List[Optional[str]]
+    result = []  # type: List[Optional[str]]
+    next_lyric = []  # type: Optional[str]
     for char in input_str:
         if char is '\n' or char is ' ':
             if len(next_lyric):
-                result.push(''.join(next_lyric))
+                result.append(''.join(next_lyric))
                 next_lyric = []
             if char is '\n':
-                result.push(None)
+                result.append(None)
         else:
-            next_lyric.push(char)
+            next_lyric.append(char)
     if len(next_lyric):
-        result.push(''.join(next_lyric))
+        result.append(''.join(next_lyric))
     return result
 
 

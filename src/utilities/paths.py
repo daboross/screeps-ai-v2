@@ -1,3 +1,5 @@
+from typing import Optional, Tuple
+
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -8,15 +10,17 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
-def direction_to_dx_dy(dir):
+def direction_to_dx_dy(_dir):
+    # type: (int) -> Optional[Tuple[int, int]]
     """
-    :type dir: int
+    :type _dir: int
     :rtype: (int, int)
     """
     __pragma__('js', '{}', """
-    switch (dir) {
+    switch (_dir) {
         case TOP:
             return [0, -1];
         case TOP_RIGHT:
@@ -37,3 +41,4 @@ def direction_to_dx_dy(dir):
             return null;
     }
 """)
+    return None

@@ -13,6 +13,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class Sacrifice(MilitaryBase):
@@ -41,11 +42,11 @@ class Sacrifice(MilitaryBase):
                 self.memory.last_role = "sacrifice"
                 self.memory.role = role_recycling
             else:
-                self.follow_military_path(self.home.spawn, movement.center_pos(target), {'range': 15})
+                self.follow_military_path(self.home.spawn.pos, movement.center_pos(target), {'range': 15})
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
-        path_len = self.get_military_path_length(self.home.spawn, movement.center_pos(colony), {'range': 15})
+        path_len = self.get_military_path_length(self.home.spawn.pos, movement.center_pos(colony), {'range': 15})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
@@ -76,11 +77,11 @@ class SacrificialCleanup(Refill):
                     if len(self.room.find_in_range(FIND_HOSTILE_CREEPS, 3, resource.pos)) == 0:
                         if len(self.room.find_in_range(FIND_SOURCES, 1, resource.pos)) == 0:
                             # we've confirmed now that this is a valid target! congrats.
-                            distance = movement.distance_squared_room_pos(self.pos, resource)
+                            distance = movement.distance_squared_room_pos(self.pos, resource.pos)
                             if distance < closest_distance:
                                 target = resource
                                 closest_distance = distance
-                self.memory.target = positions.serialize_pos_xy(target)
+                self.memory.target = positions.serialize_pos_xy(target.pos)
 
             if not target:
                 self.log("sacrificial cleanup found no energy, recycling.")

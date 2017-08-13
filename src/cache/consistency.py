@@ -1,7 +1,13 @@
+from typing import TYPE_CHECKING, cast
+
 from cache import global_cache
 from constants import *
 from creep_management import spawning
 from jstools.screeps import *
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -11,9 +17,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def reassign_room_roles(room):
+    # type: (RoomMind) -> None
     """
     :type room: rooms.room_mind.RoomMind
     """
@@ -42,6 +50,7 @@ def reassign_room_roles(room):
 
 
 def clear_memory(room):
+    # type: (RoomMind) -> None
     """
     Clears memory for all creeps belonging to room, and sets room.mem.meta.(clear_next & reset_spawn_on)
     :type room: rooms.room_mind.RoomMind
@@ -56,7 +65,7 @@ def clear_memory(room):
             continue
         creep = Game.creeps[name]
         if not creep:
-            targets.untarget_all({'name': name})
+            targets.untarget_all(cast(Creep, {'name': name}))
 
             del Memory.creeps[name]
         else:
@@ -79,6 +88,7 @@ def clear_memory(room):
 
 
 def get_next_replacement_time(room):
+    # type: (RoomMind) -> int
     """
     :type room: rooms.room_mind.RoomMind
     """
@@ -91,6 +101,7 @@ def get_next_replacement_time(room):
 
 
 def clear_cache():
+    # type: () -> None
     for name, mem in _.pairs(Memory.rooms):
         if rmem_key_cache in mem:
             for key in Object.keys(mem.cache):
@@ -115,6 +126,7 @@ def clear_cache():
 
 
 def complete_refresh(hive):
+    # type: (HiveMind) -> None
     """
     :type hive: empire.hive.HiveMind
     """
@@ -135,7 +147,7 @@ def complete_refresh(hive):
         if name not in Game.creeps:
             targets = target_mem[name]
             print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
-            hive.targets.untarget_all({'name': name})
+            hive.targets.untarget_all(cast(Creep, {'name': name}))
     # Remove deprecated Memory paths that are no longer in use:
     for key in ['cpu_usage', 'profiler', '_debug', 'x', '_ij_timeout', '_visuals_till', '_inject_timeout']:
         if key in Memory:

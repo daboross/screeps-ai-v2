@@ -1,9 +1,16 @@
 import math
+from typing import List, Optional, TYPE_CHECKING, Union, cast
 
 from cache import volatile_cache
 from constants import rmem_key_linking_mind_storage
 from jstools.screeps import *
 from utilities import movement
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from jstools.js_set_map import JSMap
+    from creeps.base import RoleBase
+    from creeps.roles.utility import LinkManager
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -13,8 +20,17 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 __pragma__('fcall')
+
+
+def volatile_link_mem(link):
+    # type: (StructureLink) -> JSMap
+    if link.id:
+        link = link.id
+
+    return volatile_cache.submem('links', link)
 
 
 class LinkingMind:
@@ -24,7 +40,7 @@ class LinkingMind:
 
     """
 
-    def __init__(self, room):
+    def __init__(self, room: RoomMind):
         self.room = room
         __pragma__('skip')
         self._links = undefined
@@ -35,19 +51,21 @@ class LinkingMind:
         self.enabled_last_turn = room.get_cached_property("links_enabled") or False
 
     def _get_links(self):
+        # type: () -> List[StructureLink]
         """
         :rtype: list[StructureLink]
         """
         if self._links is undefined:
-            self._links = _.filter(self.room.find(FIND_MY_STRUCTURES),
-                                   {"structureType": STRUCTURE_LINK})
+            self._links = cast(List[StructureLink], _.filter(self.room.find(FIND_MY_STRUCTURES),
+                                                             {"structureType": STRUCTURE_LINK}))
         return self._links
 
     def get_main_link(self):
+        # type: () -> Optional[StructureLink]
         if self._main_link is undefined:
             if self.room.my and self.room.room.storage and len(self.links) >= 2:
                 for link in self.links:
-                    if movement.chebyshev_distance_room_pos(self.room.room.storage, link) <= 2:
+                    if movement.chebyshev_distance_room_pos(self.room.room.storage.pos, link.pos) <= 2:
                         if self._main_link is undefined:
                             self._main_link = link
                         else:
@@ -59,6 +77,7 @@ class LinkingMind:
         return self._main_link
 
     def get_second_main_link(self):
+        # type: () -> Optional[StructureLink]
         if self._main_link is undefined:
             self.get_main_link()
         return self._second_link
@@ -67,6 +86,7 @@ class LinkingMind:
     secondary_link = property(get_second_main_link)
 
     def link_mem(self, link):
+        # type: (StructureLink) -> _Memory
         if link.id:
             link = link.id
 
@@ -76,44 +96,43 @@ class LinkingMind:
             self.room.mem[rmem_key_linking_mind_storage][link] = {}
         return self.room.mem[rmem_key_linking_mind_storage][link]
 
-    def volatile_link_mem(self, link):
-        if link.id:
-            link = link.id
-
-        return volatile_cache.submem('links', link)
-
     links = property(_get_links)
 
     def _enabled(self):
+        # type: () -> bool
         return self.enabled_last_turn
 
     enabled = property(_enabled)
 
     def enabled_this_turn(self):
+        # type: () -> bool
         if not not self.room.room.storage and self.link_creep and self.main_link and len(self.links) >= 2:
             self.room.store_cached_property("links_enabled", True, 2)
             return True
         return False
 
     def register_target_withdraw(self, target, targeter, needed, distance):
-        if targeter.name:
-            targeter = targeter.name
-        self.volatile_link_mem(target).set(targeter, {
+        # type: (StructureLink, Union[Creep, RoleBase], int, int) -> None
+        targeter = targeter.name
+
+        volatile_link_mem(target).set(targeter, {
             'cap': -needed,
             'distance': distance
         })
         self.link_mem(target).last_withdraw = Game.time
 
     def register_target_deposit(self, target, targeter, depositing, distance):
-        if targeter.name:
-            targeter = targeter.name
-        self.volatile_link_mem(target).set(targeter, {
+        # type: (StructureLink, Union[Creep, RoleBase], int, int) -> None
+        targeter = targeter.name
+
+        volatile_link_mem(target).set(targeter, {
             'cap': +depositing,
             'distance': distance
         })
         self.link_mem(target).last_deposit = Game.time
 
     def note_link_manager(self, creep):
+        # type: (LinkManager) -> None
         """
         Notes the link manager for this tick. This should be called once per tick by the link manager when it is close
         to both the main link and storage, and then LinkingMind will give the creep the needed action at the end of the
@@ -136,15 +155,16 @@ class LinkingMind:
                 if amount > creep1.creep.carryCapacity / 2:
                     creep2.send_to_link(link, amount - creep1.creep.carryCapacity / 2)
 
-            self.link_creep = {
+            self.link_creep = cast(LinkManager, {
                 "send_to_link": send_to_link,
                 "send_from_link": send_from_link,
                 # Support doing this multiple times.
                 "creep": {"carryCapacity": creep1.creep.carryCapacity + creep2.creep.carryCapacity}
-            }
+            })
         self.link_creep = creep
 
     def tick_links(self):
+        # type: () -> None
         if not self.enabled_this_turn():
             return
         main_link = self.main_link
@@ -157,7 +177,7 @@ class LinkingMind:
             if link.id == main_link.id or (secondary_link and link.id == secondary_link.id):
                 continue
             mem = self.link_mem(link)
-            vmem = self.volatile_link_mem(link)
+            vmem = volatile_link_mem(link)
             energy_change_now = 0
             for obj in Array.js_from(vmem.values()):
                 if obj.distance <= 1:
@@ -208,8 +228,8 @@ class LinkingMind:
                     elif mem.last_withdraw and (not mem.last_deposit or mem.last_withdraw > mem.last_deposit):
                         future_output_links.append({'link': link, 'amount': link.energy, 'priority': 10})
 
-        current_input_links.sort(None, key=lambda x: x.priority)
-        current_output_links.sort(None, key=lambda x: x.priority)
+        current_input_links.sort(key=lambda x: x.priority)
+        current_output_links.sort(key=lambda x: x.priority)
         if Memory.links_debug == self.room.name:
             if len(current_input_links):
                 print("Current Input: {}".format(

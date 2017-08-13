@@ -94,6 +94,7 @@ env
 .screeps-password
 .screeps-email
 config.json
+config2.json
 
 # Misc files #
 ##############
@@ -102,6 +103,7 @@ config.json
 *.pot
 docs/_build/
 *\ Notes.txt
+.mypy_cache
 
 
 # Unit test / coverage reports #

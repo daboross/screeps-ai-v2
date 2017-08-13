@@ -1,6 +1,12 @@
+from typing import List, Optional, TYPE_CHECKING, Tuple, Union, cast
+
 from constants import gmem_key_room_mining_paths
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
+    from jstools.js_set_map import JSSet, JSMap
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -10,11 +16,13 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 no_spawn_name_name = 'none'
 
 
 def _get_mem():
+    # type: () -> _Memory
     """
     Gets the mining_paths globally stored memory.
 
@@ -39,10 +47,16 @@ def _get_mem():
         return Memory[gmem_key_room_mining_paths]
     else:
         mem = Memory[gmem_key_room_mining_paths] = {}
-        return mem
+        return cast(_Memory, mem)
+
+
+__pragma__('skip')
+_MineData = Union[Flag, Tuple[Flag, StructureSpawn]]
+__pragma__('noskip')
 
 
 def _parse_mine_data(mine_data):
+    # type: (_MineData) -> Tuple[Optional[str], Optional[str]]
     """
     Gets a mine_name and spawn_id from a mine_data array or object. mine_data may either be a Flag with a name property,
     or an array containing a Flag and a StructureSpawn.
@@ -60,9 +74,11 @@ def _parse_mine_data(mine_data):
             print(msg)
             Game.notify(msg)
             return None, None
+        mine_data = cast(Tuple[Flag, StructureSpawn], mine_data)
         mine_name = mine_data[0].name
         spawn_id = mine_data[1].id if mine_data[1] else no_spawn_name_name
     else:
+        mine_data = cast(Flag, mine_data)
         if not mine_data.name:
             msg = ("[mining_paths] WARNING: Unknown kind of mine data: {} ({})"
                    .format(JSON.stringify(mine_data), mine_data))
@@ -75,9 +91,10 @@ def _parse_mine_data(mine_data):
 
 
 def register_new_mining_path(mine_data, raw_path):
+    # type: (_MineData, List[RoomPosition]) -> None
     mine_name, spawn_id = _parse_mine_data(mine_data)
     if mine_name is None or spawn_id is None:
-        raise ValueError("Invalid mine data ({}): no name/id".format(mine_data))
+        raise AssertionError("Invalid mine data ({}): no name/id".format(mine_data))
     serialized_string = []
     if len(raw_path):
         last_room = raw_path[0].roomName
@@ -120,6 +137,7 @@ def register_new_mining_path(mine_data, raw_path):
 
 
 def get_set_of_all_serialized_positions_in(room_name):
+    # type: (str) -> JSSet[int]
     """
     Gets a set containing the serialized (xy) integers for each position with a planned road.
 
@@ -142,6 +160,7 @@ def get_set_of_all_serialized_positions_in(room_name):
 
 
 def usage_map_of(room_name):
+    # type: (str) -> JSMap[int, int]
     """
     :type room_name: str
     :rtype: jstools.js_set_map.JSMap
@@ -163,6 +182,7 @@ def usage_map_of(room_name):
 
 
 def list_of_paths_with_metadata(room_name):
+    # type: (str) -> _MemoryValue
     gmem = _get_mem()
     if room_name not in gmem:
         return []
@@ -170,6 +190,7 @@ def list_of_paths_with_metadata(room_name):
 
 
 def debug_str(room_name):
+    # type: (str) -> str
     """
     :type room_name: str
     :rtype: str
@@ -195,6 +216,7 @@ def debug_str(room_name):
 
 
 def set_decreasing_cost_matrix_costs(room_name, mine_path_data, cost_matrix, base_plains, base_swamp, lowest_possible):
+    # type: (str, _MineData, PathFinder.CostMatrix, int, int, int) -> None
     """
     :type room_name: str
     :type mine_path_data: list[Any] | Any
@@ -256,6 +278,7 @@ def set_decreasing_cost_matrix_costs(room_name, mine_path_data, cost_matrix, bas
 
 
 def set_slightly_increased_cost(room_name, cost_matrix, base_plains, base_swamp, increase_by):
+    # type: (str, PathFinder.CostMatrix, int, int, int) -> None
     """
     Slightly increase the cost in the cost matrix for planned roads.
     :param room_name: The room
@@ -290,6 +313,7 @@ def set_slightly_increased_cost(room_name, cost_matrix, base_plains, base_swamp,
 
 
 def cleanup_old_values(hive):
+    # type: (HiveMind) -> None
     """
     Fairly expensive method, as it requires calculating active mines for every owned room, and checking every room's
     stored paths.

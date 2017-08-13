@@ -14,6 +14,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class Colonist(MilitaryBase):
@@ -70,11 +71,11 @@ class Colonist(MilitaryBase):
                 self.memory.role = role_tower_fill_once
             room.check_all_creeps_next_tick()
         else:
-            self.follow_military_path(self.home.spawn, movement.center_pos(colony), {'range': 15})
+            self.follow_military_path(self.home.spawn.pos, movement.center_pos(colony), {'range': 15})
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
-        path_len = self.get_military_path_length(self.home.spawn, movement.center_pos(colony), {'range': 15})
+        path_len = self.get_military_path_length(self.home.spawn.pos, movement.center_pos(colony), {'range': 15})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
@@ -135,7 +136,7 @@ class Claim(MilitaryBase):
             target = self.targets.get_new_target(self, target_single_flag, CLAIM_LATER)
             if not target:
                 return -1
-            path_len = self.get_military_path_length(self.home.spawn, target)
+            path_len = self.get_military_path_length(self.home.spawn.pos, target.pos)
             return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME
         else:
             return 0
@@ -151,7 +152,7 @@ class ReserveNow(MilitaryBase):
             return False
 
         if self.pos.roomName != reserve_flag.pos.roomName:
-            self.follow_military_path(self.home.spawn, reserve_flag)
+            self.follow_military_path(self.home.spawn.pos, reserve_flag.pos)
             return False
 
         controller = self.creep.room.controller
@@ -174,7 +175,7 @@ class ReserveNow(MilitaryBase):
         target = self.targets.get_new_target(self, target_reserve_now)
         if not target:
             return -1
-        path_len = self.get_military_path_length(self.home.spawn, target)
+        path_len = self.get_military_path_length(self.home.spawn.pos, target.pos)
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
         return path_len + _.size(self.creep.body) * CREEP_SPAWN_TIME + 10
@@ -187,7 +188,7 @@ class MineralSteal(TransportPickup):
             closest_room_name = None
             for room in self.hive.my_rooms:
                 if room.room.storage and room.room.storage.storeCapacity <= 0 \
-                        and _.sum(room.room.storage.store) > room.room.storage.store.energy:
+                        and _.sum(room.room.storage.store) > room.room.storage.store[RESOURCE_ENERGY]:
                     distance = movement.distance_squared_room_pos(self.pos, movement.center_pos(room.name))
                     if distance < closest_distance:
                         closest_room_name = room.name

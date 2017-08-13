@@ -1,9 +1,12 @@
+from typing import List, Optional, cast
+
 from constants import role_recycling, role_squad_dismantle, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.roles.smart_offensive import kiting_away_raw_path
 from jstools import errorlog
 from jstools.screeps import *
+from position_management.locations import Location
 from rooms import defense
 from utilities import hostile_utils, movement, positions
 
@@ -15,11 +18,12 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class SquadInit(RoleBase):
     def run(self):
-        target = self.target(target_single_flag)
+        target = cast(Flag, self.target(target_single_flag))
         if not target:
             self.log("Squad init has no target! D:")
             self.memory.last_role = self.memory.role
@@ -31,7 +35,7 @@ class SquadInit(RoleBase):
 
     def go_to_depot(self):
         if self.findSpecialty() == ATTACK:
-            target = self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self)
+            target = self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self.pos)
             if target:
                 self.move_to(target)
                 return
@@ -49,9 +53,10 @@ class SquadFinalRenew(RoleBase):
 
     def go_to_depot(self):
         if self.findSpecialty() == ATTACK:
-            target = self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self)
+            target = cast(Optional[Creep], self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self.pos))
             if target:
                 self.move_to(target)
+                self.creep.attack(target)
                 return
 
         RoleBase.go_to_depot(self)
@@ -67,9 +72,10 @@ class SquadFinalBoost(RoleBase):
 
     def go_to_depot(self):
         if self.findSpecialty() == ATTACK:
-            target = self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self)
+            target = cast(Optional[Creep], self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self.pos))
             if target:
                 self.move_to(target)
+                self.creep.attack(target)
                 return
 
         RoleBase.go_to_depot(self)
@@ -80,9 +86,11 @@ class SquadDrone(MilitaryBase):
         self.home.squads.note_stage3_creep(self, self.memory.squad)
 
     def run_squad(self, members, target):
+        # type: (List[SquadDrone], Location) -> Optional[bool]
         pass
 
     def find_target_here(self, target):
+        # type: (Location) -> Optional[RoomPosition]
         return None
 
     def get_replacement_time(self):
@@ -91,16 +99,13 @@ class SquadDrone(MilitaryBase):
 
 class SquadHeal(SquadDrone):
     def run_squad(self, members, target):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        """
+        # type: (List[SquadDrone], Location) -> None
         best_near_rank = -Infinity
         best_near = None
         best_damaged_rank = -Infinity
         best_damaged_near = None
         for to_check in members:
-            if self.pos.isNearTo(to_check):
+            if self.pos.isNearTo(to_check.pos):
                 specialty = to_check.findSpecialty()
                 if specialty == HEAL and to_check.creep.hits < to_check.creep.hitsMax * 0.7:
                     rank = 7
@@ -121,7 +126,7 @@ class SquadHeal(SquadDrone):
             if result != OK:
                 self.log("Unknown result using {}.heal({}): {}"
                          .format(self.creep, best_damaged_rank.creep, result))
-        elif movement.chebyshev_distance_room_pos(self, target) < 100 and best_near:
+        elif movement.chebyshev_distance_room_pos(self.pos, target) < 100 and best_near:
             result = self.creep.heal(best_near.creep)
             if result != OK:
                 self.log("Unknown result using {}.heal({}): {}"
@@ -133,10 +138,7 @@ class SquadHeal(SquadDrone):
 
 class SquadTowerDrainHeal(SquadDrone):
     def run_squad(self, members, target):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        """
+        # type: (List[SquadDrone], Location) -> None
         best_near_rank = -Infinity
         best_near = None
         best_damaged_rank = -Infinity
@@ -145,7 +147,7 @@ class SquadTowerDrainHeal(SquadDrone):
         most_damaged = None
         for to_check in members:
             damage = (to_check.creep.hitsMax - to_check.creep.hits) / to_check.creep.hitsMax
-            if self.pos.isNearTo(to_check):
+            if self.pos.isNearTo(to_check.pos):
                 specialty = to_check.findSpecialty()
                 if specialty == HEAL and to_check.creep.hits < to_check.creep.hitsMax * 0.7:
                     rank = 7
@@ -179,7 +181,7 @@ class SquadTowerDrainHeal(SquadDrone):
             if result != OK:
                 self.log("Unknown result using {}.rangedHeal({}): {}"
                          .format(self.creep, most_damaged.creep, result))
-        if not self.creep.__moved and most_damaged and not self.pos.isNearTo(most_damaged):
+        if not self.creep.__moved and most_damaged and not self.pos.isNearTo(most_damaged.pos):
             self.move_to(most_damaged)
 
     def findSpecialty(self):
@@ -188,19 +190,16 @@ class SquadTowerDrainHeal(SquadDrone):
 
 class SquadRangedAttack(SquadDrone):
     def run_squad(self, members, target):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        """
+        # type: (List[SquadDrone], Location) -> None
         attacked = False
-        here = self.room.find(FIND_HOSTILE_CREEPS)
+        here = cast(List[Creep], self.room.find(FIND_HOSTILE_CREEPS))
         if len(here):
             directly_nearby = 0
             best = None
             best_range = Infinity
             best_rank = -Infinity
             for enemy in here:
-                enemy_range = movement.chebyshev_distance_room_pos(enemy, self)
+                enemy_range = movement.chebyshev_distance_room_pos(enemy.pos, self.pos)
                 if enemy_range <= 3:
                     specialty = enemy.findSpecialty()
                     if specialty == ATTACK or specialty == RANGED_ATTACK:
@@ -209,7 +208,7 @@ class SquadRangedAttack(SquadDrone):
                         rank = 35
                     else:
                         rank = 30
-                    if _.some(self.room.look_at(LOOK_STRUCTURES, enemy),
+                    if _.some(self.room.look_at(LOOK_STRUCTURES, enemy.pos),
                               lambda s: s.structureType == STRUCTURE_RAMPART and not s.my):
                         rank -= 20
                     rank += (enemy.hitsMax - enemy.hits) / enemy.hitsMax * 5
@@ -242,12 +241,11 @@ class SquadRangedAttack(SquadDrone):
 
 class SquadAllAttack(SquadDrone):
     def run_squad(self, members, target):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        """
+        # type: (List[SquadDrone], Location) -> None
         if _.all(members, lambda x: x.pos.roomName == target.roomName):
-            self.move_to(self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self))
+            enemy = self.room.find_closest_by_range(FIND_HOSTILE_CREEPS, self.pos)
+            self.move_to(enemy)
+            self.creep.attack(cast(Creep, enemy))
 
     def findSpecialty(self):
         return ATTACK
@@ -263,11 +261,7 @@ ranged_mass_attack_rates = [1, 1, 0.4, 0.1]  # array for fast indexing
 
 class SquadKitingRangedAttack(SquadDrone):
     def run_squad(self, members, target, do_things=False):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        :type do_things: bool
-        """
+        # type: (List[SquadDrone], Location, bool) -> bool
         hostiles_nearby = defense.stored_hostiles_near(self.pos.roomName)
         if self.creep.hits < self.creep.hitsMax or \
                 (len(hostiles_nearby)
@@ -280,7 +274,7 @@ class SquadKitingRangedAttack(SquadDrone):
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
-                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room) <= 5)):
+                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 5):
                 hostiles_nearby = _.filter(hostiles_nearby, 'offensive')
             nearby = _.filter(hostiles_nearby,
                               lambda h: movement.chebyshev_distance_room_pos(
@@ -315,7 +309,7 @@ class SquadKitingRangedAttack(SquadDrone):
             if len(enemies):
                 closest = _.min(enemies, lambda h: movement.chebyshev_distance_room_pos(self.pos, h.pos))
                 closest_pos = closest.pos
-                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 5)
+                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h.pos, self.pos) <= 5)
                 harmless = not _.some(nearby,
                                       lambda h: h.hasActiveBodyparts(ATTACK) or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
@@ -338,7 +332,7 @@ class SquadKitingRangedAttack(SquadDrone):
                 return False
             self.move_to(target)
             return False
-        closest_creep = Game.getObjectById(closest.id)
+        closest_creep = cast(Creep, Game.getObjectById(closest.id))
         min_distance = movement.chebyshev_distance_room_pos(closest_pos, self.pos)
         if Game.time % 2:
             self.creep.say("{},{}: {}".format(closest_pos.x, closest_pos.y, min_distance))
@@ -357,7 +351,6 @@ class SquadKitingRangedAttack(SquadDrone):
             if mass_attack:
                 self.creep.rangedMassAttack()
             else:
-                closest_creep = Game.getObjectById(closest.id)
                 self.creep.rangedAttack(closest_creep)
 
         if (min_distance <= 6) and self.pos.roomName != closest_pos.roomName:
@@ -368,7 +361,7 @@ class SquadKitingRangedAttack(SquadDrone):
                 if self.memory.countdown <= 5:
                     del self.memory.countdown
                 self.move_to(marker_flag, _MOVE_TO_OPTIONS)
-            return
+            return False
         if ranged and self_damaged:
             safe_distance = 5
         elif ranged and only_ranged:
@@ -421,7 +414,7 @@ class SquadKitingRangedAttack(SquadDrone):
                 [{
                     'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
                     'range': 10,
-                } for h in hostiles_nearby]
+                } for h in hostiles_nearby], marker_flag
             )
             if kiting_path is True:
                 # errored
@@ -493,7 +486,7 @@ class SquadKitingAttack(SquadDrone):
             if len(enemies):
                 closest = _.min(enemies, lambda h: movement.chebyshev_distance_room_pos(self.pos, h.pos))
                 closest_pos = closest.pos
-                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h, self.pos) <= 5)
+                nearby = _.filter(enemies, lambda h: movement.chebyshev_distance_room_pos(h.pos, self.pos) <= 5)
                 harmless = not _.some(nearby,
                                       lambda h: h.hasActiveBodyparts(ATTACK) or h.hasActiveBodyparts(RANGED_ATTACK)) \
                            and self.creep.hits >= self.creep.hitsMax
@@ -514,7 +507,7 @@ class SquadKitingAttack(SquadDrone):
         if not closest:
             self.move_to(target)
             return
-        closest_creep = Game.getObjectById(closest.id)
+        closest_creep = cast(Creep, Game.getObjectById(closest.id))
         min_distance = movement.chebyshev_distance_room_pos(closest_pos, self.pos)
         if Game.time % 2:
             self.creep.say("{},{}: {}".format(closest_pos.x, closest_pos.y, min_distance))
@@ -530,7 +523,6 @@ class SquadKitingAttack(SquadDrone):
             self.memory.healing = self_damaged = (total_ra < 10 and alive_ra < total_ra / 2) or alive_ra < total_ra / 3
 
         if closest_pos.roomName == self.pos.roomName and min_distance <= 1:
-            closest_creep = Game.getObjectById(closest.id)
             self.creep.attack(closest_creep)
 
         if (min_distance <= 6) and self.pos.roomName != closest_pos.roomName:
@@ -567,7 +559,7 @@ class SquadKitingAttack(SquadDrone):
                 [{
                     'pos': positions.deserialize_xy_to_pos(h.pos, h.room),
                     'range': 10,
-                } for h in hostiles_nearby]
+                } for h in hostiles_nearby], marker_flag
             )
             if kiting_path is True:
                 # errored
@@ -584,10 +576,7 @@ class SquadKitingAttack(SquadDrone):
 
 class SquadDirectSupportHeal(SquadDrone):
     def run_squad(self, members, target):
-        """
-        :type members: list[SquadDrone]
-        :type target: position_management.locations.Location
-        """
+        # type: (List[SquadDrone], Location) -> None
         best_near_rank = -Infinity
         best_near = None
         best_damaged_rank = -Infinity
@@ -596,7 +585,7 @@ class SquadDirectSupportHeal(SquadDrone):
         most_damaged = None
         for to_check in members:
             damage = (to_check.creep.hitsMax - to_check.creep.hits) / to_check.creep.hitsMax
-            if self.pos.isNearTo(to_check):
+            if self.pos.isNearTo(to_check.pos):
                 specialty = to_check.findSpecialty()
                 if specialty == HEAL and to_check.creep.hits < to_check.creep.hitsMax * 0.7:
                     rank = 7
@@ -631,7 +620,7 @@ class SquadDirectSupportHeal(SquadDrone):
                 self.log("Unknown result using {}.rangedHeal({}): {}"
                          .format(self.creep, most_damaged.creep, result))
         if not self.creep.__moved:
-            if most_damaged and not self.pos.isNearTo(most_damaged):
+            if most_damaged and not self.pos.isNearTo(most_damaged.pos):
                 self.move_to(most_damaged)
 
     def findSpecialty(self):

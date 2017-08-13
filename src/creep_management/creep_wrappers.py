@@ -1,6 +1,8 @@
+from typing import Optional, TYPE_CHECKING
+
 from constants import *
-from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, sacrificial, \
-    smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility
+from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
+    sacrificial, smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility
 from creeps.squads import dismantling
 from jstools.screeps import *
 
@@ -12,6 +14,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 role_classes = {
     role_upgrader: upgrading.Upgrader,
@@ -62,8 +65,15 @@ role_classes = {
     role_sign: exploring.Rndrs,
 }
 
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
+    from empire.targets import TargetMind
+    from rooms.room_mind import RoomMind
+    from creeps.base import RoleBase
+
 
 def wrap_creep(hive, targets, home, creep):
+    # type: (HiveMind, TargetMind, RoomMind, creep) -> Optional[RoleBase]
     """
     Wraps a given creep with it's role wrapper.
     :param hive: The active hive mind

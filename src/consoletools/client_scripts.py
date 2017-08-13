@@ -9,6 +9,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _VERSION = 8
 
@@ -85,6 +86,7 @@ _full_injection = (
 
 
 def injection_command(command, room_name):
+    # type: (str, str) -> str
     if not command:
         options_mem = Memory['nyxr_options']
         if not options_mem:
@@ -111,6 +113,7 @@ def injection_command(command, room_name):
 
 
 def injection_check():
+    # type: () -> None
     if Game.time % 10 == 5:
         options_mem = Memory['nyxr_options']
         if options_mem:

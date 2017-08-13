@@ -1,4 +1,5 @@
 import math
+from typing import Any, Callable, Dict, List, TYPE_CHECKING, Tuple, cast
 
 from cache import volatile_cache
 from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAME, rmem_key_building_priority_walls, \
@@ -7,7 +8,13 @@ from constants import INVADER_USERNAME, RAMPART_DEFENSE, REMOTE_MINE, SK_USERNAM
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags, locations
-from utilities import hostile_utils, movement, positions
+from utilities import hostile_utils, movement, positions, robjs
+
+if TYPE_CHECKING:
+    from jstools.js_set_map import JSMap
+    from empire.hive import HiveMind
+    from rooms.room_mind import RoomMind
+    from position_management.locations import Location
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -17,9 +24,11 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def _init_tough_part_multipliers():
+    # type: () -> Dict[str, float]
     # This was the original code. We're now creating a constant in order to skip directly to
     # math.ceil(part.hits * MULTIPLIERS[part.boost])
     # prevented = 1 - BOOSTS[TOUGH][part.boost]['damage']
@@ -34,23 +43,25 @@ def _init_tough_part_multipliers():
 TOUGH_HIT_MULTIPLIERS = _init_tough_part_multipliers()
 
 
-def tower_damage(range):
+def tower_damage(_range):
+    # type: (int) -> int
     """
     Gets the damage a tower will inflict by using attack() on a target at a given linear distance.
 
-    :param range: The distance away
+    :param _range: The distance away
     :return: An integer attack damage
-    :type range: int
+    :type _range: int
     :rtype: int
     """
-    if range > 20:
+    if _range > 20:
         return 150
-    elif range < 5:
+    elif _range < 5:
         return 600
-    return (25 - range) * 30
+    return (25 - _range) * 30
 
 
 def poll_hostiles(hive, run_away_checks):
+    # type: (HiveMind, Callable[[RoomMind], None]) -> None
     """
     Iterates through all visible rooms, adding any hostiles found to memory.
 
@@ -98,6 +109,7 @@ def poll_hostiles(hive, run_away_checks):
 
 
 def cleanup_stored_hostiles():
+    # type: () -> None
     """
     Iterates through all hostile information stored in memory, removing any which are known to be dead.
     """
@@ -120,6 +132,7 @@ def cleanup_stored_hostiles():
 
 
 def does_need_urgent_repair(s):
+    # type: (Structure) -> bool
     return (s.structureType == STRUCTURE_ROAD and
             (s.hits < ROAD_DECAY_AMOUNT * 3
              or (Game.map.getTerrainAt(s.pos.x, s.pos.y, s.pos.roomName) == 'swamp'
@@ -128,7 +141,28 @@ def does_need_urgent_repair(s):
            or (s.structureType == STRUCTURE_RAMPART and s.hits < RAMPART_DECAY_AMOUNT * 3)
 
 
+__pragma__('skip')
+
+
+class _StoredHostile:
+    def __init__(self, user: str, pos: int, room: str, _id: int, death: int, ranged: int, attack: int, heal: int,
+                 offensive: bool):
+        self.user = user
+        self.pos = pos
+        self.room = room
+        self.id = _id
+        self.death = death
+        self.ranged = ranged
+        self.attack = attack
+        self.heal = heal
+        self.offensive = offensive
+
+
+__pragma__('noskip')
+
+
 def stored_hostiles_near(room_name):
+    # type: (str) -> List[_StoredHostile]
     """
     Finds all hostile information stored in memory in rooms adjacent to the given room, and in the given room itself.
 
@@ -167,12 +201,13 @@ def stored_hostiles_near(room_name):
             if mem is not undefined and 'danger' in mem:
                 for c in mem.danger:
                     if Game.time < c.death:
-                        result.push(c)
+                        result.push(cast(_StoredHostile, c))
     cache.set(room_name, result)
     return result
 
 
 def stored_hostiles_in(room_name):
+    # type: (str) -> List[_StoredHostile]
     """
     Finds all hostile information stored about hostiles in the given room name.
 
@@ -204,7 +239,7 @@ def stored_hostiles_in(room_name):
     if mem is not undefined and 'danger' in mem:
         for c in mem.danger:
             if Game.time < c.death:
-                result.push(c)
+                result.push(cast(_StoredHostile, c))
         if not len(result):
             del mem.danger
     cache.set(room_name, result)
@@ -220,31 +255,34 @@ class RoomDefense:
     :type _cache: jstools.js_set_map.JSMap
     """
 
-    def __init__(self, room):
+    def __init__(self, room: RoomMind):
         self.room = room
-        self._cache = new_map()
+        self._cache = new_map()  # type: JSMap[str, Any]
         if self.room.my:
             self.mem = self.room.mem[rmem_key_defense_mind_storage]
             if self.mem == undefined:
-                self.mem = self.room.mem[rmem_key_defense_mind_storage] = {}
+                self.mem = self.room.mem[rmem_key_defense_mind_storage] = cast(_Memory, {})
 
     __pragma__('fcall')
 
     def _hive(self):
+        # type: () -> HiveMind
         return self.room.hive
 
     hive = property(_hive)
 
     def all_hostiles(self):
+        # type: () -> List[Creep]
         """
         Finds all hostile creeps (whether dangerous or not) in the current room.
 
         :return: A list of hostile creeps.
         :rtype: list[Creep]
         """
-        return self.room.find(FIND_HOSTILE_CREEPS)
+        return cast(List[Creep], self.room.find(FIND_HOSTILE_CREEPS))
 
     def any_broken_walls(self):
+        # type: () -> bool
         """
         Polls to see if there are any locations which should have walls on them, which don't.
 
@@ -269,6 +307,7 @@ class RoomDefense:
             return broken
 
     def urgent_wall_repairs(self):
+        # type: () -> bool
         """
         Gets any walls which urgently need repair.
         """
@@ -276,7 +315,7 @@ class RoomDefense:
             return self._cache.get("urgent_walls")
         else:
             def hits(wall_id):
-                wall = Game.getObjectById(wall_id)
+                wall = cast(Structure, Game.getObjectById(wall_id))
                 if wall:
                     return wall.hits
                 else:
@@ -286,6 +325,7 @@ class RoomDefense:
                 lambda x: Game.getObjectById(x)).filter().pluck('hits"')
 
     def has_significant_nukes(self):
+        # type: () -> bool
         has_significant_nukes = self.room.get_cached_property('s-nukes')
         if has_significant_nukes is not None:
             return has_significant_nukes
@@ -297,21 +337,24 @@ class RoomDefense:
         return has_significant_nukes
 
     def needs_boosted_defenders(self):
+        # type: () -> bool
         if self.room.minerals.has_no_terminal_or_storage():
             return False
         needs_boosts = self.room.get_cached_property('n-boost')
         return needs_boosts or False
 
     def this_room_mining_ops(self):
+        # type: () -> bool
         if self._cache.has("this_room_mining_ops"):
             return self._cache.get("this_room_mining_ops")
         else:
-            any_ops = not not _.find(flags.find_flags(self, REMOTE_MINE),
+            any_ops = not not _.find(flags.find_flags(self.room.name, REMOTE_MINE),
                                      lambda f: f.memory.active)
             self._cache.set("this_room_mining_ops", any_ops)
             return any_ops
 
     def healing_possible_on(self, hostile):
+        # type: (Creep) -> int
         """
         Looks for enemy healers directly around a hostile, and adds up the possible damage restored if all healers
         were to heal the given creep.
@@ -319,17 +362,17 @@ class RoomDefense:
         If this method is run twice on the same hostile object, a value cached on the hostile itself will be returned
         instead of a new calculation.
 
-        :param hostile: The hostile to
-        :return:
+        :param hostile: The hostile to check healing on
+        :return: Total healing possible per tick if all enemy resources are dedicated to healing this creep.
         """
         if '_possible_heal' in hostile:
             return hostile._possible_heal
         else:
-            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 3)
+            nearby = cast(List[Dict[str, Creep]], self.room.look_for_in_area_around(LOOK_CREEPS, hostile.pos, 3))
             healing_possible = 0
             for obj in nearby:
-                creep = obj.creep
-                distance = movement.chebyshev_distance_room_pos(hostile, creep)
+                creep = obj[LOOK_CREEPS]
+                distance = movement.chebyshev_distance_room_pos(hostile.pos, creep.pos)
                 if distance <= 1:
                     healing_possible += creep.getActiveBodypartsBoostEquivalent(HEAL, 'heal') * HEAL_POWER
                 else:
@@ -338,10 +381,11 @@ class RoomDefense:
             return healing_possible
 
     def defenders_near(self, hostile):
+        # type: (Creep) -> List[Dict[str, Creep]]
         if '_defenders_near' in hostile:
             return hostile._defenders_near
         else:
-            nearby = self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1)
+            nearby = cast(List[Dict[str, Creep]], self.room.look_for_in_area_around(LOOK_CREEPS, hostile.pos, 1))
             result = _.filter(nearby, lambda c: c.creep.my and c.creep.hasActiveBodyparts(ATTACK)
                                                 and _.find(c.creep.pos.lookFor(LOOK_STRUCTURES),
                                                            lambda s: s.structureType == STRUCTURE_RAMPART))
@@ -349,6 +393,7 @@ class RoomDefense:
             return result
 
     def any_attack_invaders(self):
+        # type: () -> bool
         if self._cache.has('_attack_invaders'):
             return self._cache.get('_attack_invaders')
         else:
@@ -370,15 +415,13 @@ class RoomDefense:
             return hostile_users
 
     def _calc_danger_level(self, hostile):
+        # type: (Creep) -> float
         """
         Internal function to calculate the raw danger level of a hostile. Use DefenseMind.danger_level(hostile) for a
         cached version instead.
 
         :param hostile: Hostile to check
         :return: The integer danger level, from 0 (safe) to 5 (attack NOW!)
-
-        :type hostile: Creep
-        :rtype: int
         """
         under_siege = self.room.mem[rmem_key_currently_under_siege]
         user = hostile.owner.username
@@ -393,12 +436,12 @@ class RoomDefense:
                 return 2
         elif user == SK_USERNAME:
             return 0
-        elif Memory.meta.friends.includes(user.toLowerCase()):
+        elif Memory.meta.friends.includes(user.lower()):
             return 0
         elif hostile.my:
             return 0
         elif self.room.my:
-            structs_near = _.some(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile, 1),
+            structs_near = _.some(self.room.look_for_in_area_around(LOOK_STRUCTURES, hostile.pos, 1),
                                   lambda s: s.structure.structureType == STRUCTURE_RAMPART
                                             or s.structure.structureType == STRUCTURE_WALL
                                             or s.structure.structureType == STRUCTURE_TOWER
@@ -414,7 +457,7 @@ class RoomDefense:
                     return 10
             elif hostile.hasBodyparts(ATTACK) or hostile.hasBodyparts(RANGED_ATTACK):
                 if (self.any_broken_walls() or structs_near or
-                        _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile, 1),
+                        _.find(self.room.look_for_in_area_around(LOOK_CREEPS, hostile.pos, 1),
                                lambda obj: obj.creep.my)):
                     if under_siege:
                         return 10.07
@@ -449,6 +492,7 @@ class RoomDefense:
                 return 0
 
     def danger_level(self, hostile):
+        # type: (Creep) -> float
         """
         Calculates the danger level of a hostile, cached per hostile.
 
@@ -463,9 +507,6 @@ class RoomDefense:
 
         :param hostile: Hostile to check
         :return: The integer danger level, from 0 (safe) to 5 (attack NOW!)
-
-        :type hostile: Creep
-        :rtype: int
         """
         if self._cache.has(hostile.id):
             return self._cache.get(hostile.id)
@@ -475,6 +516,7 @@ class RoomDefense:
             return danger_level
 
     def dangerous_hostiles(self):
+        # type: () -> List[Creep]
         """
         Finds all hostiles in the current room with a danger_level of one or greater - cached per-tick per-room.
 
@@ -484,7 +526,6 @@ class RoomDefense:
         If the room is owned by an enemy, an empty list is unconditionally returned.
 
         :return: A list of hostiles
-        :rtype: list[Creep]
         """
         if self._cache.has('active_hostiles'):
             return self._cache.get('active_hostiles')
@@ -512,19 +553,19 @@ class RoomDefense:
                                 # More defenders = more important
                                 - len(self.defenders_near(c)) * 500
                                 # Further away from closest target = less important
-                                + movement.minimum_chebyshev_distance(c, protect)
-                                # Further away average distance from targets = less important
+                                + movement.minimum_chebyshev_distance(c.pos, protect)
                                 + self.healing_possible_on(c) * 300
+                                # Further away average distance from targets = less important
+                                + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
+                                  / len(protect) / 50
                                 # More hits = less important
-                                + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(protect)
-                                  / 50
                                 - (c.hitsMax - c.hits) / c.hitsMax / 100
                                 ) \
                         .value()
                     if self.mem.debug:
                         print("Chose hostiles:\n{}".format(
                             '\n'.join(
-                                ["{},{}: {}, {}, {}, {}, {}".format(
+                                ["{},{}: {}, {}, {}, {}, {}, {}".format(
                                     c.pos.x, c.pos.y,
 
                                     # Higher danger level = more important
@@ -532,10 +573,11 @@ class RoomDefense:
                                     # More defenders = more important
                                     - len(self.defenders_near(c)) * 500,
                                     # Further away from closest target = less important
-                                    + movement.minimum_chebyshev_distance(c, protect),
+                                    + movement.minimum_chebyshev_distance(c.pos, protect),
+                                    + self.healing_possible_on(c) * 300,
                                     # Further away average distance from targets = less important
-                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c, s)) / len(
-                                        protect) / 50,
+                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
+                                    / len(protect) / 50,
                                     # More hits = less important
                                     - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100,
                                 ) for c in hostiles]
@@ -549,6 +591,7 @@ class RoomDefense:
     __pragma__('nofcall')
 
     def remote_hostiles(self):
+        # type: () -> List[_StoredHostile]
         """
         Searches for all stored hostile info in remote mining rooms and subsidiaries of this room. This method does
         not find hostiles in this room, and is cached per DefenseMind.
@@ -569,7 +612,6 @@ class RoomDefense:
 
 
         :return: A list of hostiles
-        :rtype: list[dict[str, str | int]]
         """
 
         if self._cache.has('remote_active_hostiles'):
@@ -596,6 +638,7 @@ class RoomDefense:
             return hostiles
 
     def activate_live_defenses(self):
+        # type: () -> None
         if not self.room.mem[rmem_key_currently_under_siege]:
             self.room.mem[rmem_key_currently_under_siege] = True
             self.room.reset_spending_state()
@@ -604,10 +647,11 @@ class RoomDefense:
         self.room.reset_planned_role()
         message = "{} activating live defenses.".format(self.room.name)
         Game.notify(message)
-        console.log(message)
+        print(message)
         self.set_protection_all_walls()
 
     def set_protection_all_walls(self):
+        # type: () -> None
         all_nearby_hostiles = stored_hostiles_near(self.room.name)
         protect = new_map()
 
@@ -618,11 +662,12 @@ class RoomDefense:
             enemy_positions = self.room.find(FIND_EXIT)
         already_checked = []
         for enemy in enemy_positions:
-            if _.some(already_checked, lambda x: movement.chebyshev_distance_room_pos(x, enemy) <= 4):
+            if _.some(already_checked, lambda x: movement.chebyshev_distance_room_pos(robjs.pos(x),
+                                                                                      robjs.pos(enemy)) <= 4):
                 continue
             already_checked.append(enemy)
 
-            path_obj = self.hive.honey.find_path(enemy, self.room.spawn, {
+            path_obj = self.hive.honey.find_path(enemy, self.room.spawn.pos, {
                 'use_roads': False,
                 'ignore_swamp': True,
                 'current_room': self.room.name
@@ -630,20 +675,20 @@ class RoomDefense:
             for position in path_obj:
                 is_rampart = False
                 is_other = False
-                for struct in self.room.look_at(LOOK_STRUCTURES, position.x, position.y):
+                for struct in cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, position.x, position.y)):
                     if struct.structureType == STRUCTURE_RAMPART:
                         is_rampart = True
                     elif struct.structureType != STRUCTURE_ROAD and struct.structureType != STRUCTURE_CONTAINER:
                         is_other = True  # Don't assign defender creeps to say, ramparts over spawns.
                 if is_rampart and not is_other:
-                    for creep in self.room.look_at(LOOK_CREEPS, position.x, position.y):
+                    for creep in cast(List[Creep], self.room.look_at(LOOK_CREEPS, position.x, position.y)):
                         if creep.memory.role == role_miner:
                             is_other = True
                             break
                     if not is_other:
                         protect.set(positions.serialize_pos_xy(position), 0)
         current_iteration = Array.js_from(protect.entries())
-        print("[defense] Found inital walls: {} from {} paths".format(len(current_iteration), len(already_checked)))
+        print("[defense] Found initial walls: {} from {} paths".format(len(current_iteration), len(already_checked)))
         while True:
             next_iteration = []
             for origin_xy, priority in current_iteration:
@@ -658,7 +703,7 @@ class RoomDefense:
                         is_rampart = False
                         is_wall = False
                         is_other = False
-                        for struct in self.room.look_at(LOOK_STRUCTURES, x, y):
+                        for struct in cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, x, y)):
                             if struct.structureType == STRUCTURE_RAMPART:
                                 is_rampart = True
                             elif struct.structureType == STRUCTURE_WALL:
@@ -688,7 +733,7 @@ class RoomDefense:
         hot = []
         cold = []
         for pos, priority in _.sortBy(Array.js_from(protect.entries()), lambda x: x[1]):
-            loc = locations.create(pos)
+            loc = locations.create(positions.deserialize_xy_to_pos(pos, self.room.name))
             spots.push(loc.name)
             if priority <= 1:
                 hot.push(loc.name)
@@ -700,18 +745,23 @@ class RoomDefense:
         self.room.store_cached_property('rcrnd', [hot, cold], 50)
 
     def towers(self):
+        # type: () -> List[StructureTower]
         if self._cache.has('towers'):
             return self._cache.get('towers')
         else:
-            towers = _.filter(self.room.find(FIND_MY_STRUCTURES), {'structureType': STRUCTURE_TOWER})
+            towers = cast(List[StructureTower], _.filter(self.room.find(FIND_MY_STRUCTURES),
+                                                         {'structureType': STRUCTURE_TOWER}))
             self._cache.set('towers', towers)
             return towers
 
     def healing_capable(self):
-        return len(self.towers())
+        # type: () -> bool
+        return not not len(self.towers())
 
     def set_ramparts(self, defensive):
-        for rampart in _.filter(self.room.find(FIND_STRUCTURES), {"structureType": STRUCTURE_RAMPART}):
+        # type: (bool) -> None
+        for rampart in cast(List[StructureRampart], _.filter(self.room.find(FIND_STRUCTURES),
+                                                             {"structureType": STRUCTURE_RAMPART})):
             if defensive or _.find(self.room.look_at(LOOK_STRUCTURES, rampart.pos),
                                    lambda s: s.structureType != STRUCTURE_RAMPART
                                    and s.structureType != STRUCTURE_ROAD):
@@ -720,7 +770,8 @@ class RoomDefense:
                 rampart.setPublic(True)
 
     def tower_heal(self):
-        damaged = _.filter(self.room.find(FIND_MY_CREEPS), lambda c: c.hits < c.hitsMax)
+        # type: () -> None
+        damaged = _.filter(cast(List[Creep], self.room.find(FIND_MY_CREEPS)), lambda c: c.hits < c.hitsMax)
         if len(damaged):
             towers = _.filter(self.towers(), lambda x: x.energy)
             if not len(towers):
@@ -743,16 +794,17 @@ class RoomDefense:
                         tower = towers.splice(closest_index, 1)[0]
                         tower.heal(creep)
             elif len(damaged) > 1:
-                towers[0].heal(_.min(damaged, lambda c: movement.chebyshev_distance_room_pos(c, towers[0])))
+                towers[0].heal(_.min(damaged, lambda c: movement.chebyshev_distance_room_pos(c.pos, towers[0].pos)))
             else:
                 towers[0].heal(damaged[0])
         elif Game.time % 7 == 0:
-            urgent_repair = _.find(self.room.find(FIND_STRUCTURES), does_need_urgent_repair)
+            urgent_repair = _.find(cast(List[Structure], self.room.find(FIND_STRUCTURES)), does_need_urgent_repair)
             if urgent_repair:
                 for tower in self.towers():
                     tower.repair(urgent_repair)
 
     def alert(self):
+        # type: () -> bool
         if self._cache.has('alert'):
             return self._cache.get('alert')
         else:
@@ -764,6 +816,7 @@ class RoomDefense:
             return alert
 
     def tick(self):
+        # type: () -> None
         if Game.time % 6 == 0 and not len(self.room.spawns) \
                 and not self.room.being_bootstrapped() \
                 and not _.find(self.room.find(FIND_MY_CONSTRUCTION_SITES), {'structureType': STRUCTURE_SPAWN}):
@@ -782,7 +835,7 @@ class RoomDefense:
                             del self.mem.attack_until
                             message = "{}: disabling active defenses.".format(self.room.name)
                             Game.notify(message)
-                            console.log(message)
+                            print(message)
                     else:
                         self.mem.attack_until = Game.time + 2000
             self.tower_heal()
@@ -796,7 +849,7 @@ class RoomDefense:
             if not self.room.being_bootstrapped() or self.room.mem[rmem_key_building_priority_walls]:
                 for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART) \
                         .concat(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_WALL)):
-                    wall = _.find(self.room.room.lookForAt(LOOK_STRUCTURES, flag),
+                    wall = _.find(cast(List[Structure], self.room.room.lookForAt(LOOK_STRUCTURES, flag)),
                                   lambda s: s.structureType == STRUCTURE_WALL or s.structureType == STRUCTURE_RAMPART)
                     if not wall:
                         if len(self.room.find(FIND_MY_CONSTRUCTION_SITES)) < 15 \
@@ -804,7 +857,7 @@ class RoomDefense:
                                                lambda s: s.structureType == STRUCTURE_WALL
                                                or s.structureType == STRUCTURE_RAMPART):
                             self.room.building.refresh_building_targets(True)
-                    elif wall.hits < self.room.get_min_sane_wall_hits:
+                    elif wall.hits < self.room.min_sane_wall_hits:
                         self.room.building.refresh_repair_targets(True)
                 self.room.building.get_construction_targets()
 
@@ -840,7 +893,7 @@ class RoomDefense:
 
         if len(towers):
             if Game.time % 3 == 1:
-                damaged_warriors = _.filter(self.room.find(FIND_MY_CREEPS),
+                damaged_warriors = _.filter(cast(List[Creep], self.room.find(FIND_MY_CREEPS)),
                                             lambda c: c.hasBodyparts(ATTACK) and c.hits < c.hitsMax)
                 if len(damaged_warriors):
                     for tower in towers:
@@ -918,8 +971,8 @@ class RoomDefense:
                     print("[{}] Attacking hostile at {}: {} heal possible, {} damage possible."
                           .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                 for my_defender in nearby_defenders:
-                    my_defender.creep.attack(hostile)
-                    my_defender.creep.defense_override = True
+                    my_defender[LOOK_CREEPS].attack(hostile)
+                    my_defender[LOOK_CREEPS].defense_override = True
                 hits_left = hostile.hits + healing_possible
                 while tower_index < len(towers) and hits_left > 0:
                     tower = towers[tower_index]
@@ -938,6 +991,7 @@ class RoomDefense:
             self.check_for_noninvader_raid()
 
     def check_for_noninvader_raid(self):
+        # type: () -> None
         if self.room.mem[rmem_key_currently_under_siege]:
             return
         total_noninvader = 0
@@ -983,11 +1037,12 @@ class RoomDefense:
                            for h in hostiles if h.owner.username != INVADER_USERNAME]),
                 self.room.name,
             )
-            console.log(message)
+            print(message)
             Game.notify(message)
             self.activate_live_defenses()
 
     def get_current_defender_spots(self):
+        # type: () -> Tuple[List[Location], List[Location]]
         if self._cache.has('live_defender_spots'):
             return self._cache.get('live_defender_spots')
         cached = self.room.get_cached_property('rcrnd')  # recently calculated ramparts needing defense
@@ -1023,9 +1078,8 @@ class RoomDefense:
                         for name in to_remove:
                             if not existing_old.has(locations.serialized(name)):
                                 self.mem.ods.push(name)
-                        if len(self.mem.ods) > len(self.room.role_count(role_wall_defender)):
-                            self.mem.ods.splice(0, len(self.mem.ods)
-                                                - len(self.room.role_count(role_wall_defender)))
+                        if len(self.mem.ods) > self.room.role_count(role_wall_defender):
+                            self.mem.ods.splice(0, len(self.mem.ods) - self.room.role_count(role_wall_defender))
                     else:
                         self.mem.ods = to_remove
             self.room.store_cached_property('rcrnd', [hot, cold], 30)
@@ -1056,28 +1110,29 @@ class RoomDefense:
             serialized_locations = self.mem.known_locations = []
         ramparts_undefended = []  # Slow, but faster than lodash
         eh_might_try = []  # eh_might_try is backup for if there are no other urgent hot-spots
-        for rampart in self.room.find(FIND_MY_STRUCTURES):
+        for rampart in cast(List[StructureRampart], self.room.find(FIND_MY_STRUCTURES)):
             if rampart.setPublic:  # method only accessible for STRUCTURE_RAMPART, faster than checking structureType
-                serialized = positions.serialize_pos_xy(rampart)
+                serialized = positions.serialize_pos_xy(rampart.pos)
                 if not hot_found.has(serialized):
                     is_other = False
-                    for structure in self.room.look_at(LOOK_STRUCTURES, rampart):
+                    for structure in cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, rampart.pos)):
                         if structure.structureType != STRUCTURE_RAMPART and structure.structureType != STRUCTURE_ROAD:
                             is_other = True
-                    for creep in self.room.look_at(LOOK_CREEPS, rampart):
+                    for creep in cast(List[Creep], self.room.look_at(LOOK_CREEPS, rampart.pos)):
                         if creep.memory.role == role_miner:
                             is_other = True
                     if is_other:
                         continue
-                    nearby = self.room.look_for_in_area_around(LOOK_CREEPS, rampart, 1)
+                    nearby = cast(List[Dict[str, Creep]],
+                                  self.room.look_for_in_area_around(LOOK_CREEPS, rampart.pos, 1))
                     total_offense = 0
                     total_enemy_parts = 0
                     for obj in nearby:
-                        creep = obj.creep
-                        if not creep.my and not Memory.meta.friends.includes(creep.owner.username.toLowerCase()):
+                        creep = obj[LOOK_CREEPS]
+                        if not creep.my and not Memory.meta.friends.includes(creep.owner.username.lower()):
                             offense = max(creep.getBodyparts(WORK) * DISMANTLE_POWER,
                                           creep.getBodyparts(ATTACK) * ATTACK_POWER)
-                            if _.some(hot_spots, lambda x: movement.chebyshev_distance_room_pos(x, creep) <= 1):
+                            if _.some(hot_spots, lambda x: movement.chebyshev_distance_room_pos(x, creep.pos) <= 1):
                                 offense /= 3
                             total_offense += offense
                             total_enemy_parts += len(creep.body)
@@ -1118,9 +1173,10 @@ class RoomDefense:
                                                   [s.name for s in cold_spots]], 3)
         for loc in hot_spots:
             last_used[loc.name] = Game.time
-        return [hot_spots, cold_spots]
+        return hot_spots, cold_spots
 
     def get_old_defender_spots(self):
+        # type: () -> List[Location]
         if self._cache.has('old_defender_spots'):
             return self._cache.get('old_defender_spots')
         result = []

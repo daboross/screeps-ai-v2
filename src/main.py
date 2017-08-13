@@ -1,4 +1,5 @@
 import math
+from typing import Any, Callable, Dict, List, TypeVar, cast
 
 import constants
 import creeps.roles.squads
@@ -16,6 +17,7 @@ from jstools import errorlog, memory_info, records
 from jstools.screeps import *
 from position_management import flags, locations
 from rooms import building, defense, minerals, squads
+from rooms.room_mind import RoomMind
 from utilities import hostile_utils, movement, rndrs
 
 __pragma__('noalias', 'name')
@@ -26,6 +28,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 # Have this inside an if() statement so that if customizations.js and main.js are concatenated together, the resulting
 # code works correctly.
@@ -40,6 +43,7 @@ _memory_init = None
 
 
 def init_memory():
+    # type: () -> None
     start = Game.cpu.getUsed()
     x = Memory
     end = Game.cpu.getUsed()
@@ -48,34 +52,28 @@ def init_memory():
 
 
 def report_error(err, description):
+    # type: (str, str) -> None
     return errorlog.report_error('main', err, description)
 
 
+__pragma__('skip')
+_A = TypeVar('_A')
+_R = TypeVar('_R')
+__pragma__('noskip')
+
+
 def try_thing(thing, *args):
-    """
-    :type thing: callable()
-    :type args: any
-    """
-    return errorlog.try_exec('main', thing, thing.err_desc, *args)
+    # type: (Callable[_A, _R], _A) -> _R
+    return errorlog.try_exec('main', thing, cast(Any, thing).err_desc, *args)
 
 
 def try_thing2(thing, err_desc, *args):
-    """
-    :type thing: callable
-    :type err_desc: callable
-    :type args: any
-    """
+    # type: (Callable[_A, _R], Callable[_A, str], _A) -> _R
     return errorlog.try_exec('main', thing, err_desc, *args)
 
 
 def run_creep(hive, targets, creeps_skipped, room, creep):
-    """
-    :type hive: empire.hive.HiveMind
-    :type targets: empire.targets.TargetMind
-    :type creeps_skipped: dict[str, list[str]]
-    :type room: rooms.room_mind.RoomMind
-    :type creep: Creep
-    """
+    # type: (HiveMind, TargetMind, Dict[str, List[str]], RoomMind, Creep) -> None
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and (Game.cpu.bucket < 3000 and
                                                           (Game.gcl.level > 1 or Game.cpu.bucket < 1000)):
         role = creep.memory.role
@@ -132,11 +130,7 @@ run_creep.err_desc = lambda hive, targets, creeps_skipped, room, creep: (
 
 
 def run_room(targets, creeps_skipped, room):
-    """
-    :type targets: empire.targets.TargetMind
-    :type creeps_skipped: dict
-    :type room: rooms.room_mind.RoomMind
-    """
+    # type: (TargetMind, Dict[str, List[str]], RoomMind) -> None
     if room.mem[rmem_key_pause_all_room_operations]:
         return
     records.start_record()
@@ -176,6 +170,9 @@ def run_room(targets, creeps_skipped, room):
         records.start_record()
         room.building.place_home_ramparts()
         records.finish_record('building.ramparts')
+        records.start_record()
+        room.building.bubble_wrap()
+        records.finish_record('building.bubble-wrap')
         records.start_record()
         room.squads.run()
         records.finish_record('squads.run')
@@ -259,8 +256,6 @@ def main():
     records.finish_record('locations.init')
 
     records.start_record()
-
-    PathFinder.use(True)
 
     targets = TargetMind()
     hive = HiveMind(targets)
@@ -439,6 +434,3 @@ __pragma__('js', 'global').py = {
         'reset': records.reset_records,
     }
 }
-
-RoomPosition.prototype.createFlag2 = lambda flag_type: flags.create_flag(this, flag_type)
-RoomPosition.prototype.cfms = lambda main_type, sub_type: flags.create_ms_flag(this, main_type, sub_type)

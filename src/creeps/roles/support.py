@@ -1,4 +1,5 @@
 import math
+from typing import cast
 
 from constants import RANGED_DEFENSE, UPGRADER_SPOT, role_recycling, role_support_builder, role_support_hauler, \
     role_support_miner, target_support_builder_wall, target_support_hauler_fill, target_support_hauler_mine, \
@@ -17,11 +18,12 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class SupportMiner(TransportPickup):
     def run(self):
-        source_flag = self.targets.get_existing_target(self, target_support_miner_mine)
+        source_flag = cast(Flag, self.targets.get_existing_target(self, target_support_miner_mine))
         if not source_flag:
             if not self.memory.idle_for:
                 self.log("WARNING: Support miner has no target.")
@@ -34,7 +36,7 @@ class SupportMiner(TransportPickup):
             return
 
         if self.creep.hits < self.creep.hitsMax:
-            if not len(flags.find_flags(self, RANGED_DEFENSE)) \
+            if not len(flags.find_flags(self.room.name, RANGED_DEFENSE)) \
                     or not _.some(self.room.find(FIND_CREEPS), lambda creep: creep.hasActiveBodyparts(HEAL)):
                 if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
                                                             or self.pos.x > 40 or self.pos.y > 40
@@ -59,7 +61,7 @@ class SupportMiner(TransportPickup):
                                              lambda c: c.creep.my and c.creep.memory.role == role_support_miner
                                                        and c.creep.ticksToLive < self.creep.ticksToLive)
                         if other_miner:
-                            other_miner.creep.suicide()
+                            other_miner[LOOK_CREEPS].suicide()
                             del self.memory._move
                 self.move_to(sitting_target)
             else:
@@ -175,7 +177,7 @@ class SupportMiner(TransportPickup):
         source = self.targets.get_existing_target(self, target_support_miner_mine)
         if not source:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source.pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
         moves_every = math.ceil(moves_every)
@@ -219,7 +221,7 @@ class SupportHauler(TransportPickup):
         source = self.targets.get_existing_target(self, target_support_hauler_mine)
         if not source:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source.pos)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
         return path_length * 1.7 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
@@ -254,7 +256,7 @@ class SupportBuilder(TransportPickup):
             target_flag.setPosition(repair_target)
 
     def run(self):
-        target_flag = self.targets.get_existing_target(self, target_support_builder_wall)
+        target_flag = cast(Flag, self.targets.get_existing_target(self, target_support_builder_wall))
         if not target_flag:
             if not self.memory.idle_for:
                 self.log("WARNING: Support builder has no target.")
@@ -267,7 +269,7 @@ class SupportBuilder(TransportPickup):
             return
 
         if self.creep.hits < self.creep.hitsMax:
-            if not len(flags.find_flags(self, RANGED_DEFENSE)) \
+            if not len(flags.find_flags(self.room.name, RANGED_DEFENSE)) \
                     or not _.some(self.room.find(FIND_CREEPS), lambda creep: creep.hasActiveBodyparts(HEAL)):
                 if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
                                                             or self.pos.x > 40 or self.pos.y > 40
@@ -355,7 +357,7 @@ class SupportBuilder(TransportPickup):
         source = self.targets.get_existing_target(self, target_support_builder_wall)
         if not source:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source.pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
         if self.home.paving():

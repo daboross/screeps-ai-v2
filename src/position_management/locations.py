@@ -1,3 +1,5 @@
+from typing import Optional, Union, cast
+
 from jstools.screeps import *
 from utilities import naming
 
@@ -9,6 +11,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _mem_hints = None
 _mem_expirations = None
@@ -21,23 +24,18 @@ __pragma__('skip')
 
 # Python-style class imitating DeserializedPos
 # noinspection PyPep8Naming
-class Location:
+class Location(RoomPosition):
     """
-    :type x: int
-    :type y: int
-    :type roomName: str
     :type name: str
     :type hint: int
     """
 
-    def __init__(self, x, y, roomName, name, hint):
-        self.x = x
-        self.y = y
-        self.roomName = roomName
+    def __init__(self, x: int, y: int, roomName: str, name: str, hint: int):
+        super().__init__(x, y, roomName)
         self.name = name
         self.hint = hint
 
-    def update(self, x, y, roomName=None):
+    def update(self, x: int, y: int, roomName: str = None):
         """
         :type x: int
         :type y: int
@@ -55,6 +53,7 @@ __pragma__('noskip')
 # Old-style JavaScript class for the sake of performance
 # noinspection PyPep8Naming
 def DeserializedPos(string, name):
+    # type: (str, str) -> Location
     xy_str, room, expiration = string.split('|')
     xy = int(xy_str)
     this.x = xy & 0x3F
@@ -63,12 +62,18 @@ def DeserializedPos(string, name):
     this.name = name
     if expiration != undefined:
         _mem_expirations[name] = Game.time + expiration
+    return cast(Location, undefined)
 
 
-DeserializedPos.prototype = Object.create(RoomPosition.prototype)
+__pragma__('js', '{}', """
+DeserializedPos.prototype = Object.create(RoomPosition.prototype);
+""")
+
+deserialized_proto = __pragma__('js', 'DeserializedPos.prototype')
 
 
 def _update_deserialized_pos_xy(x, y, room_name):
+    # type: (int, int, str) -> None
     this.x = x
     this.y = y
     if room_name != undefined:
@@ -77,6 +82,7 @@ def _update_deserialized_pos_xy(x, y, room_name):
 
 
 def _get_hint():
+    # type: () -> str
     hint = _mem_hints[this.name]
     if hint is undefined:
         hint = None
@@ -94,6 +100,7 @@ def _get_pos():
 
 
 def _set_hint(hint):
+    # type: (str) -> None
     Object.defineProperty(this, 'hint', {
         'get': __pragma__('js', '{}', '() => hint'),
         'set': _set_hint,
@@ -104,6 +111,7 @@ def _set_hint(hint):
 
 
 def _deserialized_pos_to_string():
+    # type: () -> str
     things = [
         "[Location ",
         this.name,
@@ -122,40 +130,46 @@ def _deserialized_pos_to_string():
     return ''.join(things)
 
 
-DeserializedPos.prototype.update = _update_deserialized_pos_xy
+deserialized_proto.update = _update_deserialized_pos_xy
 
-Object.defineProperty(DeserializedPos.prototype, 'hint', {
+Object.defineProperty(deserialized_proto, 'hint', {
     'get': _get_hint,
     'set': _set_hint,
     'enumerable': True,
     'configurable': True,
 })
 
-Object.defineProperty(DeserializedPos.prototype, 'pos', {
+Object.defineProperty(deserialized_proto, 'pos', {
     'get': _get_pos,
     'enumerable': False,
     'configurable': True,
 })
 
-DeserializedPos.prototype.toString = _deserialized_pos_to_string
+deserialized_proto.toString = _deserialized_pos_to_string
 
 
 def _deserialize(string, name):
+    # type: (str, str) -> Location
     return __new__(DeserializedPos(string, name))
 
 
 def _serialize(position, expiration=None):
-    if position.pos is not undefined:
-        position = position.pos
-    if position.x == undefined or position.y == undefined or position.roomName == undefined:
-        raise ValueError("Invalid position: {}".format(position))
-    parts = [position.x | position.y << 6, position.roomName]
+    # type: (Union[RoomPosition, RoomObject], Optional[int]) -> str
+    if cast(RoomObject, position).pos is not undefined:
+        pos = cast(RoomObject, position).pos
+    else:
+        pos = cast(RoomPosition, position)
+
+    if pos.x == undefined or pos.y == undefined or pos.roomName == undefined:
+        raise AssertionError("Invalid position: {}".format(pos))
+    parts = [str(pos.x | pos.y << 6), pos.roomName]
     if expiration != undefined:
-        parts.append(expiration)
+        parts.append(str(expiration))
     return '|'.join(parts)
 
 
 def init():
+    # type: () -> None
     global _mem, _mem_hints, _mem_expirations
     if '_locations' not in Memory:
         # use a dash here to force JavaScript to turn this into a 'random access' object rather than a regular object.
@@ -170,6 +184,7 @@ def init():
 
 
 def serialized(name):
+    # type: (Optional[str]) -> Optional[str]
     """
     Returns the serialized position from the give name (in the form of {x | y << 6}'|'{roomName}).
 
@@ -187,6 +202,7 @@ def serialized(name):
 
 
 def get(name):
+    # type: (str) -> Optional[Location]
     """
     Gets an existing location with the given name. Updates expiration date.
     :type name: str
@@ -202,6 +218,7 @@ def get(name):
 
 
 def create(position, hint=None, expiration=None):
+    # type: (Union[RoomObject, RoomPosition], Optional[int], Optional[int]) -> Location
     """
     Creates a location with the given position and hint.
     :param position: An object with x, y, and roomName properties
@@ -228,6 +245,7 @@ def create(position, hint=None, expiration=None):
 
 
 def delete_location(name):
+    # type: (str) -> None
     """
     Deletes a location with the given name
     :param name: The name to delete
@@ -239,6 +257,7 @@ def delete_location(name):
 
 
 def clean_old_positions():
+    # type: () -> None
     for name in Object.keys(_mem_expirations):
         if name != '-' and _mem_expirations[name] < Game.time:
             exp = _mem_expirations[name]

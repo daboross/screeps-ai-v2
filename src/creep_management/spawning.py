@@ -1,10 +1,15 @@
 import math
 from math import floor
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from cache import volatile_cache
 from constants import *
 from jstools.screeps import *
 from utilities import naming
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from creeps.base import RoleBase
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -14,6 +19,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 initial_section = {
     creep_base_work_full_move_hauler: [WORK, WORK, MOVE, MOVE],
@@ -90,16 +96,18 @@ low_energy_dynamic = [creep_base_1500miner, creep_base_3000miner, creep_base_400
 
 
 def would_be_emergency(room):
+    # type: (RoomMind) -> bool
     """
     :type room: rooms.room_mind.RoomMind
     """
-    spawn_mass = room.carry_mass_of(role_spawn_fill) \
-                 + room.carry_mass_of(role_spawn_fill_backup) \
-                 + room.carry_mass_of(role_tower_fill)
+    spawn_mass = (room.carry_mass_of(role_spawn_fill)
+                  + room.carry_mass_of(role_spawn_fill_backup)
+                  + room.carry_mass_of(role_tower_fill))
     return spawn_mass <= 0 or (spawn_mass < room.get_target_total_spawn_fill_mass() / 2)
 
 
 def emergency_conditions(room):
+    # type: (RoomMind) -> bool
     """
     :type room: rooms.room_mind.RoomMind
     """
@@ -124,6 +132,7 @@ def emergency_conditions(room):
 
 
 def run(room, spawn):
+    # type: (RoomMind, StructureSpawn) -> None
     """
     Activates the spawner, spawning what's needed, as determined by the RoomMind.
 
@@ -148,10 +157,10 @@ def run(room, spawn):
         #     print("[{}][spawning] All roles are good, no need to spawn more!".format(room.name))
         #     room.mem.spawning_already_reported_no_next_role = True
         return
-    role = role_obj.role
-    base = role_obj.base
-    num_sections = role_obj.num_sections or 0
-    replacing = role_obj.replacing
+    role = role_obj[roleobj_key_role]
+    base = role_obj[roleobj_key_base]
+    num_sections = role_obj[roleobj_key_num_sections] or 0
+    replacing = role_obj[roleobj_key_replacing]
 
     ubos_cache = volatile_cache.mem("energy_used_by_other_spawns")
     if ubos_cache.has(room.name):
@@ -176,7 +185,7 @@ def run(room, spawn):
             print("[{}][spawning] Trying to spawn a 0-section {} creep! Changing this to a 1-section creep!"
                   .format(room.name, base))
             num_sections = 1
-            role_obj.num_sections = 1
+            role_obj[roleobj_key_num_sections] = 1
         cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
         if not cost:
             print("[{}][spawning] ERROR: Unknown cost retrieved from cost_of_sections({}, {}, {}): {}"
@@ -196,7 +205,7 @@ def run(room, spawn):
                       .format(room.name, num_sections, new_size))
                 # Since the literal memory object is returned, this mutation will stick for until this creep has been
                 # spawned, or the target creep has been refreshed
-                num_sections = role_obj.num_sections = new_size
+                num_sections = role_obj[roleobj_key_num_sections] = new_size
                 half_section = 1 if num_sections % 1 else 0
                 num_sections -= num_sections % 1
                 cost = cost_of_sections(base, num_sections, energy) + half_section * half_section_cost(base)
@@ -206,7 +215,7 @@ def run(room, spawn):
         # print("[{}][spawning] Room doesn't have enough energy! {} < {}!".format(room.name, filled, energy))
         return
 
-    descriptive_level = None
+    descriptive_level = None  # type: Any
 
     if base is creep_base_1500miner:
         parts = []
@@ -575,9 +584,9 @@ def run(room, spawn):
     else:
         memory = {"home": home, "role": role}
 
-    if role_obj.memory:
+    if role_obj[roleobj_key_initial_memory]:
         # Add whatever memory seems to be necessary
-        _.extend(memory, role_obj.memory)
+        _.extend(memory, role_obj[roleobj_key_initial_memory])
 
     if _.sum(parts, lambda p: BODYPART_COST[p]) > spawn.room.energyAvailable - ubos_cache.get(room.name):
         print("[{}][spawning] Warning: Generated too costly of a body for a {}! Available energy: {}, cost: {}."
@@ -613,17 +622,18 @@ def run(room, spawn):
                 print("[{}][spawning] Produced invalid body array for creep type {}: {}"
                       .format(room.name, base, JSON.stringify(parts)))
     else:
+        result = cast(str, result)
         used = ubos_cache.get(room.name) or 0
         used += postspawn_calculate_cost_of(parts)
         ubos_cache.set(room.name, used)
         room.reset_planned_role()
-        if role_obj.targets:
-            for target_type, target_id in role_obj.targets:
-                room.hive.targets.manually_register({'name': name}, target_type, target_id)
-        if role_obj.rkey:
-            room.successfully_spawned_request(role_obj.rkey)
-        if role_obj.run_after:
-            __pragma__('js', '(eval(role_obj.run_after))')(name)
+        if role_obj[roleobj_key_initial_targets]:
+            for target_type, target_id in role_obj[roleobj_key_initial_targets]:
+                room.hive.targets.manually_register(cast(Creep, {'name': name}), target_type, target_id)
+        if role_obj[roleobj_key_request_identifier]:
+            room.successfully_spawned_request(role_obj[roleobj_key_request_identifier])
+        if role_obj[roleobj_key_run_after_spawning]:
+            __pragma__('js', '(eval(role_obj[roleobj_key_run_after_spawning]))')(name)
         if replacing:
             room.register_new_replacing_creep(replacing, result)
         else:
@@ -631,22 +641,26 @@ def run(room, spawn):
 
 
 def validate_role(role_obj):
+    # type: (Dict[str, Any]) -> None
     if role_obj is None:
         return
-    if not role_obj.role:
-        raise __new__(Error("Invalid role: no .role property"))
-    if not role_obj.base:
-        raise __new__(Error("Invalid role: no .base property"))
-    if not role_obj.num_sections:
-        role_obj.num_sections = Infinity
-    if 'replacing' in role_obj and not role_obj.replacing:
-        del role_obj.replacing
-    role_obj.num_sections = ceil_sections(role_obj.num_sections, role_obj.base)
+    if not role_obj[roleobj_key_role]:
+        raise AssertionError("Invalid role: no .role property")
+    if not role_obj[roleobj_key_base]:
+        raise AssertionError("Invalid role: no .base property")
+    if not role_obj[roleobj_key_num_sections]:
+        role_obj[roleobj_key_num_sections] = Infinity
+    if roleobj_key_replacing in role_obj and not role_obj[roleobj_key_replacing]:
+        del role_obj[roleobj_key_replacing]
+    role_obj.num_sections = ceil_sections(role_obj.num_sections, role_obj['base'])
 
 
-def find_base_type(creep):
-    if creep.creep:
-        creep = creep.creep
+def find_base_type(_creep):
+    # type: (Union[Creep, RoleBase]) -> Optional[str]
+    if cast(RoleBase, _creep).creep:
+        creep = cast(RoleBase, _creep).creep
+    else:
+        creep = cast(Creep, _creep)
     part_counts = _.countBy(creep.body, lambda p: p.type)
     total = _.sum(part_counts)
     if part_counts[WORK] == part_counts[CARRY] == part_counts[MOVE] / 2 == total / 4 \
@@ -691,6 +705,7 @@ def find_base_type(creep):
 
 
 def postspawn_calculate_cost_of(parts):
+    # type: (List[str]) -> int
     cost = 0
     for part in parts:
         cost += BODYPART_COST[part]
@@ -698,6 +713,7 @@ def postspawn_calculate_cost_of(parts):
 
 
 def energy_per_section(base):
+    # type: (str) -> Optional[int]
     # TODO: use this to create scalable sections for remote mining ops
     if base in scalable_sections:
         cost = 0
@@ -709,6 +725,7 @@ def energy_per_section(base):
 
 
 def lower_energy_per_section(base):
+    # type: (str) -> Optional[int]
     if base in low_energy_sections:
         cost = 0
         for part in low_energy_sections[base]:
@@ -719,6 +736,7 @@ def lower_energy_per_section(base):
 
 
 def initial_section_cost(base):
+    # type: (str) -> int
     cost = 0
     if base in initial_section:
         for part in initial_section[base]:
@@ -727,6 +745,7 @@ def initial_section_cost(base):
 
 
 def half_section_cost(base):
+    # type: (str) -> int
     cost = 0
     if base in half_sections:
         for part in half_sections[base]:
@@ -735,23 +754,25 @@ def half_section_cost(base):
 
 
 def cost_of_sections(base, num_sections, energy_available):
+    # type: (str, int, int) -> int
     initial_cost = initial_section_cost(base)
     per_section_energy = energy_per_section(base)
     if initial_cost + per_section_energy > energy_available:
         per_section_energy = lower_energy_per_section(base)
     if num_sections % 1 > 0:
-        return initial_cost + math.floor(num_sections) * per_section_energy \
+        return initial_cost + int(math.floor(num_sections)) * per_section_energy \
                + half_section_cost(base)
     else:
         return initial_section_cost(base) + num_sections * per_section_energy
 
 
 def max_sections_of(room, base):
+    # type: (RoomMind, str) -> int
     if emergency_conditions(room):
         energy = room.room.energyAvailable
     else:
         energy = room.room.energyCapacityAvailable
-    max_by_cost = floor((energy - initial_section_cost(base)) / energy_per_section(base))
+    max_by_cost = int(floor((energy - initial_section_cost(base)) / energy_per_section(base)))
     if max_by_cost == 0:
         max_by_cost = floor((energy - initial_section_cost(base)) / lower_energy_per_section(base))
     initial_base_parts = len(initial_section[base]) if base in initial_section else 0
@@ -767,6 +788,7 @@ def max_sections_of(room, base):
 
 
 def using_lower_energy_section(room, base):
+    # type: (RoomMind, str) -> bool
     if emergency_conditions(room):
         energy = room.room.energyAvailable
     else:
@@ -778,9 +800,12 @@ def using_lower_energy_section(room, base):
         return False
 
 
-def work_count(creep):
-    if creep.creep:  # support RoleBase
-        creep = creep.creep
+def work_count(_creep):
+    # type: (Union[Creep, RoleBase]) -> int
+    if cast(RoleBase, _creep).creep:
+        creep = cast(RoleBase, _creep).creep
+    else:
+        creep = cast(Creep, _creep)
     work = 0
     for part in creep.body:
         if part.type == WORK:
@@ -793,13 +818,17 @@ def work_count(creep):
     return work
 
 
-def carry_count(creep):
-    if creep.creep:  # support RoleBase
-        creep = creep.creep
-    return creep.carryCapacity / CARRY_CAPACITY
+def carry_count(_creep):
+    # type: (Union[Creep, RoleBase]) -> int
+    if cast(RoleBase, _creep).creep:
+        creep = cast(RoleBase, _creep).creep
+    else:
+        creep = cast(Creep, _creep)
+    return int(creep.carryCapacity / CARRY_CAPACITY)
 
 
 def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
+    # type: (float, float, float, int) -> float
     if maximum <= 1:
         return maximum
 
@@ -812,12 +841,14 @@ def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
 
 
 def ceil_sections(count, base=None):
+    # type: (float, Optional[str]) -> float
     if base is not None and base not in half_sections:
         return math.ceil(count)
     return math.ceil(count * 2) / 2
 
 
 def floor_sections(count, base=None):
+    # type: (float, Optional[str]) -> float
     if base is not None and base not in half_sections:
         return math.floor(count)
     return math.floor(count * 2) / 2

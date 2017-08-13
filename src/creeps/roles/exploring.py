@@ -1,3 +1,5 @@
+from typing import cast
+
 from constants import INVADER_USERNAME, SCOUT, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
@@ -13,11 +15,12 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class Scout(MilitaryBase):
     def run(self):
-        destination = self.targets.get_existing_target(self, target_single_flag)
+        destination = cast(Flag, self.targets.get_existing_target(self, target_single_flag))
         if not destination:
             if not self.memory.idle_for:
                 self.log("WARNING: Scout does not have destination set!")
@@ -30,8 +33,7 @@ class Scout(MilitaryBase):
             return
 
         still_exploring = ('explored_at' not in destination.memory) \
-                          or (positions.serialize_pos_xy(destination)
-                              + destination.pos.roomName) != destination.memory.explored_at
+                          or positions.serialize_xy_room_pos(destination.pos) != destination.memory.explored_at
 
         recalc = False
 
@@ -39,7 +41,7 @@ class Scout(MilitaryBase):
             # recalculate_path
             if self.memory.rp:
                 self.log("Recalculating path due to circumstances in {}.".format(self.memory.rp))
-                self.recalc_military_path(self.home.spawn, destination, {
+                self.recalc_military_path(self.home.spawn.pos, destination, {
                     "ignore_swamp": True,
                     "use_roads": False,
                 })
@@ -48,7 +50,7 @@ class Scout(MilitaryBase):
             if self.memory.last_room != self.pos.roomName:
                 self.memory.last_room = self.pos.roomName
                 if self.room.enemy and self.pos.roomName != destination.pos.roomName:
-                    self.recalc_military_path(self.home.spawn, destination, {
+                    self.recalc_military_path(self.home.spawn.pos, destination.pos, {
                         "ignore_swamp": True,
                         "use_roads": False,
                     })
@@ -82,17 +84,17 @@ class Scout(MilitaryBase):
                 destination.memory.travel_time = CREEP_LIFE_TIME - self.creep.ticksToLive
                 self.log("Arrived at {} ({}), traveling from {} in {} ticks."
                          .format(destination, destination.pos, self.home.spawn, destination.memory.travel_time))
-                destination.memory.explored_at = positions.serialize_pos_xy(destination) + destination.pos.roomName
+                destination.memory.explored_at = positions.serialize_xy_room_pos(destination.pos)
         elif self.pos.isNearTo(destination):
             self.basic_move_to(destination)
         else:
-            self.follow_military_path(self.home.spawn, destination, {
+            self.follow_military_path(self.home.spawn.pos, destination.pos, {
                 "ignore_swamp": True,
                 "use_roads": False,
             })
             if recalc:
                 self.log("Recalculating path due.")
-                self.recalc_military_path(self.home.spawn, destination, {
+                self.recalc_military_path(self.home.spawn.pos, destination.pos, {
                     "ignore_swamp": True,
                     "use_roads": False
                 })
@@ -140,10 +142,10 @@ class Scout(MilitaryBase):
                     Game.notify(message)
 
     def _calculate_time_to_replace(self):
-        target = self.targets.get_new_target(self, target_single_flag, SCOUT)
+        target = cast(Flag, self.targets.get_new_target(self, target_single_flag, SCOUT))
         if not target:
             return -1
-        path_len = self.get_military_path_length(self.home.spawn, target, {
+        path_len = self.get_military_path_length(self.home.spawn.pos, target.pos, {
             "ignore_swamp": True,
             "use_roads": False
         })

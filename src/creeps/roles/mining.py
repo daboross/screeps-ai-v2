@@ -1,4 +1,5 @@
 import math
+from typing import List, Optional, cast
 
 from constants import RANGED_DEFENSE, UPGRADER_SPOT, role_hauler, role_miner, \
     role_recycling, role_spawn_fill, target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
@@ -19,14 +20,15 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 class EnergyMiner(TransportPickup):
     def run(self):
-        source_flag = self.targets.get_existing_target(self, target_energy_miner_mine)
+        source_flag = cast(Flag, self.targets.get_existing_target(self, target_energy_miner_mine))
         if not source_flag:
             self.log("WARNING: Getting new remote mine for remote miner!")
-            source_flag = self.targets.get_new_target(self, target_energy_miner_mine)
+            source_flag = cast(Flag, self.targets.get_new_target(self, target_energy_miner_mine))
         if not source_flag:
             self.log("Remote miner can't find any sources! Flag: {}".format(source_flag))
             self.memory.role = role_recycling
@@ -36,7 +38,7 @@ class EnergyMiner(TransportPickup):
             self.memory.home = flags.flag_sponsor(source_flag)
 
         if self.creep.hits < self.creep.hitsMax:
-            if not len(flags.find_flags(self, RANGED_DEFENSE)) \
+            if not len(flags.find_flags(self.room.name, RANGED_DEFENSE)) \
                     or not _.some(self.room.find(FIND_CREEPS), lambda creep: creep.hasActiveBodyparts(HEAL)):
                 if self.home.defense.healing_capable() and (self.pos.roomName != self.home.name
                                                             or self.pos.x > 40 or self.pos.y > 40
@@ -61,14 +63,14 @@ class EnergyMiner(TransportPickup):
                                              lambda c: c.creep.my and c.creep.memory.role == role_miner
                                                        and c.creep.ticksToLive < self.creep.ticksToLive)
                         if other_miner:
-                            other_miner.creep.suicide()
+                            cast(Creep, other_miner[LOOK_CREEPS]).suicide()
                             del self.memory._move
                 self.move_to(sitting_target)
             else:
                 self.follow_energy_path(self.home.spawn, sitting_target)
             return False
         elif distance_away > 1:
-            creep = _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my)
+            creep = cast(Creep, _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my))
             if creep and creep.memory.role == role_miner and creep.ticksToLive > 100:
                 self.memory.container_pos = None
                 sitting_target = source_flag.pos
@@ -97,7 +99,7 @@ class EnergyMiner(TransportPickup):
                 else:
                     self.basic_move_to(pos)
 
-        sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
+        sources_list = cast(List[Source], source_flag.pos.lookFor(LOOK_SOURCES))
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             return False
@@ -122,18 +124,18 @@ class EnergyMiner(TransportPickup):
                 if self.memory.link is None:
                     return False
                 else:
-                    link = Game.getObjectById(self.memory.link)
+                    link = cast(OwnedStructure, Game.getObjectById(self.memory.link))
                     if link is None or not self.pos.isNearTo(link):
                         del self.memory.link
                         return False
             else:
                 all_possible_links = _.filter(
-                    self.room.find(FIND_MY_STRUCTURES),
+                    cast(List[OwnedStructure], self.room.find(FIND_MY_STRUCTURES)),
                     lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
                                ) and abs(s.pos.x - source_flag.pos.x) <= 2 and abs(s.pos.y - source_flag.pos.y) <= 2)
                 best_priority = 0  # 1-3
                 best_spot = None
-                link = None
+                link = None  # type: Optional[OwnedStructure]
                 for x in range(source_flag.pos.x - 1, source_flag.pos.x + 2):
                     for y in range(source_flag.pos.y - 1, source_flag.pos.y + 2):
                         if movement.is_block_empty(self.room, x, y):
@@ -163,9 +165,10 @@ class EnergyMiner(TransportPickup):
                 else:
                     self.memory.link = None
                 return False
-            if self.creep.carry.energy + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
+            if self.creep.carry[RESOURCE_ENERGY] + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
                 if link.structureType == STRUCTURE_LINK:
-                    self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
+                    self.home.links.register_target_deposit(cast(StructureLink, link), self,
+                                                            self.creep.carry[RESOURCE_ENERGY], 1)
                 self.creep.transfer(link, RESOURCE_ENERGY)
 
         return False
@@ -177,7 +180,7 @@ class EnergyMiner(TransportPickup):
         source = self.targets.get_new_target(self, target_energy_miner_mine)
         if not source:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, source_pos)
         moves_every = (len(self.creep.body) - self.creep.getActiveBodyparts(MOVE)) / self.creep.getActiveBodyparts(MOVE)
         if self.home.paving():
@@ -190,15 +193,17 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
     def run_local_refilling(self, pickup, fill):
         if not self.memory.filling:
             if self.creep.getActiveBodyparts(WORK) and Game.cpu.bucket >= 4000:
-                construction_sites = self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos)
+                construction_sites = cast(List[ConstructionSite],
+                                          self.room.find_in_range(FIND_MY_CONSTRUCTION_SITES, 3, self.pos))
                 if len(construction_sites):
                     self.creep.build(_.max(construction_sites, 'progress'))
                 else:
-                    repair_sites = _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, self.pos),
-                                            lambda s: s.hits < s.hitsMax
-                                                      and s.hits < self.home.get_min_sane_wall_hits)
+                    repair_sites = cast(List[Structure],
+                                        _.filter(self.room.find_in_range(FIND_STRUCTURES, 3, self.pos),
+                                                 lambda s: s.hits < s.hitsMax
+                                                           and s.hits < self.home.get_min_sane_wall_hits))
                     if len(repair_sites):
-                        self.creep.build(_.min(repair_sites, 'hits'))
+                        self.creep.repair(_.min(repair_sites, 'hits'))
                     else:
                         self.repair_nearby_roads()
             if self.memory.running == 'refill':
@@ -215,7 +220,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                     self.memory.running = 'refill'
                     return self.refill_creeps()
         elif self.creep.ticksToLive < 200 and self.creep.ticksToLive < self.path_length(fill, pickup) * 2:
-            if self.creep.carry.energy > 0:
+            if self.creep.carry[RESOURCE_ENERGY] > 0:
                 self.memory.filling = False
                 return self.refill_creeps()
             else:
@@ -224,7 +229,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
                 return False
 
     def run(self):
-        pickup = self.targets.get_existing_target(self, target_energy_hauler_mine)
+        pickup = cast(Flag, self.targets.get_existing_target(self, target_energy_hauler_mine))
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
             self.targets.untarget(self, target_closest_energy_site)
@@ -254,10 +259,10 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         return self.transport(pickup, fill, self.home.paving())
 
     def _calculate_time_to_replace(self):
-        source = self.targets.get_new_target(self, target_energy_hauler_mine)
+        source = cast(Flag, self.targets.get_new_target(self, target_energy_hauler_mine))
         if not source:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, source)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source.pos)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
         return path_length * 1.7 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
@@ -360,6 +365,6 @@ class RemoteReserve(TransportPickup):
             target_pos = Game.rooms[room].controller.pos
         else:
             return -1
-        path_length = self.hive.honey.find_path_length(self.home.spawn, target_pos)
+        path_length = self.hive.honey.find_path_length(self.home.spawn.pos, target_pos)
         # self.log("Calculating replacement time using distance from {} to {}", spawn_pos, target_pos)
         return path_length + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15

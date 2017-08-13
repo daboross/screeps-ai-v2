@@ -11,6 +11,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 # TODO: awesome speech for this class
@@ -344,7 +345,7 @@ class MineralHauler(RoleBase):
         if not self.pos.isNearTo(mind.storage):
             access = mind.storage_terminal_access_pos()
             if access:
-                closest = movement.room_pos_of_closest_serialized(self.home, self, access)
+                closest = movement.room_pos_of_closest_serialized(self.home, self.pos, access)
                 if closest:
                     self.move_to(closest)
                 else:
@@ -393,7 +394,7 @@ class MineralHauler(RoleBase):
         if not self.pos.isNearTo(mind.terminal):
             access = mind.storage_terminal_access_pos()
             if access:
-                closest = movement.room_pos_of_closest_serialized(self.home, self, access)
+                closest = movement.room_pos_of_closest_serialized(self.home, self.pos, access)
                 if closest:
                     self.move_to(closest)
                 else:

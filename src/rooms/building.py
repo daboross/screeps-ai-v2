@@ -1,4 +1,5 @@
 import math
+from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 import random
 
@@ -10,7 +11,11 @@ from empire import honey
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
-from utilities import movement, positions
+from utilities import movement, positions, robjs
+
+if TYPE_CHECKING:
+    from rooms.room_mind import RoomMind
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -20,6 +25,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 _cache_key_placed_roads_for_mine = 'prfm'
 _cache_key_found_roads_for_mine = 'frfm'
@@ -52,10 +58,7 @@ max_priority_for_non_wall_sites = 5
 
 
 def get_priority(room, structure_type):
-    """
-    :type room: rooms.room_mind.RoomMind
-    :type structure_type: str
-    """
+    # type: (RoomMind, str) -> int
     if not room.spawn:
         if structure_type == STRUCTURE_SPAWN:
             if room.being_bootstrapped():
@@ -82,12 +85,13 @@ def get_priority(room, structure_type):
     return default_priority
 
 
-def not_road(id):
-    thing = Game.getObjectById(id)
+def not_road(_id):
+    # type: (str) -> bool
+    thing = Game.getObjectById(_id)  # type: Union[Structure, ConstructionSite]
     if thing is not None:
         return thing.structureType != STRUCTURE_ROAD
     else:
-        flag = Game.flags[id]
+        flag = Game.flags[_id]
         return flag is not undefined and flags.flag_secondary_to_sub[flag.secondaryColor] != flags.SUB_ROAD
 
 
@@ -116,6 +120,7 @@ class ConstructionMind:
     """
 
     def __init__(self, room):
+        # type: (RoomMind) -> None
         """
         :type room: rooms.room_mind.RoomMind
         :param room:
@@ -123,10 +128,13 @@ class ConstructionMind:
         self.room = room
         self.hive = room.hive
 
+    # noinspection PyPep8Naming
     def toString(self):
+        # type: () -> str
         return "ConstructionMind[room: {}]".format(self.room.name)
 
     def refresh_building_targets(self, now=False):
+        # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
             self.room.delete_cached_property('building_targets')
@@ -138,6 +146,7 @@ class ConstructionMind:
             self.room.expire_property_next_tick('sieged_walls_unbuilt')
 
     def refresh_repair_targets(self, now=False):
+        # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
             self.room.delete_cached_property('repair_targets')
@@ -147,9 +156,11 @@ class ConstructionMind:
             self.room.expire_property_next_tick('big_repair_targets')
 
     def refresh_destruction_targets(self):
+        # type: () -> None
         self.room.delete_cached_property('destruct_targets')
 
     def _max_hits_at(self, struct, big_repair=False):
+        # type: (Structure, bool) -> int
         if struct.structureType == STRUCTURE_WALL:
             if big_repair:
                 return self.room.max_sane_wall_hits
@@ -164,8 +175,10 @@ class ConstructionMind:
             return struct.hitsMax
 
     def _get_is_relatively_decayed_callback(self, big_repair=False):
+        # type: (bool) -> Callable[[str], bool]
         def is_relatively_decayed(thing_id):
-            thing = Game.getObjectById(thing_id)
+            # type: (str) -> bool
+            thing = Game.getObjectById(thing_id)  # type: Structure
             if thing is None:
                 return False
             if thing.structureType == STRUCTURE_ROAD:
@@ -178,7 +191,8 @@ class ConstructionMind:
         return is_relatively_decayed
 
     def _hits_left_to_repair_at(self, thing_id):
-        thing = Game.getObjectById(thing_id)
+        # type: (str) -> int
+        thing = Game.getObjectById(thing_id)  # type: Structure
         if thing is None:
             return 0
         if thing.structureType != STRUCTURE_RAMPART and thing.structureType != STRUCTURE_WALL:
@@ -186,6 +200,7 @@ class ConstructionMind:
         return max(0, self.room.max_sane_wall_hits - thing.hits)
 
     def get_target_num_builders(self):
+        # type: () -> int
         num = self.room.get_cached_property("builders_needed")
         if num is not None:
             return num
@@ -212,51 +227,54 @@ class ConstructionMind:
         return num
 
     def get_max_builder_work_parts(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if site and site.progressTotal:
                 construction += site.progressTotal - site.progress
         repair = _.sum(self.get_big_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def get_max_builder_work_parts_noextra(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts_noextra")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if site and site.progressTotal:
                 construction += site.progressTotal - site.progress
         repair = _.sum(self.get_repair_targets(), self._hits_left_to_repair_at)
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts_noextra", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def get_max_builder_work_parts_urgent(self):
+        # type: () -> int
         parts = self.room.get_cached_property("max_builder_work_parts_urgent_only")
         if parts is not None:
             return parts
 
         construction = 0
         for site_id in self.get_construction_targets():
-            site = Game.getObjectById(site_id)
+            site = Game.getObjectById(site_id)  # type: ConstructionSite
             if not site:
                 continue
             if site and (site.structureType == STRUCTURE_WALL or site.structureType == STRUCTURE_RAMPART
@@ -264,7 +282,7 @@ class ConstructionMind:
                 construction += site.progressTotal - site.progress
         repair = 0
         for struct_id in self.get_repair_targets():
-            struct = Game.getObjectById(struct_id)
+            struct = Game.getObjectById(struct_id)  # type: Structure
             if struct and struct.hits:
                 if struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART:
                     repair += max(0, self.room.min_sane_wall_hits / 2 - struct.hits)
@@ -274,12 +292,13 @@ class ConstructionMind:
         total_work_ticks_needed = construction / BUILD_POWER + repair / REPAIR_POWER
         # We are assuming here that each creep spends about half it's life moving between storage and the build/repair
         # site.
-        total_work_parts_needed = math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2))
+        total_work_parts_needed = int(math.ceil(total_work_ticks_needed / (CREEP_LIFE_TIME / 2)))
 
         self.room.store_cached_property("max_builder_work_parts_urgent_only", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
     def refresh_num_builders(self, now=False):
+        # type: (bool) -> None
         if now:
             self.room.delete_cached_property('builders_needed')
             self.room.delete_cached_property('max_builder_work_parts')
@@ -292,6 +311,7 @@ class ConstructionMind:
             self.room.expire_property_next_tick('max_builder_work_parts_urgent_only')
 
     def get_high_value_construction_targets(self):
+        # type: () -> List[str]
         if self.room.under_siege():
             targets = self.room.get_cached_property("sieged_walls_unbuilt")
             if targets is not None:
@@ -323,6 +343,7 @@ class ConstructionMind:
             return targets
 
     def get_construction_targets(self):
+        # type: () -> List[str]
         targets = self.room.get_cached_property("building_targets")
         if targets is not None:
             last_rcl = self.room.get_cached_property("bt_last_checked_rcl")
@@ -408,7 +429,7 @@ class ConstructionMind:
                         continue
                 if CONTROLLER_STRUCTURES[structure_type][self.room.rcl] \
                         > (currently_existing[structure_type] or 0) and \
-                        not flags.look_for(self.room, flag, flags.MAIN_DESTRUCT,
+                        not flags.look_for(self.room, flag.pos, flags.MAIN_DESTRUCT,
                                            flags.structure_type_to_flag_sub[structure_type]) \
                         and not (_.find(self.room.look_at(LOOK_STRUCTURES, flag.pos), {"structureType": structure_type})
                                  or _.find(self.room.look_at(LOOK_CONSTRUCTION_SITES, flag.pos))):
@@ -436,6 +457,7 @@ class ConstructionMind:
         return self.room.get_cached_property("building_targets")
 
     def get_repair_targets(self):
+        # type: () -> List[str]
         structures = self.room.get_cached_property("repair_targets")
         if structures is not None:
             last_rcl = self.room.get_cached_property("rt_last_checked_rcl")
@@ -487,6 +509,7 @@ class ConstructionMind:
         return structures
 
     def get_big_repair_targets(self):
+        # type: () -> List[str]
         target_list = self.room.get_cached_property("big_repair_targets")
         if target_list is not None:
             return target_list
@@ -511,6 +534,7 @@ class ConstructionMind:
         return target_list
 
     def get_destruction_targets(self):
+        # type: () -> List[str]
         target_list = self.room.get_cached_property("destruct_targets")
         if target_list is not None:
             return target_list
@@ -533,7 +557,7 @@ class ConstructionMind:
             structure_type = flags.flag_sub_to_structure_type[secondary]
             if structure_type == STRUCTURE_ROAD:
                 continue
-            structures = _.filter(self.room.look_at(LOOK_STRUCTURES, flag.pos),
+            structures = _.filter(cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, flag.pos)),
                                   lambda s: s.structureType == structure_type)
             if structure_type != STRUCTURE_RAMPART and _.find(self.room.look_at(LOOK_STRUCTURES, flag.pos),
                                                               {"structureType": STRUCTURE_RAMPART}):
@@ -551,6 +575,7 @@ class ConstructionMind:
         return target_list
 
     def build_most_needed_road(self):
+        # type: () -> bool
         for mine_flag in self.room.mining.active_mines:
             re_checked = self.build_road(mine_flag)
             if re_checked:
@@ -558,6 +583,7 @@ class ConstructionMind:
         return False
 
     def reset_inactive_mines(self):
+        # type: () -> None
         mines = self.room.mining.active_mines
         all_mines = self.room.possible_remote_mining_operations
         for mine in all_mines:
@@ -565,9 +591,11 @@ class ConstructionMind:
                 self.reset_last_paved(mine)
 
     def reset_last_paved(self, mine_flag):
+        # type: (Flag) -> None
         self.room.delete_cached_property(_cache_key_placed_roads_for_mine + mine_flag.name)
 
     def build_road(self, mine_flag):
+        # type: (Flag) -> bool
         current_method_version = 1
 
         last_built_roads_key = _cache_key_placed_roads_for_mine + mine_flag.name
@@ -627,17 +655,17 @@ class ConstructionMind:
                 room = hive.get_room(room_name)
                 path = Room.deserializePath(serialized_obj[room_name])
                 if room_name == not_near_end_of:
-                    path = path.slice(0, -2)
+                    path = robjs.slice_list(path, 0, -2)
                 if room_name == not_near_start_of:
-                    path = path.slice(2)
+                    path = robjs.slice_list(path, 2)
                 for position in path:
                     xy_key = positions.serialize_pos_xy(position)
                     if checked_here.has(xy_key):
                         continue
                     else:
                         checked_here.add(xy_key)
-                    structures = room.look_at(LOOK_STRUCTURES, position.x, position.y)
-                    if not _.some(structures, 'structureType', STRUCTURE_ROAD):
+                    structures = cast(List[Structure], room.look_at(LOOK_STRUCTURES, position.x, position.y))
+                    if not _.some(structures, lambda s: s.structureType == STRUCTURE_ROAD):
                         if site_count >= MAX_CONSTRUCTION_SITES * 0.9:
                             need_more_sites += 1
                         else:
@@ -646,24 +674,25 @@ class ConstructionMind:
 
         honey = self.hive.honey
         if deposit_point.pos.isNearTo(mine_flag):
-            route_to_mine = honey.get_serialized_path_obj(self.room.spawn, mine_flag, {
+            route_to_mine = honey.get_serialized_path_obj(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
             check_route(route_to_mine, None, None)
 
-            all_positions = honey.list_of_room_positions_in_path(self.room.spawn, mine_flag, {
+            all_positions = honey.list_of_room_positions_in_path(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
         else:
-            route_to_mine = honey.get_serialized_path_obj(mine_flag, deposit_point, {
+            route_to_mine = honey.get_serialized_path_obj(mine_flag.pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-            check_route(route_to_mine, (mine_flag.pos or mine_flag).roomName, None)
+            mine_flag_pos = cast(Flag, mine_flag).pos or cast(RoomPosition, mine_flag)
+            check_route(route_to_mine, mine_flag_pos.roomName, None)
 
-            all_positions = honey.list_of_room_positions_in_path(mine_flag, deposit_point, {
+            all_positions = honey.list_of_room_positions_in_path(mine_flag_pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -675,7 +704,7 @@ class ConstructionMind:
                 closest_distance = Infinity
                 for index, pos in enumerate(all_positions):
                     # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
-                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    distance = movement.chebyshev_distance_room_pos(spawn.pos, pos) - index * 0.7
                     if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -686,11 +715,11 @@ class ConstructionMind:
                 else:
                     no_pave_end = None
             else:
-                closest = mine_flag.pos or mine_flag
+                closest = cast(Flag, mine_flag).pos or cast(RoomPosition, mine_flag)
                 no_pave_end = closest.roomName
             if closest.isNearTo(spawn):
                 continue
-            route_to_spawn = honey.get_serialized_path_obj(spawn, closest, {
+            route_to_spawn = honey.get_serialized_path_obj(spawn.pos, closest, {
                 'paved_for': [mine_flag, spawn],
                 'keep_for': min_repath_mine_roads_every * 2,
             })
@@ -701,8 +730,8 @@ class ConstructionMind:
             room = hive.get_room(room_name)
             if room and not room.my:
                 all_planned_sites_set = mining_paths.get_set_of_all_serialized_positions_in(room_name)
-                for site in room.find(FIND_MY_CONSTRUCTION_SITES):
-                    xy = positions.serialize_pos_xy(site)
+                for site in cast(List[ConstructionSite], room.find(FIND_MY_CONSTRUCTION_SITES)):
+                    xy = positions.serialize_pos_xy(site.pos)
                     if site.structureType == STRUCTURE_ROAD and not all_planned_sites_set.has(xy):
                         print("[building] Removing {} at {}.".format(site, site.pos))
                         site.remove()
@@ -725,21 +754,22 @@ class ConstructionMind:
         return True
 
     def _repath_roads_for(self, mine_flag, deposit_point):
+        # type: (Flag, Optional[Structure]) -> None
         hive_honey = self.hive.honey
 
         if deposit_point.pos.isNearTo(mine_flag):
-            mine_path = hive_honey.completely_repath_and_get_raw_path(self.room.spawn, mine_flag, {
+            mine_path = hive_honey.completely_repath_and_get_raw_path(self.room.spawn.pos, mine_flag.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
         else:
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            mine_path = hive_honey.completely_repath_and_get_raw_path(mine_flag, deposit_point, {
+            mine_path = hive_honey.completely_repath_and_get_raw_path(mine_flag.pos, deposit_point.pos, {
                 'paved_for': mine_flag,
                 'keep_for': min_repath_mine_roads_every * 2,
             })
-            honey.clear_cached_path(deposit_point, mine_flag)
+            honey.clear_cached_path(deposit_point.pos, mine_flag.pos)
 
         for spawn in self.room.spawns:
             # TODO: this is used in both this method and the one above, and should be a utility.
@@ -748,7 +778,7 @@ class ConstructionMind:
                 closest_distance = Infinity
                 for index, pos in enumerate(mine_path):
                     # NOTE: 0.7 is used in transport.follow_energy_path and should be changed there if changed here.
-                    distance = movement.chebyshev_distance_room_pos(spawn, pos) - index * 0.7
+                    distance = movement.chebyshev_distance_room_pos(spawn.pos, pos) - index * 0.7
                     if pos.roomName != spawn.pos.roomName or pos.x < 2 or pos.x > 48 or pos.y < 2 or pos.y > 48:
                         distance += 10
                     if distance < closest_distance:
@@ -757,11 +787,11 @@ class ConstructionMind:
             else:
                 closest = mine_flag.pos or mine_flag
             if closest.isNearTo(spawn):
-                mining_paths.register_new_mining_path([mine_flag, spawn], [])
+                mining_paths.register_new_mining_path((mine_flag, spawn), [])
                 continue
             # NOTE: HoneyTrails now knows how to register paths with mining_paths, and will do so implicitly
             # when 'paved_for' is passed in.
-            hive_honey.completely_repath_and_get_raw_path(spawn, closest, {
+            hive_honey.completely_repath_and_get_raw_path(spawn.pos, closest, {
                 'paved_for': [mine_flag, spawn],
                 # NOTE: We really aren't going to be using this path for anything besides paving,
                 #  but it should be small.
@@ -769,6 +799,7 @@ class ConstructionMind:
             })
 
     def place_home_ramparts(self):
+        # type: () -> None
         last_run = self.room.get_cached_property("placed_ramparts")
         if last_run:
             return
@@ -777,8 +808,8 @@ class ConstructionMind:
             self.room.store_cached_property("placed_ramparts", "lower_rcl", 20)
             return
         if _(self.get_construction_targets()).concat(self.get_repair_targets()) \
-                .map(lambda x: Game.getObjectById(x)).sum(
-            lambda c: c and c.structureType == STRUCTURE_RAMPART or 0) >= 3:
+                .map(lambda x: Game.getObjectById(x)) \
+                .sum(lambda c: c and c.structureType == STRUCTURE_RAMPART or 0) >= 3:
             self.room.store_cached_property("placed_ramparts", "existing_sites", 20)
             return
 
@@ -794,7 +825,7 @@ class ConstructionMind:
         ramparts = new_set()
         need_ramparts = new_map()
 
-        for structure in self.room.find(FIND_MY_STRUCTURES):
+        for structure in cast(List[OwnedStructure], self.room.find(FIND_MY_STRUCTURES)):
             pos_key = structure.pos.x * 64 + structure.pos.y
             if structure.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
@@ -802,7 +833,7 @@ class ConstructionMind:
                     and (structure.structureType != STRUCTURE_EXTENSION or len(self.room.mining.active_mines) > 1):
                 need_ramparts.set(pos_key, structure)
 
-        for site in self.room.find(FIND_MY_CONSTRUCTION_SITES):
+        for site in cast(List[ConstructionSite], self.room.find(FIND_MY_CONSTRUCTION_SITES)):
             pos_key = site.pos.x * 64 + site.pos.y
             if site.structureType == STRUCTURE_RAMPART:
                 ramparts.add(pos_key)
@@ -826,12 +857,177 @@ class ConstructionMind:
 
         self.room.store_cached_property("placed_ramparts", 1, random.randint(500, 600))
 
+    def finish_bubbling(self, to_protect):
+        # type: (str) -> None
+        volatile = volatile_cache.volatile()
+
+        site_count = len(Game.constructionSites)
+        sites_placed_now = volatile.get("construction_sites_placed") or 0
+
+        if site_count + sites_placed_now >= MAX_CONSTRUCTION_SITES * 0.9:
+            return
+
+        any_found = False
+
+        for i in range(0, len(to_protect)):
+            xy = robjs.get_str_codepoint(to_protect, i)
+            x = xy & 0x3F
+            y = xy >> 6 & 0x3F
+            if Game.map.getTerrainAt(x, y, self.room.name)[0] != 'w' \
+                    and not _.find(self.room.look_at(LOOK_STRUCTURES, x, y), {'structureType': STRUCTURE_RAMPART}):
+                self.room.room.createConstructionSite(x, y, STRUCTURE_RAMPART)
+                sites_placed_now += 1
+                any_found = True
+                if site_count + sites_placed_now >= MAX_CONSTRUCTION_SITES:
+                    break
+
+        volatile.set("construction_sites_placed", sites_placed_now)
+
+        if any_found:
+            self.refresh_building_targets()
+            self.room.store_cached_property("bubble_wrapped", 3, random.randint(400, 500))
+        else:
+            self.room.store_cached_property("bubble_wrapped", 4, random.randint(40000, 45000))
+
+    def bubble_wrapping(self) -> Optional[str]:
+        return self.room.get_cached_property('to_bubble_wrap')
+
+    def bubble_wrap(self):
+        # type: () -> None
+        last_run = self.room.get_cached_property("bubble_wrapped")
+        if last_run:
+            if _.isString(last_run):
+                self.finish_bubbling(last_run)
+            return
+        if self.room.rcl < 3 or not len(self.room.defense.towers()):
+            self.room.store_cached_property("bubble_wrapped", 1, 100)
+            return
+        if len(flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART)):
+            self.room.store_cached_property("bubble_wrapped", 2, 40000)
+            return
+
+        pre_calculated = self.room.get_cached_property("to_bubble_wrap")
+        if pre_calculated:
+            self.finish_bubbling(pre_calculated)
+            return
+
+        # north, east, south, west
+        groups = [[], [], [], []]  # type: List[List[List[int]]]
+        current_group = [None, None, None, None]  # type: List[List[int]]
+
+        for x in range(0, 50):
+            if Game.map.getTerrainAt(x, 0, self.room.name)[0] == 'w':
+                if current_group[0]:
+                    groups[0].append(current_group[0])
+                    current_group[0] = None
+            else:
+                if current_group[0]:
+                    current_group[0].push(x)
+                else:
+                    current_group[0] = [x]
+            if Game.map.getTerrainAt(x, 49, self.room.name)[0] == 'w':
+                if current_group[2]:
+                    groups[2].append(current_group[2])
+                    current_group[2] = None
+            else:
+                if current_group[2]:
+                    current_group[2].push(x)
+                else:
+                    current_group[2] = [x]
+        for y in range(0, 50):
+            if Game.map.getTerrainAt(0, y, self.room.name)[0] == 'w':
+                if current_group[3]:
+                    groups[3].append(current_group[3])
+                    current_group[3] = None
+            else:
+                if current_group[0]:
+                    current_group[0].push(y)
+                else:
+                    current_group[0] = [y]
+            if Game.map.getTerrainAt(49, y, self.room.name)[0] == 'w':
+                if current_group[1]:
+                    groups[1].append(current_group[1])
+                    current_group[1] = None
+            else:
+                if current_group[1]:
+                    current_group[1].push(y)
+                else:
+                    current_group[1] = [y]
+
+        to_protect = []
+
+        def add(x, y):
+            # type: (int, int) -> None
+            to_protect.append(String.fromCodePoint(x | y << 6))
+
+        for group in groups[0]:
+            first_x = group[0]
+            add(first_x - 2, 1)
+            add(first_x - 2, 2)
+            add(first_x - 1, 2)
+            y = 2
+            for x in group:
+                add(x, y)
+            last_x = group[len(group) - 1]
+            add(last_x + 1, 2)
+            add(last_x + 2, 2)
+            add(last_x + 2, 1)
+        for group in groups[1]:
+            first_y = group[0]
+            add(48, first_y - 2)
+            add(47, first_y - 2)
+            add(47, first_y - 1)
+            x = 47
+            for y in group:
+                add(x, y)
+            last_y = group[len(group) - 1]
+            add(47, last_y + 1)
+            add(47, last_y + 2)
+            add(48, last_y + 2)
+        for group in groups[2]:
+            first_x = group[0]
+            add(first_x - 2, 48)
+            add(first_x - 2, 47)
+            add(first_x - 1, 47)
+            y = 47
+            for x in group:
+                add(x, y)
+            last_x = group[len(group) - 1]
+            add(last_x + 1, 47)
+            add(last_x + 2, 47)
+            add(last_x + 2, 48)
+        for group in groups[3]:
+            first_y = group[0]
+            add(1, first_y - 2)
+            add(2, first_y - 2)
+            add(2, first_y - 1)
+            x = 2
+            for y in group:
+                add(x, y)
+            last_y = group[len(group) - 1]
+            add(2, last_y + 1)
+            add(2, last_y + 2)
+            add(1, last_y + 2)
+
+        to_store = ''.join(to_protect)
+        self.room.store_cached_property("to_bubble_wrap", to_store, random.randint(40000, 45000))
+        self.finish_bubbling(to_store)
+
+    def re_bubble_wrap(self):
+        # type: () -> None
+        self.room.expire_property_next_tick('bubble_wrapped')
+
+    def re_calc_bubble_wrap(self):
+        # type: () -> None
+        self.room.expire_property_next_tick('bubble_wrapped')
+        self.room.expire_property_next_tick('to_bubble_wrap')
+
     def re_place_home_ramparts(self):
+        # type: () -> None
         self.room.expire_property_next_tick('placed_ramparts')
 
     def find_loc_near_away_from(self, near, away_from):
-        if near.pos:
-            near = near.pos
+        # type: (RoomPosition, List[Dict[str, Any]]) -> Optional[RoomPosition]
         path = PathFinder.search(near, away_from, {
             'roomCallback': self.hive.honey._get_callback(near, near, {}),
             'flee': True,
@@ -839,12 +1035,13 @@ class ConstructionMind:
         })
         if path.incomplete:
             print("[{}][building] WARNING: Couldn't find full path near {} and away from {}!"
-                  .format(self.room.name, near, [x.pos for x in away_from]))
+                  .format(self.room.name, near, [x['pos'] for x in away_from]))
             if not len(path.path):
-                return
-        return path.path[len(path) - 1]
+                return None
+        return path.path[len(path.path) - 1]
 
     def place_depot_flag(self):
+        # type: () -> None
         center = self.room.spawn
         if not center:
             center = flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_SPAWN)[0]
@@ -867,19 +1064,20 @@ class ConstructionMind:
             away_from.append({'pos': flag.pos, 'range': 1})
         for flag in flags.find_ms_flags(self.room, flags.MAIN_BUILD, flags.SUB_RAMPART):
             away_from.append({'pos': flag.pos, 'range': 1})
-        target = self.find_loc_near_away_from(center, away_from)
+        target = self.find_loc_near_away_from(center.pos, away_from)
         flags.create_flag(target, DEPOT)
         cache.add(cache_key)
 
 
 def clean_up_all_road_construction_sites():
+    # type: () -> None
     rooms_to_sites = _.groupBy(Game.constructionSites, 'pos.roomName')
     for room_name in Object.keys(rooms_to_sites):
         if _.get(Game.rooms, [room_name, 'controller', 'my'], False):
             continue
         planned_roads = mining_paths.get_set_of_all_serialized_positions_in(room_name)
         for site in rooms_to_sites[room_name]:
-            xy = positions.serialize_pos_xy(site)
+            xy = positions.serialize_pos_xy(site.pos)
             if site.structureType == STRUCTURE_ROAD:
                 if not planned_roads.has(xy):
                     print("[building] Removing {} at {}.".format(site, site.pos))
@@ -892,23 +1090,22 @@ def clean_up_all_road_construction_sites():
 
 
 def clean_up_owned_room_roads(hive):
-    """
-    :type hive: empire.hive.HiveMind
-    """
+    # type: (HiveMind) -> None
     for room in hive.my_rooms:
-        roads = []
+        roads = []  # type: List[Structure]
         non_roads = new_set()
-        for structure in room.find(FIND_STRUCTURES):
+        for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
             if structure.structureType == STRUCTURE_ROAD:
                 roads.push(structure)
             elif structure.structureType != STRUCTURE_RAMPART and structure.structureType != STRUCTURE_CONTAINER:
-                non_roads.add(positions.serialize_pos_xy(structure))
+                non_roads.add(positions.serialize_pos_xy(structure.pos))
         for road in roads:
-            if non_roads.has(positions.serialize_pos_xy(road)):
+            if non_roads.has(positions.serialize_pos_xy(road.pos)):
                 road.destroy()
 
 
 def repave(mine_name):
+    # type: (str) -> Optional[str]
     """
     Command which is useful for use from console.
     :param mine_name: The name of a mine flag

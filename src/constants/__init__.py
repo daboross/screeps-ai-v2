@@ -234,6 +234,15 @@ global_cache_swamp_paths_suffix = 'swl'
 global_cache_roadless_paths_suffix = 'nrd'
 global_cache_warpath_suffix = 'wrp'
 
+roleobj_key_role = "role"
+roleobj_key_base = "base"
+roleobj_key_num_sections = "num_sections"
+roleobj_key_replacing = "replacing"
+roleobj_key_initial_memory = "memory"
+roleobj_key_initial_targets = "targets"
+roleobj_key_request_identifier = "rkey"
+roleobj_key_run_after_spawning = "run_after"
+
 # Note: regex useful for generating the following:
 # in room.py, search for: ([^ \n]+) = '[^']+'\n+
 # replace with: $1 as r$1, \\\n

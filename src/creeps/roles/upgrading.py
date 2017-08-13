@@ -16,6 +16,7 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def split_pos_str(pos_str):
@@ -328,7 +329,7 @@ class Upgrader(RoleBase):
 
     def _calculate_time_to_replace(self):
         if self.home.spawn:
-            path_length = self.hive.honey.find_path_length(self.home.spawn, self.home.room.controller)
+            path_length = self.hive.honey.find_path_length(self.home.spawn.pos, self.home.room.controller.pos)
             # No leeway because we're assuming that we A: won't need to go all the way to the controller and B: the road
             # will be somewhat paved
             return path_length * 2 + _.size(self.creep.body) * CREEP_SPAWN_TIME
@@ -375,7 +376,7 @@ class DedicatedUpgradeFiller(RoleBase):
                 current_target = self.home.get_upgrader_energy_struct()
                 if not current_target or current_target.structureType != STRUCTURE_CONTAINER:
                     old_container = _.find(self.home.look_for_in_area_around(LOOK_STRUCTURES,
-                                                                             self.home.room.controller, 4),
+                                                                             self.home.room.controller.pos, 4),
                                            lambda obj: obj.structure.structureType == STRUCTURE_CONTAINER)
                     if old_container:
                         self.memory.emptying_container = old_container.structure.id

@@ -1,9 +1,13 @@
-# noinspection PyUnboundLocalVariable,PyUnresolvedReferences
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from transcrypt.modules.org.transcrypt.stubs.browser import __pragma__
+
 __pragma__('skip')
 
 from .constants import *
 from .metadata import *
-from .misc_exports import *
+from .classes import *
 from .transcrypt import *
 
 # Generated manually using regexes on the sub files
@@ -350,36 +354,21 @@ __all__ = [
 
     "COLORS_ALL",
 
-    # misc_exports
-    "Creep",
-    "Game",
-    "Memory",
-    "Room",
-    "Flag",
-    "RoomPosition",
-    "PathFinder",
-    "Object",
-    "Math",
+    # classes
+    'Creep', 'Game', 'PathFinder', '_', 'Memory', 'RawMemory', '_Memory', '_MemoryValue', 'Flag', 'Mineral', 'Resource',
+    'RoomObject',
+    'Source', 'Infinity', 'JSON', 'Math', 'Object', 'RegExp', 'module', 'require', 'this', 'typeof', 'undefined',
+    'Room', 'RoomPosition', '_PathPos', 'String', 'Array', 'console',
+    'ConstructionSite', 'OwnedStructure', 'Structure', 'StructureContainer', 'StructureController',
+    'StructureExtension', 'StructureExtractor', 'StructureKeeperLair', 'StructureLab', 'StructureLink',
+    'StructureNuker', 'StructureObserver', 'StructurePortal', 'StructurePowerBank', 'StructurePowerSpawn',
+    'StructureRampart', 'StructureRoad', 'StructureSpawn', 'StructureStorage', 'StructureTerminal', 'StructureTower',
+    'StructureWall',
 
-    "typeof",
-    "require",
-    "module",
-    "JSON",
-    "this",
-    "RegExp",
-    "Array",
-    "Error",
-    "Infinity",
-    "console",
-    "undefined",
-    "Map",
-    "Set",
-    "String",
-    "isFinite",
-    "_",
-
-    # js_exports
+    # misc
     "__pragma__",
+
+    # transcrypt
     "__new__",
     "js_isNaN",
     'js_global',

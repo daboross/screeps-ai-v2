@@ -1,8 +1,10 @@
+from typing import Any, Union
+
 from constants import role_hauler, role_miner, role_recycling
 from creeps.base import RoleBase
 from empire import honey
 from jstools.screeps import *
-from utilities import movement
+from utilities import movement, robjs
 
 __pragma__("noalias", "name")
 __pragma__('noalias', 'undefined')
@@ -12,11 +14,13 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill, paved):
+        # type: (Structure, Structure, bool) -> None
         total_carried_now = self.carry_sum()
         if self.memory.filling:
             target = pickup.pos
@@ -178,10 +182,7 @@ class TransportPickup(RoleBase):
                 self.follow_energy_path(fill, pickup)
                 return
 
-            if energy_only:
-                empty = fill.energyCapacity - fill.energy
-            else:
-                empty = fill.storeCapacity - _.sum(fill.store)
+            empty = robjs.capacity(fill) - robjs.energy(fill)
 
             if min(amount, empty) >= total_carried_now:
                 # self.memory.filling = True
@@ -197,10 +198,9 @@ class TransportPickup(RoleBase):
         return self.hive.honey.find_path_length(origin, target)
 
     def follow_energy_path(self, origin, target, mine=None):
-        if origin.pos:
-            origin = origin.pos
-        if target.pos:
-            target = target.pos
+        # type: (Union[RoomObject, RoomPosition], Union[RoomObject, RoomPosition], Any) -> None
+        origin = robjs.pos(origin)
+        target = robjs.pos(target)
         if self.creep.fatigue > 0:
             return
         if origin.isNearTo(target):
@@ -232,7 +232,7 @@ class TransportPickup(RoleBase):
                 self.basic_move_to(target)
                 return
             if not self.memory.next_ppos or self.memory.off_path_for > 10 or movement.chebyshev_distance_room_pos(
-                    self, self.memory.next_ppos) > CREEP_LIFE_TIME:
+                    self.pos, self.memory.next_ppos) > CREEP_LIFE_TIME:
                 self.memory.off_path_for = 0  # Recalculate next_ppos if we're off path for a long time
                 all_positions = self.hive.honey.list_of_room_positions_in_path(origin, target, opts)
                 closest = None

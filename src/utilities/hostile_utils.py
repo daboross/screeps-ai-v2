@@ -9,28 +9,37 @@ __pragma__('noalias', 'get')
 __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
+__pragma__('noalias', 'values')
 
 
 def is_offensive(creep):
+    # type: (Creep) -> bool
     return not not _.find(creep.body, lambda p: p.type == ATTACK or p.type == RANGED_ATTACK)
 
 
 def not_sk(creep):
+    # type: (Creep) -> bool
     return creep.owner.username != "Source Keeper"
 
 
 def enemy_using_room(room_name):
+    # type: (str) -> bool
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False
-    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
-           or data.owner.state is StoredEnemyRoomState.RESERVED \
-           or data.owner.state is StoredEnemyRoomState.JUST_MINING
+    return (
+        data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL
+        or data.owner.state is StoredEnemyRoomState.RESERVED
+        or data.owner.state is StoredEnemyRoomState.JUST_MINING
+    )
 
 
 def enemy_owns_room(room_name):
+    # type: (str) -> bool
     data = stored_data.get_data(room_name)
     if not data or not data.owner:
         return False
-    return data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL \
-           or data.owner.state is StoredEnemyRoomState.OWNED_DEAD
+    return (
+        data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL
+        or data.owner.state is StoredEnemyRoomState.OWNED_DEAD
+    )
