@@ -92,6 +92,19 @@ class DismantleSquad(BasicOffenseSquad):
         else:
             self.mem[dismemkey_gathered] = True
 
+    def target_exit_positions(self, current_room, next_room):
+        # type: (str, str) -> str
+        saved = self.mem['_texit']
+        enemies_this_room = None
+        if saved and Game.time < saved['e'] and None:
+            pass
+        return ''
+
+    def move_to_exit(self, dismantle, attack, heal, exit_positions):
+        # type: (List[SquadDrone], List[SquadDrone], List[SquadDrone], str) -> List[SquadDrone]
+        robjs.get_str_codepoint(exit_positions, 0)
+        return []
+
     def move_together(self, target):
         # type: (RoomPosition) -> None
         origin = self.find_home()
@@ -142,31 +155,6 @@ class DismantleSquad(BasicOffenseSquad):
                 return
 
         current_room = groups[0][0].pos.roomName
-        if not self.mem[dismemkey_regrouping]:
-            if _.any(self.members, lambda c: c.pos.roomName != current_room):
-                self.log("enabling regrouping - not in same room.")
-                self.mem[dismemkey_regrouping] = True
-            else:
-                grouped = [groups[0][0]]
-                ungrouped = _.clone(self.members)
-                iterations = len(ungrouped) ** 2
-                for _i in range(0, iterations):
-                    index = 0
-                    while index < len(ungrouped):
-                        this_creep = ungrouped[index]
-                        any_matched = False
-                        for creep in grouped:
-                            if this_creep.pos.isNearTo(creep):
-                                any_matched = True
-                                break
-                        if any_matched:
-                            grouped.append(this_creep)
-                            ungrouped.splice(this_creep, 1)
-                        else:
-                            index += 1
-                if len(ungrouped):
-                    self.log("enabling regrouping - in same room, but not together.")
-                    self.mem[dismemkey_regrouping] = True
         if self.mem[dismemkey_regrouping]:
             self.log("regrouping")
             if self.regroup(target, groups, ordered_rooms_in_path):
@@ -175,9 +163,41 @@ class DismantleSquad(BasicOffenseSquad):
                 # TODO: don't require this! we shouldn't be relying on the main path except for the rooms,
                 # and for the first reordering outside of base.
                 del self.mem[dismemkey_ordered]
-        elif _.any(self.members, 'fatigue'):
+        elif _.any(self.members, lambda c: c.pos.roomName != current_room):
+            self.log("enabling regrouping - not in same room.")
+            self.mem[dismemkey_regrouping] = True
+            self.regroup(target, groups, ordered_rooms_in_path)
+            return
+
+        grouped = [groups[0][0]]
+        ungrouped = _.clone(self.members)
+        iterations = len(ungrouped) ** 2
+        for _i in range(0, iterations):
+            index = 0
+            while index < len(ungrouped):
+                this_creep = ungrouped[index]
+                any_matched = False
+                for creep in grouped:
+                    if this_creep.pos.isNearTo(creep):
+                        any_matched = True
+                        break
+                if any_matched:
+                    grouped.append(this_creep)
+                    ungrouped.splice(this_creep, 1)
+                else:
+                    index += 1
+        if len(ungrouped):
+            self.log("enabling regrouping - in same room, but not together.")
+            self.mem[dismemkey_regrouping] = True
+            if not self.regroup(target, groups, ordered_rooms_in_path):
+                self.log("warning: tried to stop regrouping immediately after choosing to regroup.")
+            return
+
+        if _.any(self.members, 'fatigue'):
             self.log('fatigue')
             return
+
+        exit_positions = self.target_exit_positions(current_room, )
 
         return BasicOffenseSquad.move_to_stage_2(self, target)
 
