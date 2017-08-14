@@ -846,7 +846,7 @@ class HoneyTrails:
                 print("[honey] Trying recalculation without preferring roads.")
                 return self._get_raw_path(origin, destination, _.create(opts, {'use_roads': False}))
             if len(result.path) > 15:
-                path_start = path.slice(0, -10)
+                path_start = path[0:-10]
                 midpoint = path_start[len(path_start) - 1]
 
                 print("[honey] OK, trying to build the rest of the path from {} to {}, starting at {}"

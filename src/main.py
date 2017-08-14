@@ -336,7 +336,7 @@ def main():
         rooms = hive.my_rooms
         if Game.gcl.level > 1 and Game.cpu.bucket <= 4000:
             rooms = _.sortBy(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
-            rooms = rooms.slice(0, len(rooms) - 1)
+            rooms = rooms[0:len(rooms) - 1]
         used_start = Game.cpu.getUsed()
         for room in rooms:
             try_thing(run_room, targets, creeps_skipped, room)
