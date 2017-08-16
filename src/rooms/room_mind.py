@@ -24,6 +24,7 @@ from utilities import hostile_utils, movement, naming, rndrs, speech
 from utilities.positions import clamp_room_x_or_y, parse_xy_arguments
 
 if TYPE_CHECKING:
+    from jstools.js_set_map import JSMap
     from empire.hive import HiveMind
     from creeps.base import RoleBase
 
@@ -84,7 +85,7 @@ class RoomMind:
             self.squads = None  # type: Optional[SquadTactics]
             __pragma__('noskip')
 
-        self.defense = RoomDefense(self)
+        self.defense = RoomDefense(self)  # type: RoomDefense
         self.subsidiaries = []
         __pragma__('skip')
         # properties that could exist for any room
@@ -130,11 +131,11 @@ class RoomMind:
         __pragma__('noskip')
 
         # Other properties to calculate for every room
-        self._find_cache = new_map()
+        self._find_cache = new_map()  # type: JSMap[str, Any]
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         if room.controller and room.controller.owner:
-            enemy_structures = _.find(
+            enemy_structures = _.some(
                 self.find(FIND_HOSTILE_STRUCTURES),
                 lambda s: s.structureType == STRUCTURE_SPAWN or s.structureType == STRUCTURE_TOWER
             )
@@ -1831,7 +1832,7 @@ class RoomMind:
             del self.mem[mem_key_spawn_requests]
 
     def _check_role_reqs(self, role_list):
-        # type: (List[List[Union[str, Callable[[], int], bool]]]) -> Optional[Dict[str, Any]]
+        # type: (List[List[Union[str, Callable[..., Optional[Dict[str, Any]]], int, bool]]]) -> Optional[Dict[str, Any]]
         """
         Utility function to check the number of creeps in a role, optionally checking the work or carry mass for that
         role instead.
@@ -2038,7 +2039,7 @@ class RoomMind:
                 else:
                     base = creep_base_ranged_offense
                 return self.get_spawn_for_flag(role_ranged_offense, base, base, flag, 0)
-            return None
+        return None
 
     def _next_claim(self):
         # type: () -> Optional[Dict[str, Any]]
@@ -2123,7 +2124,7 @@ class RoomMind:
     def next_cheap_dismantle_goal(self):
         # type: () -> Optional[Dict[str, Any]]
         if self.conducting_siege() or self.under_siege():
-            return
+            return None
 
         def is_energy_grab_efficient(flag):
             # type: (Flag) -> bool
@@ -2159,6 +2160,8 @@ class RoomMind:
                                                  creep_base_full_move_dismantler)
         if role_obj:
             return role_obj
+
+        return None
 
     def _next_neighbor_support_creep(self):
         # type: () -> Optional[Dict[str, Any]]
@@ -2298,7 +2301,7 @@ class RoomMind:
                 self._get_next_requested_creep,
                 self._next_message_creep,
                 self._next_neighbor_support_creep,
-            ]
+            ]  # type: List[Callable[..., Optional[Dict[str, Any]]]]
         next_role = None
         for func in funcs_to_try:
             next_role = func()

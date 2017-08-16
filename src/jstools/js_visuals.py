@@ -3,7 +3,7 @@ A copy of the Screeps RoomVisual class, allowing direct access without creating 
 
 Copied from https://github.com/screeps/engine/blob/36e76eacb7d8295a2767ad75a5d859153928301b/src/game/rooms.js#L1054.
 """
-from typing import Any, List, Tuple, Union
+from typing import Any, Iterable, List, Tuple, Union
 
 from jstools.screeps import *
 
@@ -109,7 +109,7 @@ def rect(room_name, x, y, w, h, style=undefined):
 
 
 def poly(room_name, points, style=undefined):
-    # type: (str, List[Union[List[int], Tuple[int, int]]], Any) -> None
+    # type: (str, Iterable[Union[List[int], Tuple[int, int]]], Any) -> None
     """
     Draw a polyline.
     :param room_name: The room name

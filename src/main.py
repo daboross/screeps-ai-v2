@@ -1,5 +1,5 @@
 import math
-from typing import Any, Callable, Dict, List, TypeVar, cast
+from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
 
 import constants
 import creeps.roles.squads
@@ -39,7 +39,7 @@ if not js_global.__metadata_active:
 
 walkby_move.apply_move_prototype()
 
-_memory_init = None
+_memory_init = None  # type: Optional[int]
 
 
 def init_memory():
@@ -63,12 +63,12 @@ __pragma__('noskip')
 
 
 def try_thing(thing, *args):
-    # type: (Callable[_A, _R], _A) -> _R
+    # type: (Callable[..., _R], _A) -> _R
     return errorlog.try_exec('main', thing, cast(Any, thing).err_desc, *args)
 
 
 def try_thing2(thing, err_desc, *args):
-    # type: (Callable[_A, _R], Callable[_A, str], _A) -> _R
+    # type: (Callable[..., _R], Callable[..., str], _A) -> _R
     return errorlog.try_exec('main', thing, err_desc, *args)
 
 
@@ -207,7 +207,7 @@ def main():
     records.prep_recording()
     records.start_main_record()
     records.record_memory_amount(_memory_init)
-    _memory_init = None
+    _memory_init = None  # type: Optional[int]
 
     records.start_record()
 

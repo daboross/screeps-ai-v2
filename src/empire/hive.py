@@ -1,4 +1,4 @@
-from typing import List, Optional, TYPE_CHECKING, Union, cast
+from typing import Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from constants import *
 from creep_management import creep_wrappers
@@ -96,7 +96,7 @@ class HiveMind:
     def poll_remote_mining_flags(self):
         # type: () -> None
         flag_list = flags.find_flags_global(REMOTE_MINE)
-        room_to_flags = {}
+        room_to_flags = {}  # type: Dict[str, List[Flag]]
         for flag in flag_list:
             room = self.get_room(flag.pos.roomName)
             if room and room.my:
@@ -158,7 +158,7 @@ class HiveMind:
 
     def poll_all_creeps(self):
         # type: () -> None
-        new_creep_lists = {}
+        new_creep_lists = {}  # type: Dict[str, List[Creep]]
         for name in Object.keys(Game.creeps):
             creep = Game.creeps[name]
             home = creep.memory.home
@@ -199,7 +199,7 @@ class HiveMind:
     def mineral_report(self):
         # type: () -> str
         result = ['Hive Mineral Report:']
-        tally = {}
+        tally = {}  # type: Dict[str, int]
         for room in self.my_rooms:
             if room.minerals and not room.minerals.has_no_terminal_or_storage():
                 result.append(room.minerals.mineral_report())
@@ -271,7 +271,7 @@ class HiveMind:
         # type: () -> None
         if '_ly' not in Memory:
             Memory['_ly'] = {}
-        creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName')
+        creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName') # type: Dict[str, List[Creep]]
         for room_name in Object.keys(creeps_by_room):
             room = self.get_room(room_name)
             if room:

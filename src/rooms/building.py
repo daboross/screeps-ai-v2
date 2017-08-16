@@ -14,6 +14,7 @@ from position_management import flags
 from utilities import movement, positions, robjs
 
 if TYPE_CHECKING:
+    from jstools.js_set_map import JSSet, JSMap
     from rooms.room_mind import RoomMind
     from empire.hive import HiveMind
 
@@ -557,8 +558,8 @@ class ConstructionMind:
             structure_type = flags.flag_sub_to_structure_type[secondary]
             if structure_type == STRUCTURE_ROAD:
                 continue
-            structures = _.filter(cast(List[Structure], self.room.look_at(LOOK_STRUCTURES, flag.pos)),
-                                  lambda s: s.structureType == structure_type)
+            structures = cast(List[Structure], _.filter(self.room.look_at(LOOK_STRUCTURES, flag.pos),
+                                                        lambda s: s.structureType == structure_type))
             if structure_type != STRUCTURE_RAMPART and _.find(self.room.look_at(LOOK_STRUCTURES, flag.pos),
                                                               {"structureType": STRUCTURE_RAMPART}):
                 for struct in structures:
@@ -629,9 +630,9 @@ class ConstructionMind:
             self.room.store_cached_property(last_found_roads_key, latest_version,
                                             random.randint(min_repath_mine_roads_every, max_repath_mine_roads_every))
 
-        checked_positions = {}
-        missing_rooms = []
-        all_modified_rooms = []
+        checked_positions = {}  # type: Dict[str, JSSet[int]]
+        missing_rooms = []  # type: List[str]
+        all_modified_rooms = []  # type: List[str]
         hive = self.hive
         site_count = _.size(Game.constructionSites) + (volatile_cache.volatile().get("construction_sites_placed") or 0)
 
@@ -822,8 +823,8 @@ class ConstructionMind:
         if site_count + prev_sites_placed >= MAX_CONSTRUCTION_SITES * 0.9:
             return
 
-        ramparts = new_set()
-        need_ramparts = new_map()
+        ramparts = new_set()  # type: JSSet[int]
+        need_ramparts = new_map()  # type: JSMap[int, Structure]
 
         for structure in cast(List[OwnedStructure], self.room.find(FIND_MY_STRUCTURES)):
             pos_key = structure.pos.x * 64 + structure.pos.y
