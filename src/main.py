@@ -39,6 +39,15 @@ if not js_global.__metadata_active:
 
 walkby_move.apply_move_prototype()
 
+__pragma__('js', '{}', """
+Object.defineProperty([].__proto__, 'azdef', {
+    enumerable: false,
+    writable: true,
+    configurable: true,
+    value: "uh-oh, this still leaks",
+});
+""")
+
 _memory_init = None  # type: Optional[int]
 
 
