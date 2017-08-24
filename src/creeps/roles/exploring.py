@@ -1,4 +1,4 @@
-from typing import cast
+from typing import List, cast
 
 from constants import INVADER_USERNAME, SCOUT, target_single_flag
 from creeps.base import RoleBase
@@ -41,7 +41,7 @@ class Scout(MilitaryBase):
             # recalculate_path
             if self.memory.rp:
                 self.log("Recalculating path due to circumstances in {}.".format(self.memory.rp))
-                self.recalc_military_path(self.home.spawn.pos, destination, {
+                self.recalc_military_path(self.home.spawn.pos, destination.pos, {
                     "ignore_swamp": True,
                     "use_roads": False,
                 })
@@ -64,7 +64,7 @@ class Scout(MilitaryBase):
                             and not (rrx == 5 and rry == 5):
                         lair_count = 0
                         # should be a source keeper room
-                        for lair in self.room.find(FIND_HOSTILE_STRUCTURES):
+                        for lair in cast(List[Structure], self.room.find(FIND_HOSTILE_STRUCTURES)):
                             if lair.structureType == STRUCTURE_KEEPER_LAIR:
                                 lair_count += 1
                         if lair_count > 0:
