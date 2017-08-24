@@ -210,3 +210,10 @@ def complete_refresh(hive):
                 del Memory.spawns[name]
         if _.isEmpty(Memory.spawns):
             del Memory.spawns
+    if '_owned_rooms_index' in Memory.meta:
+        to_remove = []
+        for room_name in Memory.meta['_owned_rooms_index']:
+            room_data = hive.get_room(room_name)
+            if not room_data or not room_data.my:
+                to_remove.append(room_name)
+        _.pull(Memory.meta['_owned_rooms_index'], to_remove)
