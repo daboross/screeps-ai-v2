@@ -51,7 +51,7 @@ Memory.rooms.W15S15.empty_to = "W25S25"
 for (let name of Object.keys(Memory.rooms)) { if (!(name in Game.rooms) || !Game.rooms[name].controller || !Game.rooms[name].controller.my) { let mem = Memory.rooms[name]; delete mem.market; if (mem.cache && _.isEmpty(mem.cache)) { delete mem.cache; }; if (_.isEmpty(mem)) { delete Memory.rooms[name]; }}}
 
 # "Complete refresh" to clear old memory values and old creep memories which don't have a room associated with them
-py.consistency.complete_refresh()
+py.full_refresh()
 
 # Force 'W15S15''s builders to re-target
 for (let creep of py.get_room("W15S15").creeps) { if (creep.memory.role == "builder") { py.hive().targets().untarget_all(creep) } }
