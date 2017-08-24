@@ -56,6 +56,12 @@ def room_diff(room_1, room_2):
     return x2 - x1, y2 - y1
 
 
+def room_chebyshev_distance(room_1, room_2):
+    # type: (str, str) -> int
+    xdiff, ydiff = room_diff(room_1, room_2)
+    return min(xdiff, ydiff)
+
+
 def is_valid_room_name(room_name):
     # type: (str) -> bool
     matches = room_regex.exec(room_name)

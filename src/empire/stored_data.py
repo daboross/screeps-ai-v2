@@ -3,7 +3,7 @@ Stored data!
 
 Stores data in memory via room name keys, using the metadata module powered by Protocol Buffers to encode data.
 """
-from typing import Dict, List, Optional, Tuple, cast
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data
@@ -11,6 +11,9 @@ from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
+
+if TYPE_CHECKING:
+    from empire.hive import HiveMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -297,6 +300,23 @@ def set_reservation_time(room_name: str, reservation_time: int) -> None:
         data = __new__(StoredRoom())
     data.reservation_end = Game.time + reservation_time
     _set_new_data(room_name, data)
+
+
+def cleanup_old_data(hive: HiveMind) -> None:
+    mem = _mem()
+    for room_name in Object.keys(mem):
+        nearest_room = hive.get_closest_owned_room(room_name)
+        if nearest_room:
+            distance = movement.room_chebyshev_distance(nearest_room.name, room_name)
+            if distance > 9:
+                msg = "[stored_data] Removing data on room {}: closest room, {}, is {} rooms away.".format(
+                    room_name,
+                    nearest_room,
+                    distance,
+                )
+                console.log(msg)
+                Game.notify(msg)
+                del mem[room_name]
 
 
 def migrate_old_data() -> None:

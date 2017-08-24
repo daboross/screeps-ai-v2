@@ -3,7 +3,9 @@ from typing import TYPE_CHECKING, cast
 from cache import global_cache
 from constants import *
 from creep_management import spawning
+from empire import stored_data
 from jstools.screeps import *
+from position_management import locations
 
 if TYPE_CHECKING:
     from rooms.room_mind import RoomMind
@@ -85,6 +87,11 @@ def clear_memory(room):
         room.mem[rmem_key_metadata] = {}
     room.mem[rmem_key_metadata].clear_next = dead_next + 1
     room.mem[rmem_key_metadata].reset_spawn_on = closest_replacement_time + 1
+    squad_mem = room.mem[rmem_key_squad_memory]
+    if squad_mem:
+        for key in Object.keys(squad_mem):
+            if not locations.get(key):
+                del squad_mem[key]
 
 
 def get_next_replacement_time(room):
@@ -114,6 +121,12 @@ def clear_cache():
             del mem[rmem_key_room_reserved_up_until_tick]
         if _.isEmpty(mem):
             del Memory.rooms[name]
+        if mem[rmem_key_metadata] and (not _.get(Game.rooms, [name, 'controller', 'my'])):
+            if mem[rmem_key_metadata].clear_next < Game.time - 600 * 1000:
+                # we've been dead for a long while, and haven't been cleaned up..
+                Game.notify("[consistency] Cleaning up memory for dead room {}".format(name))
+                console.log("[consistency] Cleaning up memory for dead room {}".format(name))
+                del Memory.rooms[name]
     for name, mem in _.pairs(Memory.flags):
         if _.isEmpty(mem):
             del Memory.flags[name]
@@ -217,3 +230,4 @@ def complete_refresh(hive):
             if not room_data or not room_data.my:
                 to_remove.append(room_name)
         _.pull(Memory.meta['_owned_rooms_index'], to_remove)
+    stored_data.cleanup_old_data(hive)
