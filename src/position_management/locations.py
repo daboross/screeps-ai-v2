@@ -54,14 +54,14 @@ __pragma__('noskip')
 # noinspection PyPep8Naming
 def DeserializedPos(string, name):
     # type: (str, str) -> Location
-    xy_str, room, expiration = string.split('|')
+    xy_str, room, expiration_str = string.split('|')
     xy = int(xy_str)
     this.x = xy & 0x3F
     this.y = xy >> 6 & 0x3F
     this.roomName = room
     this.name = name
-    if expiration != undefined:
-        _mem_expirations[name] = Game.time + expiration
+    if expiration_str != undefined:
+        _mem_expirations[name] = Game.time + int(expiration_str)
     return cast(Location, undefined)
 
 
