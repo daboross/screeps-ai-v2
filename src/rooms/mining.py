@@ -170,7 +170,7 @@ class MiningMind:
         :param flag: the flag
         :return: road health
         """
-        key = "{}-health".format(flag)
+        key = "{}-health".format(flag.name)
         road_health = self.room.get_cached_property(key)
         if road_health is not None:
             return road_health
