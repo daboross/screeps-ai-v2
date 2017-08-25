@@ -317,6 +317,14 @@ class RemoteReserve(TransportPickup):
             self.memory.claiming = best
         return best
 
+    def check_move_parts(self):
+        if not self.creep.hasActiveBodyparts(MOVE) \
+                and not len(flags.find_flags(self.room.name, RANGED_DEFENSE)) \
+                and not _.some(self.room.find(FIND_CREEPS), lambda creep: creep.hasActiveBodyparts(HEAL)):
+            self.creep.suicide()
+            self.home.check_all_creeps_next_tick()
+            return False
+
     def run(self):
         claim_room = self.find_claim_room()
         if not claim_room:
@@ -329,6 +337,7 @@ class RemoteReserve(TransportPickup):
             else:
                 target = movement.find_an_open_space(claim_room)
             self.follow_energy_path(self.home.spawn, target)
+            self.check_move_parts()
             return
 
         controller = self.room.room.controller
@@ -347,6 +356,7 @@ class RemoteReserve(TransportPickup):
 
         if not self.pos.isNearTo(controller):
             self.move_to(controller)
+            self.check_move_parts()
             return False
 
         if controller.reservation and controller.reservation.username != self.creep.owner.username:
