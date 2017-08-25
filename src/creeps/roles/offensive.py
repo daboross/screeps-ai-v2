@@ -355,7 +355,7 @@ class EnergyGrab(EnergyHauler):
 class PowerAttack(MilitaryBase):
     def run(self):
         if not self.memory.healing and self.creep.hits < \
-                max(ATTACK_POWER * self.creep.getActiveBodyparts(ATTACK), self.creep.hitsMax / 2):
+                max(ATTACK_POWER * self.creep.getActiveBodyparts(ATTACK), int(self.creep.hitsMax / 2)):
             self.memory.healing = True
             self.targets.untarget_all(self)
         if self.memory.healing and self.creep.hits >= self.creep.hitsMax:

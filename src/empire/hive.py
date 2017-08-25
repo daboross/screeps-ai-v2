@@ -278,7 +278,7 @@ class HiveMind:
                 room.sing(creeps_by_room[room_name])
             else:
                 print("[hive] WARNING: No room found with name {}, which {} creeps were supposedly in!"
-                      .format(room_name, len(creeps_by_room[room])))
+                      .format(room_name, len(creeps_by_room[room_name])))
         if Game.time % 30 == 0:
             for name in Object.keys(Memory['_ly']):
                 if name not in Game.rooms:

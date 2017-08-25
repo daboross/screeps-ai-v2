@@ -1,5 +1,5 @@
 import math
-from typing import cast
+from typing import Dict, List, Optional, Union, cast
 
 from constants import RANGED_DEFENSE, UPGRADER_SPOT, role_recycling, role_support_builder, role_support_hauler, \
     role_support_miner, target_support_builder_wall, target_support_hauler_fill, target_support_hauler_mine, \
@@ -57,9 +57,10 @@ class SupportMiner(TransportPickup):
                 if distance_away <= 3:
                     total_mass = self.home.mining.get_ideal_miner_workmass_for(source_flag)
                     if self.creep.getActiveBodyparts(WORK) >= total_mass:
-                        other_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
-                                             lambda c: c.creep.my and c.creep.memory.role == role_support_miner
-                                                       and c.creep.ticksToLive < self.creep.ticksToLive)
+                        other_miner = cast(Dict[str, Creep],
+                                           _.find(self.room.look_for_in_area_around(LOOK_CREEPS, source_flag.pos, 1),
+                                                  lambda c: c.creep.my and c.creep.memory.role == role_support_miner
+                                                            and c.creep.ticksToLive < self.creep.ticksToLive))
                         if other_miner:
                             other_miner[LOOK_CREEPS].suicide()
                             del self.memory._move
@@ -68,7 +69,7 @@ class SupportMiner(TransportPickup):
                 self.follow_energy_path(self.home.spawn, sitting_target)
             return False
         elif distance_away > 1:
-            creep = _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my)
+            creep = cast(Optional[Creep], _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my))
             if creep and creep.memory.role == role_support_miner and creep.ticksToLive > 100:
                 self.memory.container_pos = None
                 sitting_target = source_flag.pos
@@ -97,7 +98,7 @@ class SupportMiner(TransportPickup):
                 else:
                     self.basic_move_to(pos)
 
-        sources_list = source_flag.pos.lookFor(LOOK_SOURCES)
+        sources_list = cast(List[Source], source_flag.pos.lookFor(LOOK_SOURCES))
         if not len(sources_list):
             self.log("Remote mining source flag {} has no sources under it!", source_flag.name)
             return False
@@ -122,15 +123,15 @@ class SupportMiner(TransportPickup):
                 if self.memory.link is None:
                     return False
                 else:
-                    link = Game.getObjectById(self.memory.link)
+                    link = cast(StructureLink, Game.getObjectById(self.memory.link))
                     if link is None or not self.pos.isNearTo(link):
                         del self.memory.link
                         return False
             else:
-                all_possible_links = _.filter(
+                all_possible_links = cast(List[Union[StructureStorage, StructureLink]], _.filter(
                     self.room.find(FIND_MY_STRUCTURES),
                     lambda s: (s.structureType == STRUCTURE_LINK or s.structureType == STRUCTURE_STORAGE
-                               ) and abs(s.pos.x - source_flag.pos.x) <= 2 and abs(s.pos.y - source_flag.pos.y) <= 2)
+                               ) and abs(s.pos.x - source_flag.pos.x) <= 2 and abs(s.pos.y - source_flag.pos.y) <= 2))
                 best_priority = 0  # 1-3
                 best_spot = None
                 link = None
@@ -163,9 +164,9 @@ class SupportMiner(TransportPickup):
                 else:
                     self.memory.link = None
                 return False
-            if self.creep.carry.energy + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
+            if self.creep.carry[RESOURCE_ENERGY] + self.creep.getActiveBodyparts(WORK) > self.creep.carryCapacity:
                 if link.structureType == STRUCTURE_LINK:
-                    self.home.links.register_target_deposit(link, self, self.creep.carry.energy, 1)
+                    self.home.links.register_target_deposit(link, self, self.creep.carry[RESOURCE_ENERGY], 1)
                 self.creep.transfer(link, RESOURCE_ENERGY)
 
         return False
@@ -290,18 +291,19 @@ class SupportBuilder(TransportPickup):
                 if distance_away <= 3:
                     total_mass = self.home.mining.get_ideal_miner_workmass_for(target_flag)
                     if self.creep.getActiveBodyparts(WORK) >= total_mass:
-                        other_miner = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, target_flag.pos, 1),
-                                             lambda c: c.creep.my and c.creep.memory.role == role_support_builder
-                                                       and c.creep.ticksToLive < self.creep.ticksToLive)
+                        other_miner = cast(Optional[Dict[str, Creep]],
+                                           _.find(self.room.look_for_in_area_around(LOOK_CREEPS, target_flag.pos, 1),
+                                                  lambda c: c.creep.my and c.creep.memory.role == role_support_builder
+                                                            and c.creep.ticksToLive < self.creep.ticksToLive))
                         if other_miner:
-                            other_miner.creep.suicide()
+                            other_miner[LOOK_CREEPS].suicide()
                             del self.memory._move
                 self.move_to(sitting_target)
             else:
                 self.follow_energy_path(self.home.spawn, sitting_target)
             return False
         elif distance_away > 1:
-            creep = _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my)
+            creep = cast(Optional[Creep], _.find(self.room.look_at(LOOK_CREEPS, sitting_target), lambda c: c.my))
             if creep and creep.memory.role == role_support_builder and creep.ticksToLive > 100:
                 self.memory.container_pos = None
                 sitting_target = target_flag.pos
@@ -330,11 +332,12 @@ class SupportBuilder(TransportPickup):
                 else:
                     self.basic_move_to(pos)
 
-        wall = _.find(target_flag.pos.lookFor(LOOK_STRUCTURES), lambda s: s.structureType != STRUCTURE_ROAD)
+        wall = cast(Structure, _.find(target_flag.pos.lookFor(LOOK_STRUCTURES),
+                                      lambda s: s.structureType != STRUCTURE_ROAD))
         if wall:
             result = self.creep.repair(wall)
         else:
-            site = _.find(target_flag.pos.lookFor(LOOK_CONSTRUCTION_SITES))
+            site = cast(ConstructionSite, _.find(target_flag.pos.lookFor(LOOK_CONSTRUCTION_SITES)))
             if not site:
                 self.log("Remote mining source flag {} has no wall under it!", target_flag.name)
                 self.recalc(target_flag)

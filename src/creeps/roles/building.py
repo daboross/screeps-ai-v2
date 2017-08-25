@@ -68,7 +68,7 @@ class Builder(upgrading.Upgrader):
                 return
 
         if 'la' not in self.memory and not self.any_building_targets():
-            destruct = self.targets.get_new_target(self, target_destruction_site)
+            destruct = cast(Optional[Structure], self.targets.get_new_target(self, target_destruction_site))
             if destruct:
                 if self.memory.filling:
                     return self.execute_destruction_target(destruct)
@@ -86,7 +86,7 @@ class Builder(upgrading.Upgrader):
 
         if self.memory.filling:
             if self.creep.getActiveBodyparts(WORK) >= 4:
-                destruct = self.targets.get_new_target(self, target_destruction_site)
+                destruct = cast(Optional[Structure], self.targets.get_new_target(self, target_destruction_site))
             else:
                 destruct = None
             if destruct:
@@ -302,7 +302,7 @@ class Builder(upgrading.Upgrader):
                 self.home.building.refresh_repair_targets()
             self.targets.untarget(self, ttype)
             if self.home.role_count(role_builder) > 10:
-                nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
+                nearby = cast(List[Dict[str, Creep]], self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1))
                 self.refill_nearby(nearby)
             return False
         if not self.pos.inRangeTo(target, 2):
@@ -411,9 +411,10 @@ class Builder(upgrading.Upgrader):
             target_empty = refill_target.carryCapacity - refill_target.carry[RESOURCE_ENERGY]
             self_empty = self.creep.carryCapacity - self.creep.carry[RESOURCE_ENERGY]
             if target_empty > self_empty:
-                amount = math.floor(min((target_empty - self_empty), self.creep.carry[RESOURCE_ENERGY] * 3 / 4) * 2 / 3)
+                amount = math.floor(
+                    min((target_empty - self_empty), int(self.creep.carry[RESOURCE_ENERGY] * 3 / 4)) * 2 / 3)
                 if amount > 0:
-                    result = self.creep.transfer(refill_target, RESOURCE_ENERGY, amount)
+                    result = self.creep.transfer(refill_target, RESOURCE_ENERGY, int(amount))
                     if result == OK:
                         refill_target.memory.filling = False
                     else:

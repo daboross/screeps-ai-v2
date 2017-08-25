@@ -1,3 +1,5 @@
+from typing import Dict, cast
+
 from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_miner, role_recycling, \
     target_rampart_defense
 from creeps.base import RoleBase
@@ -73,7 +75,7 @@ class RoleDefender(MilitaryBase):
                                       _.create(RoomPosition.prototype, enemy_checkpoint), {'range': 1})
             return False
 
-        target = Game.getObjectById(target_id)
+        target = cast(Creep, Game.getObjectById(target_id))
 
         if target is None or (self.room.hostile and target.owner.username != INVADER_USERNAME):
             del self.memory.attack_target
@@ -130,11 +132,12 @@ class WallDefender(RoleBase):
         nearby_enemies = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
 
         if len(nearby_enemies):
-            biggest_threat = _.max(nearby_enemies, lambda x: self.home.defense.danger_level(x.creep))
-            if self.home.defense.danger_level(biggest_threat.creep) > 0:
-                result = self.creep.attack(biggest_threat.creep)
+            biggest_threat = cast(Dict[str, Creep],
+                                  _.max(nearby_enemies, lambda x: self.home.defense.danger_level(x.creep)))
+            if self.home.defense.danger_level(biggest_threat[LOOK_CREEPS]) > 0:
+                result = self.creep.attack(biggest_threat[LOOK_CREEPS])
                 if result != OK:
-                    self.log("Unknown result from creep.attack({}): {}".format(biggest_threat.creep, result))
+                    self.log("Unknown result from creep.attack({}): {}".format(biggest_threat[LOOK_CREEPS], result))
         else:
             if self.pos.isEqualTo(target) and len(self.home.defense.dangerous_hostiles()):
                 if _.some(self.home.defense.get_current_defender_spots()[0],

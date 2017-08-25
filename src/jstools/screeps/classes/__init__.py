@@ -1,10 +1,13 @@
 from .creep import Creep
 from .game import Game, PathFinder
+# noinspection PyProtectedMember
 from .lodash import _
+# noinspection PyProtectedMember
 from .memory import Memory, RawMemory, _Memory
 from .misc_obj import Flag, Mineral, Resource, RoomObject, Source
 from .other_js import Array, Infinity, JSON, Math, Object, RegExp, String, console, module, require, this, typeof, \
     undefined
+# noinspection PyProtectedMember
 from .room import Room, RoomPosition, _PathPos
 from .structures import ConstructionSite, OwnedStructure, Structure, StructureContainer, StructureController, \
     StructureExtension, StructureExtractor, StructureKeeperLair, StructureLab, StructureLink, StructureNuker, \

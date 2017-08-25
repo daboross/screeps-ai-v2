@@ -197,7 +197,9 @@ class DismantleSquad(BasicOffenseSquad):
             self.log('fatigue')
             return
 
-        exit_positions = self.target_exit_positions(current_room, )
+        next_room = None  # type: Optional[str] # TODO: this
+
+        exit_positions = self.target_exit_positions(current_room, next_room)
 
         return BasicOffenseSquad.move_to_stage_2(self, target)
 

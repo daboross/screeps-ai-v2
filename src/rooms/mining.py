@@ -593,7 +593,8 @@ class MiningMind:
         mines = self.active_mines
         if len(mines) <= 0:
             return None
-        if self.room.room.storage and self.room.room.storage.store.energy > self.room.room.storage.storeCapacity:
+        if self.room.room.storage and self.room.room.storage.store[RESOURCE_ENERGY] \
+                > self.room.room.storage.storeCapacity:
             return None
         known_nothing_needed = volatile_cache.setmem("rolechecked_mines")
         checked_count = 0

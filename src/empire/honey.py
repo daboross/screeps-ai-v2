@@ -37,7 +37,7 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
     last_room = None
     current_path = None
     last_x, last_y = origin.x, origin.y
-    reroute_end_dx, reroute_end_dy = None, None
+    last_pos_reroute = False
     for pos in input_path:
         if last_room != pos.roomName:
             if pos.roomName in result_obj:
@@ -96,9 +96,9 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
                 result_obj[pos.roomName] = current_path
                 last_room = pos.roomName
                 list_of_rooms.push(pos.roomName)
-        if reroute_end_dx is not None:
+        if last_pos_reroute:
             # Skip the first position past the reroute end.
-            reroute_end_dx, reroute_end_dy = None, None
+            last_pos_reroute = False
             last_x = pos.x
             last_y = pos.y
             continue
@@ -114,8 +114,7 @@ def pathfinder_path_to_room_to_path_obj(origin, input_path):
             elif dy == 49:
                 dy = -1
             if pos.end_of_reroute:
-                reroute_end_dx = dx
-                reroute_end_dy = dy
+                last_pos_reroute = True
         if dx < -1 or dx > 1:
             print("[honey][pathfinder_to_regular_path] dx found from {} to {}: {}".format(
                 last_x, pos.x, dx
@@ -505,7 +504,7 @@ class HoneyTrails:
         swamp_cost = opts['swamp_cost'] or 5
         min_cost = opts['min_cost'] or 1
 
-        matrix = create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, opts.debug_output)
+        matrix = create_custom_cost_matrix(room_name, plain_cost, swamp_cost, min_cost, opts['debug_output'])
 
         if not room and not room_data:
             mark_exit_tiles(matrix)
@@ -660,7 +659,7 @@ class HoneyTrails:
                             or structure_type == STRUCTURE_ROAD:
                         continue
                     set_matrix(struct.pos.x, struct.pos.y, StoredObstacleType.OTHER_IMPASSABLE, True, structure_type)
-            for source in room.find(FIND_SOURCES):
+            for source in cast(List[Source], room.find(FIND_SOURCES)):
                 if any_lairs:
                     set_matrix(source.pos.x, source.pos.y, StoredObstacleType.SOURCE_KEEPER_SOURCE, False, None)
                 elif room.my and room.mining.is_mine_linked(source):
@@ -709,7 +708,7 @@ class HoneyTrails:
                 swamp_cost,
                 min_cost,
             )
-        if opts.debug_visual:
+        if opts['debug_visual']:
             print('visual debug\n\n' + matrix.visual())
         return matrix.cost_matrix
 

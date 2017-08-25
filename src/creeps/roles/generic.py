@@ -106,7 +106,6 @@ class ReplacingExpendedCreep(RoleBase):
         del self.memory.calculated_replacement_time
         del self.memory.replacement
         del self.memory._path
-        del self.memory.last_checkpoint
 
         # TODO: Merge this code stolen from consistency back into it somehow?
         role = self.memory.role

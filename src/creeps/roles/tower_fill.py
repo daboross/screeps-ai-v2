@@ -21,11 +21,11 @@ class TowerFill(spawn_fill.SpawnFill):
             self.memory.last_role = role_tower_fill
             return False
         if self.memory.filling:
-            if self.creep.carry.energy >= self.creep.carryCapacity:
+            if self.creep.carry[RESOURCE_ENERGY] >= self.creep.carryCapacity:
                 self.memory.filling = False
                 self.targets.untarget_all(self)
         else:
-            if self.creep.carry.energy <= 0:
+            if self.creep.carry[RESOURCE_ENERGY] <= 0:
                 self.memory.filling = True
                 del self.memory.running
                 self.targets.untarget_all(self)
@@ -37,6 +37,7 @@ class TowerFill(spawn_fill.SpawnFill):
                 target = self.targets.get_new_target(self, target_tower_fill)
             else:
                 target = self.targets.get_existing_target(self, target_tower_fill)
+            assert isinstance(target, StructureTower)
             if target:
                 if not self.home.role_count(role_spawn_fill) and target.energy >= target.energyCapacity / 2:
                     return spawn_fill.SpawnFill.run(self)
@@ -61,11 +62,11 @@ class TowerFill(spawn_fill.SpawnFill):
 class TowerFillOnce(RoleBase):
     def run(self):
         if self.memory.filling:
-            if self.creep.carry.energy >= self.creep.carryCapacity:
+            if self.creep.carry[RESOURCE_ENERGY] >= self.creep.carryCapacity:
                 self.memory.filling = False
                 self.targets.untarget_all(self)
         else:
-            if self.creep.carry.energy <= 0:
+            if self.creep.carry[RESOURCE_ENERGY] <= 0:
                 self.memory.filling = True
                 del self.memory.running
                 self.targets.untarget_all(self)
@@ -74,6 +75,7 @@ class TowerFillOnce(RoleBase):
             return self.harvest_energy()
         else:
             target = self.targets.get_new_target(self, target_tower_fill)
+            assert isinstance(target, StructureTower)
             if target:
                 if not self.pos.isNearTo(target):
                     self.move_to(target)

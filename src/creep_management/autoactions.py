@@ -286,8 +286,6 @@ def run_away_check(creep, hostile_path_targets):
     path = get_cached_away_path(creep, hostile_path_targets)
 
     if len(path):
-        del creep.last_checkpoint
-        del creep.last_target
         del creep.memory.was_on_the_path
         result = creep.moveByPath(path)
         if result == ERR_NO_PATH or result == ERR_NOT_FOUND:

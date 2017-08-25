@@ -2,8 +2,9 @@ from typing import Any, Callable, Dict, List, Optional, Union
 
 from .creep import Creep
 from .misc_obj import Flag, RoomObject
+# noinspection PyProtectedMember
 from .room import Room, RoomPosition, _Owner
-from .structures import ConstructionSite, Structure, StructureSpawn
+from .structures import ConstructionSite, OwnedStructure, Structure, StructureSpawn
 
 
 # noinspection PyPep8Naming
@@ -209,7 +210,7 @@ class Game:
     resources = {}  # type: Dict[str, int]
     rooms = {}  # type: Dict[str, Room]
     spawns = {}  # type: Dict[str, StructureSpawn]
-    structures = {}  # type: Dict[str, Structure]
+    structures = {}  # type: Dict[str, OwnedStructure]
     time = 0  # type: int
 
     @classmethod

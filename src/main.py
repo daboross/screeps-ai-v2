@@ -54,6 +54,7 @@ _memory_init = None  # type: Optional[int]
 def init_memory():
     # type: () -> None
     start = Game.cpu.getUsed()
+    # noinspection PyUnusedLocal
     x = Memory
     end = Game.cpu.getUsed()
     global _memory_init

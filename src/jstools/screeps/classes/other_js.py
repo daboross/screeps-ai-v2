@@ -116,6 +116,9 @@ class RegExp(str):
                 elif char == 'm':
                     self.multiline = True
 
+    def __new__(cls, regex: str, args: Optional[str] = None) -> 'RegExp':
+        return RegExp(regex, args)
+
     def exec(self, string: str) -> Optional[List[str]]:
         pass
 

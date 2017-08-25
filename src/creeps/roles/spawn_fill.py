@@ -1,3 +1,5 @@
+from typing import Union, cast
+
 from cache import volatile_cache
 from constants import recycle_time, role_builder, role_recycling, role_spawn_fill, role_spawn_fill_backup, \
     role_tower_fill, role_upgrader, target_spawn_deposit
@@ -62,9 +64,11 @@ class SpawnFill(building.Builder, Refill):
                 else:
                     self.memory.running = "refill"
                     return self.refill_creeps()
-            target = self.targets.get_new_target(self, target_spawn_deposit)
+            target = cast(Union[StructureExtension, Flag, None],
+                          self.targets.get_new_target(self, target_spawn_deposit))
             if target:
-                if target.color:  # it's a spawn fill wait flag
+                if cast(Flag, target).color:  # it's a spawn fill wait flag
+                    assert isinstance(target, Flag)
                     self.memory.running = "spawn_wait"
                     rwc_cache = volatile_cache.mem("sfrwc")
                     if not rwc_cache.has(self.pos.roomName):
@@ -75,7 +79,7 @@ class SpawnFill(building.Builder, Refill):
                     if rwc_cache.get(self.pos.roomName):
                         self.targets.untarget(self, target_spawn_deposit)
                         return True
-                    if self.creep.carry.energy < self.creep.carryCapacity:
+                    if self.creep.carry[RESOURCE_ENERGY] < self.creep.carryCapacity:
                         self.memory.filling = True
                         return True
                     if not self.home.full_storage_use:
@@ -85,6 +89,7 @@ class SpawnFill(building.Builder, Refill):
                         self.move_to(target)
                     return False
                 else:
+                    assert isinstance(target, StructureExtension)
                     if self.memory.running == "spawn_wait":
                         del self.memory.running
                     if target.energy >= target.energyCapacity:
@@ -99,9 +104,9 @@ class SpawnFill(building.Builder, Refill):
                         result = self.creep.transfer(target, RESOURCE_ENERGY)
 
                         if result == OK:
-                            if self.creep.carry.energy > target.energyCapacity - target.energy:
+                            if self.creep.carry[RESOURCE_ENERGY] > target.energyCapacity - target.energy:
                                 volatile_cache.mem("extensions_filled").set(target.id, True)
-                                if self.creep.carry.energy + target.energy - target.energyCapacity > 0:
+                                if self.creep.carry[RESOURCE_ENERGY] + target.energy - target.energyCapacity > 0:
                                     self.targets.untarget(self, target_spawn_deposit)
                                     new_target = self.targets.get_new_target(self, target_spawn_deposit)
                                     if new_target and not self.pos.isNearTo(new_target):
@@ -133,7 +138,7 @@ class SpawnFill(building.Builder, Refill):
             elif not self.home.full_storage_use or self.home.room.storage.storeCapacity <= 0:
                 self.memory.running = "refill"
                 return self.refill_creeps()
-            elif self.creep.carry.energy < self.creep.carryCapacity:
+            elif self.creep.carry[RESOURCE_ENERGY] < self.creep.carryCapacity:
                 self.memory.filling = True
                 return self.harvest_energy()
         return False

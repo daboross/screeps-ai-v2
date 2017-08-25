@@ -20,7 +20,7 @@ __pragma__('noalias', 'values')
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill, paved):
-        # type: (Flag, Structure, bool) -> None
+        # type: (RoomObject, Structure, bool) -> None
         total_carried_now = self.carry_sum()
         if self.memory.filling:
             target = pickup.pos

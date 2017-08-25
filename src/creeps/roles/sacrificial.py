@@ -1,3 +1,5 @@
+from typing import Optional, cast
+
 from constants import recycle_time, role_recycling, role_sacrificial_cleanup
 from constants.memkeys.room import mem_key_sell_all_but_empty_resources_to
 from creeps.behaviors.military import MilitaryBase
@@ -67,8 +69,9 @@ class SacrificialCleanup(Refill):
         if self.memory.filling:
             target = None
             if self.memory.target:
-                target = self.room.look_at(LOOK_RESOURCES,
-                                           positions.deserialize_xy_to_pos(self.memory.target, self.room.name))[0]
+                target = cast(Optional[Resource], self.room.look_at(LOOK_RESOURCES,
+                                                                    positions.deserialize_xy_to_pos(self.memory.target,
+                                                                                                    self.room.name))[0])
 
             if not target:
                 resources = self.room.find(FIND_DROPPED_RESOURCES)

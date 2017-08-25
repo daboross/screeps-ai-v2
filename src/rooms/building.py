@@ -286,7 +286,7 @@ class ConstructionMind:
             struct = Game.getObjectById(struct_id)  # type: Structure
             if struct and struct.hits:
                 if struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART:
-                    repair += max(0, self.room.min_sane_wall_hits / 2 - struct.hits)
+                    repair += max(0, int(self.room.min_sane_wall_hits / 2) - struct.hits)
                 else:
                     repair += struct.hitsMax - struct.hits
 
@@ -368,7 +368,11 @@ class ConstructionMind:
         volatile = volatile_cache.volatile()
         total_count = len(Game.constructionSites) + (volatile.get("construction_sites_placed") or 0)
         new_sites = []
-        if _.sum(self.room.find(FIND_CONSTRUCTION_SITES), not_road) < 15 \
+
+        def site_not_read(site: ConstructionSite) -> bool:
+            return site.structureType != STRUCTURE_ROAD
+
+        if _.sum(self.room.find(FIND_CONSTRUCTION_SITES), site_not_read) < 15 \
                 and total_count < MAX_CONSTRUCTION_SITES:
             currently_existing = _(self.room.find(FIND_STRUCTURES)) \
                 .concat(self.room.find(FIND_MY_CONSTRUCTION_SITES)) \

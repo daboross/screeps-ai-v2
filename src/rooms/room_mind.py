@@ -131,7 +131,7 @@ class RoomMind:
         __pragma__('noskip')
 
         # Other properties to calculate for every room
-        self._find_cache = new_map()  # type: JSMap[str, Any]
+        self._find_cache = new_map()  # type: JSMap[int, List[RoomObject]]
         # source keeper rooms are hostile
         self.hostile = not room.controller or (room.controller.owner and not room.controller.my)
         if room.controller and room.controller.owner:

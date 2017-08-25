@@ -1,3 +1,5 @@
+from typing import List, cast
+
 from constants import recycle_time, role_cleanup, role_link_manager, role_recycling, target_closest_energy_site
 from creeps.base import RoleBase
 from creeps.roles.spawn_fill import SpawnFill
@@ -35,11 +37,11 @@ class LinkManager(RoleBase):
                             and (link.pos.x != x or link.pos.y != y):
                         if not movement.is_block_empty(self.home, x, y):
                             continue
-                        creeps = self.home.look_at(LOOK_CREEPS, x, y)
+                        creeps = cast(List[Creep], self.home.look_at(LOOK_CREEPS, x, y))
                         if len(creeps) != 0:
                             creep = creeps[0]
                             if creep.memory.role == role_link_manager:
-                                if self.creep.ticksTolive > creep.ticksToLive:
+                                if self.creep.ticksToLive > creep.ticksToLive:
                                     creep.suicide()
                                 else:
                                     self.creep.suicide()
@@ -68,39 +70,40 @@ class LinkManager(RoleBase):
         if self.ensure_no_minerals():
             return False
 
-        if self.creep.carry.energy != self.creep.carryCapacity / 2:
+        half_capacity = int(self.creep.carryCapacity / 2)
+        if self.creep.carry[RESOURCE_ENERGY] != half_capacity:
             # this is not the norm.
-            if self.creep.carry.energy > self.creep.carryCapacity / 2:
+            if self.creep.carry[RESOURCE_ENERGY] > half_capacity:
                 target = storage
-                result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
-                                             - self.creep.carryCapacity / 2)
+                result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry[RESOURCE_ENERGY]
+                                             - half_capacity)
                 if result == ERR_FULL:
                     target = self.home.links.main_link
-                    result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
-                                                 - self.creep.carryCapacity / 2)
+                    result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry[RESOURCE_ENERGY]
+                                                 - half_capacity)
                     if result == ERR_FULL:
                         secondary = self.home.links.secondary_link
                         if secondary:
                             target = secondary
-                            result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry.energy
-                                                         - self.creep.carryCapacity / 2)
+                            result = self.creep.transfer(target, RESOURCE_ENERGY, self.creep.carry[RESOURCE_ENERGY]
+                                                         - half_capacity)
 
                 self.ensure_ok(result, "transfer", target, RESOURCE_ENERGY)
 
             else:
                 target = storage
-                result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
-                                             - self.creep.carry.energy)
+                result = self.creep.withdraw(target, RESOURCE_ENERGY, half_capacity
+                                             - self.creep.carry[RESOURCE_ENERGY])
                 if result == ERR_NOT_ENOUGH_RESOURCES:
                     target = self.home.links.main_link
-                    result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
-                                                 - self.creep.carry.energy)
+                    result = self.creep.withdraw(target, RESOURCE_ENERGY, half_capacity
+                                                 - self.creep.carry[RESOURCE_ENERGY])
                     if result == ERR_NOT_ENOUGH_RESOURCES:
                         secondary = self.home.links.secondary_link
                         if secondary:
                             target = secondary
-                            result = self.creep.withdraw(target, RESOURCE_ENERGY, self.creep.carryCapacity / 2
-                                                         - self.creep.carry.energy)
+                            result = self.creep.withdraw(target, RESOURCE_ENERGY, half_capacity
+                                                         - self.creep.carry[RESOURCE_ENERGY])
                 self.ensure_ok(result, "withdraw", target, RESOURCE_ENERGY)
             return False
 
@@ -119,7 +122,7 @@ class LinkManager(RoleBase):
 
     def ensure_no_minerals(self):
         storage = self.home.room.storage
-        if self.carry_sum() > self.creep.carry.energy:
+        if self.carry_sum() > self.creep.carry[RESOURCE_ENERGY]:
             for rtype in Object.keys(self.creep.carry):
                 if rtype != RESOURCE_ENERGY:
                     self.ensure_ok(self.creep.transfer(storage, rtype), "transfer", storage, rtype)
@@ -178,7 +181,7 @@ class Cleanup(SpawnFill):
 
         if self.memory.filling:
             # TODO: Make some cached memory map of all hostile creeps, and use it to avoid.
-            resources = self.room.find(FIND_DROPPED_RESOURCES)
+            resources = cast(List[Resource], self.room.find(FIND_DROPPED_RESOURCES))
             if len(resources):
                 closest = None
                 closest_distance = Infinity
@@ -229,7 +232,7 @@ class Cleanup(SpawnFill):
                 self.move_to(storage)
                 return False
 
-            if self.carry_sum() > self.creep.carry.energy:
+            if self.carry_sum() > self.creep.carry[RESOURCE_ENERGY]:
                 target = storage
             else:
                 target = self.targets.get_new_target(self, target_closest_energy_site)
@@ -238,6 +241,7 @@ class Cleanup(SpawnFill):
             # if target.energy >= target.energyCapacity:
             #     target = storage
             if target.structureType == STRUCTURE_LINK:
+                assert isinstance(target, StructureLink)
                 self.home.links.register_target_deposit(target, self, self.creep.carry[RESOURCE_ENERGY],
                                                         self.pos.getRangeTo(target))
 

@@ -1,4 +1,4 @@
-from typing import Optional, Union, cast
+from typing import Dict, Optional, Union, cast
 
 from jstools.screeps import *
 from utilities import naming
@@ -13,8 +13,8 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
-_mem_hints = None
-_mem_expirations = None
+_mem_hints = None  # type: Optional[Dict[str, int]]
+_mem_expirations = None  # type: Optional[Dict[str, int]]
 _mem = None
 _created_objects = None
 _last_update = 0

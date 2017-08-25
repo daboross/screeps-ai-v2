@@ -77,7 +77,7 @@ class Refill(RoleBase):
 
             latched = False
             target_creep = cast(Creep, target)
-            if self.creep.hasActiveBodyparts(WORK) and target_creep.memory and not target_creep.filling:
+            if self.creep.hasActiveBodyparts(WORK) and target_creep.memory and not target_creep.memory.filling:
                 # Let's latch on and work on whatever they're working on
                 role = target_creep.memory.role
                 result = None

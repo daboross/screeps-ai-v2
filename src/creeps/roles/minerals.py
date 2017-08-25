@@ -1,3 +1,5 @@
+from typing import Dict, List, Optional, cast
+
 from constants import rmem_key_currently_under_siege, role_mineral_hauler, role_mineral_miner, role_recycling
 from creeps.base import RoleBase
 from jstools.screeps import *
@@ -17,7 +19,7 @@ __pragma__('noalias', 'values')
 # TODO: awesome speech for this class
 class MineralMiner(RoleBase):
     def run(self):
-        minerals = self.home.find(FIND_MINERALS)
+        minerals = cast(List[Mineral], self.home.find(FIND_MINERALS))
 
         if len(minerals) != 1:
             self.log("MineralMiner's home has an incomprehensible number of minerals: {}! To the depot it is."
@@ -26,7 +28,8 @@ class MineralMiner(RoleBase):
             return False
 
         mineral = minerals[0]
-        extractor = _.find(self.home.look_at(LOOK_STRUCTURES, mineral.pos), {'structureType': STRUCTURE_EXTRACTOR})
+        extractor = cast(Optional[StructureExtractor], _.find(self.home.look_at(LOOK_STRUCTURES, mineral.pos),
+                                                              {'structureType': STRUCTURE_EXTRACTOR}))
         if not extractor or not extractor.my:
             self.log("MineralMiner's mineral at {} does not have an extractor. D:".format(mineral.pos))
             self.go_to_depot()
@@ -50,10 +53,11 @@ class MineralMiner(RoleBase):
 
         else:
             if 'container' not in self.memory:
-                container = _.find(self.room.look_for_in_area_around(LOOK_STRUCTURES, mineral.pos, 2),
-                                   lambda c: c.structure.structureType == STRUCTURE_CONTAINER)
+                container = cast(Dict[str, Structure],
+                                 _.find(self.room.look_for_in_area_around(LOOK_STRUCTURES, mineral.pos, 2),
+                                        lambda c: c.structure.structureType == STRUCTURE_CONTAINER))
                 if container:
-                    self.memory.container = container.structure.id
+                    self.memory.container = container[LOOK_STRUCTURES].id
 
             if self.memory.container:
                 transfer_target = Game.getObjectById(self.memory.container)
@@ -71,10 +75,11 @@ class MineralMiner(RoleBase):
                         self.basic_move_to(pos)
                         return
             else:
-                hauler = _.find(self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1),
-                                lambda c: c.creep.memory.role == role_mineral_hauler)
+                hauler = _.find(
+                    cast(List[Dict[str, Creep]], self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)),
+                    lambda c: c.creep.memory.role == role_mineral_hauler)
                 if hauler:
-                    transfer_target = hauler[0]
+                    transfer_target = hauler[LOOK_CREEPS]
                 else:
                     return
 
@@ -112,19 +117,19 @@ class MineralHauler(RoleBase):
         mind = self.home.minerals
         now_held = self.carry_sum()
         if now_held < self.creep.carryCapacity and not self.room.mem[rmem_key_currently_under_siege]:
-            mineral = self.home.find(FIND_MINERALS)[0]
+            mineral = cast(Optional[Mineral], self.home.find(FIND_MINERALS)[0])
             if mineral:
                 containers = _.filter(self.home.find_in_range(FIND_STRUCTURES, 2, mineral.pos),
                                       {'structureType': STRUCTURE_CONTAINER})
                 if _.sum(containers, lambda s: _.sum(s.store)) > 1000 or \
                         (not len(containers) and _.find(self.home.find_in_range(FIND_MY_CREEPS, 1, mineral.pos),
                                                         lambda c: c.memory.role == role_mineral_miner)):
-                    sending_resource_to_storage = (mind.terminal.store[mineral.resourceType] or 0) >= \
-                                                  (mind.get_all_terminal_targets()[mineral.resourceType] or 0)
+                    sending_resource_to_storage = (mind.terminal.store[mineral.mineralType] or 0) >= \
+                                                  (mind.get_all_terminal_targets()[mineral.mineralType] or 0)
                     # If we have a resource in our carry which isn't headed to the same place as the miner's resource,
                     # let's not pick up that miner's resource until we've dealt with what we're already carrying.
                     for resource in Object.keys(self.creep.carry):
-                        if resource != mineral.resourceType and self.creep.carry[resource] > 0:
+                        if resource != mineral.mineralType and self.creep.carry[resource] > 0:
                             if sending_resource_to_storage:
                                 if (mind.terminal.store[resource] or 0) < mind.get_all_terminal_targets()[resource]:
                                     break
@@ -283,7 +288,7 @@ class MineralHauler(RoleBase):
             del self.memory.state
             return True
         mind = self.home.minerals
-        minerals = self.home.find(FIND_MINERALS)
+        minerals = cast(List[Mineral], self.home.find(FIND_MINERALS))
 
         if len(minerals) != 1:
             self.log("MineralHauler's home has an incomprehensible number of minerals: {}! To the depot it is."
@@ -468,7 +473,7 @@ class MineralHauler(RoleBase):
                         best_resource = RESOURCE_ENERGY
         if not best_lab:
             if self.memory.debug:
-                self.log("Untargetting labs: no minerals needed that we have.")
+                self.log("Untargeting labs: no minerals needed that we have.")
             del self.memory.state
             return
 

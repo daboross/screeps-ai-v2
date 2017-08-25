@@ -546,7 +546,7 @@ class RoomDefense:
                     if not len(protect):
                         protect.push(movement.center_pos(self.room.name))
                     hostiles = _(hostiles) \
-                        .filter(self.danger_level) \
+                        .filter(lambda enemy: self.danger_level(enemy) > 0) \
                         .sortBy(lambda c:
                                 # Higher danger level = more important
                                 - self.danger_level(c) * 5000
@@ -584,7 +584,7 @@ class RoomDefense:
                             )
                         ))
                 else:
-                    hostiles = _.filter(hostiles, self.danger_level)
+                    hostiles = _.filter(hostiles, lambda c: self.danger_level(c) > 0)
             self._cache.set('active_hostiles', hostiles)
             return hostiles
 
