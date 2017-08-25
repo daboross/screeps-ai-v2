@@ -1,4 +1,4 @@
-from typing import Any, Union
+from typing import Any, Dict, List, Union, cast
 
 from constants import role_hauler, role_miner, role_recycling
 from creeps.base import RoleBase
@@ -20,7 +20,7 @@ __pragma__('noalias', 'values')
 # TODO: abstract path movement out of TransportPickup into a higher class.
 class TransportPickup(RoleBase):
     def transport(self, pickup, fill, paved):
-        # type: (Structure, Structure, bool) -> None
+        # type: (Flag, Structure, bool) -> None
         total_carried_now = self.carry_sum()
         if self.memory.filling:
             target = pickup.pos
@@ -49,26 +49,27 @@ class TransportPickup(RoleBase):
                     self.repair_nearby_roads()
                 self.follow_energy_path(fill, pickup)
                 return
-            piles = self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1)
+            piles = cast(List[Dict[str, Resource]], self.room.look_for_in_area_around(LOOK_RESOURCES, target, 1))
             if len(piles):
                 if len(piles) > 1:
                     best = None
                     best_amount = 0
                     for pile in piles:
-                        amount = pile.resource.amount
-                        if pile.resource.picked_up:
+                        amount = pile[LOOK_RESOURCES].amount
+                        if pile[LOOK_RESOURCES].picked_up:
                             amount -= 500
                         if amount > best_amount:
                             best_amount = amount
-                            best = pile.resource
+                            best = pile[LOOK_RESOURCES]
                     energy = best
                 else:
-                    energy = piles[0].resource
+                    energy = piles[0][LOOK_RESOURCES]
                 if self.pos.isNearTo(energy):
                     ok_to_pick_up = True
                     if energy.picked_up:
                         other_creep = energy.picked_up
-                        if other_creep.carryCapacity - other_creep.carry.energy <= self.creep.carryCapacity - self.creep.carry.energy:
+                        if other_creep.carryCapacity - other_creep.carry[RESOURCE_ENERGY] \
+                                <= self.creep.carryCapacity - self.creep.carry[RESOURCE_ENERGY]:
                             ok_to_pick_up = False
                         else:
                             other_creep.cancelOrder('pickup')
@@ -102,7 +103,7 @@ class TransportPickup(RoleBase):
             container = _.find(containers, lambda s: s.structure.structureType == STRUCTURE_CONTAINER
                                                      or s.structure.structureType == STRUCTURE_STORAGE)
             if container:
-                container = container.structure
+                container = cast(Union[StructureContainer, StructureStorage], container[LOOK_STRUCTURES])
                 if self.pos.isNearTo(container):
                     mtype = _.findKey(container.store)
                     amount = container.store[mtype]
@@ -121,7 +122,7 @@ class TransportPickup(RoleBase):
                             self.follow_energy_path(pickup, fill)
                 else:
                     if self.pos.isNearTo(target):
-                        self.creep.move(movement.diff_as_direction(self.pos, container))
+                        self.creep.move(movement.diff_as_direction(self.pos, container.pos))
                     else:
                         self.follow_energy_path(fill, pickup)
                 return
@@ -139,7 +140,7 @@ class TransportPickup(RoleBase):
             # don't use up *all* the energy doing this
             if total_carried_now and total_carried_now + 50.0 >= self.creep.carryCapacity / 2.0:
                 self.repair_nearby_roads()
-            if total_carried_now > self.creep.carry.energy and self.home.room.storage:
+            if total_carried_now > self.creep.carry[RESOURCE_ENERGY] and self.home.room.storage:
                 fill = self.home.room.storage
             elif total_carried_now <= 0:
                 if self.creep.ticksToLive < 2.2 * self.path_length(fill, pickup):
@@ -153,7 +154,8 @@ class TransportPickup(RoleBase):
             if target.pos:
                 target = target.pos
             if fill.structureType == STRUCTURE_LINK and self.pos.roomName == target.roomName:
-                self.room.links.register_target_deposit(fill, self, self.creep.carry.energy,
+                self.room.links.register_target_deposit(cast(StructureLink, fill),
+                                                        self, self.creep.carry[RESOURCE_ENERGY],
                                                         self.pos.getRangeTo(target))
 
             if self.pos.roomName != target.roomName or not self.pos.isNearTo(target):
@@ -252,7 +254,8 @@ class TransportPickup(RoleBase):
                         closest_distance = distance
                         closest = pos
                 if not closest or closest_distance >= CREEP_LIFE_TIME:
-                    portals = _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL})
+                    portals = cast(List[StructurePortal],
+                                   _.filter(self.room.find(FIND_STRUCTURES), {'structureType': STRUCTURE_PORTAL}))
                     if len(portals) and movement.chebyshev_distance_room_pos(self.pos, portals[0].pos) \
                             + movement.chebyshev_distance_room_pos(portals[0].destination, target) \
                             < movement.chebyshev_distance_room_pos(self.pos, target):

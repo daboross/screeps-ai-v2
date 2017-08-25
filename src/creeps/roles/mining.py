@@ -233,7 +233,7 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         if not pickup:
             self.log("WARNING: Getting new remote mine for remote hauler!")
             self.targets.untarget(self, target_closest_energy_site)
-            pickup = self.targets.get_new_target(self, target_energy_hauler_mine)
+            pickup = cast(Flag, self.targets.get_new_target(self, target_energy_hauler_mine))
 
         if not pickup:
             self.memory.role = role_recycling
