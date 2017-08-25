@@ -271,7 +271,7 @@ class HiveMind:
         # type: () -> None
         if '_ly' not in Memory:
             Memory['_ly'] = {}
-        creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName') # type: Dict[str, List[Creep]]
+        creeps_by_room = _.groupBy(Game.creeps, 'pos.roomName')  # type: Dict[str, List[Creep]]
         for room_name in Object.keys(creeps_by_room):
             room = self.get_room(room_name)
             if room:
