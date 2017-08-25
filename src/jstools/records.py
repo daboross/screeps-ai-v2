@@ -47,7 +47,7 @@ def start_recording():
 def stop_recording():
     # type: () -> None
     Memory['_averages']['_recording_now'] = False
-    Memory['_sub_recording_now'] = False
+    Memory['_averages']['_sub_recording_now'] = False
 
 
 def start_sub_recording():
