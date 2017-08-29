@@ -6,7 +6,8 @@ Stores data in memory via room name keys, using the metadata module powered by P
 from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from constants import INVADER_USERNAME, SK_USERNAME
-from constants.memkeys import global_mem_key_room_data
+from constants.memkeys import global_mem_key_room_data, global_mem_key_segments_last_updated, \
+    global_mem_key_stored_room_data_segment_mapping
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
@@ -29,15 +30,159 @@ _cache_created = Game.time
 _cached_data = new_map()
 
 
-def _mem() -> Dict[str, str]:
-    mem = Memory[global_mem_key_room_data]
+def _old_mem() -> Dict[str, str]:
+    return Memory[global_mem_key_room_data] or None
+
+
+_segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13]
+
+_segments_cache = new_map()
+_segments_last_retrieved = new_map()
+_modified_segments = new_set()
+
+
+def initial_modification_check():
+    # TODO: periodic check which balances segments which have too much data stored in them, and runs
+    # emergency trim if we're hitting the limits on more than half of the segments.
+
+    modified_mem = Memory[global_mem_key_segments_last_updated]
+    if not modified_mem:
+        Memory[global_mem_key_segments_last_updated] = modified_mem = {}
+    for segment in _segments_to_use:
+        last_modified = modified_mem[segment]
+        last_retrieved = _segments_last_retrieved.get(segment)
+        if last_modified and last_retrieved and last_modified > last_retrieved:
+            _segments_cache.delete(segment)
+            _segments_last_retrieved.delete(segment)
+            _modified_segments.delete(segment)
+
+
+def final_modification_save():
+    current_tick = Game.time
+    modified_mem = Memory[global_mem_key_segments_last_updated]
+    if not modified_mem:
+        Memory[global_mem_key_segments_last_updated] = modified_mem = {}
+
+    for segment in list(_modified_segments.values()):
+        RawMemory.segments[segment] = JSON.stringify(_segments_cache.get(segment))
+        modified_mem[segment] = current_tick
+        _segments_last_retrieved.set(segment, current_tick)
+    _modified_segments.js_clear()
+
+
+def _get_segment(segment: int) -> Optional[Dict[str, str]]:
+    """
+    Gets data from a segment, raising AssertionError if it's one of the known segments and it isn't loaded.
+
+    If it isn't a known segment and it isn't loaded, returns None.
+
+    If the segment is modified, the ID should be added to `_modified_segments`.
+
+    :param segment: segment id
+    :return: parsed segment memory
+    """
+    segment_data = _segments_cache.get(segment)
+    if segment_data:
+        return segment_data
+
+    raw_data = RawMemory.segments[segment]
+
+    if raw_data == undefined:
+        if _.includes(_segments_to_use, segment):
+            RawMemory.setActiveSegments(_segments_to_use)
+            # TODO: some way for requests to stored data to have an alternate action here.
+
+            msg = "segment {} not available! Bailing action so it can complete next tick.".format(segment)
+            raise AssertionError(msg)
+        else:
+            return None
+
+    if raw_data == "":
+        segment_data = {}
+    else:
+        try:
+            segment_data = JSON.parse(raw_data)
+        except:
+            msg = "segment {} data corrupted: invalid json! clearing data: {}".format(segment, raw_data)
+            console.log(msg)
+            Game.notify(msg)
+            segment_data = {}
+
+    _segments_cache.set(segment, segment_data)
+
+    return segment_data
+
+
+def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
+    old_memory = _old_mem()
+    if old_memory is None:
+        return
+    segments = []
+    for segment_name in _segments_to_use:
+        segments.append((segment_name, _get_segment(segment_name)))
+
+    for room_name, data in _.pairs(old_memory):
+        segment_name, segment_data = _.sample(segments)
+        new_room_name_to_segment[room_name] = segment_name
+        segment_data[room_name] = data
+        _modified_segments.add(segment_name)
+
+
+def confirm_all_data_is_here():
+    old_memory = _old_mem()
+    if old_memory is None:
+        return "no old memory to check"
+    room_name_to_segment = _room_name_to_segment()
+    for room_name in Object.keys(old_memory):
+        segment_name = room_name_to_segment[room_name]
+        if not segment_name:
+            return "missing segment name for {}".format(room_name)
+        segment_data = _get_segment(segment_name)
+        if not segment_data:
+            return "invalid segment name for {}: {}".format(room_name, segment_name)
+        room_data = segment_data[room_name]
+        if not room_data:
+            return "invalid room data for {} in segment {}: {}".format(room_name, segment_name, room_data)
+    return "A-OK"
+
+
+def _room_name_to_segment() -> Dict[str, int]:
+    mem = Memory[global_mem_key_stored_room_data_segment_mapping]
     if not mem:
-        mem = Memory[global_mem_key_room_data] = {}
+        mem = Memory[global_mem_key_stored_room_data_segment_mapping] = {}
+        _migrate_old_data(mem)
+
     return mem
 
 
 def _get_serialized_data(room_name) -> Optional[str]:
-    return _mem()[room_name] or None
+    room_name_to_segment = _room_name_to_segment()
+    segment = room_name_to_segment[room_name]
+    if segment:
+        segment_data = _get_segment(segment)
+
+        if not segment_data:
+            # not a segment we store data in!
+            msg = "[stored_data] room name {} stored in segment {}, which is not a known segment for storing " \
+                  "serialized data! discarding segment name association!"
+            console.log(msg)
+            Game.notify(msg)
+            del room_name_to_segment[room_name]
+            return None
+
+        room_data = segment_data[room_name]
+
+        if room_data:
+            return room_data
+        else:
+            msg = "[stored_data] room name {} stored in segment {}, but no data for that room in the segment!" \
+                  "! discarding segment name association!"
+            console.log(msg)
+            Game.notify(msg)
+            del room_name_to_segment[room_name]
+            return None
+    else:
+        return None
 
 
 def _deserialize_data(data: str) -> StoredRoom:
@@ -56,11 +201,45 @@ def _deserialize_data(data: str) -> StoredRoom:
 
 
 def _set_new_data(room_name: str, data: StoredRoom) -> None:
-    _mem()[room_name] = encoded = data.encode()
+    room_name_to_segment = _room_name_to_segment()
+    segment_name = room_name_to_segment[room_name]
+    segment_data = None
+    if segment_name:
+        segment_data = _get_segment(segment_name)
+    if not segment_data:
+        segment_name = _.sample(_segments_to_use)
+        segment_data = _get_segment(segment_name)
+        room_name_to_segment[room_name] = segment_name
+
+    _modified_segments.add(segment_name)
+
+    segment_data[room_name] = encoded = data.encode()
     _cached_data.set(encoded, data)
     if not len(encoded):
-        print("[storage] Warning: would have set empty data for room {}!".format(room_name))
-        del _mem()[room_name]
+        msg = "[stored_data] Warning: would have set empty data for room {}!".format(room_name)
+        console.log(msg)
+        Game.notify(msg)
+        del segment_data[room_name]
+        del room_name_to_segment[room_name]
+
+
+def cleanup_old_data(hive: HiveMind) -> None:
+    room_name_to_segment = _room_name_to_segment()
+    for room_name, associated_segment in _.pairs(room_name_to_segment):
+        nearest_room = hive.get_closest_owned_room(room_name)
+        if nearest_room:
+            distance = movement.room_chebyshev_distance(nearest_room.name, room_name)
+            if distance > 9:
+                msg = "[stored_data] Removing data on room {}: closest room, {}, is {} rooms away.".format(
+                    room_name,
+                    nearest_room,
+                    distance,
+                )
+                console.log(msg)
+                Game.notify(msg)
+                segment_name = room_name_to_segment[room_name]
+                del _get_segment(segment_name)[room_name]
+                del room_name_to_segment[room_name]
 
 
 _my_username = None  # type: Optional[str]
@@ -300,23 +479,6 @@ def set_reservation_time(room_name: str, reservation_time: int) -> None:
         data = __new__(StoredRoom())
     data.reservation_end = Game.time + reservation_time
     _set_new_data(room_name, data)
-
-
-def cleanup_old_data(hive: HiveMind) -> None:
-    mem = _mem()
-    for room_name in Object.keys(mem):
-        nearest_room = hive.get_closest_owned_room(room_name)
-        if nearest_room:
-            distance = movement.room_chebyshev_distance(nearest_room.name, room_name)
-            if distance > 9:
-                msg = "[stored_data] Removing data on room {}: closest room, {}, is {} rooms away.".format(
-                    room_name,
-                    nearest_room,
-                    distance,
-                )
-                console.log(msg)
-                Game.notify(msg)
-                del mem[room_name]
 
 
 def migrate_old_data() -> None:

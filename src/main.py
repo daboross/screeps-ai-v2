@@ -220,6 +220,10 @@ def main():
     _memory_init = None  # type: Optional[int]
 
     records.start_record()
+    stored_data.initial_modification_check()
+    records.finish_sub_record('stored_data.initial-modification-check')
+
+    records.start_record()
 
     if 'meta' not in Memory:
         Memory.meta = {"pause": False, "quiet": True, "friends": []}
@@ -397,6 +401,10 @@ def main():
             records.start_record()
     if not any_visualized_rooms:
         records.finish_record('visuals.empty-check')
+
+    records.start_record()
+    stored_data.final_modification_save()
+    records.finish_sub_record('stored_data.final-modification-save')
 
     records.finish_main_record()
 

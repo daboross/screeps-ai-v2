@@ -48,10 +48,16 @@ class JSSet(Generic[K]):
     def add(self, key: K) -> None:
         pass
 
+    def delete(self, key: K) -> None:
+        pass
+
     def keys(self) -> Iterable[K]:
         pass
 
     def values(self) -> Iterable[K]:
+        pass
+
+    def js_clear(self) -> None:
         pass
 
 

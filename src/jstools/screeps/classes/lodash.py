@@ -6,7 +6,7 @@ _L3 = TypeVar('_L3', int, float)
 
 _LodashPredicate = Union[Dict[str, Any], Callable[[_L1], bool], None, str]
 _LodashIteratee = Union[str, Callable[[_L1], _L2], None]
-_Collection = Union[List[_L1], Dict[str, _L1]]
+_Collection = Union[List[_L1], Dict[Any, _L1]]
 
 
 # noinspection PyPep8Naming
