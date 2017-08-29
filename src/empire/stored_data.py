@@ -81,6 +81,7 @@ def _get_segment(segment: int) -> Optional[Dict[str, str]]:
     :param segment: segment id
     :return: parsed segment memory
     """
+    segment = int(segment)
     segment_data = _segments_cache.get(segment)
     if segment_data:
         return segment_data
@@ -108,6 +109,7 @@ def _get_segment(segment: int) -> Optional[Dict[str, str]]:
             Game.notify(msg)
             segment_data = {}
 
+    _segments_last_retrieved.set(segment, Game.time)
     _segments_cache.set(segment, segment_data)
 
     return segment_data
@@ -164,7 +166,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
         if not segment_data:
             # not a segment we store data in!
             msg = "[stored_data] room name {} stored in segment {}, which is not a known segment for storing " \
-                  "serialized data! discarding segment name association!"
+                  "serialized data! discarding segment name association!".format(room_name, segment)
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
@@ -175,8 +177,8 @@ def _get_serialized_data(room_name) -> Optional[str]:
         if room_data:
             return room_data
         else:
-            msg = "[stored_data] room name {} stored in segment {}, but no data for that room in the segment!" \
-                  "! discarding segment name association!"
+            msg = "[stored_data] room name {} stored in segment {}, but no data for that room in that segment! " \
+                  "discarding segment name association!".format(room_name, segment)
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
@@ -215,12 +217,6 @@ def _set_new_data(room_name: str, data: StoredRoom) -> None:
 
     segment_data[room_name] = encoded = data.encode()
     _cached_data.set(encoded, data)
-    if not len(encoded):
-        msg = "[stored_data] Warning: would have set empty data for room {}!".format(room_name)
-        console.log(msg)
-        Game.notify(msg)
-        del segment_data[room_name]
-        del room_name_to_segment[room_name]
 
 
 def cleanup_old_data(hive: HiveMind) -> None:
@@ -458,7 +454,7 @@ def get_last_updated_tick(room_name: str) -> int:
     """
     data = get_data(room_name)
     if data:
-        return data.last_updated
+        return data.last_updated or 0
     else:
         return 0
 

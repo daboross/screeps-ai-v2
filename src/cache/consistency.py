@@ -229,5 +229,7 @@ def complete_refresh(hive):
             room_data = hive.get_room(room_name)
             if not room_data or not room_data.my:
                 to_remove.append(room_name)
-        _.pull(Memory.meta['_owned_rooms_index'], to_remove)
+        if len(to_remove):
+            print("[consistency] removing {} from Memory['_owned_rooms_index']".format(to_remove))
+            _.remove(Memory.meta['_owned_rooms_index'], lambda n: _.includes(to_remove, n))
     stored_data.cleanup_old_data(hive)
