@@ -727,7 +727,7 @@ class RoomMind:
         # type: () -> None
         if self.rcl < 8:
             return
-        offset = (Game.time + self.get_unique_owned_index()) % 20
+        offset = (Game.time + self.get_unique_owned_index()) % 5
         if offset == 3:
             # on offset=3, set observer to observer a room.
             observer = cast(StructureObserver, _.find(self.find(FIND_MY_STRUCTURES), lambda s: s.observeRoom))

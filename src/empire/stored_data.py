@@ -378,7 +378,11 @@ def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=
         if saved_pos is None:
             room_name = movement.room_xy_to_name(this_room_x + relative_x, this_room_y + relative_y)
             last_updated = get_last_updated_tick(room_name)
-            if last_updated != 0 and now - last_updated > 5000:
+            if last_updated == 0:
+                to_update = (abs(relative_x) <= 3 and abs(relative_y) <= 3)
+            else:
+                to_update = now - last_updated > 5000
+            if to_update:
                 result.append(room_name)
                 if len(result) >= 20:
                     new_saved_pos = i
