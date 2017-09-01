@@ -7,7 +7,7 @@ from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import global_mem_key_room_data, global_mem_key_segments_last_updated, \
-    global_mem_key_stored_room_data_segment_mapping
+    meta_segment_key_stored_room_data_segment_mapping
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
 from position_management import flags
@@ -34,7 +34,9 @@ def _old_mem() -> Dict[str, str]:
     return Memory[global_mem_key_room_data] or None
 
 
-_segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13]
+_metadata_segment = 14
+_segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
+_room_data_segments = [5, 6, 7, 8, 9, 10]
 
 _segments_cache = new_map()
 _segments_last_retrieved = new_map()
@@ -64,13 +66,14 @@ def final_modification_save():
         Memory[global_mem_key_segments_last_updated] = modified_mem = {}
 
     for segment in list(_modified_segments.values()):
+        print("[stored_data] {} changed.".format(segment))
         RawMemory.segments[segment] = JSON.stringify(_segments_cache.get(segment))
         modified_mem[segment] = current_tick
         _segments_last_retrieved.set(segment, current_tick)
     _modified_segments.js_clear()
 
 
-def _get_segment(segment: int) -> Optional[Dict[str, str]]:
+def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str]]:
     """
     Gets data from a segment, raising AssertionError if it's one of the known segments and it isn't loaded.
 
@@ -94,7 +97,10 @@ def _get_segment(segment: int) -> Optional[Dict[str, str]]:
             # TODO: some way for requests to stored data to have an alternate action here.
 
             msg = "segment {} not available! Bailing action so it can complete next tick.".format(segment)
-            raise AssertionError(msg)
+            if optional:
+                return None
+            else:
+                raise AssertionError(msg)
         else:
             return None
 
@@ -120,7 +126,7 @@ def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
     if old_memory is None:
         return
     segments = []
-    for segment_name in _segments_to_use:
+    for segment_name in _room_data_segments:
         segments.append((segment_name, _get_segment(segment_name)))
 
     for room_name, data in _.pairs(old_memory):
@@ -149,10 +155,19 @@ def confirm_all_data_is_here():
 
 
 def _room_name_to_segment() -> Dict[str, int]:
-    mem = Memory[global_mem_key_stored_room_data_segment_mapping]
+    meta_mem = _get_segment(_metadata_segment, 'rs' in Memory)
+    if not meta_mem:
+        return Memory['rs']
+    mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping]
     if not mem:
-        mem = Memory[global_mem_key_stored_room_data_segment_mapping] = {}
-        _migrate_old_data(mem)
+        if 'rs' in Memory:  # hardcoded old value
+            mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = Memory['rs']
+            _modified_segments.add(_metadata_segment)
+            del Memory['rs']
+        elif global_mem_key_room_data in Memory:
+            mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = {}
+            _migrate_old_data(mem)
+            _modified_segments.add(_metadata_segment)
 
     return mem
 
@@ -170,6 +185,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
+            _modified_segments.add(_metadata_segment)
             return None
 
         room_data = segment_data[room_name]
@@ -182,6 +198,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
+            _modified_segments.add(_metadata_segment)
             return None
     else:
         return None
@@ -209,9 +226,10 @@ def _set_new_data(room_name: str, data: StoredRoom) -> None:
     if segment_name:
         segment_data = _get_segment(segment_name)
     if not segment_data:
-        segment_name = _.sample(_segments_to_use)
+        segment_name = _.sample(_room_data_segments)
         segment_data = _get_segment(segment_name)
         room_name_to_segment[room_name] = segment_name
+        _modified_segments.add(_metadata_segment)
 
     _modified_segments.add(segment_name)
 
@@ -236,6 +254,8 @@ def cleanup_old_data(hive: HiveMind) -> None:
                 segment_name = room_name_to_segment[room_name]
                 del _get_segment(segment_name)[room_name]
                 del room_name_to_segment[room_name]
+                _modified_segments.add(segment_name)
+                _modified_segments.add(_metadata_segment)
 
 
 _my_username = None  # type: Optional[str]
