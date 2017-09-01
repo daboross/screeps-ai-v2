@@ -11,11 +11,29 @@ enum StoredObstacleType {
     SOURCE_KEEPER_LAIR = 7;
 }
 
+enum StoredHostileStructureType {
+    TOWER_LOADED = 0;
+    TOWER_EMPTY = 1;
+    SPAWN = 2;
+    WALL = 3;
+    RAMPART = 4;
+    OTHER_LOW_NONTARGET = 5;
+    OTHER_LOW_SEMITARGET = 6;
+    OTHER_LOW_TARGET = 7;
+}
+
 message StoredObstacle {
     StoredObstacleType type = 1;
     uint32 x = 2;
     uint32 y = 3;
     uint32 source_capacity = 4;
+}
+
+message StoredHostileStructure {
+    StoredHostileStructureType type = 1;
+    uint32 x = 2;
+    uint32 y = 3;
+    uint32 wall_hits = 4;
 }
 
 enum StoredEnemyRoomState {
@@ -32,6 +50,7 @@ message StoredEnemyRoomOwner {
 
 message StoredRoom {
     repeated StoredObstacle obstacles = 1;
+    repeated StoredHostileStructure structures = 6;
     uint64 last_updated = 2;
     uint64 reservation_end = 3;
     StoredEnemyRoomOwner owner = 4;

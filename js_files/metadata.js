@@ -740,14 +740,25 @@ function defineRoomMetadataPrototypes() {
         "MINERAL": 4,
         "SOURCE_KEEPER_SOURCE": 5,
         "SOURCE_KEEPER_MINERAL": 6,
-        "SOURCE_KEEPER_LAIR": 7
+        "SOURCE_KEEPER_LAIR": 7,
+    };
+
+    var StoredHostileStructureType = global.StoredHostileStructureType = {
+        "TOWER_LOADED": 0,
+        "TOWER_EMPTY": 1,
+        "SPAWN": 2,
+        "WALL": 3,
+        "RAMPART": 4,
+        "OTHER_LOW_NONTARGET": 5,
+        "OTHER_LOW_SEMITARGET": 6,
+        "OTHER_LOW_TARGET": 7,
     };
 
     var StoredEnemyRoomState = global.StoredEnemyRoomState = {
         "FULLY_FUNCTIONAL": 0,
         "RESERVED": 1,
         "JUST_MINING": 2,
-        "OWNED_DEAD": 3
+        "OWNED_DEAD": 3,
     };
 
     var ReverseStoredObstacleType = [
@@ -758,20 +769,30 @@ function defineRoomMetadataPrototypes() {
         "MINERAL",
         "SOURCE_KEEPER_SOURCE",
         "SOURCE_KEEPER_MINERAL",
-        "SOURCE_KEEPER_LAIR"
+        "SOURCE_KEEPER_LAIR",
+    ];
+
+    var ReverseStoredHostileStructureType = [
+        "TOWER_LOADED",
+        "TOWER_EMPTY",
+        "SPAWN",
+        "WALL",
+        "RAMPART",
+        "OTHER_LOW_NONTARGET",
+        "OTHER_LOW_SEMITARGET",
+        "OTHER_LOW_TARGET",
     ];
 
     var ReverseStoredEnemyRoomState = [
         "FULLY_FUNCTIONAL",
         "RESERVED",
         "JUST_MINING",
-        "OWNED_DEAD"
+        "OWNED_DEAD",
     ];
 
     // StoredObstacle ========================================
 
-    var StoredObstacle = global.StoredObstacle = function StoredObstacle(x = 0, y = 0, type = 0,
-                                                                         source_capacity = undefined) {
+    var StoredObstacle = global.StoredObstacle = function StoredObstacle(x = 0, y = 0, type = 0, source_capacity = undefined) {
         this.type = type;
         this.x = x;
         this.y = y;
@@ -780,11 +801,11 @@ function defineRoomMetadataPrototypes() {
         }
     };
     StoredObstacle.prototype.toString = function () {
-        return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}]`;
+        return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}${this.source_capacity !== undefined ? ` cap=${this.source_capacity}` : ''}]`;
     };
 
     StoredObstacle.read = function (pbf, end) {
-        return pbf.readFields(StoredObstacle._readField, {type: 0, x: 0, y: 0, source_capacity: 0}, end);
+        return pbf.readFields(StoredObstacle._readField, new StoredObstacle(), end);
     };
     StoredObstacle._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.type = pbf.readVarint();
@@ -797,6 +818,36 @@ function defineRoomMetadataPrototypes() {
         if (obj.x) pbf.writeVarintField(2, obj.x);
         if (obj.y) pbf.writeVarintField(3, obj.y);
         if (obj.source_capacity) pbf.writeVarintField(4, obj.source_capacity);
+    };
+
+    // StoredHostileStructure ========================================
+
+    var StoredHostileStructure = global.StoredHostileStructure = function StoredHostileStructure(x = 0, y = 0, type = 0, wall_hits = undefined) {
+        this.type = type;
+        this.x = x;
+        this.y = y;
+        if (wall_hits !== undefined) {
+            this.wall_hits = wall_hits;
+        }
+    };
+    StoredHostileStructure.prototype.toString = function () {
+        return `[${ReverseStoredHostileStructureType[this.type] || this.type} ${this.x},${this.y}${this.wall_hits !== undefined ? ` hits=${this.wall_hits}` : ''}]`;
+    };
+
+    StoredHostileStructure.read = function (pbf, end) {
+        return pbf.readFields(StoredHostileStructure._readField, new StoredHostileStructure(), end);
+    };
+    StoredHostileStructure._readField = function (tag, obj, pbf) {
+        if (tag === 1) obj.type = pbf.readVarint();
+        else if (tag === 2) obj.x = pbf.readVarint();
+        else if (tag === 3) obj.y = pbf.readVarint();
+        else if (tag === 4) obj.wall_hits = pbf.readVarint();
+    };
+    StoredHostileStructure.write = function (obj, pbf) {
+        if (obj.type) pbf.writeVarintField(1, obj.type);
+        if (obj.x) pbf.writeVarintField(2, obj.x);
+        if (obj.y) pbf.writeVarintField(3, obj.y);
+        if (obj.wall_hits) pbf.writeVarintField(4, obj.wall_hits);
     };
 
     // StoredEnemyRoomOwner ========================================
@@ -823,8 +874,9 @@ function defineRoomMetadataPrototypes() {
 
     // StoredRoom ========================================
 
-    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], last_updated = 0, reservation_end = 0, owner = undefined, avoid_always=false) {
+    var StoredRoom = global.StoredRoom = function StoredRoom(obstacles = [], structures = [], last_updated = 0, reservation_end = 0, owner = undefined, avoid_always = false) {
         this.obstacles = obstacles;
+        this.structures = structures;
         this.reservation_end = reservation_end;
         this.last_updated = last_updated;
         if (owner !== undefined) {
@@ -844,11 +896,14 @@ function defineRoomMetadataPrototypes() {
         if (this.last_updated) {
             values.push(`[structures_updated ${this.last_updated}]`);
         }
+        if (this.obstacles) {
+            values.push(...this.obstacles);
+        }
         if (this.structures) {
             values.push(...this.structures);
         }
         if (this.avoid_always) {
-            values.push(" [manually avoiding always]");
+            values.push("[manually avoiding always]");
         }
         return `[StoredRoom ${values.join(' ')}]`;
     };
@@ -893,6 +948,7 @@ function defineRoomMetadataPrototypes() {
     };
     StoredRoom._readField = function (tag, obj, pbf) {
         if (tag === 1) obj.obstacles.push(StoredObstacle.read(pbf, pbf.readVarint() + pbf.pos));
+        else if (tag === 6) obj.structures.push(StoredHostileStructure.read(pbf, pbf.readVarint() + pbf.pos));
         else if (tag === 2) obj.last_updated = pbf.readVarint();
         else if (tag === 3) obj.reservation_end = pbf.readVarint();
         else if (tag === 4) obj.owner = StoredEnemyRoomOwner.read(pbf, pbf.readVarint() + pbf.pos);
@@ -900,6 +956,7 @@ function defineRoomMetadataPrototypes() {
     };
     StoredRoom.write = function (obj, pbf) {
         if (obj.obstacles) for (var i = 0; i < obj.obstacles.length; i++) pbf.writeMessage(1, StoredObstacle.write, obj.obstacles[i]);
+        if (obj.structures) for (i = 0; i < obj.structures.length; i++) pbf.writeMessage(6, StoredHostileStructure.write, obj.structures[i]);
         if (obj.last_updated) pbf.writeVarintField(2, obj.last_updated);
         if (obj.reservation_end) pbf.writeVarintField(3, obj.reservation_end);
         if (obj.owner) pbf.writeMessage(4, StoredEnemyRoomOwner.write, obj.owner);
@@ -922,6 +979,7 @@ function defineRoomMetadataPrototypes() {
 
     global.__metadata_active = true;
 }
+
 if (!global.__metadata_active) {
     defineRoomMetadataPrototypes();
 }
