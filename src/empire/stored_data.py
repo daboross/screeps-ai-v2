@@ -15,6 +15,7 @@ from utilities import movement, positions
 
 if TYPE_CHECKING:
     from empire.hive import HiveMind
+    from jstools.js_set_map import JSMap, JSSet
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -38,9 +39,9 @@ _metadata_segment = 14
 _segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 _room_data_segments = [5, 6, 7, 8, 9, 10]
 
-_segments_cache = new_map()
-_segments_last_retrieved = new_map()
-_modified_segments = new_set()
+_segments_cache = new_map()  # type: JSMap[int, _Memory]
+_segments_last_retrieved = new_map()  # type: JSMap[int, int]
+_modified_segments = new_set()  # type: JSSet[int]
 
 
 def initial_modification_check():

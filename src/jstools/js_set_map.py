@@ -40,6 +40,9 @@ class JSMap(Generic[K, V]):
     def values(self) -> Iterable[V]:
         pass
 
+    def js_clear(self) -> None:
+        pass
+
 
 class JSSet(Generic[K]):
     def has(self, key: K) -> bool:
