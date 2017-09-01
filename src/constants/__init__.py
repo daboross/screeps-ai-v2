@@ -249,7 +249,6 @@ roleobj_key_run_after_spawning = "run_after"
 from constants.memkeys import \
     global_mem_key_last_room_state_refresh as gmem_key_last_room_state_refresh, \
     global_mem_key_pause_rcl8_upgrading as gmem_key_pause_rcl8_upgrading, \
-    global_mem_key_room_data as gmem_key_room_data, \
     global_mem_key_room_mining_paths as gmem_key_room_mining_paths
 from constants.memkeys.room import \
     mem_key_alive_squads as rmem_key_alive_quads, \

@@ -6,7 +6,8 @@ Stores data in memory via room name keys, using the metadata module powered by P
 from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from constants import INVADER_USERNAME, SK_USERNAME
-from constants.memkeys import global_mem_key_room_data, global_mem_key_segments_last_updated, \
+from constants.memkeys import deprecated_global_mem_key_room_data, \
+    deprecated_global_mem_key_stored_room_data_segment_mapping, global_mem_key_segments_last_updated, \
     meta_segment_key_stored_room_data_segment_mapping
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
@@ -29,11 +30,6 @@ __pragma__('noalias', 'values')
 
 _cache_created = Game.time
 _cached_data = new_map()
-
-
-def _old_mem() -> Dict[str, str]:
-    return Memory[global_mem_key_room_data] or None
-
 
 _metadata_segment = 14
 _segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
@@ -133,7 +129,7 @@ def _mark_modified(segment, reason):
 
 
 def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
-    old_memory = _old_mem()
+    old_memory = Memory[deprecated_global_mem_key_room_data] or None
     if old_memory is None:
         return
     segments = []
@@ -147,35 +143,18 @@ def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
         _mark_modified(segment_name, "migrated" + room_name)
 
 
-def confirm_all_data_is_here():
-    old_memory = _old_mem()
-    if old_memory is None:
-        return "no old memory to check"
-    room_name_to_segment = _room_name_to_segment()
-    for room_name in Object.keys(old_memory):
-        segment_name = room_name_to_segment[room_name]
-        if not segment_name:
-            return "missing segment name for {}".format(room_name)
-        segment_data = _get_segment(segment_name)
-        if not segment_data:
-            return "invalid segment name for {}: {}".format(room_name, segment_name)
-        room_data = segment_data[room_name]
-        if not room_data:
-            return "invalid room data for {} in segment {}: {}".format(room_name, segment_name, room_data)
-    return "A-OK"
-
-
 def _room_name_to_segment() -> Dict[str, int]:
-    meta_mem = _get_segment(_metadata_segment, 'rs' in Memory)
+    meta_mem = _get_segment(_metadata_segment, deprecated_global_mem_key_stored_room_data_segment_mapping in Memory)
     if not meta_mem:
-        return Memory['rs']
+        return Memory[deprecated_global_mem_key_stored_room_data_segment_mapping]
     mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping]
     if not mem:
-        if 'rs' in Memory:  # hardcoded old value
-            mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = Memory['rs']
+        if deprecated_global_mem_key_stored_room_data_segment_mapping in Memory:  # hardcoded old value
+            mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = \
+                Memory[deprecated_global_mem_key_stored_room_data_segment_mapping]
             _mark_modified(_metadata_segment, "migrated room name to segment mapping")
-            del Memory['rs']
-        elif global_mem_key_room_data in Memory:
+            del Memory[deprecated_global_mem_key_stored_room_data_segment_mapping]
+        elif deprecated_global_mem_key_room_data in Memory:
             mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = {}
             _migrate_old_data(mem)
             _mark_modified(_metadata_segment, "migrated room name to segment mapping")
