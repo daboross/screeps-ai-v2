@@ -104,28 +104,29 @@ class TransportPickup(RoleBase):
                                                      or s.structure.structureType == STRUCTURE_STORAGE)
             if container:
                 container = cast(Union[StructureContainer, StructureStorage], container[LOOK_STRUCTURES])
-                if self.pos.isNearTo(container):
-                    mtype = _.findKey(container.store)
-                    amount = container.store[mtype]
+                mtype = _.findKey(container.store)
+                if mtype:
+                    if self.pos.isNearTo(container):
+                        amount = container.store[mtype]
 
-                    result = self.creep.withdraw(container, mtype)
-                    if result != OK:
-                        self.log("Unknown result from creep.withdraw({}, {}): {}"
-                                 .format(container, mtype, result))
-                        return
+                        result = self.creep.withdraw(container, mtype)
+                        if result != OK:
+                            self.log("Unknown result from creep.withdraw({}, {}): {}"
+                                     .format(container, mtype, result))
+                            return
 
-                    if amount > self.creep.carryCapacity - total_carried_now:
-                        self.memory.filling = False
-                        if paved:
-                            self.follow_energy_path(pickup, fill, pickup)
-                        else:
-                            self.follow_energy_path(pickup, fill)
-                else:
-                    if self.pos.isNearTo(target):
-                        self.creep.move(movement.diff_as_direction(self.pos, container.pos))
+                        if amount > self.creep.carryCapacity - total_carried_now:
+                            self.memory.filling = False
+                            if paved:
+                                self.follow_energy_path(pickup, fill, pickup)
+                            else:
+                                self.follow_energy_path(pickup, fill)
                     else:
-                        self.follow_energy_path(fill, pickup)
-                return
+                        if self.pos.isNearTo(target):
+                            self.creep.move(movement.diff_as_direction(self.pos, container.pos))
+                        else:
+                            self.follow_energy_path(fill, pickup)
+                    return
             # No energy, let's just wait
             if not _.find(self.room.look_for_in_area_around(LOOK_CREEPS, target, 1),
                           lambda o: o.creep.my and o.creep.memory.role == role_miner):
