@@ -376,8 +376,10 @@ __all__ = [
 
     # metadata
     "StoredObstacleType",
+    "StoredHostileStructureType",
     "StoredEnemyRoomState",
     "StoredObstacle",
+    "StoredHostileStructure",
     "StoredEnemyRoomOwner",
     "StoredRoom",
 ]
