@@ -42,6 +42,7 @@ _room_data_segments = [5, 6, 7, 8, 9, 10]
 _segments_cache = new_map()  # type: JSMap[int, _Memory]
 _segments_last_retrieved = new_map()  # type: JSMap[int, int]
 _modified_segments = new_set()  # type: JSSet[int]
+_segment_change_reasons = new_map()  # type: JSMap[int, List[str]]
 
 
 def initial_modification_check():
@@ -67,11 +68,12 @@ def final_modification_save():
         Memory[global_mem_key_segments_last_updated] = modified_mem = {}
 
     for segment in list(_modified_segments.values()):
-        print("[stored_data] {} changed.".format(segment))
+        print("[stored_data] {} changed: {}".format(segment, _segment_change_reasons.get(segment)))
         RawMemory.segments[segment] = JSON.stringify(_segments_cache.get(segment))
         modified_mem[segment] = current_tick
         _segments_last_retrieved.set(segment, current_tick)
     _modified_segments.js_clear()
+    _segment_change_reasons.js_clear()
 
 
 def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str]]:
@@ -80,7 +82,7 @@ def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str
 
     If it isn't a known segment and it isn't loaded, returns None.
 
-    If the segment is modified, the ID should be added to `_modified_segments`.
+    If the segment is modified, the ID should be marked by using `_mark_modified(segment)`
 
     :param segment: segment id
     :return: parsed segment memory
@@ -122,6 +124,14 @@ def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str
     return segment_data
 
 
+def _mark_modified(segment, reason):
+    _modified_segments.add(segment)
+    if _segment_change_reasons.has(segment):
+        _segment_change_reasons.get(segment).append(reason)
+    else:
+        _segment_change_reasons.set(segment, [reason])
+
+
 def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
     old_memory = _old_mem()
     if old_memory is None:
@@ -134,7 +144,7 @@ def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
         segment_name, segment_data = _.sample(segments)
         new_room_name_to_segment[room_name] = segment_name
         segment_data[room_name] = data
-        _modified_segments.add(segment_name)
+        _mark_modified(segment_name, "migrated" + room_name)
 
 
 def confirm_all_data_is_here():
@@ -163,12 +173,12 @@ def _room_name_to_segment() -> Dict[str, int]:
     if not mem:
         if 'rs' in Memory:  # hardcoded old value
             mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = Memory['rs']
-            _modified_segments.add(_metadata_segment)
+            _mark_modified(_metadata_segment, "migrated room name to segment mapping")
             del Memory['rs']
         elif global_mem_key_room_data in Memory:
             mem = meta_mem[meta_segment_key_stored_room_data_segment_mapping] = {}
             _migrate_old_data(mem)
-            _modified_segments.add(_metadata_segment)
+            _mark_modified(_metadata_segment, "migrated room name to segment mapping")
 
     return mem
 
@@ -186,7 +196,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
-            _modified_segments.add(_metadata_segment)
+            _mark_modified(_metadata_segment, "fixed metadata mapping inconsistency")
             return None
 
         room_data = segment_data[room_name]
@@ -199,7 +209,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
             console.log(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
-            _modified_segments.add(_metadata_segment)
+            _mark_modified(_metadata_segment, "fixed metadata mapping inconsistency")
             return None
     else:
         return None
@@ -230,9 +240,9 @@ def _set_new_data(room_name: str, data: StoredRoom) -> None:
         segment_name = _.sample(_room_data_segments)
         segment_data = _get_segment(segment_name)
         room_name_to_segment[room_name] = segment_name
-        _modified_segments.add(_metadata_segment)
+        _mark_modified(_metadata_segment, "added new mapping for room " + room_name)
 
-    _modified_segments.add(segment_name)
+    _mark_modified(segment_name, "updated data for room " + room_name)
 
     segment_data[room_name] = encoded = data.encode()
     _cached_data.set(encoded, data)
@@ -255,8 +265,8 @@ def cleanup_old_data(hive: HiveMind) -> None:
                 segment_name = room_name_to_segment[room_name]
                 del _get_segment(segment_name)[room_name]
                 del room_name_to_segment[room_name]
-                _modified_segments.add(segment_name)
-                _modified_segments.add(_metadata_segment)
+                _mark_modified(segment_name, "removed old room " + room_name)
+                _mark_modified(_metadata_segment, "removed mapping for old room " + room_name)
 
 
 _my_username = None  # type: Optional[str]
