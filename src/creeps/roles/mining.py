@@ -364,7 +364,7 @@ class RemoteReserve(TransportPickup):
                      controller.reservation.username)
         else:
             self.creep.reserveController(controller)
-            if Game.time % 5 and controller.reservation:
+            if Game.time % 5 == 2 and controller.reservation:
                 stored_data.set_reservation_time(self.pos.roomName, controller.reservation.ticksToEnd)
 
     def _calculate_time_to_replace(self):
