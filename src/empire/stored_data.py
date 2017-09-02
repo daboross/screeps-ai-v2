@@ -72,6 +72,17 @@ def final_modification_save():
     _segment_change_reasons.js_clear()
 
 
+def _parse_json_checked(raw_data, segment_name):
+    # type: (str) -> _Memory
+    try:
+        return cast(_Memory, JSON.parse(raw_data))
+    except:
+        msg = "segment {} data corrupted: invalid json! clearing data: {}".format(segment_name, raw_data)
+        print(msg)
+        Game.notify(msg)
+        return cast(_Memory, {})
+
+
 def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str]]:
     """
     Gets data from a segment, raising AssertionError if it's one of the known segments and it isn't loaded.
@@ -106,13 +117,7 @@ def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str
     if raw_data == "":
         segment_data = {}
     else:
-        try:
-            segment_data = JSON.parse(raw_data)
-        except:
-            msg = "segment {} data corrupted: invalid json! clearing data: {}".format(segment, raw_data)
-            print(msg)
-            Game.notify(msg)
-            segment_data = {}
+        segment_data = _parse_json_checked(raw_data, segment)
 
     _segments_last_retrieved.set(segment, Game.time)
     _segments_cache.set(segment, segment_data)

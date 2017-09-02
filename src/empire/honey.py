@@ -441,6 +441,20 @@ def get_room_list_from_serialized_obj(path_obj):
         return Object.keys(path_obj)
 
 
+def _stringify_possibly_non_displayable(thing: Any) -> str:
+    try:
+        return str(thing)
+    except:
+        return "<non-displayable>"
+
+
+def _deserialize_path_checked(path: str) -> Optional[List[_PathPos]]:
+    try:
+        return Room.deserializePath(path)
+    except:
+        return None
+
+
 class HoneyTrails:
     """
     :type hive: empire.hive.HiveMind
@@ -796,17 +810,11 @@ class HoneyTrails:
             enemy_ok = False
 
         if not isinstance(origin, RoomPosition):
-            try:
-                to_str = str(origin)
-            except:
-                to_str = "<non-displayable>"
-            raise AssertionError("Struct {} is not a room position! ({})".format(to_str, JSON.stringify(origin)))
+            raise AssertionError("Struct {} is not a room position! ({})".format(
+                _stringify_possibly_non_displayable(origin), JSON.stringify(origin)))
         if not isinstance(destination, RoomPosition):
-            try:
-                to_str = str(destination)
-            except:
-                to_str = "<non-displayable>"
-            raise AssertionError("Struct {} is not a room position! ({})".format(to_str, JSON.stringify(destination)))
+            raise AssertionError("Struct {} is not a room position! ({})".format(
+                _stringify_possibly_non_displayable(destination), JSON.stringify(destination)))
 
         result = PathFinder.search(origin, {"pos": destination, "range": pf_range}, {
             "plainCost": plain_cost,
@@ -1030,9 +1038,8 @@ class HoneyTrails:
 
         if serialized_path_obj is None or current_room not in serialized_path_obj:
             return []
-        try:
-            path = Room.deserializePath(serialized_path_obj[current_room])
-        except:
+        path = _deserialize_path_checked(serialized_path_obj[current_room])
+        if path is None:
             print("[honey] Serialized path from {} to {} with current-room {} was invalid.".format(
                 origin, destination, current_room))
             clear_cached_path(origin, destination, opts)

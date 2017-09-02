@@ -2271,7 +2271,7 @@ class RoomMind:
         if not self.my:
             return None
         if self.mem[mem_key_flag_for_testing_spawning_in_simulation]:
-            funcs_to_try = [
+            ordered_spawn_producers = [
                 lambda: self._check_role_reqs([
                     [role_spawn_fill, self.get_target_spawn_fill_mass, True],
                 ]),
@@ -2284,7 +2284,7 @@ class RoomMind:
                 self._next_neighbor_support_creep,
             ]
         else:
-            funcs_to_try = [
+            ordered_spawn_producers = [
                 self._next_needed_local_mining_role,
                 lambda: self._get_next_requested_creep(request_priority_imminent_threat_defense),
                 self.wall_defense,
@@ -2302,7 +2302,7 @@ class RoomMind:
                 self._next_neighbor_support_creep,
             ]  # type: List[Callable[..., Optional[Dict[str, Any]]]]
         next_role = None
-        for func in funcs_to_try:
+        for func in ordered_spawn_producers:
             next_role = func()
             if next_role:
                 maximum = spawning.max_sections_of(self, next_role[roleobj_key_base])
