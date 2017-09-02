@@ -124,8 +124,9 @@ def clear_cache():
         if mem[rmem_key_metadata] and (not _.get(Game.rooms, [name, 'controller', 'my'])):
             if mem[rmem_key_metadata].clear_next < Game.time - 600 * 1000:
                 # we've been dead for a long while, and haven't been cleaned up..
-                Game.notify("[consistency] Cleaning up memory for dead room {}".format(name))
-                console.log("[consistency] Cleaning up memory for dead room {}".format(name))
+                msg = "[consistency] Cleaning up memory for dead room {}".format(name)
+                Game.notify(msg)
+                print(msg)
                 del Memory.rooms[name]
     for name, mem in _.pairs(Memory.flags):
         if _.isEmpty(mem):

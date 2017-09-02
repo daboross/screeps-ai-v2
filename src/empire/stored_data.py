@@ -110,7 +110,7 @@ def _get_segment(segment: int, optional: bool = False) -> Optional[Dict[str, str
             segment_data = JSON.parse(raw_data)
         except:
             msg = "segment {} data corrupted: invalid json! clearing data: {}".format(segment, raw_data)
-            console.log(msg)
+            print(msg)
             Game.notify(msg)
             segment_data = {}
 
@@ -172,7 +172,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
             # not a segment we store data in!
             msg = "[stored_data] room name {} stored in segment {}, which is not a known segment for storing " \
                   "serialized data! discarding segment name association!".format(room_name, segment)
-            console.log(msg)
+            print(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
             _mark_modified(_metadata_segment, "fixed metadata mapping inconsistency")
@@ -185,7 +185,7 @@ def _get_serialized_data(room_name) -> Optional[str]:
         else:
             msg = "[stored_data] room name {} stored in segment {}, but no data for that room in that segment! " \
                   "discarding segment name association!".format(room_name, segment)
-            console.log(msg)
+            print(msg)
             Game.notify(msg)
             del room_name_to_segment[room_name]
             _mark_modified(_metadata_segment, "fixed metadata mapping inconsistency")
@@ -239,7 +239,7 @@ def cleanup_old_data(hive: HiveMind) -> None:
                     nearest_room,
                     distance,
                 )
-                console.log(msg)
+                print(msg)
                 Game.notify(msg)
                 segment_name = room_name_to_segment[room_name]
                 del _get_segment(segment_name)[room_name]

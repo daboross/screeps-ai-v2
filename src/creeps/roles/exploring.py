@@ -138,7 +138,7 @@ class Scout(MilitaryBase):
                         (", and shut down mining operations in rooms {}".format(with_mining_op_shutdowns)
                          if len(with_mining_op_shutdowns) else ""),
                     )
-                    console.log(message)
+                    print(message)
                     Game.notify(message)
 
     def _calculate_time_to_replace(self):

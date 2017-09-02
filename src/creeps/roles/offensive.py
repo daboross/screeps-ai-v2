@@ -164,7 +164,7 @@ class Dismantler(MilitaryBase):
         stored_data.update_data(self.room.room)
         msg = "[dismantle][{}][{}] Dismantle job at {},{} completed! {} untargeting.".format(
             target.pos.roomName, Game.time, target.pos.x, target.pos.y, self.name)
-        console.log(msg)
+        print(msg)
         Game.notify(msg)
         target.remove()
 
