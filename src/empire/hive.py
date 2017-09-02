@@ -4,7 +4,6 @@ from constants import *
 from creep_management import creep_wrappers
 from empire.honey import HoneyTrails
 from empire.states import StateCalc
-from jstools import errorlog
 from jstools.screeps import *
 from position_management import flags
 from rooms.room_constants import room_spending_state_visual
