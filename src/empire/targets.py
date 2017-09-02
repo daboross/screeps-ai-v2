@@ -218,6 +218,8 @@ class TargetMind:
                 del self.targets[ttype][old_target_id]
             if ttype in self.targets_workforce and old_target_id in self.targets_workforce[ttype]:
                 self.targets_workforce[ttype][old_target_id] -= _mass_count(targeter_id)
+                if self.targets_workforce[ttype][old_target_id] <= 0:
+                    del self.targets_workforce[ttype][old_target_id]
             if ttype in self.reverse_targets and old_target_id in self.reverse_targets[ttype]:
                 index = self.reverse_targets[ttype][old_target_id].indexOf(targeter_id)
                 if index > -1:
