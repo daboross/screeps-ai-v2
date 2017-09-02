@@ -13,15 +13,33 @@ class _GameCpu:
     :type limit: int
     :type tickLimit: int
     :type bucket: int
+    :type shardLimits: Dict[str, int]
     """
 
-    def __init__(self, limit: int, tickLimit: int, bucket: int) -> None:
+    def __init__(self, limit: int, tickLimit: int, bucket: int, shardLimits: Dict[str, int]) -> None:
         self.limit = limit
         self.tickLimit = tickLimit
         self.bucket = bucket
+        self.shardLimits = shardLimits
 
     def getUsed(self) -> float:
         pass
+
+    def setShardLimits(self, shardLimits: Dict[str, int]) -> int:
+        pass
+
+
+class _GameShard:
+    """
+    :type name: str
+    :type type: str
+    :type ptr: bool
+    """
+
+    def __init__(self, name: str, type: str, ptr: bool) -> None:
+        self.name = name
+        self.type = type
+        self.ptr = ptr
 
 
 # noinspection PyPep8Naming
@@ -209,6 +227,7 @@ class Game:
     market = None  # type: _GameMarket
     resources = {}  # type: Dict[str, int]
     rooms = {}  # type: Dict[str, Room]
+    shard = None  # type: _GameShard
     spawns = {}  # type: Dict[str, StructureSpawn]
     structures = {}  # type: Dict[str, OwnedStructure]
     time = 0  # type: int

@@ -10,7 +10,7 @@ from constants import default_roles, rmem_key_pause_all_room_operations, role_ha
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
-from empire import honey, stored_data
+from empire import honey, shard_check, stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
@@ -276,6 +276,13 @@ def main():
     context.set_hive(hive)
 
     records.finish_record('hive.init')
+
+    records.start_record()
+    pause_by_shard = shard_check.tick_shard_limit_check(hive)
+    records.finish_record('shard-check.check')
+
+    if pause_by_shard:
+        return
 
     if Game.time % 320 == 53:
         records.start_record()
