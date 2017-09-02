@@ -1,3 +1,5 @@
+from typing import Any, Callable, TypeVar
+
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -11,7 +13,7 @@ __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
 
-def report_error(place, err, description):
+def report_error(place: str, err: Any, description: str):
     if err == undefined:
         if err is None:
             err_description = "null error"
@@ -32,13 +34,14 @@ def report_error(place, err, description):
         __pragma__('js', 'throw err;')
 
 
-def try_exec(place, thing, error_description, *args):
-    """
-    :type place: str
-    :type thing: callable
-    :type error_description: callable
-    :type args: any
-    """
+__pragma__('skip')
+_T = TypeVar('_T')
+_I = TypeVar('_I')
+_O = TypeVar('_O')
+__pragma__('noskip')
+
+
+def try_exec(place: str, thing: Callable[Any, _T], error_description: Callable[Any, str], *args: Any) -> _T:
     result = True
     try:
         result = thing(*args)
@@ -54,3 +57,19 @@ def execute(thing, *args):
     except:
         report_error(thing.place, __except0__, thing.err_desc(*args))
     return result
+
+
+def wrapped(place: str, error_description: Callable[_I, str], error_return=True) \
+        -> Callable[[Callable[_I, _O]], Callable[_I, _O]]:
+    def wrap(thing):
+        def new_definition(*args):
+            result = error_return
+            try:
+                result = thing(*args)
+            except:
+                report_error(place, __except0__, error_description(*args))
+            return result
+
+        return new_definition
+
+    return wrap

@@ -292,7 +292,7 @@ class HiveMind:
         """
         home = self.get_room(creep.memory.home)
         if home:
-            return errorlog.execute(creep_wrappers.wrap_creep, self, self.targets, home, creep)
+            return creep_wrappers.wrap_creep(self, self.targets, home, creep)
         else:
             raise AssertionError("[hive]Invalid value to wrap_creep: {} with memory {}"
                                  .format(creep, JSON.stringify(creep.memory)))

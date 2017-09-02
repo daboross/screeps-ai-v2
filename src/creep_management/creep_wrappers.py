@@ -4,6 +4,7 @@ from constants import *
 from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
     sacrificial, smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility
 from creeps.squads import dismantling
+from jstools import errorlog
 from jstools.screeps import *
 
 __pragma__('noalias', 'name')
@@ -72,6 +73,14 @@ if TYPE_CHECKING:
     from creeps.base import RoleBase
 
 
+def _error_description(_hive, _targets, home, creep):
+    # type: (HiveMind, TargetMind, RoomMind, creep) -> str
+    return "Error creating role wrapper for {} for creep {} (home: {})".format(
+        creep.memory.role, creep.name, home
+    )
+
+
+@errorlog.wrapped("wrap_creep", _error_description, None)
 def wrap_creep(hive, targets, home, creep):
     # type: (HiveMind, TargetMind, RoomMind, creep) -> Optional[RoleBase]
     """
@@ -81,7 +90,6 @@ def wrap_creep(hive, targets, home, creep):
     :param home: The creep's home room
     :param creep: The creep to wrap
     :return: The role class, providing methods specific to the role, including run()
-    :rtype: creeps.base.RoleBase
     """
     role = creep.memory.role
     if role in role_classes:
@@ -91,11 +99,3 @@ def wrap_creep(hive, targets, home, creep):
         return role_classes[role](hive, targets, home, creep)
     else:
         return None
-
-
-wrap_creep.err_desc = lambda hive, targets, home, creep: (
-    "Error creating role wrapper for {} for creep {} (home: {})".format(
-        creep.memory.role, creep.name, home
-    ))
-
-wrap_creep.place = "wrap_creep"

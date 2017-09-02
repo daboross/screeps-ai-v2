@@ -9,7 +9,6 @@ from constants.memkeys.room import *
 from creep_management import creep_wrappers, spawning
 from creep_management.spawning import fit_num_sections
 from empire import stored_data
-from jstools import errorlog
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from position_management import flags
@@ -633,7 +632,7 @@ class RoomMind:
             creep = creep.wrapped
         else:
 
-            creep = errorlog.execute(creep_wrappers.wrap_creep, self.hive, self.hive.targets, self, creep)
+            creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
             if creep is None:
                 print("[{}] could not wrap creep {} to get replacement time.".format(self.name, creep.name))
                 return Infinity

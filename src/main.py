@@ -1,5 +1,5 @@
 import math
-from typing import Any, Callable, Dict, List, Optional, TypeVar, cast
+from typing import Dict, List, Optional
 
 import constants
 import creeps.roles.squads
@@ -61,27 +61,14 @@ def init_memory():
     _memory_init = end - start
 
 
-def report_error(err, description):
-    # type: (str, str) -> None
-    return errorlog.report_error('main', err, description)
-
-
-__pragma__('skip')
-_A = TypeVar('_A')
-_R = TypeVar('_R')
-__pragma__('noskip')
-
-
-def try_thing(thing, *args):
-    # type: (Callable[..., _R], _A) -> _R
-    return errorlog.try_exec('main', thing, cast(Any, thing).err_desc, *args)
-
-
-def try_thing2(thing, err_desc, *args):
-    # type: (Callable[..., _R], Callable[..., str], _A) -> _R
-    return errorlog.try_exec('main', thing, err_desc, *args)
-
-
+@errorlog.wrapped(
+    "main",
+    lambda hive, targets, creeps_skipped, room, creep: (
+            "Error running role {}, creep {} at {} from room {} not run this tick.".format(
+                creep.memory.role, creep.name, creep.pos, creep.memory.home
+            )
+    )
+)
 def run_creep(hive, targets, creeps_skipped, room, creep):
     # type: (HiveMind, TargetMind, Dict[str, List[str]], RoomMind, Creep) -> None
     if Game.cpu.getUsed() > Game.cpu.limit * 0.5 and (Game.cpu.bucket < 3000 and
@@ -133,12 +120,10 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
     records.finish_record(creep.memory.role)
 
 
-run_creep.err_desc = lambda hive, targets, creeps_skipped, room, creep: (
-    "Error running role {}, creep {} at {} from room {} not run this tick.".format(
-        creep.memory.role, creep.name, creep.pos, creep.memory.home
-    ))
-
-
+@errorlog.wrapped(
+    "main",
+    lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
+)
 def run_room(targets, creeps_skipped, room):
     # type: (TargetMind, Dict[str, List[str]], RoomMind) -> None
     if room.mem[rmem_key_pause_all_room_operations]:
@@ -152,22 +137,25 @@ def run_room(targets, creeps_skipped, room):
             if role == role_spawn_fill or role == role_tower_fill \
                     or role == role_link_manager or role == role_hauler or role == role_miner \
                     or role == role_ranged_offense or role == role_wall_defender:
-                try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
+                run_creep(room.hive, targets, creeps_skipped, room, creep)
         for name in Memory.skipped_last_turn[room.name]:
             creep = Game.creeps[name]
             if creep:
-                try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
+                run_creep(room.hive, targets, creeps_skipped, room, creep)
 
     else:
         records.start_record()
         room.precreep_tick_actions()
         records.finish_record('room.tick')
         for creep in room.creeps:
-            try_thing(run_creep, room.hive, targets, creeps_skipped, room, creep)
+            run_creep(room.hive, targets, creeps_skipped, room, creep)
         if Game.cpu.bucket >= 4500 and (Game.time + room.get_unique_owned_index()) % 50 == 0:
             records.start_record()
-            actually_did_anything = try_thing2(room.building.build_most_needed_road,
-                                               lambda: "Error running road building in {}.".format(room.name))
+            actually_did_anything = errorlog.try_exec(
+                "main",
+                room.building.build_most_needed_road,
+                lambda: "Error running road building in {}.".format(room.name)
+            )
             if actually_did_anything:
                 records.finish_record('building.roads.check-pavement')
             else:
@@ -205,9 +193,7 @@ def run_room(targets, creeps_skipped, room):
     records.finish_record('observer.tick')
 
 
-run_room.err_desc = lambda targets, creeps_skipped, room: "Error running room {}".format(room.name)
-
-
+@errorlog.wrapped("main", lambda: "error running main")
 def main():
     global _memory_init
     # This check is here in case it's a global reset, and we've already initiated memory.
@@ -351,7 +337,7 @@ def main():
                 print("[{}] Room no longer visible? skipping re-running creeps skipped last turn from this room."
                       .format(room_name))
                 continue
-            try_thing(run_room, targets, creeps_skipped, room)
+            run_room(targets, creeps_skipped, room)
         del Memory.skipped_last_turn
     else:
         rooms = hive.my_rooms
@@ -360,7 +346,7 @@ def main():
             rooms = rooms[0:len(rooms) - 1]
         used_start = Game.cpu.getUsed()
         for room in rooms:
-            try_thing(run_room, targets, creeps_skipped, room)
+            run_room(targets, creeps_skipped, room)
             if Game.cpu.getUsed() - used_start >= 400:
                 print("[main] Used >= 400 CPU this tick! Skipping everything else.")
                 return
