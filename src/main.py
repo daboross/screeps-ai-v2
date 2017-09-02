@@ -48,6 +48,17 @@ Object.defineProperty([].__proto__, 'azdef', {
 });
 """)
 
+
+def _calc_early_exit_cpu():
+    # type: () -> int
+    if Game.cpu.tickLimit == 500:
+        return 450
+    else:
+        return max(Game.cpu.limit, Game.cpu.tickLimit - 50, int((Game.cpu.limit + Game.cpu.tickLimit) / 2))
+
+
+_early_exit_cpu = _calc_early_exit_cpu()
+
 _memory_init = None  # type: Optional[int]
 
 
@@ -142,6 +153,8 @@ def run_room(targets, creeps_skipped, room):
             creep = Game.creeps[name]
             if creep:
                 run_creep(room.hive, targets, creeps_skipped, room, creep)
+                if Game.cpu.getUsed() > _early_exit_cpu:
+                    return
 
     else:
         records.start_record()
@@ -149,6 +162,8 @@ def run_room(targets, creeps_skipped, room):
         records.finish_record('room.tick')
         for creep in room.creeps:
             run_creep(room.hive, targets, creeps_skipped, room, creep)
+            if Game.cpu.getUsed() > _early_exit_cpu:
+                return
         if Game.cpu.bucket >= 4500 and (Game.time + room.get_unique_owned_index()) % 50 == 0:
             records.start_record()
             actually_did_anything = errorlog.try_exec(
@@ -195,7 +210,7 @@ def run_room(targets, creeps_skipped, room):
 
 @errorlog.wrapped("main", lambda: "error running main")
 def main():
-    global _memory_init
+    global _memory_init, _early_exit_cpu
     # This check is here in case it's a global reset, and we've already initiated memory.
     if _memory_init is None:
         init_memory()
@@ -204,6 +219,8 @@ def main():
     records.start_main_record()
     records.record_memory_amount(_memory_init)
     _memory_init = None  # type: Optional[int]
+
+    _early_exit_cpu = _calc_early_exit_cpu()
 
     records.start_record()
     stored_data.initial_modification_check()
@@ -327,6 +344,10 @@ def main():
         hive.states.calculate_room_states()
         records.finish_record('hive.calc-states')
 
+    if Game.cpu.getUsed() > _early_exit_cpu:
+        print("[main] used >= {} CPU - exiting. completed 0 rooms".format(_early_exit_cpu))
+        records.finish_main_record()
+        return
     creeps_skipped = {}
     if 'skipped_last_turn' in Memory:
         print("[main] Running {} creeps skipped last tick, to save CPU.".format(
@@ -341,14 +362,16 @@ def main():
         del Memory.skipped_last_turn
     else:
         rooms = hive.my_rooms
-        if Game.gcl.level > 1 and Game.cpu.bucket <= 4000:
+        if Game.cpu.bucket <= 4000 and len(rooms) > 1:
             rooms = _.sortBy(rooms, lambda r: -r.rcl - r.room.controller.progress / r.room.controller.progressTotal)
             rooms = rooms[0:len(rooms) - 1]
-        used_start = Game.cpu.getUsed()
         for room in rooms:
             run_room(targets, creeps_skipped, room)
-            if Game.cpu.getUsed() - used_start >= 400:
-                print("[main] Used >= 400 CPU this tick! Skipping everything else.")
+            if Game.cpu.getUsed() > _early_exit_cpu:
+                print("[main] used >= {} CPU - exiting. completed {}/{} rooms".format(
+                    _early_exit_cpu, __pragma__('js', '__index0__'), len(rooms)
+                ))
+                records.finish_main_record()
                 return
 
     records.start_record()
