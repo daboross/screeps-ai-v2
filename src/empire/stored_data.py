@@ -496,47 +496,6 @@ def set_reservation_time(room_name: str, reservation_time: int) -> None:
     _set_new_data(room_name, data)
 
 
-def migrate_old_data() -> None:
-    definition = flags.flag_definitions[flags.SK_LAIR_SOURCE_NOTED]
-    if Memory.enemy_rooms:
-        for room_name in Memory.enemy_rooms:
-            set_as_enemy(room_name, 'Unknown / migrated from Memory.enemy_rooms')
-            print('[storage] Removing migrated enemy_rooms.')
-        del Memory.enemy_rooms
-    sk_flags = _(Game.flags).filter(lambda f: f.color == definition[0] and f.secondaryColor == definition[1]) \
-        .groupBy('pos.roomName').value()
-    if not _.isEmpty(sk_flags):
-        for room_name in Object.keys(sk_flags):
-            flags_here = sk_flags[room_name]
-            serialized = _get_serialized_data(room_name)
-            if serialized:
-                # don't use decoding cache, since then we would invalidate the cache for the old encoded string
-                data = StoredRoom.decode(serialized)
-            else:
-                data = __new__(StoredRoom())
-            already_existing = new_set()
-            for obstacle in data.obstacles:
-                if obstacle.type == StoredObstacleType.SOURCE_KEEPER_LAIR \
-                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_MINERAL \
-                        or obstacle.type == StoredObstacleType.SOURCE_KEEPER_SOURCE:
-                    already_existing.add(positions.serialize_pos_xy(obstacle))
-            new_stored = []
-            for flag in flags_here:
-                serialized = positions.serialize_pos_xy(flag)
-                if not already_existing.has(serialized):
-                    new_stored.append(__new__(StoredObstacle(
-                        flag.pos.x, flag.pos.y, StoredObstacleType.SOURCE_KEEPER_LAIR)))
-                    already_existing.add(serialized)
-                    print('[storage] Successfully migrated SK flag in {} at {},{} to data storage.'
-                          .format(room_name, flag.pos.x, flag.pos.y))
-            if len(new_stored):
-                _set_new_data(room_name, data)
-            for flag in flags_here:
-                print('[storage] Removing migrated SK flag {} in {} at {},{}.'
-                      .format(flag.name, flag.pos.roomName, flag.pos.x, flag.pos.y))
-                flag.remove()
-
-
 def set_as_enemy(room_name: str, username: str = None) -> None:
     if username is None:
         username = "Manually set"
