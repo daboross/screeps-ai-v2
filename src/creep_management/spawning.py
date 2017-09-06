@@ -428,8 +428,7 @@ def run(room, spawn):
         energy_counter = move_cost + carry_cost
         part_counter = 2
         move_counter = 0.25
-        # TODO: this would be a lot nicer if it had calculations, but this is honestly a lot easier to write it like
-        # this for now.
+        # TODO: this would be much better if done in constant time.
         for i in range(0, 2):
             if part_counter >= MAX_CREEP_SIZE:
                 break
@@ -439,7 +438,7 @@ def run(room, spawn):
             # energy_counter += carry_cost
             # part_counter += 1
             # move_counter += 0.25
-            for j in range(0, 25):
+            for _ignored in range(0, 25):
                 if move_counter >= 1:
                     if part_counter >= MAX_CREEP_SIZE:
                         break
@@ -845,10 +844,3 @@ def ceil_sections(count, base=None):
     if base is not None and base not in half_sections:
         return math.ceil(count)
     return math.ceil(count * 2) / 2
-
-
-def floor_sections(count, base=None):
-    # type: (float, Optional[str]) -> float
-    if base is not None and base not in half_sections:
-        return math.floor(count)
-    return math.floor(count * 2) / 2

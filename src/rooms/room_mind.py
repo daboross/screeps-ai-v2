@@ -177,12 +177,6 @@ class RoomMind:
             self.mem[mem_key_cache] = {}
         self.mem[mem_key_cache][name] = {"value": value, "dead_at": Game.time + ttl}
 
-    def store_cached_property_at(self, name, value, dead_at):
-        # type: (str, Any, int) -> None
-        if not self.mem[mem_key_cache]:
-            self.mem[mem_key_cache] = {}
-        self.mem[mem_key_cache][name] = {"value": value, "dead_at": dead_at}
-
     def delete_cached_property(self, name):
         # type: (str) -> None
         if not self.mem[mem_key_cache]:
@@ -482,7 +476,7 @@ class RoomMind:
         else:
             self.work_mass_map[role] = spawning.work_count(creep)
         rt_map = self._get_rt_map()
-        rt_pair = [creep.name, self.replacement_time_of(creep)]
+        rt_pair = (creep.name, self.replacement_time_of(creep))
         if not rt_map[role]:
             rt_map[role] = [rt_pair]
         else:
@@ -1896,7 +1890,7 @@ class RoomMind:
             role_spawn_fill: self.get_target_spawn_fill_size,
             role_tower_fill: self.get_target_spawn_fill_size,
             role_upgrader: self.get_upgrader_size,
-            role_upgrade_fill: self.get_target_upgrade_fill_mass,
+            role_upgrade_fill: self.get_upgrade_fill_size,
             role_defender: lambda: min(4, spawning.max_sections_of(self, creep_base_defender)),
             role_wall_defender: lambda: spawning.max_sections_of(self, creep_base_rampart_defense),
             role_room_reserve:

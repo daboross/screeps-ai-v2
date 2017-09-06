@@ -1,6 +1,7 @@
 import math
 from typing import Any, Callable, Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
+from cache import volatile_cache
 from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, role_squad_dismantle, role_squad_heal, \
     role_squad_ranged
 from creeps.roles.squads import SquadDrone
@@ -642,7 +643,7 @@ class SquadDismantle(SquadDrone):
 
         if best_structure:
             result = self.creep.dismantle(best_structure)
-            self._dismantled = best_structure
+            volatile_cache.mem('dismantle_squad_dismantling').set(target.name, best_structure)
             if result == OK:
                 if best_structure.hits < our_dismantle_power \
                         or best_structure.hits < our_dismantle_power + _.sum(

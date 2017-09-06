@@ -306,24 +306,6 @@ class RoomDefense:
             self._cache.set('any_broken_walls', broken)
             return broken
 
-    def urgent_wall_repairs(self):
-        # type: () -> bool
-        """
-        Gets any walls which urgently need repair.
-        """
-        if self._cache.has("urgent_walls"):
-            return self._cache.get("urgent_walls")
-        else:
-            def hits(wall_id):
-                wall = cast(Structure, Game.getObjectById(wall_id))
-                if wall:
-                    return wall.hits
-                else:
-                    return
-
-            average = _(self.room.building.get_big_repair_targets()).map(
-                lambda x: Game.getObjectById(x)).filter().pluck('hits"')
-
     def has_significant_nukes(self):
         # type: () -> bool
         has_significant_nukes = self.room.get_cached_property('s-nukes')
@@ -425,7 +407,6 @@ class RoomDefense:
         """
         under_siege = self.room.mem[rmem_key_currently_under_siege]
         user = hostile.owner.username
-        owner_hostile = self.hostile_users().includes(user)
         if user == INVADER_USERNAME:
             if not hostile.hasBodyparts(ATTACK) and not hostile.hasBodyparts(RANGED_ATTACK):
                 if self.any_attack_invaders():
@@ -998,10 +979,8 @@ class RoomDefense:
             return
         total_noninvader = 0
         hostiles = self.dangerous_hostiles()
-        user = None
         for hostile in hostiles:
             if hostile.owner.username != INVADER_USERNAME:
-                user = hostile.owner.username
                 for part in hostile.body:
                     if part.type == ATTACK:
                         if part.boost:
@@ -1189,5 +1168,3 @@ class RoomDefense:
                     result.push(loc)
         self._cache.set('old_defender_spots', result)
         return result
-
-    broken_walls = property(any_broken_walls)

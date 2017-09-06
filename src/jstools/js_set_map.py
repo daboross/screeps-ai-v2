@@ -1,4 +1,4 @@
-from typing import Generic, Iterable, Optional, Tuple, TypeVar
+from typing import Generic, Iterable, Optional, Tuple, TypeVar, cast
 
 from jstools.screeps import *
 
@@ -72,7 +72,7 @@ def new_map(iterable=undefined):
     """
     :rtype: JSMap
     """
-    return __new__(__pragma__('js', 'Map')(iterable))
+    return cast(JSMap, __new__(__pragma__('js', 'Map')(iterable)))
 
 
 def new_set(iterable=undefined):
@@ -80,4 +80,4 @@ def new_set(iterable=undefined):
     """
     :rtype: JSSet
     """
-    return __new__(__pragma__('js', 'Set')(iterable))
+    return cast(JSSet, __new__(__pragma__('js', 'Set')(iterable)))

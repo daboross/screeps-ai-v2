@@ -50,15 +50,6 @@ def try_exec(place: str, thing: Callable[Any, _T], error_description: Callable[A
     return result
 
 
-def execute(thing, *args):
-    result = None
-    try:
-        result = thing(*args)
-    except:
-        report_error(thing.place, __except0__, thing.err_desc(*args))
-    return result
-
-
 def wrapped(place: str, error_description: Callable[_I, str], error_return=True) \
         -> Callable[[Callable[_I, _O]], Callable[_I, _O]]:
     def wrap(thing):

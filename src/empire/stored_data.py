@@ -349,16 +349,6 @@ def _find_room_owner(room: Room) -> Optional[StoredEnemyRoomOwner]:
         return __new__(StoredEnemyRoomOwner(name, state))
 
 
-def update_data_for_visible_rooms() -> None:
-    """
-    Updates all visible rooms with structure, owner and reservation data.
-    """
-    for name in Object.keys(Game.rooms):
-        room = Game.rooms[name]
-        if not room.controller or not room.controller.my:
-            update_data(room)
-
-
 def update_old_structure_data_for_visible_rooms() -> None:
     """
     Updates structure data older than 3000 ticks for visible rooms.

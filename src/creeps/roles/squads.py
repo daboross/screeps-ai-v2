@@ -1,5 +1,6 @@
 from typing import List, Optional, cast
 
+from cache import volatile_cache
 from constants import role_recycling, role_squad_dismantle, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
@@ -231,9 +232,9 @@ class SquadRangedAttack(SquadDrone):
                              .format(self.creep, best, result))
                 attacked = True
         if not attacked:
-            dismantler = _.find(members, lambda x: x.memory.role == role_squad_dismantle)
-            if dismantler and '_dismantled' in dismantler:
-                self.creep.rangedAttack(dismantler['_dismantled'])
+            to_dismantle = volatile_cache.mem('dismantle_squad_dismantling').get(target.name)
+            if to_dismantle:
+                self.creep.rangedAttack(to_dismantle)
 
     def findSpecialty(self):
         return RANGED_ATTACK
@@ -451,7 +452,7 @@ class SquadKitingAttack(SquadDrone):
 
         if len(hostiles_nearby):
             if _.find(hostiles_nearby, lambda h: h.offensive and movement.chebyshev_distance_room_pos(
-                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room) <= 5)):
+                    self.pos, positions.deserialize_xy_to_pos(h.pos, h.room)) <= 5):
                 hostiles_nearby = _.filter(hostiles_nearby, 'offensive')
             nearby = _.filter(hostiles_nearby,
                               lambda h: movement.chebyshev_distance_room_pos(

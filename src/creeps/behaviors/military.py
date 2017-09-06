@@ -124,9 +124,9 @@ class MilitaryBase(RoleBase):
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if chebyshev_distance_room_pos(origin, target) > 900 \
                 and not is_path_portal(origin, target):
-            path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
-            path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
-            path_opts.use_roads = False
+            path_opts['max_ops'] = chebyshev_distance_room_pos(origin, target) * 150
+            path_opts['max_rooms'] = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
+            path_opts['use_roads'] = False
             # TODO: handle this better (this is for not having multiple super-duper-long cached paths)
             if to_home:
                 intermediate = find_an_open_space(origin.roomName)

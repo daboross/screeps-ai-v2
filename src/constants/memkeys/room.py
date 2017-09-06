@@ -46,4 +46,3 @@ mem_key_squad_memory = 'sqmem'
 
 cache_key_spending_now = 'ss'
 cache_key_squads = 'sqds'
-cache_key_squad_prefix = 'sq&'

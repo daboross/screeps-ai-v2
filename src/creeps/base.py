@@ -374,7 +374,7 @@ class RoleBase:
             self.home.building.place_depot_flag()
             depots = flags.find_flags_global(DEPOT)
             if len(depots):
-                depot = _.min(depots, lambda d: movement.chebyshev_distance_room_pos(self.pos, d)).pos
+                depot = _.min(depots, lambda d: movement.chebyshev_distance_room_pos(self.pos, d.pos)).pos
             elif self.home.spawn:
                 depot = self.home.spawn.pos
             else:
@@ -572,7 +572,7 @@ class RoleBase:
             if not creep_cond(other):
                 return False
             other.move(movement.dxdy_to_direction(self.pos.x - x, self.pos.y - y))
-            other._forced_move = True
+            # other._forced_move = True  - never used
         self.creep.move(movement.dxdy_to_direction(x - self.pos.x, y - self.pos.y))
         return True
 

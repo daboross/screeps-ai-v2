@@ -544,11 +544,11 @@ def rename_flags():
     # type: () -> Optional[str]
     refresh_flag_caches()
     for name in Object.keys(flag_definitions):
-        for flag in find_flags_global(name):
+        for flag in find_flags_global(int(name)):
             if Game.cpu.getUsed() > 400:
                 refresh_flag_caches()
                 return "Used too much CPU!"
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or not flag.name.includes('_')) \
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") and not flag.name.includes('_')) \
                     and flag.name not in Memory.flags:
                 new_name = create_flag(flag.pos, name)
                 if Memory.flags[flag.name]:
@@ -556,12 +556,16 @@ def rename_flags():
                         Memory.flags[new_name] = Memory.flags[flag.name]
                     del Memory.flags[flag.name]
                 flag.remove()
+            elif flag.name.startswith("Flag"):
+                print("flag {} inaccessible. (type: {}, location: {}) (room ok: {}, memory ok: {})"
+                      .format(flag.name, flag.hint, flag.pos, not not Game.rooms[flag.pos.roomName],
+                              flag.name not in Memory.flags))
     for main in Object.keys(main_to_flag_primary):
         for flag, sub in find_by_main_with_sub_global(main):
             if Game.cpu.getUsed() > 400:
                 refresh_flag_caches()
                 return "Used too much CPU!"
-            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") or not flag.name.includes('_')) \
+            if Game.rooms[flag.pos.roomName] and (flag.name.startswith("Flag") and not flag.name.includes('_')) \
                     and flag.name not in Memory.flags:
                 new_name = create_ms_flag(flag.pos, main, sub)
                 if Memory.flags[flag.name]:
@@ -569,6 +573,10 @@ def rename_flags():
                         Memory.flags[new_name] = Memory.flags[flag.name]
                     del Memory.flags[flag.name]
                 flag.remove()
+            elif flag.name.startswith("Flag"):
+                print("flag {} inaccessible. (type: {}, location: {}) (room ok: {}, memory ok: {})"
+                      .format(flag.name, flag.hint, flag.pos, not not Game.rooms[flag.pos.roomName],
+                              flag.name not in Memory.flags))
     refresh_flag_caches()
 
 
@@ -633,6 +641,8 @@ def _flag_hint():
     if reverse_primary:
         if this.secondaryColor in reverse_primary:
             result = reverse_primary[this.secondaryColor]
+            if result is undefined:
+                result = None
     Object.defineProperty(this, 'hint', {
         'value': result,
         'enumerable': True,
