@@ -78,7 +78,7 @@ class StoredRoom:
         if structures is None:
             structures = []
         if last_updated is None:
-            last_updated = 0  # type: int
+            last_updated = 0
         if reservation_end is None:
             reservation_end = 0
         self.obstacles = obstacles  # type: List[StoredObstacle]

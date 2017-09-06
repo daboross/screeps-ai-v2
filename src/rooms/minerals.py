@@ -489,7 +489,7 @@ class MineralMind:
         if self._labs_for_mineral is not undefined:
             return self._labs_for_mineral
         lab_targets = self.get_lab_targets()
-        result = {}
+        result = {}  # type: Dict[str, List[Tuple[StructureLab, int]]]
         for lab, mineral, amount in lab_targets:
             if lab.mineralAmount < amount:
                 if mineral in result:

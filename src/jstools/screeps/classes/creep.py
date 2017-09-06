@@ -38,7 +38,7 @@ class Creep(RoomObject):
     :type ticksToLive: int
     """
 
-    prototype = ClassVar(None)  # type: ClassVar[Any]
+    prototype = None  # type: ClassVar[Any]
 
     def __init__(self, pos: RoomPosition, room: Room, body: List[_CreepPart], carry: Dict[str, int],
                  carryCapacity: int, fatigue: int, hits: int, hitsMax: int, _id: str, memory: _Memory,

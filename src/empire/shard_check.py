@@ -1,3 +1,5 @@
+import math
+
 from constants.memkeys import global_mem_key_next_shard_set_attempt
 from empire.hive import HiveMind
 from jstools.screeps import *
@@ -43,21 +45,26 @@ def tick_shard_limit_check(hive: HiveMind) -> bool:
                 ratios[shard] = current_limits[shard] / except_me
 
         gcl = Game.gcl.level
-        per_gcl = total / (gcl + 2)
+        per_gcl = math.ceil(total / (gcl + 2))
         owned = len(hive.my_rooms)
 
         if owned:
             we_need = owned * per_gcl
         else:
-            we_need = per_gcl / 2
+            we_need = math.ceil(per_gcl / 2)
         the_rest = total - we_need
         new_limits = {}
+        extra_fraction = 0
         for shard in all_shards:
             if shard == this_shard:
                 new_limits[shard] = we_need
             else:
-                new_limits[shard] = ratios[shard] * the_rest
-
+                for_here_fraction = ratios[shard] * the_rest
+                for_here = math.floor(for_here_fraction)
+                extra_fraction += for_here_fraction - for_here
+                new_limits[shard] = for_here
+        if extra_fraction >= 1:
+            new_limits[this_shard] += math.ceil(extra_fraction)
         msg = (
             "code on shard {} has no CPU allocated!"
             "current-limits={}, "

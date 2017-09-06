@@ -15,7 +15,7 @@ __pragma__('noalias', 'values')
 
 _mem_hints = None  # type: Optional[Dict[str, int]]
 _mem_expirations = None  # type: Optional[Dict[str, int]]
-_mem = None
+_mem = None  # type: Optional[Dict[str, str]]
 _created_objects = None
 _last_update = 0
 
@@ -30,7 +30,7 @@ class Location(RoomPosition):
     :type hint: int
     """
 
-    def __init__(self, x: int, y: int, roomName: str, name: str, hint: int):
+    def __init__(self, x: int, y: int, roomName: str, name: str, hint: int) -> None:
         super().__init__(x, y, roomName)
         self.name = name
         self.hint = hint

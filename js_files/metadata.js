@@ -692,11 +692,13 @@ function defineRoomMetadataPrototypes() {
                     }
                 }
             }
-            if (currentCharData) {
-                // To be honest, this _could_ have data in it that's = 0, but a null byte is not very well serialized
-                // to JSON. Instead, we just append 2 '0's whenever decoding something, and that works out alright.
+
+            // If we've already covered all data, or the last bit of data is 0, don't serialize it. When decoding,
+            // we append two 0 bytes to compensate.
+            if (currentCharData !== 0) {
                 result.push(String.fromCodePoint(currentCharData));
             }
+
             return result.join('');
         },
         decode: function (string) {
@@ -721,8 +723,10 @@ function defineRoomMetadataPrototypes() {
                     }
                 }
             }
-            // This could have been unmodified, but at worst that just adds an extra '0' to the end!
-            // Pbf ignores bytes after the message ends, so it doesn't really matter.
+
+            // When encoding, the last byte is skipped if it's 0. To compensate, we add a few extra 0s on the end.
+            // Pbf ignores bytes after the message ends, so this won't matter much.
+
             result[resultPos++] = currentByte;
             // fill the rest of the array up with 0s
             for (resultPos; resultPos < result.length; resultPos++) {

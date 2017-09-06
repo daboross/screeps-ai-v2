@@ -51,7 +51,7 @@ __pragma__('fcall')
 
 
 def target_to_target_id(target):
-    # type: (Union[Structure, Flag]) -> str
+    # type: (Union[Structure, Flag]) -> Optional[str]
     if Game.getObjectById(cast(Structure, target).id) == target:
         return target.id
     target = cast(Flag, target)
@@ -59,6 +59,7 @@ def target_to_target_id(target):
         return "flag-{}".format(target.name)
     if target.name:
         return target.name
+    return None
 
 
 def update_targeters_memory_0_to_1(targeters):
