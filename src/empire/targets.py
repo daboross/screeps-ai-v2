@@ -373,6 +373,8 @@ class TargetMind:
             self._unregister_targeter(ttype, creep.name)
             if not second_time:
                 return self.get_new_target(creep, ttype, extra_var, True)
+            else:
+                return None
         return target
 
     def get_existing_target(self, creep, ttype):
