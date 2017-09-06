@@ -1,6 +1,6 @@
-from typing import List, cast
+from typing import List, Optional, cast
 
-from constants import INVADER_USERNAME, SCOUT, target_single_flag
+from constants import INVADER_USERNAME, SCOUT, role_remote_sign, target_single_flag
 from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from empire import stored_data
@@ -156,6 +156,53 @@ class Rndrs(RoleBase):
     def run(self):
         if self.pos.isNearTo(self.room.room.controller):
             self.creep.signController(self.room.room.controller, self.room.get_message())
-            self.creep.suicide()
+            if self.memory.role == role_remote_sign:
+                self.creep.suicide()
+            else:
+                self.memory.role = role_remote_sign
         else:
             self.move_to(self.room.room.controller)
+
+
+class RndrsRemote(RoleBase):
+    def find_new_target(self):
+        # type: () -> Optional[str]
+        all_possibilities = []
+        for flag in self.home.mining.active_mines:
+            if flag.room and flag.room.controller:
+                if not flag.room.controller.sign:
+                    all_possibilities.append(flag.pos.roomName)
+                else:
+                    room_mind = self.hive.get_room(flag.pos.roomName)
+                    message = room_mind.get_message()
+                    if message != flag.room.controller.sign.text:
+                        all_possibilities.append(flag.pos.roomName)
+        if not len(all_possibilities):
+            return None
+        target_remote_name = _.sample(all_possibilities)
+        self.memory.target_remote = target_remote_name
+        return target_remote_name
+
+    def run(self):
+        target_remote_name = self.memory.target_remote
+        if not target_remote_name:
+            target_remote_name = self.find_new_target()
+            if not target_remote_name:
+                self.creep.suicide()
+                return
+
+        target_remote = Game.rooms[target_remote_name]
+        if not target_remote:
+            target_remote_name = self.find_new_target()
+            if not target_remote_name:
+                self.creep.suicide()
+                return
+            target_remote = Game.rooms[target_remote_name]
+
+        if self.pos.isNearTo(target_remote.controller):
+            self.creep.signController(target_remote.controller, self.room.get_message())
+            target_remote_name = self.find_new_target()
+            if not target_remote_name:
+                self.creep.suicide()
+        else:
+            self.move_to(target_remote.controller)

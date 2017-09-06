@@ -64,6 +64,7 @@ role_classes = {
     role_support_miner: support.SupportMiner,
     role_support_hauler: support.SupportHauler,
     role_sign: exploring.Rndrs,
+    role_remote_sign: exploring.RndrsRemote,
 }
 
 if TYPE_CHECKING:

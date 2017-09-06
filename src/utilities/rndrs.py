@@ -111,4 +111,5 @@ def rs():
     if Game.gcl.level < 5:
         return lolvl()
     else:
-        return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
+        return "❤NYXR❤"
+        # return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
