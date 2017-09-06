@@ -50,18 +50,6 @@ def _mass_count(name):
 __pragma__('fcall')
 
 
-def target_to_target_id(target):
-    # type: (Union[Structure, Flag]) -> Optional[str]
-    if Game.getObjectById(cast(Structure, target).id) == target:
-        return target.id
-    target = cast(Flag, target)
-    if target.name and target.name in Game.flags:
-        return "flag-{}".format(target.name)
-    if target.name:
-        return target.name
-    return None
-
-
 def update_targeters_memory_0_to_1(targeters):
     # type: (Dict[str, Dict[str, str]]) -> Dict[str, Dict[int, str]]
     string_target_names_to_numbers = {

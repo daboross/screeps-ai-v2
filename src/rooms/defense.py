@@ -877,8 +877,7 @@ class RoomDefense:
             self.mem.alert_for = 1
 
         hostiles = self.dangerous_hostiles()
-        # defense_override is set if it's attacked because of Memory.attack_first
-        towers = _.filter(self.towers(), lambda x: x.energy and not x.defense_override)
+        towers = _.filter(self.towers(), lambda x: x.energy)
 
         if len(hostiles) and (len(towers) or self.room.spawn):
             print("[{}][defense] Found danger:{}".format(

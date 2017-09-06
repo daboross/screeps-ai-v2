@@ -16,8 +16,6 @@ __pragma__('noalias', 'values')
 _mem_hints = None  # type: Optional[Dict[str, int]]
 _mem_expirations = None  # type: Optional[Dict[str, int]]
 _mem = None  # type: Optional[Dict[str, str]]
-_created_objects = None
-_last_update = 0
 
 __pragma__('skip')
 
