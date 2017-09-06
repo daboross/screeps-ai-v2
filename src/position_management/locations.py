@@ -82,7 +82,7 @@ def _update_deserialized_pos_xy(x, y, room_name):
 
 
 def _get_hint():
-    # type: () -> str
+    # type: () -> Optional[int]
     hint = _mem_hints[this.name]
     if hint is undefined:
         hint = None
