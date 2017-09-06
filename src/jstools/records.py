@@ -17,6 +17,7 @@ __pragma__('noalias', 'values')
 ###
 
 _recording_now = False
+_main_recording_now = False
 _sub_recording_now = False
 _single_record_start = 0  # type: int
 _sub_record_start = 0  # type: int
@@ -27,11 +28,12 @@ _sub_records = None  # type: _Memory
 
 def prep_recording():
     # type: () -> None
-    global _recording_now, _averages, _sub_recording_now, _sub_records
+    global _recording_now, _main_recording_now, _averages, _sub_recording_now, _sub_records
     _averages = Memory['_averages']
     if not _averages:
         _averages = Memory['_averages'] = {}
     _recording_now = not not _averages['_recording_now']
+    _main_recording_now = _recording_now or not not _averages['_only_recording_main']
     _sub_recording_now = _averages['_sub_recording_now'] or False
     if _sub_recording_now:
         _sub_records = _averages['_sub_records']
@@ -42,6 +44,11 @@ def prep_recording():
 def start_recording():
     # type: () -> None
     Memory['_averages']['_recording_now'] = True
+
+
+def start_recording_main_only():
+    # type: () -> None
+    Memory['_averages']['_only_recording_main'] = True
 
 
 def stop_recording():
@@ -107,14 +114,14 @@ def finish_sub_record(identity):
 
 def start_main_record():
     # type: () -> None
-    if _recording_now:
+    if _main_recording_now:
         global _main_loop_record_start
         _main_loop_record_start = Game.cpu.getUsed()
 
 
 def finish_main_record():
     # type: () -> None
-    if _recording_now and _main_loop_record_start is not None:
+    if _main_recording_now and _main_loop_record_start is not None:
         end = Game.cpu.getUsed()
         if '_main' in _averages:
             _averages['_main'] += end - _main_loop_record_start
@@ -137,7 +144,7 @@ def finish_main_record():
 
 def record_memory_amount(time):
     # type: (int) -> None
-    if _recording_now:
+    if _main_recording_now:
         if 'memory.init' in _averages:
             _averages['memory.init'].calls += 1
             _averages['memory.init'].time += time

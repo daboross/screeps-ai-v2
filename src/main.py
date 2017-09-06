@@ -461,6 +461,7 @@ __pragma__('js', 'global').py = {
     "cache_stats": lambda: memory_info.cache_stats(),
     "records": {
         'start': records.start_recording,
+        'start_main': records.start_recording_main_only,
         'stop': records.stop_recording,
         'start_sub': records.start_sub_recording,
         'output': records.output_records,
