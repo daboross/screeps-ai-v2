@@ -332,13 +332,14 @@ def running_check_room(room):
             continue
         overridden = run_away_check(creep, hostile_path_targets)
         if overridden:
-            creep.defense_override = True
+            volatile_cache.setmem("creep_defense_override").add(creep.name)
 
 
 def cleanup_running_memory():
     # type: () -> None
+    creep_defense_override = volatile_cache.setmem("creep_defense_override")
     for creep in _.values(Game.creeps):
-        if not creep.defense_override and '_away_path' in creep.memory or '_safe' in creep.memory:
+        if not creep_defense_override.has(creep.name) and ('_away_path' in creep.memory or '_safe' in creep.memory):
             del creep.memory._away_path
             del creep.memory._safe
             del creep.memory._safe_from

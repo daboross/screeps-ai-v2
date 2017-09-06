@@ -97,7 +97,7 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
     if creep.spawning and creep.memory.role != role_temporary_replacing \
             and creep.memory.role != role_squad_init:
         return
-    if creep.defense_override:
+    if volatile_cache.setmem("creep_defense_override").has(creep.name):
         return
     records.start_record()
     instance = wrap_creep(hive, targets, room, creep)

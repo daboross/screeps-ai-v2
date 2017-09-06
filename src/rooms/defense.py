@@ -901,15 +901,18 @@ class RoomDefense:
 
             tower_index = 0
             some_left = False
+            creep_defense_override = volatile_cache.setmem("creep_defense_override")
             for hostile in hostiles:
                 # TODO: healer confusing logic here?
                 healing_possible = self.healing_possible_on(hostile)
                 nearby_defenders = self.defenders_near(hostile)
-                attack_possible = _.sum(nearby_defenders, lambda c: (not c.creep.defense_override
-                                                                     and c.creep.getActiveBodyparts(ATTACK)) or 0) \
-                                  * ATTACK_POWER \
-                                  + _.sum(towers[tower_index:],
-                                          lambda t: tower_damage(t.pos.getRangeTo(hostile)))
+                attack_possible = (
+                    _.sum(nearby_defenders, lambda c: (not creep_defense_override.has(c[LOOK_CREEPS].name)
+                                                       and c[LOOK_CREEPS].getActiveBodyparts(ATTACK)) or 0)
+                    * ATTACK_POWER
+                    + _.sum(towers[tower_index:],
+                            lambda t: tower_damage(t.pos.getRangeTo(hostile)))
+                )
                 if hostile.hasActiveBoostedBodyparts(TOUGH):
                     healing_to_account_for = healing_possible
                     damage_to_account_for = attack_possible
@@ -972,7 +975,7 @@ class RoomDefense:
                           .format(self.room.name, hostile.pos, healing_possible, attack_possible))
                 for my_defender in nearby_defenders:
                     my_defender[LOOK_CREEPS].attack(hostile)
-                    my_defender[LOOK_CREEPS].defense_override = True
+                    creep_defense_override.add(my_defender[LOOK_CREEPS].name)
                 hits_left = hostile.hits + healing_possible
                 while tower_index < len(towers) and hits_left > 0:
                     tower = towers[tower_index]
