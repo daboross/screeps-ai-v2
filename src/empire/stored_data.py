@@ -73,7 +73,7 @@ def final_modification_save():
 
 
 def _parse_json_checked(raw_data, segment_name):
-    # type: (str, str) -> _Memory
+    # type: (str, int) -> _Memory
     try:
         return cast(_Memory, JSON.parse(raw_data))
     except:

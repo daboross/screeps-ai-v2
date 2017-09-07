@@ -43,6 +43,9 @@ class JSMap(Generic[K, V]):
     def js_clear(self) -> None:
         pass
 
+    @property
+    def size(self) -> int:
+        return 0
 
 class JSSet(Generic[K]):
     def has(self, key: K) -> bool:
@@ -63,6 +66,9 @@ class JSSet(Generic[K]):
     def js_clear(self) -> None:
         pass
 
+    @property
+    def size(self) -> int:
+        return 0
 
 __pragma__('noskip')
 
