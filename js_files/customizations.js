@@ -1,4 +1,5 @@
 "use strict";
+
 function activateCustomizations() {
     "use strict";
     // Created by @gdborton on GitHub, available at https://github.com/gdborton/screeps-perf/blob/master/screeps-perf.js
@@ -961,6 +962,18 @@ function activateCustomizations() {
         //     return result.join('\n');
         // };
         walk_path(py.hive().honey.find_serialized_path(origin, destination, opts))
+    };
+
+    // +++++++++++++++++++++++++++++++++++++
+    // ++++++ toString customizations ++++++
+    // +++++++++++++++++++++++++++++++++++++
+
+    RoomPosition.prototype.toString = function toString() {
+        return `(${this.x},${this.y} ${this.roomName})`;
+    };
+
+    Flag.prototype.toString = function toString() {
+        return `(flag ${this.name}: ${this.x},${this.y} ${this.roomName})`
     };
 
     global.__customizations_active = true;

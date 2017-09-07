@@ -183,7 +183,7 @@ class LinkingMind:
                 if obj.distance <= 1:
                     energy_change_now += obj.cap
             if Memory.links_debug == self.room.name:
-                print("[{}] Energy change: {}".format(link.id[-5:], energy_change_now))
+                print("[DEBUG][links][{}] energy change: {}".format(link.id[-5:], energy_change_now))
             if energy_change_now > 0:
                 if energy_change_now * 3 > link.energyCapacity - link.energy and link.cooldown <= 0:
                     current_input_links.append({'link': link, 'priority': -energy_change_now})

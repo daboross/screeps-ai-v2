@@ -476,42 +476,41 @@ class HoneyTrails:
             if room_data.owner.state is StoredEnemyRoomState.FULLY_FUNCTIONAL:
                 if room_name != origin.roomName and room_name != destination.roomName:
                     if opts['enemy_ok']:
-                        print('[honey] Avoiding fully functional enemy room {}!'
+                        print('[honey] avoiding fully functional enemy room: {}'
                               .format(room_name))
-                    # print("[honey] Avoiding room {}.".format(room_name))
+                    # print("[honey] avoiding room: {}".format(room_name))
                     return False
                 else:
-                    print("[honey] Warning: path {}-{} ends up in an enemy room ({}, {})!"
+                    print("[honey] warning! path {}-{} ends up in an enemy room: ({}, {})"
                           .format(origin, destination, room_data.owner.name, room_name))
             elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.RESERVED \
                     and not Memory.meta.friends.includes(room_data.owner.name.lower()):
                 if room_name != origin.roomName and room_name != destination.roomName:
-                    # print("[honey] Avoiding room {}.".format(room_name))
+                    # print("[honey] avoiding room: {}".format(room_name))
                     return False
                 else:
-                    print("[honey] Warning: path {}-{} ends up in a friendly mining room ({})!"
+                    print("[honey] warning! path {}-{} ends up in a friendly mining room: {}"
                           .format(origin, destination, room_name))
             elif not opts['enemy_ok'] and room_data.owner.state is StoredEnemyRoomState.JUST_MINING:
-                print("[honey] Warning: path {}-{} may pass through {}'s mining room, {}"
+                print("[honey] warning! path {}-{} may pass through {}'s mining room, {}"
                       .format(origin, destination, room_data.owner.name, room_name))
             if room_data.owner and room_data.owner.state is StoredEnemyRoomState.JUST_MINING \
                     and Memory.meta.friends.includes(room_data.owner.name.lower()):
-                print("[honey] Enabling moving close to SK mines in {} (mining room of {})"
+                print("[honey] enabling moving close to SK mines in {} (mining room of {})"
                       .format(room_name, room_data.owner.name))
                 sk_ok = True
         elif room and room.enemy:
             # TODO: add the granularity we have above down here.
             if room_name != origin.roomName and room_name != destination.roomName:
                 if opts['enemy_ok']:
-                    print('[honey] Avoiding fully functional enemy room {}!'
+                    print("[honey] avoiding fully functional enemy room: {}"
                           .format(room_name))
-                # print("[honey] Avoiding room {}.".format(room_name))
                 return False
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
                       .format(origin, destination, room_name))
         if room_data and room_data.avoid_always:
-            print("[honey] Manually avoiding room {} marked as always avoid.".format(room_name))
+            print("[honey] manually avoiding room: {}".format(room_name))
             return False
 
         plain_cost = opts['plain_cost'] or 1
@@ -804,7 +803,7 @@ class HoneyTrails:
         if destination_data and destination_data.owner \
                 and destination_data.owner.state != StoredEnemyRoomState.JUST_MINING:
             enemy_ok = True
-            print("[honey] Calculating path assuming traversing enemy rooms is OK, as {} is an enemy room."
+            print("[honey] calculating path assuming traversing enemy rooms is OK, as destination is an enemy room: {}"
                   .format(destination.roomName))
         else:
             enemy_ok = False
@@ -834,12 +833,12 @@ class HoneyTrails:
             "heuristicWeight": heuristic,
         })
 
-        print("[honey] Calculated new path from {} to {} in {} ops.".format(
+        print("[honey] calculated new path from {} to {} in {} ops.".format(
             origin, destination, result.ops))
         path = result.path
         if result.incomplete:
             print(
-                "[honey] WARNING: Calculated incomplete path."
+                "[honey] warning! Calculated incomplete path."
                 " Chebyshev distance: {}."
                 " Path distance found: {}."
                 " Ops used: {}."
@@ -850,7 +849,7 @@ class HoneyTrails:
                 )
             )
             if roads_better:
-                print("[honey] Trying recalculation without preferring roads.")
+                print("[honey] trying recalculation without preferring roads.")
                 return self._get_raw_path(origin, destination, _.create(opts, {'use_roads': False}))
             if len(result.path) > 15:
                 path_start = path[0:-10]
@@ -874,7 +873,7 @@ class HoneyTrails:
                 path = path_start.concat(second_path_result.path)
                 if second_path_result.incomplete:
                     second_midpoint = path[len(path) - 1]
-                    print("[honey] Second path result incomplete, trying third from {} to {}, starting at {}."
+                    print("[honey] second path result incomplete, trying third from {} to {}, starting at {}."
                           .format(origin, destination, midpoint))
 
                     third_path_result = PathFinder.search(second_midpoint, {"pos": destination, "range": pf_range}, {
@@ -893,15 +892,15 @@ class HoneyTrails:
                     path = path.concat(third_path_result.path)
                     if third_path_result.incomplete:
                         if heuristic_attempt_num < 3:
-                            print("[honey] Third path still incomplete! Trying next heuristic attempt ({})."
+                            print("[honey] third path still incomplete, trying next heuristic attempt: ({})"
                                   .format(heuristic_attempt_num + 1))
                             return self._get_raw_path(origin, destination, _.create(opts, {
                                 'heuristic_attempt_num': heuristic_attempt_num + 1
                             }))
                         else:
-                            print("[honey] Third path still incomplete! Still concatenating.")
+                            print("[honey] third path still incomplete, still concatenating.")
                 else:
-                    print("[honey] Second path result complete! Concatenating paths!")
+                    print("[honey] second path result complete: concatenating paths!")
         if paved_for:
             if paved_for.name:
                 mine_name = paved_for.name
@@ -909,7 +908,7 @@ class HoneyTrails:
             else:
                 mine_name = paved_for[0].name
                 spawn_id = paved_for[1].id
-            print("[honey] Registering new paved path for mine {}, spawn {}.".format(mine_name, spawn_id))
+            print("[honey] registering new paved path: mine {}, spawn {}".format(mine_name, spawn_id))
             mining_paths.register_new_mining_path(paved_for, path)
         return path
 
@@ -1040,7 +1039,7 @@ class HoneyTrails:
             return []
         path = _deserialize_path_checked(serialized_path_obj[current_room])
         if path is None:
-            print("[honey] Serialized path from {} to {} with current-room {} was invalid.".format(
+            print("[honey] warning! serialized path from {} to {} with in {} was invalid.".format(
                 origin, destination, current_room))
             clear_cached_path(origin, destination, opts)
             new_path_obj = self.get_serialized_path_obj(origin, destination, opts)

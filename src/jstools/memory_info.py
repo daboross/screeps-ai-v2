@@ -23,8 +23,8 @@ def analyse_memory(path=None):
     for key, submem in _.pairs(mem):
         amount = count_total_keys(submem)
         total += amount
-        print("Under {}: {}".format(key, amount))
-    print("Total: {}".format(total))
+        print("under {}: {}".format(key, amount))
+    print("total: {}".format(total))
 
 
 def count_total_keys(mem):

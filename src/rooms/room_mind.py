@@ -748,7 +748,7 @@ class RoomMind:
                     return
             result = observer.observeRoom(to_observe)
             if result != OK:
-                print("[{}][observer] Unknown result from {}.observeRoom({}): {}"
+                print("[{}][observer] warning! unknown result from {}.observeRoom({}): {}"
                       .format(self.name, observer, to_observe, result))
         elif offset == 4:
             # on offset=4, serialize the results of that observation.
@@ -763,12 +763,12 @@ class RoomMind:
             to_try = split_mem[0]
             room = Game.rooms[to_try]
             if not room:
-                print("[{}][observer] WARNING: Could not find room {} which was observed last tick."
+                print("[{}][observer] error! could not find room observed last tick: {}"
                       .format(self.name, to_try))
                 return
 
             stored_data.update_data(room)
-            print("[{}][observer] Updated {}.".format(self.name, room.name))
+            print("[{}][observer] updated room data: {}".format(self.name, room.name))
 
             if len(split_mem) == 2:
                 saved_pos = int(split_mem[1])

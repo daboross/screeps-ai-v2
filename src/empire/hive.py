@@ -99,13 +99,13 @@ class HiveMind:
         for flag in flag_list:
             room = self.get_room(flag.pos.roomName)
             if room and room.my:
-                print("[{}] Removing remote mining flag {}, now that room is owned.".format(room.name, flag.name))
+                print("[hive] removing mining flag in owned room: {} in {}".format(flag.name, room.name))
                 flag.remove()
             else:
                 sponsor = flags.flag_sponsor(flag)
                 if not sponsor:
-                    print("[hive] Couldn't find sponsor for mining flag {}! (sponsor name set: {})".format(
-                        flag.name, flag.memory.sponsor
+                    print("[hive] warning! couldn't find sponsor for mining flag: {} in {}".format(
+                        flag.name, flag.pos.roomName
                     ))
                     continue
                 if room_to_flags[sponsor]:
@@ -119,7 +119,7 @@ class HiveMind:
             else:
                 room._remote_mining_operations = []
         for room_name in Object.keys(room_to_flags):
-            print("[hive] WARNING! Flags {} has sponsor {}, which is not an owned room!"
+            print("[hive] warning! flags found with invalid sponsor: {} belong to {}, which is not an owned room."
                   .format(room_to_flags[room_name], room_name))
 
     __pragma__('fcall')
@@ -140,7 +140,7 @@ class HiveMind:
                 return sponsor
         current_pos = movement.parse_room_to_xy(current_room_name)
         if not current_pos:
-            print("[{}] Couldn't parse room name!".format(current_room_name))
+            print("[hive] error! failed to parse room xy: {}".format(current_room_name))
             return None
         closest_squared_distance = Infinity
         closest_room = None
@@ -150,7 +150,7 @@ class HiveMind:
                 closest_squared_distance = distance
                 closest_room = room
         if not closest_room:
-            print("[{}] ERROR: could not find closest owned room!".format(current_room_name))
+            print("[hive] error! could not find owned room nearby: {}".format(current_room_name))
         return closest_room
 
     __pragma__('nofcall')
@@ -163,7 +163,7 @@ class HiveMind:
             home = creep.memory.home
             if not creep.memory.home:
                 home = self.get_closest_owned_room(creep.pos.roomName)
-                print("[{}][{}] Giving a {} a new home.".format(home.name, creep.name, creep.memory.role))
+                print("[hive] giving {}, a {}, a new home in {}.".format(creep.name, creep.memory.role, home.name))
                 creep.memory.home = home.name
             if home in new_creep_lists:
                 new_creep_lists[home].append(creep)
@@ -172,15 +172,18 @@ class HiveMind:
         for name in Object.keys(new_creep_lists):
             room = self.get_room(name)
             if not room:
-                print("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(name, name))
+                print("[hive] warning! one or more creeps has {} as its home, but {} isn't even visible!"
+                      .format(name, name))
                 if not Memory.meta.unowned_room_alerted:
-                    Game.notify("[hive] One or more creeps has {} as its home, but {} isn't even visible!".format(
-                        name, name))
+                    Game.notify("[hive] warning! one or more creeps has {} as its home, but {} isn't even visible!"
+                                .format(name, name))
                     Memory.meta.unowned_room_alerted = True
             elif not room.my:
-                print("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+                print("[hive] warning! one or more creeps has {} as its home, but {} isn't owned!"
+                      .format(name, name))
                 if not Memory.meta.unowned_room_alerted:
-                    Game.notify("[hive] One or more creeps has {} as its home, but {} isn't owned!".format(name, name))
+                    Game.notify("[hive] warning! one or more creeps has {} as its home, but {} isn't owned!"
+                                .format(name, name))
                     Memory.meta.unowned_room_alerted = True
             else:
                 room._creeps = new_creep_lists[name]
@@ -276,7 +279,7 @@ class HiveMind:
             if room:
                 room.sing(creeps_by_room[room_name])
             else:
-                print("[hive] WARNING: No room found with name {}, which {} creeps were supposedly in!"
+                print("[hive] warning! could not find room for {}, which supposedly had {} creeps in it."
                       .format(room_name, len(creeps_by_room[room_name])))
         if Game.time % 30 == 0:
             for name in Object.keys(Memory['_ly']):

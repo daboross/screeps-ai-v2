@@ -544,26 +544,26 @@ class RoomDefense:
                                 ) \
                         .value()
                     if self.mem.debug:
-                        print("Chose hostiles:\n{}".format(
-                            '\n'.join(
-                                ["{},{}: {}, {}, {}, {}, {}, {}".format(
-                                    c.pos.x, c.pos.y,
+                        self.log("dangerous_hostiles: chose hostiles:\n{}",
+                                 '\n'.join(
+                                     ["{},{}: {}, {}, {}, {}, {}, {}".format(
+                                         c.pos.x, c.pos.y,
 
-                                    # Higher danger level = more important
-                                    - self.danger_level(c) * 5000,
-                                    # More defenders = more important
-                                    - len(self.defenders_near(c)) * 500,
-                                    # Further away from closest target = less important
-                                    + movement.minimum_chebyshev_distance(c.pos, protect),
-                                    + self.healing_possible_on(c) * 300,
-                                    # Further away average distance from targets = less important
-                                    + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
-                                    / len(protect) / 50,
-                                    # More hits = less important
-                                    - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100,
-                                ) for c in hostiles]
-                            )
-                        ))
+                                         # Higher danger level = more important
+                                         - self.danger_level(c) * 5000,
+                                         # More defenders = more important
+                                         - len(self.defenders_near(c)) * 500,
+                                         # Further away from closest target = less important
+                                         + movement.minimum_chebyshev_distance(c.pos, protect),
+                                         + self.healing_possible_on(c) * 300,
+                                         # Further away average distance from targets = less important
+                                         + _.sum(protect, lambda s: movement.chebyshev_distance_room_pos(c.pos, s.pos))
+                                         / len(protect) / 50,
+                                         # More hits = less important
+                                         - (c.hitsMax - c.hits + self.healing_possible_on(c)) / c.hitsMax / 100,
+                                     ) for c in hostiles]
+                                 )
+                                 )
                 else:
                     hostiles = _.filter(hostiles, lambda c: self.danger_level(c) > 0)
             self._cache.set('active_hostiles', hostiles)
@@ -626,7 +626,7 @@ class RoomDefense:
             self.hive.states.calculate_room_states()
         self.mem.attack_until = Game.time + 2000
         self.room.reset_planned_role()
-        message = "{} activating live defenses.".format(self.room.name)
+        message = "[defense] activating live defenses: {}".format(self.room.name)
         Game.notify(message)
         print(message)
         self.set_protection_all_walls()
@@ -669,7 +669,8 @@ class RoomDefense:
                     if not is_other:
                         protect.set(positions.serialize_pos_xy(position), 0)
         current_iteration = Array.js_from(protect.entries())
-        print("[defense] Found initial walls: {} from {} paths".format(len(current_iteration), len(already_checked)))
+        self.log("set_protection_all_walls: found {} initial walls from {} paths",
+                 len(current_iteration), len(already_checked))
         while True:
             next_iteration = []
             for origin_xy, priority in current_iteration:
@@ -720,8 +721,8 @@ class RoomDefense:
                 hot.push(loc.name)
             else:
                 cold.push(loc.name)
-        print("[{}][defense] Found {} ramparts to protect during initial seed.".format(
-            self.room.name, len(spots)))
+        self.log("set_protection_all_walls: found {} ramparts to protect",
+                 len(spots))
         self.mem.known_locations = spots
         self.room.store_cached_property('rcrnd', [hot, cold], 50)
 
@@ -861,15 +862,17 @@ class RoomDefense:
         towers = _.filter(self.towers(), lambda x: x.energy)
 
         if len(hostiles) and (len(towers) or self.room.spawn):
-            print("[{}][defense] Found danger:{}".format(
-                self.room.name, ["\n(a: {}, h: {}, w: {}, r: {}, hits: {}%, pos: {},{}, prio: {})"
-                                     .format(h.getActiveBodyparts(ATTACK),
-                                             h.getActiveBodyparts(HEAL),
-                                             h.getActiveBodyparts(WORK),
-                                             h.getActiveBodyparts(RANGED_ATTACK),
-                                             round(h.hits / h.hitsMax * 100),
-                                             h.pos.x, h.pos.y,
-                                             self.danger_level(h)) for h in hostiles].join('')))
+            self.log("found danger:\n\t{}",
+                     "\n\t".join([
+                         "(a: {}, h: {}, w: {}, r: {}, hits: {}%, pos: {},{}, prio: {})"
+                             .format(h.getActiveBodyparts(ATTACK),
+                                     h.getActiveBodyparts(HEAL),
+                                     h.getActiveBodyparts(WORK),
+                                     h.getActiveBodyparts(RANGED_ATTACK),
+                                     round(h.hits / h.hitsMax * 100),
+                                     h.pos.x, h.pos.y,
+                                     self.danger_level(h)) for h in hostiles
+                     ]))
 
         if len(towers):
             if Game.time % 3 == 1:
@@ -926,7 +929,7 @@ class RoomDefense:
                         # effective_hits = math.ceil(part.hits * (1 / retained_damage))
                         effective_hits = math.ceil(part_hits * TOUGH_HIT_MULTIPLIERS[part.boost])
                         if js_isNaN(effective_hits):
-                            print("effective hits for boost {} is NaN.".format(part.boost))
+                            print("warning! effective hits for boost {} is NaN.".format(part.boost))
                             effective_hits = part_hits
                         # If we will fully destroy this part, there's no need to do partial-destruction logic
                         if effective_hits <= damage_to_account_for:
@@ -944,15 +947,15 @@ class RoomDefense:
                 if healing_possible >= attack_possible:
                     # TODO: request a rampart defender if this is next to a rampart and there's a small enough gap
                     #  between damage/healing power!
-                    print("[{}] Not attacking hostile at {}: {} heal possible, {} damage possible."
-                          .format(self.room.name, hostile.pos, healing_possible, attack_possible))
+                    self.log("skipping hostile at {}: {} heal possible, {} damage possible",
+                             hostile.pos, healing_possible, attack_possible)
                     if len(nearby_defenders):
                         self.room.store_cached_property('n-boost', True, 1500)
                     some_left = True
                     continue
                 else:
-                    print("[{}] Attacking hostile at {}: {} heal possible, {} damage possible."
-                          .format(self.room.name, hostile.pos, healing_possible, attack_possible))
+                    self.log("attacking hostile at {}: {} heal possible, {} damage possible",
+                             hostile.pos, healing_possible, attack_possible)
                 for my_defender in nearby_defenders:
                     my_defender[LOOK_CREEPS].attack(hostile)
                     creep_defense_override.add(my_defender[LOOK_CREEPS].name)
@@ -1168,3 +1171,10 @@ class RoomDefense:
                     result.push(loc)
         self._cache.set('old_defender_spots', result)
         return result
+
+    def log(self, message, *args):
+        # type: (str, *Any) -> None
+        if len(args):
+            print("[{}][defense] {}".format(self.room.name, message.format(*args)))
+        else:
+            print("[{}][defense] {}".format(self.room.name, message))

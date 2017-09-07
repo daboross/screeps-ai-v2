@@ -350,7 +350,7 @@ class ConstructionMind:
             last_rcl = self.room.get_cached_property("bt_last_checked_rcl")
             if last_rcl >= self.room.rcl:
                 return targets
-        print("[{}] Calculating new construction targets".format(self.room.name))
+        self.log("calculating new construction targets")
         self.room.delete_cached_property('non_wall_construction_targets')
         self.room.delete_cached_property('seiged_walls_unbuilt')
         self.refresh_num_builders(True)
@@ -415,9 +415,8 @@ class ConstructionMind:
             for flag, flag_type in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_BUILD), flag_priority):
                 structure_type = flags.flag_sub_to_structure_type[flag_type]
                 if not structure_type:
-                    print("[{}][building] Warning: structure type corresponding to flag type {} not found!".format(
-                        self.room.name, flag_type
-                    ))
+                    self.log("warning: structure type corresponding to flag type {} not found",
+                             flag_type)
                     continue
                 if structure_type == STRUCTURE_EXTRACTOR and not self.room.look_at(LOOK_MINERALS, flag.pos):
                     structure_type = STRUCTURE_CONTAINER  # hack, since both use the same color.
@@ -553,8 +552,8 @@ class ConstructionMind:
             if len(spawn_flag):
                 spawn_pos = spawn_flag[0].pos
             else:
-                print("[{}][building] Warning: Finding destruct targets for room {},"
-                      " which has no spawn planned!".format(self.room.name, self.room.name))
+                self.log("warning: finding destruction targets for room {}, which has no spawn planned",
+                         self.room.name)
                 spawn_pos = movement.center_pos(self.room.name)
 
         for flag, secondary in _.sortBy(flags.find_by_main_with_sub(self.room, flags.MAIN_DESTRUCT),
@@ -626,7 +625,7 @@ class ConstructionMind:
             current = _.size(Game.constructionSites) + (volatile_cache.volatile().get("construction_sites_placed") or 0)
             if min(needed, 25) < MAX_CONSTRUCTION_SITES * 0.8 - current:
                 return False
-        print("[{}][building] Building roads for {}.".format(self.room.name, mine_flag.name))
+        self.log("building roads for {}.", mine_flag.name)
         last_found_roads_key = _cache_key_found_roads_for_mine + mine_flag.name
         latest_found_roads = self.room.get_cached_property(last_found_roads_key)
         if latest_found_roads != latest_version:
@@ -745,14 +744,14 @@ class ConstructionMind:
             self.room.store_cached_property(last_built_roads_key,
                                             _build_roads_constant_not_enough_sites + str(need_more_sites),
                                             min_repath_mine_roads_every)
-            print("[{}][building] Stopped: need more sites. ({}/{})".format(self.room.name,
-                                                                            MAX_CONSTRUCTION_SITES - site_count,
-                                                                            need_more_sites))
+            self.log("build_road: stopped: need more sites: ({}/{})",
+                     MAX_CONSTRUCTION_SITES - site_count, need_more_sites)
         elif len(missing_rooms) > 0:
             self.room.store_cached_property(last_built_roads_key,
                                             _build_roads_constant_missing_rooms + '-'.join(missing_rooms),
                                             min_repath_mine_roads_every)
-            print("[{}][building] Stopped: missing rooms. ({})".format(self.room.name, ', '.join(missing_rooms)))
+            self.log("build_road: stopped: missing rooms: {}",
+                     ', '.join(missing_rooms))
         else:
             self.room.store_cached_property(last_built_roads_key, latest_version,
                                             random.randint(min_repave_mine_roads_every, max_repave_mine_roads_every))
@@ -1039,8 +1038,8 @@ class ConstructionMind:
             'maxRooms': 1,
         })
         if path.incomplete:
-            print("[{}][building] WARNING: Couldn't find full path near {} and away from {}!"
-                  .format(self.room.name, near, [x['pos'] for x in away_from]))
+            self.log("error! couldn't find full path from {} to away from {}",
+                     near, [x['pos'] for x in away_from])
             if not len(path.path):
                 return None
         return path.path[len(path.path) - 1]
@@ -1073,6 +1072,13 @@ class ConstructionMind:
         flags.create_flag(target, DEPOT)
         cache.add(cache_key)
 
+    def log(self, message, *args):
+        # type: (str, *Any) -> None
+        if len(args):
+            print("[{}][building] {}".format(self.room.name, message.format(*args)))
+        else:
+            print("[{}][building] {}".format(self.room.name, message))
+
 
 def clean_up_all_road_construction_sites():
     # type: () -> None
@@ -1085,7 +1091,7 @@ def clean_up_all_road_construction_sites():
             xy = positions.serialize_pos_xy(site.pos)
             if site.structureType == STRUCTURE_ROAD:
                 if not planned_roads.has(xy):
-                    print("[building] Removing {} at {}.".format(site, site.pos))
+                    print("[building] removing site: {} at {}".format(site, site.pos))
                     site.remove()
             else:
                 msg = "[building] WARNING: Construction site for a {} found in unowned room {}. Non-road construction" \

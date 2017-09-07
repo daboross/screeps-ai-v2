@@ -411,23 +411,23 @@ class Squad:
             mv_order = self.members_movement_order()
             self.set_origin(mv_order[len(mv_order) - 1].pos)
         if min_distance_from_home < 50 and (max_distance_to_target < total_distance / 2):
-            print('[squads][{}] move_to: chose stage 0 (minimum distance from home: {}, maximum distance from home: {},'
-                  ' total distance: {})'
-                  .format(self.location.name, min_distance_from_home, max_distance_to_target, total_distance))
+            self.log("move_to: chose stage 0 (minimum distance from home: {}, maximum distance from home: {},"
+                     " total distance: {})"
+                     .format(min_distance_from_home, max_distance_to_target, total_distance))
             self.move_to_stage_0(target)
         elif min_distance_to_target < 300 and any_hostiles:
             self.move_to_stage_2(target)
         elif min_distance_to_target > 60 or max_distance_to_target > 200:
-            # print('[squads][{}] move_to: chose stage 1 (minimum distance from home: {}, total distance: {}, '
-            #       'minimum distance to target: {}, maximum distance to target: {})'
-            #       .format(self.location.name, min_distance_from_home, total_distance,
-            #               min_distance_to_target, max_distance_to_target))
+            # self.log("move_to: chose stage 1 (minimum distance from home: {}, total distance: {}, "
+            #          "minimum distance to target: {}, maximum distance to target: {})"
+            #          .format(min_distance_from_home, total_distance,
+            #                  min_distance_to_target, max_distance_to_target))
             self.move_to_stage_1(target, any_hostiles)
         else:
-            # print('[squads][{}] move_to: chose stage 2 (minimum distance from home: {}, total distance: {}, '
-            #       'minimum distance to target: {}, maximum distance to target: {})'
-            #       .format(self.location.name, min_distance_from_home, total_distance,
-            #               min_distance_to_target, max_distance_to_target))
+            # self.log("move_to: chose stage 2 (minimum distance from home: {}, total distance: {}, "
+            #          "minimum distance to target: {}, maximum distance to target: {})"
+            #          .format(min_distance_from_home, total_distance,
+            #                  min_distance_to_target, max_distance_to_target))
             self.move_to_stage_2(target)
 
     def new_movement_opts(self):

@@ -84,4 +84,4 @@ def clear_values_matching(name):
     for key in Object.keys(Memory.cache):
         if key.includes(name):
             del Memory.cache[key]
-            print("[clear_global_cache] Cleared {}.".format(key))
+            print("[clear_global_cache] cleared memory value: {}".format(key))

@@ -83,7 +83,7 @@ def clear_memory(room):
                 del memory['_move']
     dead_next = Game.time + smallest_ticks_to_live
     if rmem_key_metadata not in room.mem:
-        print("[consistency] warning: no metadata key in room {} memory. Creating.".format(room.name))
+        print("[consistency] warning: no metadata key in room {} memory, creating it.".format(room.name))
         room.mem[rmem_key_metadata] = {}
     room.mem[rmem_key_metadata].clear_next = dead_next + 1
     room.mem[rmem_key_metadata].reset_spawn_on = closest_replacement_time + 1
@@ -124,7 +124,7 @@ def clear_cache():
         if mem[rmem_key_metadata] and (not _.get(Game.rooms, [name, 'controller', 'my'])):
             if mem[rmem_key_metadata].clear_next < Game.time - 600 * 1000:
                 # we've been dead for a long while, and haven't been cleaned up..
-                msg = "[consistency] Cleaning up memory for dead room {}".format(name)
+                msg = "[consistency] cleaning up memory for dead room: {}".format(name)
                 Game.notify(msg)
                 print(msg)
                 del Memory.rooms[name]
@@ -135,7 +135,7 @@ def clear_cache():
                 ((not name.includes('_') and name.includes('Flag'))
                  or name.includes('local_mine') or name.startsWith('21_')):
             del Memory.flags[name]
-            print('[consistency] Clearing flag {}\'s memory: {}'.format(name, JSON.stringify(mem)))
+            print('[consistency] clearing flag {}\'s memory: {}'.format(name, JSON.stringify(mem)))
     global_cache.cleanup()
 
 
@@ -153,23 +153,23 @@ def complete_refresh(hive):
     for name in Object.keys(Memory.creeps):
         if name not in Game.creeps:
             mem = Memory.creeps[name]
-            print('[consistency] Clearing rouge creep: {} ({})'.format(name, mem.home))
+            print('[consistency] clearing rouge creep: {} from {}'.format(name, mem.home))
             del Memory.creeps[name]
     # Double check for creeps in TargetMind which aren't alive:
     target_mem = _.get(Memory, 'targets.targeters_using')
     for name in Object.keys(target_mem):
         if name not in Game.creeps:
             targets = target_mem[name]
-            print('[consistency] Clearing rouge targets for creep: {} ({})'.format(name, Object.keys(targets)))
+            print('[consistency] clearing rouge targets for {}: {}'.format(name, Object.keys(targets)))
             hive.targets.untarget_all(cast(Creep, {'name': name}))
     # Remove deprecated Memory paths that are no longer in use:
     for key in ['cpu_usage', 'profiler', '_debug', 'x', '_ij_timeout', '_visuals_till', '_inject_timeout']:
         if key in Memory:
-            print('[consistency] Removing deprecated memory path: {}'.format(key))
+            print('[consistency] removing deprecated memory path: {}'.format(key))
             del Memory[key]
     for key in ['enable_profiling', 'auto_enable_profiling']:
         if key in Memory.meta:
-            print('[consistency] Removing deprecated memory path: meta.{}'.format(key))
+            print('[consistency] removing deprecated memory path: meta.{}'.format(key))
             del Memory.meta[key]
     for name in Object.keys(Memory.rooms):
         mem = Memory.rooms[name]
@@ -193,19 +193,19 @@ def complete_refresh(hive):
             for sub_key in Object.keys(mineral_mind_mem):
                 sub_mem = mineral_mind_mem[sub_key]
                 if (_.isObject(sub_mem) and _.isEmpty(sub_mem)) or sub_mem is 0:
-                    print('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'
+                    print('[consistency] deleting empty memory path Memory.rooms.{}.{}.{}'
                           .format(name, rmem_key_mineral_mind_storage, sub_key))
                     del mineral_mind_mem[sub_key]
                 if sub_key == 'mineral_hauler' and sub_mem not in Game.creeps:
-                    print('[consistency] Deleting empty memory path Memory.rooms.{}.{}.{}'
+                    print('[consistency] deleting empty memory path Memory.rooms.{}.{}.{}'
                           .format(name, rmem_key_mineral_mind_storage, sub_key))
                     del mineral_mind_mem[sub_key]
             if _.isEmpty(mineral_mind_mem):
-                print('[consistency] Deleting empty memory path Memory.rooms.{}.{}'
+                print('[consistency] deleting empty memory path Memory.rooms.{}.{}'
                       .format(name, rmem_key_mineral_mind_storage))
                 del mem[rmem_key_mineral_mind_storage]
         if _.isEmpty(mem):
-            print('[consistency] Deleting empty memory path Memory.rooms.{}'.format(name))
+            print('[consistency] deleting empty memory path Memory.rooms.{}'.format(name))
             del Memory.rooms[name]
     if Memory.reserving:
         for name in Object.keys(Memory.reserving):

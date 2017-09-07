@@ -111,11 +111,11 @@ def _set_hint(hint):
 def _deserialized_pos_to_string():
     # type: () -> str
     things = [
-        "[Location ",
+        "(location",
         this.name,
     ]
     if this.hint:
-        things.push(" (type: ", this.hint, ")")
+        things.push(", (type: ", this.hint + ")")
     things.push(
         ": ",
         this.x,
@@ -123,7 +123,7 @@ def _deserialized_pos_to_string():
         this.y,
         " ",
         this.roomName,
-        "]"
+        ")"
     )
     return ''.join(things)
 
@@ -259,7 +259,7 @@ def clean_old_positions():
     for name in Object.keys(_mem_expirations):
         if name != '-' and _mem_expirations[name] < Game.time:
             exp = _mem_expirations[name]
-            print("[locations] Expiring location {}: {} < {}".format(get(name), exp, Game.time))
+            print("[locations] expiring location: {} ({} < {})".format(get(name), exp, Game.time))
             del _mem_expirations[name]
             del _mem_hints[name]
             del _mem[name]

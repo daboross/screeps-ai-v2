@@ -167,8 +167,8 @@ def get_path_away(origin, targets):
         last_y = pos.y
         direction = movement.dxdy_to_direction(dx, dy)
         if direction is None:
-            print("[autoactions][get_path_away] Unknown direction for pos: {},{}, last: {},{}".format(
-                pos.x, pos.y, last_x, last_y))
+            print("[autoactions][get_path_away] error! dx/dy pair {},{} is unknown. pos: {},{}, last: {},{}"
+                  .format(dx, dy, pos.x, pos.y, last_x, last_y))
             return None
         path.append({
             'x': pos.x,

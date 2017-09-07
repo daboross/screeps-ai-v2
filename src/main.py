@@ -103,10 +103,11 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
     instance = wrap_creep(hive, targets, room, creep)
     if not instance:
         if creep.memory.role:
-            print("[{}][{}] Couldn't find role-type wrapper for role {}!".format(
-                creep.memory.home, creep.name, creep.memory.role))
+            print("[main] warning! couldn't find role-type wrapper for role: {} ({} of {})"
+                  .format(creep.memory.role, creep.name, creep.memory.home))
         else:
-            print("[{}][{}] Couldn't find this creep's role.".format(creep.memory.home, creep.name))
+            print("[main] couldn't find role for creep: {} of {}"
+                  .format(creep.name, creep.memory.home))
         role = default_roles[spawning.find_base_type(creep)]
         if role:
             creep.memory.role = role
@@ -126,8 +127,8 @@ def run_creep(hive, targets, creeps_skipped, room, creep):
         if rerun:
             rerun = instance.run()
         if rerun:
-            print("[{}][{}: {}] Tried to rerun three times!".format(instance.home.name, creep.name,
-                                                                    creep.memory.role))
+            print("[main] creep tried to run three times: {} ({} of {})"
+                  .format(creep.memory.role, creep.name, instance.home.name))
     records.finish_record(creep.memory.role)
 
 
@@ -234,9 +235,9 @@ def main():
     bucket_tier = math.floor((Game.cpu.bucket - 1) / 1000)  # -1 so we don't count max bucket as a separate tier
     if bucket_tier != Memory.meta.last_bucket and bucket_tier:  # and bucket_tier to avoid problems in simulation
         if bucket_tier > Memory.meta.last_bucket:
-            print("[main][bucket] Reached a tier {} bucket.".format(bucket_tier))
+            print("[main] bucket tier increased: {}".format(bucket_tier))
         else:
-            print("[main][bucket] Down to a tier {} bucket.".format(bucket_tier))
+            print("[main] bucket tier decreased: {}".format(bucket_tier))
             if bucket_tier <= 1:
                 Memory.meta.pause = True
                 hive = HiveMind(TargetMind())
@@ -350,12 +351,12 @@ def main():
         return
     creeps_skipped = {}
     if 'skipped_last_turn' in Memory:
-        print("[main] Running {} creeps skipped last tick, to save CPU.".format(
+        print("[main] running {} creeps skipped last tick, to save CPU.".format(
             _.sum(Memory.skipped_last_turn, 'length')))
         for room_name in Object.keys(Memory.skipped_last_turn):
             room = hive.get_room(room_name)
             if not room:
-                print("[{}] Room no longer visible? skipping re-running creeps skipped last turn from this room."
+                print("[main] room with skipped creeps no longer visible, skipping: {}"
                       .format(room_name))
                 continue
             run_room(targets, creeps_skipped, room)
@@ -395,8 +396,9 @@ def main():
                 all_creeps = _.sum(Memory.skipped_last_turn, 'length')
             else:
                 all_creeps = len(Object.keys(Game.creeps))
-            print("[main] Skipped {}/{} creeps, to save CPU.".format(skipped_count, all_creeps))
-            print("[main] Total CPU used: {}. Bucket: {}.".format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
+            print("[main] skipped {}/{} creeps, to save CPU.".format(skipped_count, all_creeps))
+            print("[main] used {} cpu, on a bucket of {}."
+                  .format(math.floor(Game.cpu.getUsed()), Game.cpu.bucket))
             Memory.skipped_last_turn = creeps_skipped
 
     if Game.cpu.bucket is undefined or Game.cpu.bucket >= 6000 and not Memory.meta['quiet']:

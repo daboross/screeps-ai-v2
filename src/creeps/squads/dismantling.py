@@ -600,14 +600,6 @@ class SquadDismantle(SquadDrone):
                 structure = structure_obj[LOOK_STRUCTURES]
                 if not can_target_struct(structure, opts):
                     continue
-                if cast(OwnedStructure, structure).my \
-                        or structure_type == STRUCTURE_CONTROLLER or structure_type == STRUCTURE_PORTAL \
-                        or (cast(StructureContainer, structure).store
-                            and _.findKey(cast(StructureContainer, structure).store,
-                                          lambda amount, key: amount > 5000
-                                          and (key != RESOURCE_ENERGY or amount > 100 * 1000))):
-                    print("WARNING WARNING WARNING second clause hit for {}".format(structure))
-                    continue
                 structure_type = structure.structureType
                 if structure_type == STRUCTURE_TOWER:
                     rank = 55

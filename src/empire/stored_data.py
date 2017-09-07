@@ -11,8 +11,7 @@ from constants.memkeys import deprecated_global_mem_key_room_data, \
     meta_segment_key_stored_room_data_segment_mapping
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
-from position_management import flags
-from utilities import movement, positions
+from utilities import movement
 
 if TYPE_CHECKING:
     from empire.hive import HiveMind
@@ -64,7 +63,7 @@ def final_modification_save():
         Memory[global_mem_key_segments_last_updated] = modified_mem = {}
 
     for segment in list(_modified_segments.values()):
-        print("[stored_data] {} changed: {}".format(segment, _segment_change_reasons.get(segment)))
+        print("[stored_data] {} changed: {}".format(segment, ', '.join(_segment_change_reasons.get(segment))))
         RawMemory.segments[segment] = JSON.stringify(_segments_cache.get(segment))
         modified_mem[segment] = current_tick
         _segments_last_retrieved.set(segment, current_tick)
@@ -145,7 +144,7 @@ def _migrate_old_data(new_room_name_to_segment: Dict[str, int]):
         segment_name, segment_data = _.sample(segments)
         new_room_name_to_segment[room_name] = segment_name
         segment_data[room_name] = data
-        _mark_modified(segment_name, "migrated" + room_name)
+        _mark_modified(segment_name, "migrated " + room_name)
 
 
 def _room_name_to_segment() -> Dict[str, int]:
@@ -498,7 +497,7 @@ def set_as_enemy(room_name: str, username: str = None) -> None:
     else:
         new_data = __new__(StoredRoom())
     new_data.owner = __new__(StoredEnemyRoomOwner(username, StoredEnemyRoomState.FULLY_FUNCTIONAL))
-    print("[storage] Successfully added {} as an enemy room.".format(room_name))
+    print("[storage] added as manual enemy room: {}".format(room_name))
     _set_new_data(room_name, new_data)
 
 
@@ -511,7 +510,7 @@ def avoid_always(room_name: str) -> str:
     else:
         new_data = __new__(StoredRoom())
     new_data.avoid_always = True
-    print("[storage] Now always avoiding {}.".format(room_name))
+    print("[storage] now avoiding room: {}".format(room_name))
     _set_new_data(room_name, new_data)
     return "set {} as always avoid room.".format(room_name)
 
@@ -525,6 +524,6 @@ def unavoid_always(room_name: str) -> str:
     else:
         new_data = __new__(StoredRoom())
     new_data.avoid_always = False
-    print("[storage] Now not avoiding {}.".format(room_name))
+    print("[storage] no longer avoiding room: {}".format(room_name))
     _set_new_data(room_name, new_data)
     return "set {} as not avoid room.".format(room_name)

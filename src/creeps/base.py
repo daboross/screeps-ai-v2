@@ -86,7 +86,8 @@ class RoleBase:
         if not self._room:
             self._room = self.hive.get_room(self.creep.room.name)
             if not self._room:
-                self.log("ERROR: can't find room we're in from hive! Room: {}".format(self.creep.room.name))
+                self.log("error! broken assumption. we're in room {}, but that room isn't found in hive.",
+                         self.creep.room.name)
         return self._room
 
     room = property(get_room)
@@ -567,7 +568,8 @@ class RoleBase:
         if len(creeps):
             other = creeps[0]
             if not other or not other.my:
-                print("{} has length, but {}[0] == {}!".format(creeps, creeps, other))
+                self.log("error! broken assumption. _try_force_move_to called towards {}, which is not owned."
+                         .format(other))
                 return False
             if not creep_cond(other):
                 return False
