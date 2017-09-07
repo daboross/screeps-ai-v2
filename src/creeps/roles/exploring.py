@@ -169,13 +169,14 @@ class RndrsRemote(RoleBase):
         # type: () -> Optional[str]
         all_possibilities = []
         for flag in self.home.mining.active_mines:
-            if flag.room and flag.room.controller:
-                if not flag.room.controller.sign:
+            room = Game.rooms[flag.pos.roomName]
+            if room and room.controller:
+                if not room.controller.sign:
                     all_possibilities.append(flag.pos.roomName)
                 else:
                     room_mind = self.hive.get_room(flag.pos.roomName)
                     message = room_mind.get_message()
-                    if message != flag.room.controller.sign.text:
+                    if message != room.controller.sign.text:
                         all_possibilities.append(flag.pos.roomName)
         if not len(all_possibilities):
             return None

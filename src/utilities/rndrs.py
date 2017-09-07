@@ -106,10 +106,20 @@ def lolvl():
     return message
 
 
+def nyxr():
+    message = _.sample([
+        "❤NYXR❤",
+        "NYXR❤",
+        "❤NYXR",
+        "NYXR",
+    ])
+    return message
+
+
 def rs():
     # type: () -> str
     if Game.gcl.level < 5:
         return lolvl()
     else:
-        return "❤NYXR❤"
+        return nyxr()
         # return _.sample([auto, pnk, coal, crcl, pwrd, strw])()
