@@ -502,10 +502,10 @@ class HoneyTrails:
         elif room and room.enemy:
             # TODO: add the granularity we have above down here.
             if room_name != origin.roomName and room_name != destination.roomName:
-                if opts['enemy_ok']:
+                if not opts['enemy_ok']:
                     print("[honey] avoiding fully functional enemy room: {}"
                           .format(room_name))
-                return False
+                    return False
             else:
                 print("[honey] Warning: path {}-{} ends up in an enemy room ({})!"
                       .format(origin, destination, room_name))
