@@ -33,6 +33,7 @@ _cached_data = new_map()
 _metadata_segment = 14
 _segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 _room_data_segments = [5, 6, 7, 8, 9, 10]
+_old_room_data_segments = [11, 12, 13]
 
 _segments_cache = new_map()  # type: JSMap[int, _Memory]
 _segments_last_retrieved = new_map()  # type: JSMap[int, int]
@@ -527,3 +528,34 @@ def unavoid_always(room_name: str) -> str:
     print("[storage] no longer avoiding room: {}".format(room_name))
     _set_new_data(room_name, new_data)
     return "set {} as not avoid room.".format(room_name)
+
+
+def recalculate_room_mapping() -> None:
+    room_name_to_segment = _room_name_to_segment()
+    for key in Object.keys(room_name_to_segment):
+        del room_name_to_segment[key]
+    print("keys left on room segment mappings after clearing: {}".format(Object.keys(room_name_to_segment)))
+    for segment_id in _old_room_data_segments:
+        segment_to_move_from = _get_segment(segment_id)
+        for room_name in Object.keys(segment_to_move_from):
+            pos = movement.parse_room_to_xy(room_name)
+            if pos[0] != 0 or pos[1] != 0:
+                new_segment = _.sample(_room_data_segments)
+                _get_segment(new_segment)[room_name] = segment_to_move_from[room_name]
+                del segment_to_move_from[room_name]
+                _mark_modified(segment_id, "removed room " + room_name)
+                _mark_modified(new_segment, "added room " + room_name)
+            else:
+                print("[stored_data] *not* migrating {} away from segment {}".format(room_name, segment_id))
+    for segment_id in _room_data_segments:
+        segment_data = _get_segment(segment_id)
+        for room_name in Object.keys(segment_data):
+            if room_name in room_name_to_segment:
+                print("[stored_data] duplicate data: {} in segments {} *and* {}"
+                      .format(room_name, room_name_to_segment[room_name], segment_id))
+                if room_name_to_segment[room_name] != segment_id:
+                    del segment_data[room_name]
+                    _mark_modified(segment_id, "removed room " + room_name)
+            else:
+                room_name_to_segment[room_name] = segment_id
+    _mark_modified(_metadata_segment, "recalculated room mappings")
