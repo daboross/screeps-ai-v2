@@ -54,7 +54,7 @@ def _calc_early_exit_cpu():
     if Game.cpu.tickLimit == 500:
         return 450
     else:
-        return max(Game.cpu.limit, Game.cpu.tickLimit - 50, int((Game.cpu.limit + Game.cpu.tickLimit) / 2))
+        return max(Game.cpu.limit, Game.cpu.tickLimit - 150, int((Game.cpu.limit + Game.cpu.tickLimit) / 2))
 
 
 _early_exit_cpu = _calc_early_exit_cpu()
@@ -426,8 +426,6 @@ def main():
 
     records.finish_main_record()
 
-
-module.exports.loop = main
 
 __pragma__('js', 'global').py = {
     "context": context,
