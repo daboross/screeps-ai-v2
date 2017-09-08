@@ -8,8 +8,8 @@ from consoletools import client_scripts, visuals
 from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
     role_ranged_offense, role_spawn_fill, role_squad_init, role_temporary_replacing, role_tower_fill, role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
-from creep_management.creep_wrappers import wrap_creep
 from creeps.base import RoleBase
+from directories.creep_wrappers import wrap_creep
 from empire import honey, shard_check, stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind

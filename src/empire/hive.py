@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from constants import *
-from creep_management import creep_wrappers
+from directories import creep_wrappers
 from empire.honey import HoneyTrails
 from empire.states import StateCalc
 from jstools.screeps import *

@@ -6,8 +6,9 @@ import random
 from cache import consistency
 from constants import *
 from constants.memkeys.room import *
-from creep_management import creep_wrappers, spawning
+from creep_management import spawning
 from creep_management.spawning import fit_num_sections
+from directories import creep_wrappers
 from empire import stored_data
 from jstools.js_set_map import new_map
 from jstools.screeps import *
@@ -625,7 +626,6 @@ class RoomMind:
         if 'wrapped' in creep:
             creep = creep.wrapped
         else:
-
             creep = creep_wrappers.wrap_creep(self.hive, self.hive.targets, self, creep)
             if creep is None:
                 print("[{}] could not wrap creep {} to get replacement time.".format(self.name, creep.name))
