@@ -763,8 +763,10 @@ class RoomMind:
             to_try = split_mem[0]
             room = Game.rooms[to_try]
             if not room:
-                print("[{}][observer] error! could not find room observed last tick: {}"
+                print("[{}][observer] error! could not find room observed last tick: {}. "
+                      "clearing plans and delaying 100 ticks."
                       .format(self.name, to_try))
+                self.mem[mem_key_observer_plans] = str(Game.time + 100)
                 return
 
             stored_data.update_data(room)
