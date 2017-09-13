@@ -1,13 +1,17 @@
-from typing import Union, cast
+from typing import List, Optional, TYPE_CHECKING, Union, cast
 
 from cache import volatile_cache
-from constants import recycle_time, role_builder, role_recycling, role_spawn_fill, role_spawn_fill_backup, \
-    role_tower_fill, role_upgrader, target_spawn_deposit
+from constants import SPAWN_FILL_WAIT, recycle_time, role_builder, role_recycling, role_spawn_fill, \
+    role_spawn_fill_backup, role_tower_fill, role_upgrader, target_spawn_deposit
 from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.roles import building, upgrading
 from jstools.screeps import *
+from position_management import flags
 from utilities import movement
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -150,3 +154,56 @@ class SpawnFill(building.Builder, Refill):
             elif self.memory.running == role_builder:
                 return building.Builder.should_pickup(self, resource_type)
         return RoleBase.should_pickup(self, resource_type)
+
+
+def find_new_target_extension(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    closest_distance = Infinity
+    best_id = None
+    stealing_from = None
+    structures = cast(List[Union[StructureExtension, StructureSpawn]],
+                      _.filter(creep.home.find(FIND_MY_STRUCTURES),
+                               lambda s: ((s.structureType == STRUCTURE_EXTENSION
+                                           or s.structureType == STRUCTURE_SPAWN)
+                                          and s.energy < s.energyCapacity)))
+    if len(structures):
+        for structure in structures:
+            structure_id = structure.id
+            if volatile_cache.mem("extensions_filled").has(structure_id):
+                continue
+            current_carry = targets.workforce_of(target_spawn_deposit, structure_id)
+            distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+            if distance < closest_distance:
+                max_to_deposit = structure.energyCapacity / 50.0
+                if not current_carry or current_carry < max_to_deposit:
+                    closest_distance = distance
+                    best_id = structure_id
+                    stealing_from = None
+                else:
+                    targeting = targets.reverse_targets[target_spawn_deposit][structure_id]
+                    if len(targeting):
+                        for name in targeting:
+                            if not Game.creeps[name] or movement.distance_squared_room_pos(
+                                    Game.creeps[name].pos, structure.pos) > distance * 2.25:
+                                # If we're at least 1.5x closer than them, let's steal their place.
+                                # Note that 1.5^2 is 2.25, which is what we should be using since we're comparing
+                                # squared distances. d1 > d2 * 1.5 is equivalent to d1^2 > d2^2 * 1.5^2 which is
+                                # equivalent to d1^2 > d2^2 * 2.25
+                                closest_distance = distance
+                                best_id = structure_id
+                                stealing_from = name
+                                break
+                    else:
+                        closest_distance = distance
+                        best_id = structure_id
+                        stealing_from = None
+        if stealing_from is not None:
+            targets.unregister_name(stealing_from, target_spawn_deposit)
+    elif creep.home.full_storage_use:
+        flag_list = flags.find_flags(creep.home, SPAWN_FILL_WAIT)
+        if len(flag_list):
+            best_id = _(flag_list).map(lambda f: "flag-{}".format(f.name)) \
+                .min(lambda fid: targets.reverse_targets[target_spawn_deposit][fid] or 0)
+            if best_id is Infinity:
+                best_id = None
+    return best_id

@@ -1,10 +1,16 @@
-from constants import CLAIM_LATER, rmem_key_sponsor, role_builder, role_mineral_steal, role_recycling, \
+from typing import Optional, TYPE_CHECKING
+
+from constants import CLAIM_LATER, RESERVE_NOW, rmem_key_sponsor, role_builder, role_mineral_steal, role_recycling, \
     role_tower_fill_once, role_upgrader, target_reserve_now, target_single_flag
+from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from creeps.behaviors.transport import TransportPickup
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -216,3 +222,24 @@ class MineralSteal(TransportPickup):
     def _calculate_time_to_replace(self):
         # TODO: find a good time in a better way!
         return _.size(self.creep.body) * CREEP_SPAWN_TIME + 15  # Don't live-replace as often.
+
+
+def find_new_target_reserve_now_room(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    closest_flag = None
+    closest_distance = Infinity
+    for flag in flags.find_flags_global(RESERVE_NOW):
+        room_name = flag.pos.roomName
+        room = Game.rooms[room_name]
+        if not room or (room.controller and not room.controller.my and not room.controller.owner):
+            # claimable!
+            flag_id = "flag-{}".format(flag.name)
+            current_targets = targets.targets[target_reserve_now][flag_id]
+            if not current_targets or current_targets < 1:
+                distance = movement.distance_squared_room_pos(creep.pos,
+                                                              __new__(RoomPosition(25, 25, room_name)))
+
+                if distance < closest_distance:
+                    closest_distance = distance
+                    closest_flag = flag_id
+    return closest_flag

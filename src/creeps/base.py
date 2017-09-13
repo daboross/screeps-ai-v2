@@ -667,3 +667,52 @@ class RoleBase:
         return self.creep.findSpecialty()
 
     __pragma__('nofcall')
+
+
+def find_new_target_source(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    has_work = not not creep.creep.hasActiveBodyparts(WORK)
+    any_miners = not not creep.home.role_count(role_miner)
+    highest_priority = -Infinity
+    best_source = None
+    for source in creep.home.sources:
+        if not has_work and not _.some(creep.home.find_in_range(FIND_MY_CREEPS, 1, source.pos),
+                                       lambda c: c.memory.role == role_miner):
+            continue
+        distance = movement.chebyshev_distance_room_pos(source.pos, creep.pos)
+        current_work_force = targets.workforce_of(target_source, source.id)
+        if any_miners:
+            energy = _.sum(creep.home.find_in_range(FIND_DROPPED_RESOURCES, 1, source.pos), 'amount')
+            priority = energy - current_work_force * 100 - distance * 2
+        else:
+            oss = creep.home.get_open_source_spaces_around(source)
+            priority = oss * 10 - 100 * current_work_force / oss - distance
+        if source.energy <= 0:
+            priority -= 200
+        if not priority:
+            print("[targets] Strange priority result for source {}: {}".format(source, priority))
+        if priority > highest_priority:
+            best_source = source.id
+            highest_priority = priority
+
+    return best_source
+
+
+def find_new_target_energy_site(targets, creep, pos):
+    # type: (TargetMind, RoleBase, Optional[RoomPosition]) -> Optional[str]
+    if not pos:
+        pos = creep.pos
+    if creep.home.full_storage_use:
+        best = creep.home.room.storage
+        # Still usually prefer storage over any links, unless a lot longer distance (>13 more away)
+        best_priority = movement.chebyshev_distance_room_pos(pos, best.pos) - 13
+        if creep.home.links.enabled:
+            for struct in creep.home.links.links:
+                current_targets = targets.targets[target_closest_energy_site][struct.id]
+                priority = movement.chebyshev_distance_room_pos(pos, struct.pos)
+                if priority < best_priority and (not current_targets or current_targets < 2):
+                    best = struct
+                    best_priority = priority
+        return best.id
+    else:
+        return None

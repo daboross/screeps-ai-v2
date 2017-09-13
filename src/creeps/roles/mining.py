@@ -1,8 +1,8 @@
 import math
-from typing import List, Optional, cast
+from typing import List, Optional, TYPE_CHECKING, cast
 
 from constants import RANGED_DEFENSE, UPGRADER_SPOT, role_hauler, role_miner, \
-    role_recycling, role_spawn_fill, target_closest_energy_site, target_energy_hauler_mine, target_energy_miner_mine
+    role_recycling, role_spawn_fill, target_energy_hauler_mine, target_energy_miner_mine
 from creeps.base import RoleBase
 from creeps.behaviors.refill import Refill
 from creeps.behaviors.transport import TransportPickup
@@ -11,6 +11,9 @@ from empire import stored_data
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -189,6 +192,22 @@ class EnergyMiner(TransportPickup):
         return path_length / moves_every + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
 
 
+def find_new_energy_miner_target_mine(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    best_id = None
+    closest_flag = Infinity
+    for flag in creep.home.mining.available_mines:
+        flag_id = "flag-{}".format(flag.name)
+        miners = targets.targets[target_energy_miner_mine][flag_id]
+        if not miners or miners < 1:
+            distance = movement.distance_squared_room_pos(flag.pos, creep.creep.pos)
+            if distance < closest_flag:
+                closest_flag = distance
+                best_id = flag_id
+
+    return best_id
+
+
 class EnergyHauler(TransportPickup, SpawnFill, Refill):
     def run_local_refilling(self, pickup, fill):
         if not self.memory.filling:
@@ -265,6 +284,30 @@ class EnergyHauler(TransportPickup, SpawnFill, Refill):
         path_length = self.hive.honey.find_path_length(self.home.spawn.pos, source.pos)
         # TODO: find a good time here by calculating exactly how many trips we'll make before we drop.
         return path_length * 1.7 + _.size(self.creep.body) * CREEP_SPAWN_TIME + 15
+
+
+def find_new_energy_hauler_target_mine(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    best_id = None
+    # don't go to any rooms with 100% haulers in use.
+    smallest_percentage = 1
+    for flag in creep.home.mining.active_mines:
+        flag_id = "flag-{}".format(flag.name)
+        if not creep.home.mining.haulers_can_target_mine(flag):
+            continue
+        hauler_mass = targets.workforce_of(target_energy_hauler_mine, flag_id)
+        hauler_percentage = float(hauler_mass) / creep.home.mining.calculate_current_target_mass_for_mine(flag)
+        too_long = creep.creep.ticksToLive < 2.2 * creep.home.mining.distance_to_mine(flag)
+        if too_long:
+            if hauler_percentage < 0.5:
+                hauler_percentage *= 2
+            else:
+                hauler_percentage = 0.99
+        if not hauler_mass or hauler_percentage < smallest_percentage:
+            smallest_percentage = hauler_percentage
+            best_id = flag_id
+
+    return best_id
 
 
 class RemoteReserve(TransportPickup):

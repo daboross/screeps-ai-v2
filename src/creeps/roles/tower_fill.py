@@ -1,7 +1,12 @@
+from typing import Optional, TYPE_CHECKING
+
 from constants import recycle_time, role_builder, role_recycling, role_spawn_fill, role_tower_fill, target_tower_fill
 from creeps.base import RoleBase
 from creeps.roles import spawn_fill
 from jstools.screeps import *
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -90,3 +95,20 @@ class TowerFillOnce(RoleBase):
             else:
                 self.memory.role = self.memory.old_role or role_builder
                 del self.memory.old_role
+
+
+def find_new_target_tower(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    most_lacking = 0
+    best_id = None
+    for tower in creep.room.defense.towers():
+        if tower.energy >= tower.energyCapacity * 0.9:
+            continue
+        # 50 per carry part, but we don't know if it's full. this is a safe compromise
+        carry_targeting = targets.workforce_of(target_tower_fill, tower.id) * 25
+        tower_lacking = tower.energyCapacity - tower.energy - carry_targeting
+        if tower_lacking > most_lacking:
+            most_lacking = tower_lacking
+            best_id = tower.id
+
+    return best_id

@@ -1,4 +1,4 @@
-from typing import Dict, cast
+from typing import Dict, Optional, TYPE_CHECKING, cast
 
 from constants import INVADER_USERNAME, rmem_key_stored_hostiles, role_defender, role_miner, role_recycling, \
     target_rampart_defense
@@ -6,6 +6,9 @@ from creeps.base import RoleBase
 from creeps.behaviors.military import MilitaryBase
 from jstools.screeps import *
 from utilities import hostile_utils, movement, positions
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -152,3 +155,34 @@ class WallDefender(RoleBase):
             if _.some(at_target, lambda c: c.memory.role == role_miner):
                 self.log("Hot spot has miner: untargeting.")
                 self.targets.untarget(self, target_rampart_defense)
+
+
+def find_new_target_rampart_defense_spot(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    hot_spots, cold_spots = creep.home.defense.get_current_defender_spots()
+    nearest = None
+    nearest_distance = Infinity
+    for location in hot_spots:
+        if not targets.targets[target_rampart_defense][location.name]:
+            distance = movement.chebyshev_distance_room_pos(location, creep.pos)
+            if distance < nearest_distance:
+                nearest = location
+                nearest_distance = distance
+    if nearest is None:
+        for location in cold_spots:
+            if not targets.targets[target_rampart_defense][location.name]:
+                distance = movement.chebyshev_distance_room_pos(location, creep.pos)
+                if distance < nearest_distance:
+                    nearest = location
+                    nearest_distance = distance
+        if nearest is None:
+            for location in creep.home.defense.get_old_defender_spots():
+                if not targets.targets[target_rampart_defense][location.name]:
+                    distance = movement.chebyshev_distance_room_pos(location, creep.pos)
+                    if distance < nearest_distance:
+                        nearest = location
+                        nearest_distance = distance
+    if nearest:
+        return nearest.name
+    else:
+        return None

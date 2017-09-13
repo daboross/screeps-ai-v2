@@ -1,15 +1,16 @@
-from typing import Any, Dict, List, TYPE_CHECKING, Union, cast
+from typing import Any, Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from cache import volatile_cache
 from constants import creep_base_full_upgrader, rmem_key_planned_role_to_spawn, role_builder, role_hauler, \
     role_spawn_fill, role_upgrader, roleobj_key_base, roleobj_key_num_sections, roleobj_key_role, target_big_repair, \
-    target_construction, target_refill, target_repair
+    target_construction, target_refill, target_repair, target_spawn_deposit
 from creep_management import spawning
 from creeps.base import RoleBase
 from jstools.screeps import *
-from utilities import robjs
+from utilities import movement, robjs
 
 if TYPE_CHECKING:
+    from empire.targets import TargetMind
     from rooms.room_mind import RoomMind
 
 __pragma__("noalias", "name")
@@ -173,3 +174,62 @@ class Refill(RoleBase):
                         v.set("refills_idle", -Infinity)
                 else:
                     v.set("refills_idle", idle)
+
+
+def find_new_target_refill_destination(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    best_priority = Infinity
+    best_id = None
+    stealing_from = None
+    structures = _.filter(creep.home.find(FIND_MY_STRUCTURES),
+                          lambda s: (s.structureType == STRUCTURE_EXTENSION or s.structureType == STRUCTURE_SPAWN
+                                     or s.structureType == STRUCTURE_CONTAINER
+                                     or s.structureType == STRUCTURE_TOWER)
+                                    and s.energy < s.energyCapacity)
+    creeps = _.filter(creep.home.creeps,
+                      lambda c: (c.memory.role == role_upgrader or c.memory.role == role_builder)
+                                and c.carry.energy < c.carryCapacity)
+    extra = creep.home.get_extra_fill_targets()
+    for structure in structures.concat(extra).concat(creeps):
+        structure_id = structure.id
+        if volatile_cache.mem("extensions_filled").has(structure_id):
+            continue
+        current_carry = targets.workforce_of(target_spawn_deposit, structure_id) \
+                        + targets.workforce_of(target_refill, structure_id)
+        empty = ((structure.energyCapacity or structure.carryCapacity or structure.storeCapacity)
+                 - ((structure.store and _.sum(structure.store.energy))
+                    or (structure.carry and _.sum(structure.carry.energy))
+                    or structure.energy or 0))
+        empty_percent = empty / (structure.energyCapacity or structure.carryCapacity or structure.storeCapacity) \
+                        * 30
+        if empty <= 0 or (empty <= 2 and not structure.structureType):
+            continue
+        distance = movement.chebyshev_distance_room_pos(structure.pos, creep.creep.pos)
+        priority = distance - empty_percent
+        if structure.memory and not structure.memory.filling:
+            priority -= 15
+        elif structure.structureType == STRUCTURE_CONTAINER:
+            priority -= 40
+        elif structure.structureType:
+            priority -= 25
+        if priority < best_priority:
+            max_work_mass = empty / 50
+            if not current_carry or current_carry < max_work_mass:
+                best_priority = priority
+                best_id = structure_id
+                stealing_from = None
+            else:
+                targeting = targets.reverse_targets[target_refill][structure_id]
+                if len(targeting):
+                    for name in targeting:
+                        if not Game.creeps[name] or movement.chebyshev_distance_room_pos(
+                                Game.creeps[name].pos, structure.pos) > distance * 1.5:
+                            # If we're at least 1.5x closer than them, let's steal their place.
+                            best_priority = priority
+                            best_id = structure_id
+                            stealing_from = name
+                            break
+    if stealing_from is not None:
+        targets.unregister_name(stealing_from, target_refill)
+
+    return best_id

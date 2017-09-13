@@ -1,5 +1,5 @@
 import math
-from typing import Dict, List, Optional, Union, cast
+from typing import Dict, List, Optional, TYPE_CHECKING, Union, cast
 
 from constants import recycle_time, rmem_key_building_priority_spawn, rmem_key_there_might_be_energy_lying_around, \
     role_builder, role_recycling, role_upgrader, target_big_big_repair, target_big_repair, target_construction, \
@@ -8,6 +8,10 @@ from creeps.base import RoleBase
 from creeps.roles import upgrading
 from jstools.screeps import *
 from position_management import flags
+from utilities import movement
+
+if TYPE_CHECKING:
+    from empire.targets import TargetMind
 
 __pragma__('noalias', 'name')
 __pragma__('noalias', 'undefined')
@@ -18,6 +22,10 @@ __pragma__('noalias', 'set')
 __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
+
+_max_builders_per_target = 4
+
+_default_maximum_repair_workforce = 10
 
 
 class Builder(upgrading.Upgrader):
@@ -420,3 +428,135 @@ class Builder(upgrading.Upgrader):
                     else:
                         self.log("Unknown result from btb-transfer({}, {}, {}): {}", refill_target, RESOURCE_ENERGY,
                                  amount, result)
+
+
+def find_new_target_construction_site(targets, creep, walls_only=False):
+    # type: (TargetMind, RoleBase, Optional[bool]) -> Optional[str]
+    smallest_work_force = Infinity
+    best_id = None
+    if walls_only:
+        sites = creep.home.building.get_high_value_construction_targets()
+    else:
+        sites = creep.home.building.get_construction_targets()
+    for site_id in sites:
+        if site_id.startswith("flag-"):
+            max_work = _max_builders_per_target
+        else:
+            site = cast(ConstructionSite, Game.getObjectById(site_id))
+            if not site:
+                continue
+            max_work = min(_max_builders_per_target, math.ceil((site.progressTotal - site.progress) / 50))
+        current_work = targets.workforce_of(target_construction, site_id)
+
+        if not current_work or current_work < max_work:
+            best_id = site_id
+            break
+        elif current_work < smallest_work_force:
+            best_id = site_id
+            smallest_work_force = current_work
+    if not best_id and len(sites):
+        creep.home.building.refresh_building_targets(True)
+        # TODO: Infinite loop warning!!!
+        return find_new_target_construction_site(targets, creep, walls_only)
+    return best_id
+
+
+def find_new_target_destruction_site(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    construct_count = {}
+    for struct_id in creep.home.building.get_destruction_targets():
+        struct = cast(Structure, Game.getObjectById(struct_id))
+        if struct:
+            current_num = targets.targets[target_destruction_site][struct_id]
+            if not current_num or current_num < _max_builders_per_target:
+                # List is already in priority.
+                if struct.structureType not in construct_count:
+                    construct_count[struct.structureType] = _.sum(creep.home.find(FIND_MY_CONSTRUCTION_SITES),
+                                                                  lambda s: s.structureType == struct.structureType)
+                if construct_count[struct.structureType] < 2:
+                    return struct_id
+
+
+def find_new_target_small_repair_site(targets, creep, max_hits, max_work=_default_maximum_repair_workforce):
+    # type: (TargetMind, RoleBase, int, int) -> Optional[str]
+    repair_targets = creep.home.building.get_repair_targets()
+    if not len(repair_targets):
+        return None
+    # closest_distance = Infinity
+    # smallest_num_builders = Infinity
+    # best_id = None
+    if len(repair_targets) <= 1 and not len(creep.home.building.get_construction_targets()):
+        max_work = Infinity
+    best_id = None
+    second_best_id = None
+    for struct_id in repair_targets:
+        structure = cast(Structure, Game.getObjectById(struct_id))
+        if not structure:
+            continue
+        # TODO: merge this logic with ConstructionMind _efficiently!_
+        this_hits_max = min(structure.hitsMax, max_hits)
+        if structure and structure.hits < this_hits_max * 0.9:
+            distance = movement.chebyshev_distance_room_pos(structure.pos, creep.pos)
+            ticks_to_repair = (structure.hitsMax - structure.hits) \
+                              / (creep.creep.getActiveBodyparts(WORK) * REPAIR_POWER)
+            if ticks_to_repair < 10 and distance < 3:
+                return structure.id
+            elif distance + ticks_to_repair < 15:
+                best_id = structure.id
+            if second_best_id:
+                continue
+            if max_work is Infinity:
+                current_max = Infinity
+            else:
+                current_max = min(max_work, math.ceil((this_hits_max - structure.hits) / 50))
+            current_workforce = targets.workforce_of(target_repair, struct_id)
+            if not current_workforce or current_workforce < current_max:
+                #     or current_workforce < smallest_num_builders + 1:
+                # Already priority sorted
+                second_best_id = structure.id
+                # distance = movement.distance_squared_room_pos(structure.pos, creep.creep.pos)
+                # if distance < closest_distance:
+                #     smallest_num_builders = current_workforce
+                #     closest_distance = distance
+                #     best_id = struct_id
+    if best_id:
+        return best_id
+    else:
+        return second_best_id
+
+
+def find_new_target_big_repair_site(targets, creep, max_hits):
+    # type: (TargetMind, RoleBase, int) -> Optional[str]
+    # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
+    #       .format(creep.name, creep.home.name, max_hits))
+    best_id = None
+    smallest_num = Infinity
+    smallest_hits = Infinity
+    for struct_id in creep.home.building.get_big_repair_targets():
+        struct = cast(Structure, Game.getObjectById(struct_id))
+        if struct and struct.hits < struct.hitsMax and struct.hits < max_hits:
+            struct_num = targets.workforce_of(target_big_repair, struct_id)
+            if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
+                smallest_num = struct_num
+                smallest_hits = struct.hits
+                best_id = struct_id
+    return best_id
+
+
+def find_new_target_extra_big_repair_site(targets, creep):
+    # type: (TargetMind, RoleBase) -> Optional[str]
+    # print("[targets][{}] Finding new big repair site in room {} with max_hits {} "
+    #       .format(creep.name, creep.home.name, max_hits))
+    best_id = None
+    smallest_num = Infinity
+    smallest_hits = Infinity
+    for struct_id in creep.home.building.get_big_repair_targets():
+        struct = cast(Structure, Game.getObjectById(struct_id))
+        if struct and struct.hits < struct.hitsMax \
+                and (struct.structureType == STRUCTURE_WALL or struct.structureType == STRUCTURE_RAMPART):
+            struct_num = targets.workforce_of(target_big_big_repair, struct_id)
+            if struct_num < smallest_num or (struct_num == smallest_num and struct.hits < smallest_hits):
+                smallest_num = struct_num
+                smallest_hits = struct.hits
+                best_id = struct_id
+    return best_id
