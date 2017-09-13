@@ -47,6 +47,7 @@ class JSMap(Generic[K, V]):
     def size(self) -> int:
         return 0
 
+
 class JSSet(Generic[K]):
     def has(self, key: K) -> bool:
         pass
@@ -69,6 +70,7 @@ class JSSet(Generic[K]):
     @property
     def size(self) -> int:
         return 0
+
 
 __pragma__('noskip')
 

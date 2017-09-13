@@ -164,7 +164,6 @@ class LinkManager(RoleBase):
                 + _.size(self.creep.body) * CREEP_SPAWN_TIME)
 
 
-# TODO: Change the speech on this to something unique.
 class Cleanup(SpawnFill):
     def run(self):
         if self.creep.ticksToLive < recycle_time:
