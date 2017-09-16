@@ -3,15 +3,17 @@ Stored data!
 
 Stores data in memory via room name keys, using the metadata module powered by Protocol Buffers to encode data.
 """
-from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, cast
+from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
 from constants import INVADER_USERNAME, SK_USERNAME
 from constants.memkeys import deprecated_global_mem_key_room_data, \
     deprecated_global_mem_key_stored_room_data_segment_mapping, global_mem_key_segments_last_updated, \
-    meta_segment_key_stored_room_data_segment_mapping
+    meta_segment_key_stored_room_data_segment_mapping, portal_segment_data_key_destination_room_name, \
+    portal_segment_data_key_end_game_time, portal_segment_data_key_xy_pairs, portal_segment_key_odd_portal_rooms, \
+    portal_segment_key_room_name_to_portal_info
 from jstools.js_set_map import new_map, new_set
 from jstools.screeps import *
-from utilities import movement
+from utilities import movement, positions, robjs
 
 if TYPE_CHECKING:
     from empire.hive import HiveMind
@@ -31,6 +33,7 @@ _cache_created = Game.time
 _cached_data = new_map()  # type: JSMap[str, StoredRoom]
 
 _metadata_segment = 14
+_portal_data_segment = 14
 _segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
 _room_data_segments = [5, 6, 7, 8, 9, 10]
 _old_room_data_segments = [11, 12, 13]
@@ -70,6 +73,35 @@ def final_modification_save():
         _segments_last_retrieved.set(segment, current_tick)
     _modified_segments.js_clear()
     _segment_change_reasons.js_clear()
+
+
+def portals_desc() -> str:
+    result = []
+    portals = portal_info()
+    recorded = new_set()
+    for room_name in _.sortBy(Object.keys(portals)):
+        if recorded.has(room_name):
+            continue
+        recorded.add(room_name)
+        data = portals[room_name]
+        formatted_xy_builder = []
+        xy_pairs = data[portal_segment_data_key_xy_pairs]
+        for index in range(0, len(xy_pairs), 2):
+            s_x, s_y = positions.deserialize_xy(int(robjs.get_str_codepoint(xy_pairs, index)))
+            d_x, d_y = positions.deserialize_xy(int(robjs.get_str_codepoint(xy_pairs, index + 1)))
+            formatted_xy_builder.append("{},{}->{},{}".format(s_x, s_y, d_x, d_y))
+        end_time = data[portal_segment_data_key_end_game_time]
+        result.append(
+            "portal {} -> {}:"
+            "\n\ttime left: {}"
+            "\n\tpositions: {}".format(
+                room_name,
+                data[portal_segment_data_key_destination_room_name],
+                end_time if end_time else "still active",
+                ' '.join(formatted_xy_builder),
+            )
+        )
+    return "\n".join(result)
 
 
 def _parse_json_checked(raw_data, segment_name):
@@ -167,6 +199,22 @@ def _room_name_to_segment() -> Dict[str, int]:
     return mem
 
 
+def portal_info() -> Dict[str, Dict[str, Union[str, int]]]:
+    portal_mem = _get_segment(_portal_data_segment)
+    mem = portal_mem[portal_segment_key_room_name_to_portal_info]
+    if not mem:
+        mem = portal_mem[portal_segment_key_room_name_to_portal_info] = {}
+    return cast(Dict[str, Dict[str, Union[str, int]]], mem)
+
+
+def odd_portal_rooms() -> List[str]:
+    segment_mem = _get_segment(_portal_data_segment)
+    mem = segment_mem[portal_segment_key_odd_portal_rooms]
+    if not mem:
+        mem = segment_mem[portal_segment_key_odd_portal_rooms] = []
+    return cast(List[str], mem)
+
+
 def _get_serialized_data(room_name) -> Optional[str]:
     room_name_to_segment = _room_name_to_segment()
     segment = room_name_to_segment[room_name]
@@ -230,6 +278,57 @@ def _set_new_data(room_name: str, data: StoredRoom) -> None:
 
     segment_data[room_name] = encoded = data.encode()
     _cached_data.set(encoded, data)
+
+
+def _mark_portal(origin: str, destination: str, end_time: int,
+                 position_pairs: List[Tuple[RoomPosition, RoomPosition]]) -> None:
+    mem = portal_info()
+    origin_data = mem[origin]
+    destination_data = mem[destination]
+    if (not origin_data or not destination_data
+        or origin_data[portal_segment_data_key_end_game_time] != end_time
+        or destination_data[portal_segment_data_key_end_game_time] != end_time
+        or len(position_pairs) != len(destination_data[portal_segment_data_key_xy_pairs]) / 2):
+        origin_xy_pairs_builder = []
+        destination_xy_pairs_builder = []
+        for origin_pos, destination_pos in position_pairs:
+            origin_pos_xy = String.fromCodePoint(positions.serialize_pos_xy(origin_pos))
+            destination_pos_xy = String.fromCodePoint(positions.serialize_pos_xy(destination_pos))
+            origin_xy_pairs_builder.append(origin_pos_xy)
+            origin_xy_pairs_builder.append(destination_pos_xy)
+            destination_xy_pairs_builder.append(destination_pos_xy)
+            destination_xy_pairs_builder.append(origin_pos_xy)
+        mem[origin] = {
+            portal_segment_data_key_destination_room_name: destination,
+            portal_segment_data_key_end_game_time: end_time,
+            portal_segment_data_key_xy_pairs: ''.join(origin_xy_pairs_builder),
+        }
+        mem[destination] = {
+            portal_segment_data_key_destination_room_name: origin,
+            portal_segment_data_key_end_game_time: end_time,
+            portal_segment_data_key_xy_pairs: ''.join(destination_xy_pairs_builder),
+        }
+        if not movement.is_room_exact_center_of_sector(origin):
+            odd_rooms = odd_portal_rooms()
+            if not _.includes(odd_rooms, origin):
+                odd_rooms.append(origin)
+
+        if not movement.is_room_exact_center_of_sector(destination):
+            odd_rooms = odd_portal_rooms()
+            if not _.includes(odd_rooms, destination):
+                odd_rooms.append(destination)
+
+        _mark_modified(_portal_data_segment, "updated portal {} <-> {}".format(origin, destination))
+
+
+def _mark_no_portal(origin: str) -> None:
+    mem = portal_info()
+    origin_data = mem[origin]
+    if origin_data:
+        destination = origin_data[portal_segment_data_key_destination_room_name]
+        del mem[origin]
+        del mem[destination]
+        _mark_modified(_portal_data_segment, "removed portal {} <-> {}".format(origin, destination))
 
 
 def cleanup_old_data(hive: HiveMind) -> None:
@@ -349,6 +448,37 @@ def _find_room_owner(room: Room) -> Optional[StoredEnemyRoomOwner]:
         return __new__(StoredEnemyRoomOwner(name, state))
 
 
+def _find_portals(room: Room) -> List[StructurePortal]:
+    result = []
+    for s in cast(List[Structure], room.find(FIND_STRUCTURES)):
+        if s.structureType == STRUCTURE_PORTAL:
+            assert isinstance(s, StructurePortal)
+            if s.destination and s.destination.roomName:
+                result.append(s)
+    return result
+
+
+def _mark_all_portals(room_name: str, portals: List[StructurePortal]) -> None:
+    if not len(portals):
+        if movement.is_room_exact_center_of_sector(room_name) or _.includes(odd_portal_rooms(), room_name):
+            _mark_no_portal(room_name)
+        return
+
+    destination = portals[0].destination.roomName
+    pairs = []
+    min_exp = portals[0].ticksToDecay
+    for portal in portals:
+        if portal.ticksToDecay < min_exp:
+            min_exp = portal.ticksToDecay
+        if portal.destination.roomName == destination:
+            pairs.append((portal.pos, portal.destination))
+        else:
+            print("[stored_data] multiple portal destinations in one room: {} != {}"
+                  .format(destination, portal.destination.roomName))
+
+    _mark_portal(room_name, destination, Game.time + min_exp, pairs)
+
+
 def update_old_structure_data_for_visible_rooms() -> None:
     """
     Updates structure data older than 3000 ticks for visible rooms.
@@ -389,6 +519,8 @@ def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=
             last_updated = get_last_updated_tick(room_name)
             if last_updated == 0:
                 next_update = 0
+            elif movement.is_room_exact_center_of_sector(room_name):
+                next_update = last_updated + 200
             else:
                 next_update = last_updated + 5000
             if now > next_update:
@@ -428,6 +560,7 @@ def update_data(room: Room) -> None:
     data.last_updated = Game.time
     data.owner = _find_room_owner(room)
     data.reservation_end = _find_room_reservation_end(room)
+    _mark_all_portals(room_name, _find_portals(room))
     _set_new_data(room_name, data)
 
 

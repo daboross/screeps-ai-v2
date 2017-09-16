@@ -145,5 +145,8 @@ _(py.hive().my_rooms).map(r => _(py.hive().my_rooms).map(r2 => Game.map.getRoomL
 # Buy enforcement minerals
 [RESOURCE_CATALYZED_LEMERGIUM_ALKALIDE, RESOURCE_CATALYZED_KEANIUM_ALKALIDE, RESOURCE_CATALYZED_ZYNTHIUM_ACID].forEach(x => Game.market.createOrder(ORDER_BUY, x, 2.5, 10 * 1000, 'E62N6'))
 
+# Clear room checking caches to recheck rooms
+for (let room of py.hive().my_rooms) { delete room.mem.observer_plan; }
+
 ```
 
