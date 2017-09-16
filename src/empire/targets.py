@@ -19,9 +19,6 @@ __pragma__('noalias', 'type')
 __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
-_MAX_BUILDERS = 4
-_MAX_REPAIR_WORKFORCE = 10
-
 tmkey_targets_used = "targets_used"
 tmkey_targeters_using = "targeters_using"
 tmkey_workforce = "targets_workforce"

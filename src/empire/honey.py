@@ -411,9 +411,6 @@ def set_max_avoid(matrix: CustomCostMatrix, opts: Dict[str, Any]):
                             matrix.increase_at(49, y, _COST_TYPE_MAX_AVOID, 20 * plain_cost)
 
 
-__pragma__('fcall')
-
-
 def get_default_max_ops(origin, destination, opts):
     # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> int
     linear_distance = movement.chebyshev_distance_room_pos(origin, destination)
@@ -453,6 +450,9 @@ def _deserialize_path_checked(path: str) -> Optional[List[_PathPos]]:
         return Room.deserializePath(path)
     except:
         return None
+
+
+__pragma__('fcall')
 
 
 class HoneyTrails:
@@ -1106,7 +1106,7 @@ class HoneyTrails:
         if not serialized_path_obj:
             return 1
         if _path_cached_data_key_metadata in serialized_path_obj:  # Version 3 stored path
-            return int(serialized_path_obj[_path_cached_data_key_metadata].js_split(',')[0])
+            return int(serialized_path_obj[_path_cached_data_key_metadata].js_split(',', 1)[0])
         if _path_cached_data_key_full_path in serialized_path_obj:  # Version 1 stored path
             # return len(serialized_path_obj['full'])   # The length of the path
             #  - 4 + 1                                  # The first four characters only represent one position

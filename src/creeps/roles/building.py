@@ -334,11 +334,11 @@ class Builder(upgrading.Upgrader):
         return False
 
     def execute_construction_target(self, target):
-        # type: (Union[Structure, Flag]) -> bool
-        if not cast(Structure, target).structureType and cast(Flag, target).color:
+        # type: (Union[ConstructionSite, Flag]) -> bool
+        if not cast(ConstructionSite, target).structureType and cast(Flag, target).color:
             # it's a flag! ConstructionMind should have made a new construction site when adding this to the list of
             # available targets.
-            site = cast(ConstructionSite, _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES)))
+            site = cast(Optional[ConstructionSite], _.find(target.pos.lookFor(LOOK_CONSTRUCTION_SITES)))
             if site:
                 if site.my:
                     self.targets.manually_register(self, target_construction, site.id)
@@ -371,7 +371,7 @@ class Builder(upgrading.Upgrader):
             self.move_to(target)
             if not self.pos.inRangeTo(target, 3):
                 if self.home.role_count(role_builder) > 10:
-                    nearby = self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1)
+                    nearby = cast(List[Dict[str, Creep]], self.room.look_for_in_area_around(LOOK_CREEPS, self.pos, 1))
                     self.refill_nearby(nearby)
                 return False
 

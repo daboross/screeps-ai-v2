@@ -28,7 +28,7 @@ __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
 _cache_created = Game.time
-_cached_data = new_map()
+_cached_data = new_map()  # type: JSMap[str, StoredRoom]
 
 _metadata_segment = 14
 _segments_to_use = [5, 6, 7, 8, 9, 10, 11, 12, 13, 14]

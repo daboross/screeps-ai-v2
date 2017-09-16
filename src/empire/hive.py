@@ -296,7 +296,7 @@ class HiveMind:
         if home:
             return creep_wrappers.wrap_creep(self, self.targets, home, creep)
         else:
-            raise AssertionError("[hive]Invalid value to wrap_creep: {} with memory {}"
+            raise AssertionError("[hive] invalid value passed to wrap_creep: {} (memory {})"
                                  .format(creep, JSON.stringify(creep.memory)))
 
     # noinspection PyPep8Naming
