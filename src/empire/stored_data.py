@@ -379,17 +379,19 @@ def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=
     relative_y = 0
     dx = 0
     dy = -1
-    for i in range(10 ** 2):
+    for i in range(OBSERVER_RANGE ** 2):
+        if abs(relative_x) > OBSERVER_RANGE or abs(relative_y) > OBSERVER_RANGE:
+            continue
         if saved_pos is None:
             room_name = movement.room_xy_to_name(this_room_x + relative_x, this_room_y + relative_y)
+            if not Game.map.isRoomAvailable(room_name):
+                continue
             last_updated = get_last_updated_tick(room_name)
             if last_updated == 0:
-                to_update = (abs(relative_x) <= 8 and abs(relative_y) <= 8)
+                next_update = 0
             else:
-                to_update = now - last_updated > 5000
-            if to_update and not Game.map.isRoomAvailable(room_name):
-                to_update = False
-            if to_update:
+                next_update = last_updated + 5000
+            if now > next_update:
                 result.append(room_name)
                 if len(result) >= 20:
                     new_saved_pos = i
