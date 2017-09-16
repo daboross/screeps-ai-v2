@@ -56,6 +56,32 @@ def room_diff(room_1, room_2):
     return x2 - x1, y2 - y1
 
 
+def is_room_exact_center_of_sector(room_name):
+    # type: (str) -> bool
+
+    rx, ry = parse_room_to_xy(room_name)
+    # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
+    rrx = (-rx - 1 if rx < 0 else rx) % 10
+    rry = (-ry - 1 if ry < 0 else ry) % 10
+
+    return rrx == 5 and rry == 5
+
+
+def is_room_inner_circle_of_sector(room_name):
+    # type: (str) -> bool
+
+    rx, ry = parse_room_to_xy(room_name)
+    # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
+    rrx = (-rx - 1 if rx < 0 else rx) % 10
+    rry = (-ry - 1 if ry < 0 else ry) % 10
+
+    return (
+        (rrx == 4 or rrx == 5 or rrx == 6)
+        and (rry == 4 or rry == 5 or rry == 6)
+        and not (rrx == 5 and rry == 5)
+    )
+
+
 def room_chebyshev_distance(room_1, room_2):
     # type: (str, str) -> int
     xdiff, ydiff = room_diff(room_1, room_2)

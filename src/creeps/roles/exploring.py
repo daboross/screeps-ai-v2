@@ -54,14 +54,9 @@ class Scout(MilitaryBase):
                         "ignore_swamp": True,
                         "use_roads": False,
                     })
-                rx, ry = movement.parse_room_to_xy(self.pos.roomName)
                 last_updated = stored_data.get_last_updated_tick(self.pos.roomName)
                 if not last_updated or Game.time - last_updated > 100:
-                    # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
-                    rrx = (-rx - 1 if rx < 0 else rx) % 10
-                    rry = (-ry - 1 if ry < 0 else ry) % 10
-                    if (rrx == 4 or rrx == 5 or rrx == 6) and (rry == 4 or rry == 5 or rry == 6) \
-                            and not (rrx == 5 and rry == 5):
+                    if movement.is_room_inner_circle_of_sector(self.pos.roomName):
                         lair_count = 0
                         # should be a source keeper room
                         for lair in cast(List[Structure], self.room.find(FIND_HOSTILE_STRUCTURES)):
@@ -75,7 +70,7 @@ class Scout(MilitaryBase):
                             self.log("WARNING: Scout found no lairs in supposed source keeper room {}! Logic error?"
                                      .format(self.pos.roomName))
                     stored_data.update_data(self.room.room)
-                self.log("Scouted room {}, {}.".format(rx, ry))
+                self.log("scouted room: {}".format(self.pos.roomName))
 
         if self.pos.isEqualTo(destination) or \
                 (self.pos.isNearTo(destination)
