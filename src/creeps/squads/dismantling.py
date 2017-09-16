@@ -6,7 +6,7 @@ from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, ro
     role_squad_ranged
 from creeps.roles.squads import SquadDrone
 from creeps.squads.base import BasicOffenseSquad, squadmemkey_origin
-from empire import honey, stored_data
+from empire import honey, stored_data, portals
 from jstools.screeps import *
 from position_management import flags, locations
 from utilities import movement, positions, robjs
@@ -221,12 +221,12 @@ class DismantleSquad(BasicOffenseSquad):
                 max_y = 48
                 room_x_diff, room_y_diff = movement.room_diff(last_room, current_room)
                 if abs(room_x_diff) > 1 or abs(room_y_diff) > 1:
-                    portals = Game.rooms[current_room].find(FIND_STRUCTURES, {
+                    portal_list = Game.rooms[current_room].find(FIND_STRUCTURES, {
                         'filter': {'structureType': STRUCTURE_PORTAL}
                     })
 
                     def portal_condition(x, y):
-                        return not _.any(portals, lambda p: (abs(p.pos.x - x) < 5
+                        return not _.any(portal_list, lambda p: (abs(p.pos.x - x) < 5
                                                              or abs(p.pos.y - y) < 5))
 
                     extra_condition = portal_condition
@@ -289,13 +289,10 @@ class DismantleSquad(BasicOffenseSquad):
                 c.move_to(target)
                 return True
             else:
-                if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-                    reroute_start = Game.flags['reroute'].pos
-                    reroute_destination = Game.flags['reroute_destination'].pos
-                    if movement.chebyshev_distance_room_pos(c.pos, reroute_start) \
-                            + movement.chebyshev_distance_room_pos(reroute_destination, target) \
-                            < movement.chebyshev_distance_room_pos(c.pos, target):
-                        target = reroute_start
+                # TODO: this should accommodate reroutes _faster_?
+                reroute = portals.recommended_reroute(c.pos, target)
+                if reroute is not None:
+                    target = reroute[0]
                 c.move_to(target)
                 return True
 
@@ -370,15 +367,10 @@ class DismantleSquad(BasicOffenseSquad):
             next_intermediate_goal = target
             origin = _.max(self.members,
                            lambda m: movement.chebyshev_distance_room_pos(m.pos, next_intermediate_goal)).pos
-            if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-                reroute_start = Game.flags['reroute'].pos
-                reroute_destination = Game.flags['reroute_destination'].pos
-                if movement.chebyshev_distance_room_pos(origin, reroute_start) \
-                        + movement.chebyshev_distance_room_pos(reroute_destination, target) \
-                        < movement.chebyshev_distance_room_pos(origin, target):
-                    next_intermediate_goal = reroute_start
-                    origin = _.max(self.members,
-                                   lambda m: movement.chebyshev_distance_room_pos(m, next_intermediate_goal))
+            reroute = portals.recommended_reroute(origin, target)
+            if reroute is not None:
+                next_intermediate_goal = reroute[0]
+                origin = _.max(self.members, lambda m: movement.chebyshev_distance_room_pos(m, next_intermediate_goal))
             self.set_origin(origin)
             serialized_obj = self.home.hive.honey.get_serialized_path_obj(origin, target, self.new_movement_opts())
             if not serialized_obj[first_creep.pos.roomName]:

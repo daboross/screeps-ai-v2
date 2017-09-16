@@ -2,7 +2,7 @@ import math
 from typing import Any, Dict, List, Optional, cast
 
 from creeps.base import RoleBase
-from empire import honey
+from empire import honey, portals
 from jstools.screeps import *
 from utilities import movement, robjs
 from utilities.movement import center_pos, chebyshev_distance_room_pos, distance_squared_room_pos, find_an_open_space, \
@@ -91,14 +91,7 @@ def find_midpoint(pos, origin, target):
 
 def is_path_portal(origin, target):
     # type: (RoomPosition, RoomPosition) -> bool
-    if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-        reroute_start = Game.flags['reroute']
-        reroute_destination = Game.flags['reroute_destination']
-        if chebyshev_distance_room_pos(origin, reroute_start.pos) \
-                + chebyshev_distance_room_pos(reroute_destination.pos, target) \
-                < chebyshev_distance_room_pos(origin, target):
-            return True
-    return False
+    return portals.recommended_reroute(origin, target) is not None
 
 
 class MilitaryBase(RoleBase):

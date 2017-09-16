@@ -67,6 +67,60 @@ def is_room_exact_center_of_sector(room_name):
     return rrx == 5 and rry == 5
 
 
+def sector_centers_near(room_name):
+    # type: (str) -> List[str]
+    rx, ry = parse_room_to_xy(room_name)
+    # `-1` in order to undo the adjustment parse_room_to_xy() does for there being both E0S0 and W0N0
+    rrx = (-rx - 1 if rx < 0 else rx) % 10
+    rry = (-ry - 1 if ry < 0 else ry) % 10
+    if rrx == 5:
+        xs = [rx]
+    else:
+        offset = 5 - rrx
+        if rx < 0:
+            new_x = rx - offset
+        else:
+            new_x = rx + offset
+        if (rrx > 5) == (rx < 0):
+            xs = [new_x, new_x - 10]
+        else:
+            xs = [new_x, new_x + 10]
+
+    if rry == 5:
+        ys = [ry]
+    else:
+        offset = 5 - rry
+        if ry < 0:
+            new_y = ry - offset
+        else:
+            new_y = ry + offset
+        if (rry > 5) == (ry < 0):
+            ys = [new_y, new_y - 10]
+        else:
+            ys = [new_y, new_y + 10]
+
+    if abs(ry) < 10:
+        for i in range(0, len(ys)):
+            if (ys[i] < 0) != (ry < 0):
+                if ry < 0:
+                    ys[i] += 1
+                else:
+                    ys[i] -= 1
+    if abs(rx) < 10:
+        for i in range(0, len(xs)):
+            if (xs[i] < 0) != (rx < 0):
+                if rx < 0:
+                    xs[i] += 1
+                else:
+                    xs[i] -= 1
+
+    result = []
+    for x in xs:
+        for y in ys:
+            result.append(room_xy_to_name(x, y))
+    return result
+
+
 def is_room_inner_circle_of_sector(room_name):
     # type: (str) -> bool
 

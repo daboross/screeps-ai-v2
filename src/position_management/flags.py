@@ -105,8 +105,8 @@ White:
     Purple:
     Blue:
     Cyan:
-    Green: REROUTE              - Portal marked for current use (hardcoded name: `reroute`)
-    Yellow: REROUTE_DESTINATION - Destination of a reroute (hardcoded name: `reroute_destination`)
+    Green:
+    Yellow:
     Orange:
     Brown:
     Grey:

@@ -5,7 +5,7 @@ from cache import global_cache
 from constants import SLIGHTLY_AVOID, SPAWN_FILL_WAIT, UPGRADER_SPOT, global_cache_mining_paths_suffix, \
     global_cache_roadless_paths_suffix, global_cache_swamp_paths_suffix, global_cache_warpath_suffix, role_miner
 from creep_management import mining_paths
-from empire import stored_data
+from empire import portals, stored_data
 from jstools.screeps import *
 from position_management import flags
 from utilities import movement, positions, robjs
@@ -753,25 +753,25 @@ class HoneyTrails:
             heuristic_attempt_num = 0
             sk_ok = False
 
-        if 'reroute' in Game.flags and 'reroute_destination' in Game.flags:
-            reroute_start = Game.flags['reroute'].pos
-            reroute_destination = Game.flags['reroute_destination'].pos
-            if movement.chebyshev_distance_room_pos(origin, reroute_start) \
-                    + movement.chebyshev_distance_room_pos(reroute_destination, destination) \
-                    < movement.chebyshev_distance_room_pos(origin, destination):
-                # Let's path through the portal!
-                origin_opts = Object.create(opts)
-                origin_opts.range = 1
-                path1 = self._get_raw_path(origin, reroute_start, origin_opts)
-                if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start)):
-                    pos = __new__(RoomPosition(reroute_start.x, reroute_start.y, reroute_start.roomName))
-                    pos.end_of_reroute = True
-                    path1.push(pos)
-                else:
-                    path1[len(path1) - 1].end_of_reroute = True
-                path1.push(reroute_destination)
-                path2 = self._get_raw_path(reroute_destination, destination, opts)
-                return path1.concat(path2)
+        reroute = portals.recommended_reroute(origin, destination)
+        if reroute is not None:
+            reroute_start, reroute_end = reroute
+            print("[honey] Using portal reroute {} <-> {} for path {} <-> {}."
+                  .format(reroute_start.roomName, reroute_end.roomName, origin.roomName, destination.roomName))
+
+            # path through the portal!
+            origin_opts = Object.create(opts)
+            origin_opts.range = 1
+            path1 = self._get_raw_path(origin, reroute_start, origin_opts)
+            if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start)):
+                pos = __new__(RoomPosition(reroute_start.x, reroute_start.y, reroute_start.roomName))
+                pos.end_of_reroute = True
+                path1.push(pos)
+            else:
+                path1[len(path1) - 1].end_of_reroute = True
+            path1.push(reroute_end)
+            path2 = self._get_raw_path(reroute_end, destination, opts)
+            return path1.concat(path2)
 
         if paved_for:
             plain_cost = 20
