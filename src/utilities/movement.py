@@ -139,7 +139,7 @@ def is_room_inner_circle_of_sector(room_name):
 def room_chebyshev_distance(room_1, room_2):
     # type: (str, str) -> int
     xdiff, ydiff = room_diff(room_1, room_2)
-    return min(xdiff, ydiff)
+    return max(abs(xdiff), abs(ydiff))
 
 
 def is_valid_room_name(room_name):

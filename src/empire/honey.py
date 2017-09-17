@@ -760,7 +760,7 @@ class HoneyTrails:
                   .format(reroute_start.roomName, reroute_end.roomName, origin.roomName, destination.roomName))
 
             # path through the portal!
-            origin_opts = Object.create(opts)
+            origin_opts = Object.create(opts) if opts else {}
             origin_opts.range = 1
             path1 = self._get_raw_path(origin, reroute_start, origin_opts)
             if not len(path1) or (not path1[len(path1) - 1].isEqualTo(reroute_start)):
