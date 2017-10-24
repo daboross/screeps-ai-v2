@@ -720,9 +720,9 @@ class RoomMind:
         # type: () -> None
         if self.rcl < 8:
             return
-        offset = (Game.time + self.get_unique_owned_index()) % 5
-        if offset == 3:
-            # on offset=3, set observer to observer a room.
+        offset = (Game.time + self.get_unique_owned_index()) % 2
+        if offset == 0:
+            # on offset=0, set observer to observer a room.
             observer = cast(StructureObserver, _.find(self.find(FIND_MY_STRUCTURES), lambda s: s.observeRoom))
             if not observer:
                 return
@@ -750,8 +750,8 @@ class RoomMind:
             if result != OK:
                 print("[{}][observer] warning! unknown result from {}.observeRoom({}): {}"
                       .format(self.name, observer, to_observe, result))
-        elif offset == 4:
-            # on offset=4, serialize the results of that observation.
+        elif offset == 1:
+            # on offset=1, serialize the results of that observation.
             saved_mem = self.mem[mem_key_observer_plans]
             if not saved_mem:
                 return
