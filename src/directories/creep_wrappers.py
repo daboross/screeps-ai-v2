@@ -45,7 +45,7 @@ role_classes = {
     role_td_healer: offensive.TowerDrainHealer,
     role_td_goad: offensive.TowerDrainer,
     role_simple_dismantle: offensive.Dismantler,
-    role_scout: exploring.Scout,
+    role_manual_scout: exploring.Scout,
     role_power_attack: offensive.PowerAttack,
     role_power_cleanup: offensive.PowerCleanup,
     role_energy_grab: offensive.EnergyGrab,

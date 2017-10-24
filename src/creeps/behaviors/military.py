@@ -243,6 +243,12 @@ class MilitaryBase(RoleBase):
                 if self.pos.isNearTo(new_target):
                     self.creep.move(self.pos.getDirectionTo(new_target))
                 else:
+                    if self.memory.checkpoint and movement.chebyshev_distance_room_pos(self.pos, new_target) > 20:
+                        del self.memory.checkpoint
+                        del self.memory.next_ppos
+                        del self.memory.lost_path_at
+                        del self.memory.off_path_for
+                        return
                     self.move_to(new_target)
                 if self.pos.isEqualTo(new_target):
                     del self.memory.next_ppos

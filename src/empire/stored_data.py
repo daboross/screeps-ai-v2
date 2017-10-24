@@ -337,7 +337,7 @@ def cleanup_old_data(hive: HiveMind) -> None:
         nearest_room = hive.get_closest_owned_room(room_name)
         if nearest_room:
             distance = movement.room_chebyshev_distance(nearest_room.name, room_name)
-            if distance > 9:
+            if distance > OBSERVER_RANGE:
                 msg = "[stored_data] Removing data on room {}: closest room, {}, is {} rooms away.".format(
                     room_name,
                     nearest_room,

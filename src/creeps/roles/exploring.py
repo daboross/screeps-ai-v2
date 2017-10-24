@@ -144,7 +144,7 @@ class Scout(MilitaryBase):
             "ignore_swamp": True,
             "use_roads": False
         })
-        return path_len + 28  # Body size is always 1, so just 25 leeway + 3 here.
+        return path_len + 25 + CREEP_SPAWN_TIME  # Body size is always 1, so just 25 leeway + 3 here.
 
 
 class Rndrs(RoleBase):

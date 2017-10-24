@@ -58,7 +58,7 @@ class _GameGcl:
 
 # noinspection PyPep8Naming
 class _GameMap:
-    def describeExits(self, roomName: str) -> Dict[int, str]:
+    def describeExits(self, roomName: str) -> Dict[Union[int, str], str]:
         pass
 
     def findExit(self, fromRoom: str, toRoom: str, opts: Dict[str, Any]) -> int:

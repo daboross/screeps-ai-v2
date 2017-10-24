@@ -90,7 +90,7 @@ role_simple_dismantle = "simple_dismantler"
 role_energy_grab = "egrab"
 role_power_attack = "attack_power"
 role_power_cleanup = "power_cleanup"
-role_scout = "scout"
+role_manual_scout = "scout"
 role_support_miner = "spm"
 role_support_hauler = "sph"
 role_support_builder = "spb"
@@ -134,7 +134,7 @@ role_bases = {
     role_mineral_miner: creep_base_mammoth_miner,
     role_mineral_hauler: creep_base_hauler,
     role_simple_dismantle: creep_base_dismantler,
-    role_scout: creep_base_scout,
+    role_manual_scout: creep_base_scout,
     role_mineral_steal: creep_base_half_move_hauler,
 }
 
@@ -157,7 +157,7 @@ default_roles = {
     creep_base_dismantler: role_simple_dismantle,
     creep_base_full_move_dismantler: role_simple_dismantle,
     creep_base_full_upgrader: role_upgrader,
-    creep_base_scout: role_scout,
+    creep_base_scout: role_manual_scout,
     creep_base_power_attack: role_power_attack,
     creep_base_full_move_attack: role_power_attack,
     creep_base_rampart_defense: role_wall_defender,

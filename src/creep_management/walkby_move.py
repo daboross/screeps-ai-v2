@@ -56,7 +56,7 @@ role_movement_types = {
     role_td_healer: MILITARY,
     role_td_goad: MILITARY,
     role_simple_dismantle: MILITARY,
-    role_scout: MILITARY,
+    role_manual_scout: MILITARY,
     role_power_attack: MILITARY,
     role_power_cleanup: MILITARY,
     role_energy_grab: MILITARY,

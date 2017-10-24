@@ -2014,7 +2014,7 @@ class RoomMind:
 
     def _next_cheap_military_role(self):
         # type: () -> Optional[Dict[str, Any]]
-        return self.spawn_one_creep_per_flag(SCOUT, role_scout, creep_base_scout, creep_base_scout, 1)
+        return self.spawn_one_creep_per_flag(SCOUT, role_manual_scout, creep_base_scout, creep_base_scout, 1)
 
     def wall_defense(self):
         # type: () -> Optional[Dict[str, Any]]
@@ -2296,7 +2296,7 @@ class RoomMind:
                 self._get_next_requested_creep,
                 self._next_message_creep,
                 self._next_neighbor_support_creep,
-            ]  # type: List[Callable[..., Optional[Dict[str, Any]]]]
+            ]  # type: List[Callable[[], Optional[Dict[str, Any]]]]
         next_role = None
         for func in ordered_spawn_producers:
             next_role = func()
