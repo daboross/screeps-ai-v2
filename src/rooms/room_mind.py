@@ -1179,7 +1179,7 @@ class RoomMind:
             self.store_cached_property(cache_key_spending_now, room_spending_state_saving, 500)
             return room_spending_state_saving
         state = None
-        if self.mem[mem_key_sell_all_but_empty_resources_to]:
+        if self.mem[rmem_key_sell_all_but_empty_resources_to] or ABANDON_ALL:
             state = room_spending_state_selling
         elif self.mem[mem_key_now_supporting]:
             room = self.hive.get_room(self.mem[mem_key_now_supporting])

@@ -4,7 +4,7 @@ from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 from cache import volatile_cache
 from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
     rmem_key_mineral_mind_storage, rmem_key_now_supporting, rmem_key_sell_all_but_empty_resources_to, \
-    role_mineral_hauler
+    role_mineral_hauler, ABANDON_ALL
 from jstools.screeps import *
 from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
     energy_for_terminal_when_selling, energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, \
@@ -347,7 +347,7 @@ class MineralMind:
             result = []
             buying = self.minerals_to_stock()
             for mineral in Object.keys(self.get_total_room_resource_counts()):
-                if mineral != RESOURCE_ENERGY and not minerals_to_keep_on_hand.includes(mineral) \
+                if mineral != RESOURCE_ENERGY and (ABANDON_ALL or not minerals_to_keep_on_hand.includes(mineral)) \
                         and not buying.includes(mineral):
                     result.append(mineral)
             self._minerals_to_sell = result
@@ -598,7 +598,7 @@ class MineralMind:
         if mineral == RESOURCE_ENERGY:
             if currently_have < 50 * 1000:
                 return 0, 0
-            if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+            if self.room.mem[rmem_key_sell_all_but_empty_resources_to] or ABANDON_ALL:
                 return min(_KEEP_IN_TERMINAL_ENERGY_WHEN_SELLING, currently_have - 50 * 1000), 2
             if self.room.mem[rmem_key_empty_all_resources_into_room]:
                 min_via_empty_to = self.find_emptying_mineral_and_cost()[1]
@@ -778,7 +778,7 @@ class MineralMind:
                                - energy_for_terminal_when_selling
         else:
             return
-        if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+        if self.room.mem[rmem_key_sell_all_but_empty_resources_to] or ABANDON_ALL:
             min_via_spending = self.get_estimate_total_energy()
 
         sending_to = self.room.mem[rmem_key_now_supporting]
@@ -837,7 +837,7 @@ class MineralMind:
             else:
                 return to_buy_when_defending
         else:
-            if mem_stock:
+            if mem_stock and not ABANDON_ALL:
                 return mem_stock
             else:
                 return []
@@ -931,7 +931,7 @@ class MineralMind:
                         best_order = order
                         best_order_energy_cost = energy_cost_of_1_resource
                 if best_order is not None:
-                    if self.room.mem[rmem_key_sell_all_but_empty_resources_to]:
+                    if self.room.mem[rmem_key_sell_all_but_empty_resources_to] or ABANDON_ALL:
                         minimum = -0.1
                     elif self.ro_last_sold_at_mem()[mineral]:
                         if we_have > max_minerals_to_keep * 1.1:

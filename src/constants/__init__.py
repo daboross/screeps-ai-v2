@@ -1,3 +1,5 @@
+ABANDON_ALL = True
+
 # Creep base parts
 creep_base_1500miner = "fast_small_miner"
 creep_base_3000miner = "fast_big_miner"
