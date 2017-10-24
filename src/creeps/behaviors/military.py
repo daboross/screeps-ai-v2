@@ -281,7 +281,7 @@ class MilitaryBase(RoleBase):
                 del self.memory.lost_path_at
         serialized_pos = self.pos.x | (self.pos.y << 6)
         if self.memory.last_pos == serialized_pos:
-            self.log("Standstill!")
+            self.log("standstill! at: {}", self.pos)
             if self.memory.standstill_for:
                 self.memory.standstill_for += 1
             else:

@@ -71,7 +71,6 @@ def run_transcrypt(config):
     if config.clean_build:
         cmd_args = transcrypt_clean_args
     else:
-
         cmd_args = transcrypt_arguments
 
     args = [transcrypt_executable] + cmd_args + [source_main]

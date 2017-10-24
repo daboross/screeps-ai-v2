@@ -331,11 +331,11 @@ class _:
         pass
 
     @staticmethod
-    def pull(array: List[_L1], values: List[_L1]) -> List[_L1]:
+    def pull(array: List[_L1], *values: _L1) -> List[_L1]:
         pass
 
     @staticmethod
-    def pullAt(array: List[_L1], indices: List[int]) -> List[_L1]:
+    def pullAt(array: List[_L1], *indices: int) -> List[_L1]:
         pass
 
     @staticmethod
@@ -464,7 +464,7 @@ class _:
         pass
 
     @staticmethod
-    def includes(collection: _Collection, value: _L1, fromIndex: int = 0) -> bool:
+    def includes(collection: Union[_Collection, str], value: _L1, fromIndex: int = 0) -> bool:
         pass
 
     @staticmethod

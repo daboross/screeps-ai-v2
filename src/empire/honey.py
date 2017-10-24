@@ -733,15 +733,15 @@ class HoneyTrails:
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[RoomPosition]
 
         if opts:
-            roads_better = opts["use_roads"] if "use_roads" in opts else True
-            ignore_swamp = opts["ignore_swamp"] if "ignore_swamp" in opts else False
-            pf_range = opts["range"] if "range" in opts else 1
+            roads_better = opts['use_roads'] if 'use_roads' in opts else True
+            ignore_swamp = opts['ignore_swamp'] if 'ignore_swamp' in opts else False
+            pf_range = opts['range'] if 'range' in opts else 1
             paved_for = opts['paved_for'] if 'paved_for' in opts else None
-            max_ops = opts["max_ops"] if "max_ops" in opts else get_default_max_ops(origin, destination, opts)
-            max_rooms = opts["max_rooms"] if "max_rooms" in opts else 16
-            max_avoid = opts["avoid_rooms"] if "avoid_rooms" in opts else None
-            heuristic_attempt_num = opts["heuristic_attempt_num"] if "heuristic_attempt_num" in opts else 0
-            sk_ok = opts["sk_ok"] if "sk_ok" in opts else False
+            max_ops = opts['max_ops'] if 'max_ops' in opts else get_default_max_ops(origin, destination, opts)
+            max_rooms = opts['max_rooms'] if 'max_rooms' in opts else 16
+            max_avoid = opts['avoid_rooms'] if 'avoid_rooms' in opts else None
+            heuristic_attempt_num = opts['heuristic_attempt_num'] if 'heuristic_attempt_num' in opts else 0
+            sk_ok = opts['sk_ok'] if 'sk_ok' in opts else False
         else:
             roads_better = True
             ignore_swamp = False

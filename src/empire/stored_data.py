@@ -67,7 +67,7 @@ def final_modification_save():
         Memory[global_mem_key_segments_last_updated] = modified_mem = {}
 
     for segment in list(_modified_segments.values()):
-        print("[stored_data] {} changed: {}".format(segment, ', '.join(_segment_change_reasons.get(segment))))
+        # print("[stored_data] {} changed: {}".format(segment, ', '.join(_segment_change_reasons.get(segment))))
         RawMemory.segments[segment] = JSON.stringify(_segments_cache.get(segment))
         modified_mem[segment] = current_tick
         _segments_last_retrieved.set(segment, current_tick)
@@ -522,7 +522,7 @@ def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=
             elif movement.is_room_exact_center_of_sector(room_name):
                 next_update = last_updated + 200
             else:
-                next_update = last_updated + 5000
+                next_update = last_updated + 15 * 1000
             if now > next_update:
                 result.append(room_name)
                 if len(result) >= 20:

@@ -8,8 +8,8 @@ def __new__(arg: T) -> T:
 
 
 # noinspection PyPep8Naming
-def js_isNaN(num: Union[float, int]) -> bool:
-    return num != float('nan')
+def js_isNaN(num: Union[float, int, str]) -> bool:
+    return float(num) != float('nan')
 
 
 js_global = None  # type: Any
