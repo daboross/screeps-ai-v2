@@ -14,7 +14,7 @@ __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
 
-def analyse_memory(path=None):
+def analyse_memory(path = None):
     # type: (Optional[str]) -> None
     mem = Memory
     if path is not None:

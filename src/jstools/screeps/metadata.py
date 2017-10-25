@@ -38,7 +38,7 @@ class StoredObstacle:
     :type source_capacity: int
     """
 
-    def __init__(self, x, y, thing_type, source_capacity=0):
+    def __init__(self, x, y, thing_type, source_capacity = 0):
         # type: (int, int, StoredObstacleType, int) -> None
         self.x = x
         self.y = y
@@ -54,7 +54,7 @@ class StoredHostileStructure:
     :type wall_hits: int
     """
 
-    def __init__(self, x, y, thing_type, wall_hits=0):
+    def __init__(self, x, y, thing_type, wall_hits = 0):
         # type: (int, int, StoredHostileStructureType, int) -> None
         self.x = x
         self.y = y
@@ -70,8 +70,8 @@ class StoredEnemyRoomOwner:
 
 
 class StoredRoom:
-    def __init__(self, obstacles=None, structures=None, last_updated=None, reservation_end=None, owner=None,
-                 avoid_always=None):
+    def __init__(self, obstacles = None, structures = None, last_updated = None, reservation_end = None, owner = None,
+                 avoid_always = None):
         # type: (List[StoredObstacle], List[StoredHostileStructure], int, int, StoredEnemyRoomOwner, bool) -> None
         if obstacles is None:
             obstacles = []

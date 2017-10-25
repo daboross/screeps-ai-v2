@@ -261,7 +261,7 @@ ranged_mass_attack_rates = [1, 1, 0.4, 0.1]  # array for fast indexing
 
 
 class SquadKitingRangedAttack(SquadDrone):
-    def run_squad(self, members, target, do_things=False):
+    def run_squad(self, members, target, do_things = False):
         # type: (List[SquadDrone], Location, bool) -> bool
         hostiles_nearby = defense.stored_hostiles_near(self.pos.roomName)
         if self.creep.hits < self.creep.hitsMax or \
@@ -432,7 +432,7 @@ class SquadKitingRangedAttack(SquadDrone):
 
 
 class SquadKitingAttack(SquadDrone):
-    def run_squad(self, members, target, do_things=False):
+    def run_squad(self, members, target, do_things = False):
         """
         :type members: list[SquadDrone]
         :type target: position_management.locations.Location

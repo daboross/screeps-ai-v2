@@ -334,7 +334,7 @@ class TargetMind:
         self._register_new_targeter(ttype, targeter_id, new_target)
         return new_target
 
-    def get_new_target(self, creep, ttype, extra_var=None, second_time=False):
+    def get_new_target(self, creep, ttype, extra_var = None, second_time = False):
         # type: (RoleBase, int, Optional[Any], bool) -> Optional[Union[RoomObject, Location]]
         target_id = self._get_new_target_id(ttype, creep.name, creep, extra_var)
         if not target_id:

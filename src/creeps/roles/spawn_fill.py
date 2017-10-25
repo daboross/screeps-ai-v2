@@ -147,7 +147,7 @@ class SpawnFill(building.Builder, Refill):
                 return self.harvest_energy()
         return False
 
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         if 'running' in self.memory:
             if self.memory.running == role_upgrader:
                 return upgrading.Upgrader.should_pickup(self, resource_type)

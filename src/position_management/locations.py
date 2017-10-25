@@ -151,7 +151,7 @@ def _deserialize(string, name):
     return __new__(DeserializedPos(string, name))
 
 
-def _serialize(position, expiration=None):
+def _serialize(position, expiration = None):
     # type: (Union[RoomPosition, RoomObject], Optional[int]) -> str
     if cast(RoomObject, position).pos is not undefined:
         pos = cast(RoomObject, position).pos
@@ -215,7 +215,7 @@ def get(name):
         return _deserialize(serialized_result, name)
 
 
-def create(position, hint=None, expiration=None):
+def create(position, hint = None, expiration = None):
     # type: (Union[RoomObject, RoomPosition], Optional[int], Optional[int]) -> Location
     """
     Creates a location with the given position and hint.

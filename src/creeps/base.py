@@ -172,7 +172,7 @@ class RoleBase:
             self.basic_move_to(pos)
         return result
 
-    def move_to(self, _target, opts=None):
+    def move_to(self, _target, opts = None):
         # type: (Union[RoomPosition, RoomObject, RoleBase], Dict[str, Any]) -> None
         if self.creep.fatigue <= 0:
             target = robjs.pos(_target)
@@ -546,7 +546,7 @@ class RoleBase:
 
     __pragma__('fcall')
 
-    def _try_force_move_to(self, x, y, creep_cond=lambda x: True):
+    def _try_force_move_to(self, x, y, creep_cond = lambda x: True):
         # type: (int, int, Callable[[Creep], bool]) -> bool
         """
         Checks if a block is not a wall, has no non-walkable structures, and has no creeps.
@@ -580,7 +580,7 @@ class RoleBase:
 
     __pragma__('nofcall')
 
-    def force_basic_move_to(self, target, creep_cond=lambda x: True):
+    def force_basic_move_to(self, target, creep_cond = lambda x: True):
         # type: (Union[RoomObject, RoomPosition], Callable[[Creep], bool]) -> bool
         """
         Tries to do a basic move in the direction, forcing place switching with an creep for which creep_cond(creep) returns True.
@@ -638,7 +638,7 @@ class RoleBase:
 
     __pragma__('fcall')
 
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         # type: (Optional[str]) -> bool
         return resource_type is None or resource_type == RESOURCE_ENERGY
 

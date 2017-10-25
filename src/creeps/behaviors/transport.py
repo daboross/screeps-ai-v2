@@ -200,7 +200,7 @@ class TransportPickup(RoleBase):
 
         return self.hive.honey.find_path_length(origin, target)
 
-    def follow_energy_path(self, origin, target, mine=None):
+    def follow_energy_path(self, origin, target, mine = None):
         # type: (Union[RoomObject, RoomPosition], Union[RoomObject, RoomPosition], Any) -> None
         origin = robjs.pos(origin)
         target = robjs.pos(target)

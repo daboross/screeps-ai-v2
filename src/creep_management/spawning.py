@@ -826,7 +826,7 @@ def carry_count(_creep):
     return int(creep.carryCapacity / CARRY_CAPACITY)
 
 
-def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
+def fit_num_sections(needed, maximum, extra_initial = 0, min_split = 1):
     # type: (float, float, float, int) -> float
     if maximum <= 1:
         return maximum
@@ -839,7 +839,7 @@ def fit_num_sections(needed, maximum, extra_initial=0, min_split=1):
     return trying
 
 
-def ceil_sections(count, base=None):
+def ceil_sections(count, base = None):
     # type: (float, Optional[str]) -> float
     if base is not None and base not in half_sections:
         return math.ceil(count)

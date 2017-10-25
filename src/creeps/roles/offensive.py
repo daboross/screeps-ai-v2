@@ -48,7 +48,7 @@ class TowerDrainHealer(MilitaryBase):
 
 
 class TowerDrainer(MilitaryBase):
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return False
 
     def run(self):
@@ -427,7 +427,7 @@ class PowerAttack(MilitaryBase):
 
 # TODO: Change the speech on this to something unique.
 class PowerCleanup(MilitaryBase):
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return resource_type is None or resource_type == RESOURCE_POWER
 
     def run(self):

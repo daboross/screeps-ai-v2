@@ -122,7 +122,7 @@ class ReplacingExpendedCreep(RoleBase):
 
 
 class Recycling(Refill, MilitaryBase):
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return self.creep.ticksToLive > 100
 
     def run(self):

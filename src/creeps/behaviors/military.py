@@ -95,7 +95,7 @@ def is_path_portal(origin, target):
 
 
 class MilitaryBase(RoleBase):
-    def recalc_military_path(self, origin, target, opts=None):
+    def recalc_military_path(self, origin, target, opts = None):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> None
         # TODO: separate the majority of the code this shares with follow_military_path into a new module
         if opts and "to_home" in opts:
@@ -148,7 +148,7 @@ class MilitaryBase(RoleBase):
         honey.clear_cached_path(origin, target, path_opts)
 
     # TODO: A lot of this is copied directly (and shared with) transport.TransportPickup
-    def follow_military_path(self, origin, target, opts=None):
+    def follow_military_path(self, origin, target, opts = None):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> None
         origin = robjs.pos(origin)
         target = robjs.pos(target)
@@ -170,7 +170,7 @@ class MilitaryBase(RoleBase):
             path_opts = _.merge(path_opts, opts)
         # TODO: this is all stupid, PathFinder is stupid for multiple rooms!
         if chebyshev_distance_room_pos(origin, target) > 900 \
-                and not is_path_portal(origin, target):
+                and not is_path_portal(origin, target) and target.roomName != 'W11S56':
             path_opts.max_ops = chebyshev_distance_room_pos(origin, target) * 150
             path_opts.max_rooms = math.ceil(chebyshev_distance_room_pos(origin, target) / 5)
 
@@ -313,7 +313,7 @@ class MilitaryBase(RoleBase):
             self.memory.last_pos = serialized_pos
             del self.memory.standstill_for
 
-    def get_military_path_length(self, spawn, target, opts=None):
+    def get_military_path_length(self, spawn, target, opts = None):
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> int
         spawn = robjs.pos(spawn)
         target = robjs.pos(target)

@@ -6,7 +6,7 @@ from constants import SQUAD_DISMANTLE_RANGED, rmem_key_dismantler_squad_opts, ro
     role_squad_ranged
 from creeps.roles.squads import SquadDrone
 from creeps.squads.base import BasicOffenseSquad, squadmemkey_origin
-from empire import honey, stored_data, portals
+from empire import honey, portals, stored_data
 from jstools.screeps import *
 from position_management import flags, locations
 from utilities import movement, positions, robjs
@@ -227,7 +227,7 @@ class DismantleSquad(BasicOffenseSquad):
 
                     def portal_condition(x, y):
                         return not _.any(portal_list, lambda p: (abs(p.pos.x - x) < 5
-                                                             or abs(p.pos.y - y) < 5))
+                                                                 or abs(p.pos.y - y) < 5))
 
                     extra_condition = portal_condition
                     self.log(".. through a portal")

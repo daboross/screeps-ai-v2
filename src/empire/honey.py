@@ -422,7 +422,7 @@ def get_default_max_ops(origin, destination, opts):
     return ops
 
 
-def clear_cached_path(origin, destination, opts=None):
+def clear_cached_path(origin, destination, opts = None):
     # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> None
     key = get_global_cache_key(origin, destination, opts)
     global_cache.rem(key)
@@ -729,7 +729,7 @@ class HoneyTrails:
         # type: (RoomPosition, RoomPosition, Dict[str, Any]) -> Callable[[str], Union[PathFinder.CostMatrix, bool]]
         return lambda room_name: self._new_cost_matrix(room_name, origin, destination, opts)
 
-    def _get_raw_path(self, origin, destination, opts=None):
+    def _get_raw_path(self, origin, destination, opts = None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[RoomPosition]
 
         if opts:
@@ -912,7 +912,7 @@ class HoneyTrails:
             mining_paths.register_new_mining_path(paved_for, path)
         return path
 
-    def get_serialized_path_obj(self, origin, destination, opts=None):
+    def get_serialized_path_obj(self, origin, destination, opts = None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> Optional[Dict[str, str]]
 
         origin = robjs.pos(origin)
@@ -1050,7 +1050,7 @@ class HoneyTrails:
 
         return path
 
-    def list_of_room_positions_in_path(self, origin, destination, opts=None):
+    def list_of_room_positions_in_path(self, origin, destination, opts = None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[RoomPosition]
         """
         Gets a list of room positions in the path, with guaranteed order. This is retrieved from cached memory, but a
@@ -1074,7 +1074,7 @@ class HoneyTrails:
                     final_list.append(__new__(RoomPosition(pos.x, pos.y, room_name)))
         return final_list
 
-    def get_ordered_list_of_serialized_path_segments(self, origin, destination, opts=None):
+    def get_ordered_list_of_serialized_path_segments(self, origin, destination, opts = None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> List[Tuple[str, str]]
         """
         Gets a list of serialized path segments in order for the path from origin to destination.
@@ -1095,7 +1095,7 @@ class HoneyTrails:
             result.append((room_name, path_obj[room_name]))
         return result
 
-    def find_path_length(self, origin, destination, opts=None):
+    def find_path_length(self, origin, destination, opts = None):
         # type: (RoomPosition, RoomPosition, Optional[Dict[str, Any]]) -> int
         origin = robjs.pos(origin)
         destination = robjs.pos(destination)

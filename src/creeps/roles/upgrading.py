@@ -197,7 +197,7 @@ class Upgrader(RoleBase):
             self.log("Unknown result from creep.withdraw({}): {}", link, result)
         return result
 
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return RoleBase.should_pickup(self, resource_type) and not self.home.upgrading_paused()
 
     def run_individual_upgrading(self):

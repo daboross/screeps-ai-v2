@@ -156,7 +156,7 @@ def record_memory_amount(time):
 
 
 # `(a / b).toFixed(2)` is incorrectly translated to `a / b.toFixed(2)` instead of `(a / b).toFixed(2)`
-def display_num(num, val=2):
+def display_num(num, val = 2):
     # type: (Any, int) -> str
     return num.toFixed(val)
 

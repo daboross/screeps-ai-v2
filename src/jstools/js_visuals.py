@@ -18,7 +18,7 @@ __pragma__('noalias', 'update')
 __pragma__('noalias', 'values')
 
 
-def circle(room_name, x, y, style=undefined):
+def circle(room_name, x, y, style = undefined):
     # type: (str, int, int, Any) -> None
     """
     Draw a line
@@ -45,7 +45,7 @@ def circle(room_name, x, y, style=undefined):
     })
 
 
-def line(room_name, x1, y1, x2, y2, style=undefined):
+def line(room_name, x1, y1, x2, y2, style = undefined):
     # type: (str, int, int, int, int, Any) -> None
     """
     Draw a line.
@@ -76,7 +76,7 @@ def line(room_name, x1, y1, x2, y2, style=undefined):
     })
 
 
-def rect(room_name, x, y, w, h, style=undefined):
+def rect(room_name, x, y, w, h, style = undefined):
     # type: (str, int, int, int, int, Any) -> None
     """
     Draw a rectangle.
@@ -108,7 +108,7 @@ def rect(room_name, x, y, w, h, style=undefined):
     })
 
 
-def poly(room_name, points, style=undefined):
+def poly(room_name, points, style = undefined):
     # type: (str, Iterable[Union[List[int], Tuple[int, int]]], Any) -> None
     """
     Draw a polyline.
@@ -130,7 +130,7 @@ def poly(room_name, points, style=undefined):
     })
 
 
-def text(room_name, x, y, text, style=undefined):
+def text(room_name, x, y, text, style = undefined):
     # type: (str, int, int, str, Any) -> None
     """
     Draw a text label.

@@ -10,13 +10,13 @@ from constants import default_roles, rmem_key_pause_all_room_operations, role_ha
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creeps.base import RoleBase
 from directories.creep_wrappers import wrap_creep
-from empire import honey, shard_check, stored_data, portals
+from empire import honey, portals, shard_check, stored_data
 from empire.hive import HiveMind
 from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
 from jstools.screeps import *
 from position_management import flags, locations
-from rooms import building, defense, minerals, squads, scouting
+from rooms import building, defense, minerals, scouting, squads
 from rooms.room_mind import RoomMind
 from utilities import hostile_utils, movement, rndrs
 

@@ -134,7 +134,7 @@ class ConstructionMind:
         # type: () -> str
         return "ConstructionMind[room: {}]".format(self.room.name)
 
-    def refresh_building_targets(self, now=False):
+    def refresh_building_targets(self, now = False):
         # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
@@ -146,7 +146,7 @@ class ConstructionMind:
             self.room.expire_property_next_tick('non_wall_construction_targets')
             self.room.expire_property_next_tick('sieged_walls_unbuilt')
 
-    def refresh_repair_targets(self, now=False):
+    def refresh_repair_targets(self, now = False):
         # type: (bool) -> None
         self.refresh_num_builders(now)
         if now:
@@ -160,7 +160,7 @@ class ConstructionMind:
         # type: () -> None
         self.room.delete_cached_property('destruct_targets')
 
-    def _max_hits_at(self, struct, big_repair=False):
+    def _max_hits_at(self, struct, big_repair = False):
         # type: (Structure, bool) -> int
         if struct.structureType == STRUCTURE_WALL:
             if big_repair:
@@ -175,7 +175,7 @@ class ConstructionMind:
         else:
             return struct.hitsMax
 
-    def _get_is_relatively_decayed_callback(self, big_repair=False):
+    def _get_is_relatively_decayed_callback(self, big_repair = False):
         # type: (bool) -> Callable[[str], bool]
         def is_relatively_decayed(thing_id):
             # type: (str) -> bool
@@ -298,7 +298,7 @@ class ConstructionMind:
         self.room.store_cached_property("max_builder_work_parts_urgent_only", total_work_parts_needed, 1000)
         return total_work_parts_needed
 
-    def refresh_num_builders(self, now=False):
+    def refresh_num_builders(self, now = False):
         # type: (bool) -> None
         if now:
             self.room.delete_cached_property('builders_needed')

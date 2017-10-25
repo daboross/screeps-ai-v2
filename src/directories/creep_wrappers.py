@@ -1,8 +1,8 @@
 from typing import Optional, TYPE_CHECKING
 
 from constants import *
-from creeps.roles import building, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
-    sacrificial, smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility, cleaning
+from creeps.roles import building, cleaning, colonizing, defensive, exploring, generic, minerals, mining, offensive, \
+    sacrificial, smart_offensive, spawn_fill, squads, support, tower_fill, upgrading, utility
 from creeps.squads import dismantling
 from jstools import errorlog
 from jstools.screeps import *

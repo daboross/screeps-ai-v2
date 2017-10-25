@@ -274,7 +274,7 @@ def _add_avoid_things_to_cost_matrix(room_name, cost_matrix, roads):
                 cost_matrix.set(x, y, existing + 2 * multiplier)
 
 
-def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
+def get_cost_matrix_for_creep(me, room_name, roads, target_room = None):
     # type: (Union[Creep, RoleBase], str, bool, Optional[str]) -> Union[PathFinder.CostMatrix, bool]
     if hostile_utils.enemy_using_room(room_name) and room_name != target_room:
         return False
@@ -311,7 +311,7 @@ def get_cost_matrix_for_creep(me, room_name, roads, target_room=None):
         return matrix
 
 
-def get_basic_cost_matrix(room_name, roads=False):
+def get_basic_cost_matrix(room_name, roads = False):
     # type: (str, bool) -> PathFinder.CostMatrix
     if room_name not in Game.rooms:
         return __new__(PathFinder.CostMatrix())  # TODO: pull cached data here
@@ -329,6 +329,6 @@ def get_basic_cost_matrix(room_name, roads=False):
     return matrix
 
 
-def create_cost_callback(me, roads, target_room=None):
+def create_cost_callback(me, roads, target_room = None):
     # type: (Union[Creep, RoleBase], bool, Optional[str]) -> Callable[str, Union[PathFinder.CostMatrix, bool]]
     return lambda room_name: get_cost_matrix_for_creep(me, room_name, roads, target_room)

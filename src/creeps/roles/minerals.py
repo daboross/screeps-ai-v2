@@ -110,10 +110,10 @@ _FILL_LABS = "fill_lab"
 
 
 class MineralHauler(RoleBase):
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return True
 
-    def determine_next_state(self, debug=False):
+    def determine_next_state(self, debug = False):
         mind = self.home.minerals
         now_held = self.carry_sum()
         if now_held < self.creep.carryCapacity and not self.room.mem[rmem_key_currently_under_siege]:

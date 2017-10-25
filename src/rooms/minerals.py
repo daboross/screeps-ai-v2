@@ -2,9 +2,9 @@ import math
 from typing import Any, Dict, List, Optional, TYPE_CHECKING, Tuple, cast
 
 from cache import volatile_cache
-from constants import rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
+from constants import ABANDON_ALL, rmem_key_currently_under_siege, rmem_key_empty_all_resources_into_room, \
     rmem_key_mineral_mind_storage, rmem_key_now_supporting, rmem_key_sell_all_but_empty_resources_to, \
-    role_mineral_hauler, ABANDON_ALL
+    role_mineral_hauler
 from jstools.screeps import *
 from rooms.room_constants import energy_balance_point_for_rcl8_selling, energy_balance_point_for_rcl8_supporting, \
     energy_for_terminal_when_selling, energy_to_keep_always_in_reserve_when_supporting_sieged, max_minerals_to_keep, \
@@ -257,7 +257,7 @@ class MineralMind:
         # type: (str, str, int) -> None
         self.fulfill_market_order(target_room, mineral, amount, None)
 
-    def fill_order(self, order_id, target_amount=Infinity):
+    def fill_order(self, order_id, target_amount = Infinity):
         # type: (str, int) -> None
         info = Game.market.getOrderById(order_id)
         if not info:
@@ -271,7 +271,7 @@ class MineralMind:
         amount = min(target_amount, info.amount)
         return self.fulfill_market_order(target_room, mineral, amount, order_id)
 
-    def fulfill_market_order(self, target_room, mineral, amount, order_id=None):
+    def fulfill_market_order(self, target_room, mineral, amount, order_id = None):
         # type: (str, str, int, Optional[str]) -> None
         would_have_needed_haulers_before = self.get_target_mineral_hauler_count() \
                                            or self.room.role_count(role_mineral_hauler)

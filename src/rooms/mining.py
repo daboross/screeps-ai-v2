@@ -586,7 +586,7 @@ class MiningMind:
         # print("[{}][mining] All roles reached for {}!".format(self.room.room_name, flag.name))
         return None
 
-    def next_mining_role(self, max_to_check=Infinity):
+    def next_mining_role(self, max_to_check = Infinity):
         # type: (int) -> Optional[Dict[str, Any]]
         if max_to_check <= 0:
             return None

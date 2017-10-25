@@ -214,7 +214,7 @@ def find_an_open_space(room_name):
         return __new__(RoomPosition(25, 25, room_name))
 
 
-def find_an_open_space_around(room_name, center_x, center_y, min_x=1, min_y=1, max_x=48, max_y=48, cond=None):
+def find_an_open_space_around(room_name, center_x, center_y, min_x = 1, min_y = 1, max_x = 48, max_y = 48, cond = None):
     # type: (str, int, int, int, int, int, int, Callable[[int, int], bool]) -> RoomPosition
     def test(x_diff, y_diff):
         x = center_x + x_diff

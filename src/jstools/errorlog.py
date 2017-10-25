@@ -50,7 +50,7 @@ def try_exec(place: str, thing: Callable[Any, _T], error_description: Callable[A
     return result
 
 
-def wrapped(place: str, error_description: Callable[_I, str], error_return=True) \
+def wrapped(place: str, error_description: Callable[_I, str], error_return = True) \
         -> Callable[[Callable[_I, _O]], Callable[_I, _O]]:
     def wrap(thing):
         def new_definition(*args):

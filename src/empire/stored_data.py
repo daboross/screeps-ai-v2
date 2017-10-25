@@ -493,7 +493,7 @@ def update_old_structure_data_for_visible_rooms() -> None:
                 update_data(room)
 
 
-def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos=None):
+def find_oldest_rooms_to_check_in_observer_range_of(center_room_name, saved_pos = None):
     # type: (str, Optional[int]) -> Tuple[int, List[str]]
     """
     :type saved_pos: int

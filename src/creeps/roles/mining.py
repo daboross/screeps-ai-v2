@@ -176,7 +176,7 @@ class EnergyMiner(TransportPickup):
 
         return False
 
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return 'container_pos' in self.memory and RoleBase.should_pickup(resource_type)
 
     def _calculate_time_to_replace(self):

@@ -43,7 +43,7 @@ class Builder(upgrading.Upgrader):
             return True
         return False
 
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         # type: (Optional[str]) -> bool
         return RoleBase.should_pickup(self, resource_type) and self.any_building_targets()
 
@@ -295,7 +295,7 @@ class Builder(upgrading.Upgrader):
             return None
         return target
 
-    def get_new_construction_target(self, walls_only=False):
+    def get_new_construction_target(self, walls_only = False):
         # type: (bool) -> Optional[ConstructionSite]
         return self.targets.get_new_target(self, target_construction, walls_only)
 
@@ -430,7 +430,7 @@ class Builder(upgrading.Upgrader):
                                  amount, result)
 
 
-def find_new_target_construction_site(targets, creep, walls_only=False):
+def find_new_target_construction_site(targets, creep, walls_only = False):
     # type: (TargetMind, RoleBase, Optional[bool]) -> Optional[str]
     smallest_work_force = Infinity
     best_id = None
@@ -477,7 +477,7 @@ def find_new_target_destruction_site(targets, creep):
                     return struct_id
 
 
-def find_new_target_small_repair_site(targets, creep, max_hits, max_work=_default_maximum_repair_workforce):
+def find_new_target_small_repair_site(targets, creep, max_hits, max_work = _default_maximum_repair_workforce):
     # type: (TargetMind, RoleBase, int, int) -> Optional[str]
     repair_targets = creep.home.building.get_repair_targets()
     if not len(repair_targets):

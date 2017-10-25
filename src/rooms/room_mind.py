@@ -229,7 +229,7 @@ class RoomMind:
             self._find_cache.set(parameter, result)
             return result
 
-    def look_at(self, look_type, pos, optional_y=None):
+    def look_at(self, look_type, pos, optional_y = None):
         # type: (str, Union[RoomPosition, int], Optional[int]) -> List[RoomObject]
         x, y, room_name = parse_xy_arguments(pos, optional_y)
         if room_name is not None and room_name != self.name:
@@ -244,7 +244,7 @@ class RoomMind:
         result = self.room.lookForAt(look_type, x, y)
         return result
 
-    def find_in_range(self, find_type, find_range, pos, optional_y=None):
+    def find_in_range(self, find_type, find_range, pos, optional_y = None):
         # type: (int, int, Union[RoomPosition, int], Optional[int]) -> List[RoomObject]
         """
         Looks for something near a position, and caches the result for this tick.
@@ -281,7 +281,7 @@ class RoomMind:
                     found.append(element)
         return found
 
-    def find_closest_by_range(self, find_type, pos, lodash_filter=None):
+    def find_closest_by_range(self, find_type, pos, lodash_filter = None):
         # type: (int, RoomPosition, Union[Dict[str, Any], Callable[[RoomObject], bool], None]) -> Optional[RoomObject]
         """
         Looks for something in this room closest the the given position, and caches the result for this tick.
@@ -1266,7 +1266,7 @@ class RoomMind:
 
         return False
 
-    def flags_without_target(self, flag_type, filter_func=None):
+    def flags_without_target(self, flag_type, filter_func = None):
         # type: (int, Optional[Callable[[Flag], bool]]) -> List[Flag]
         result = []  # TODO: yield
         for flag in flags.find_flags_global(flag_type):
@@ -1279,7 +1279,7 @@ class RoomMind:
                     result.append(flag)
         return result
 
-    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag, max_sections=0):
+    def get_spawn_for_flag(self, role, half_move_base, full_move_base, flag, max_sections = 0):
         # type: (str, str, str, Flag, int) -> Dict[str, Any]
         if movement.distance_squared_room_pos(self.spawn.pos, flag.pos) > math.pow(200, 2):
             base = full_move_base
@@ -1302,8 +1302,8 @@ class RoomMind:
             obj.memory = {'boosted': 2}
         return obj
 
-    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections=0,
-                                 filter_func=None):
+    def spawn_one_creep_per_flag(self, flag_type, role, half_move_base, full_move_base, max_sections = 0,
+                                 filter_func = None):
         # type: (int, str, str, str, int, Optional[Callable[[Flag], bool]]) -> Optional[Dict[str, Any]]
         flag_list = self.flags_without_target(flag_type, filter_func)
         if len(flag_list):
@@ -1330,7 +1330,7 @@ class RoomMind:
             hot, cold = self.defense.get_current_defender_spots()
             return int(math.ceil(len(hot) + len(cold) / 2))
 
-    def get_target_simple_defender_count(self, first=False):
+    def get_target_simple_defender_count(self, first = False):
         # type: (bool) -> int
         if self.under_siege():
             return 0
@@ -1734,7 +1734,7 @@ class RoomMind:
         else:
             return fit_num_sections(mass + 2, spawning.max_sections_of(self, creep_base_hauler))
 
-    def request_creep(self, role, opts=None):
+    def request_creep(self, role, opts = None):
         # type: (str, Optional[Dict[str, Any]]) -> None
         """
         Performs a very simple creep request.
@@ -1787,7 +1787,7 @@ class RoomMind:
         if len(req['q']) <= 1 and self.get_next_role() is None:
             self.reset_planned_role()
 
-    def _get_next_requested_creep(self, max_priority=Infinity):
+    def _get_next_requested_creep(self, max_priority = Infinity):
         # type: (float) -> Optional[Dict[str, Any]]
         if mem_key_spawn_requests not in self.mem:
             return
@@ -2098,7 +2098,6 @@ class RoomMind:
                                                creep_base_claiming, needed, 1)
         return None
 
-
     def _next_tower_breaker_role(self):
         # type: () -> Optional[Dict[str, Any]]
         if not self.conducting_siege():
@@ -2390,7 +2389,6 @@ class RoomMind:
             print("[{}] {}".format(self.room.name, message.format(*args)))
         else:
             print("[{}] {}".format(self.room.name, message))
-
 
     position = property(get_position)
     sources = property(get_sources)

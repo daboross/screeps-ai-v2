@@ -114,11 +114,11 @@ White:
 """
 from typing import Dict, List, Optional, TYPE_CHECKING, Tuple, Union, cast
 
-from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, LOCAL_MINE, RAID_OVER, \
-    RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, SCOUT, \
-    SLIGHTLY_AVOID, SPAWN_FILL_WAIT, SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, SQUAD_DUAL_SCOUTS, \
-    SQUAD_KITING_PAIR, SQUAD_SIGN_CLEAR, SQUAD_TOWER_DRAIN, SUPPORT_MINE, SUPPORT_WALL, TD_D_GOAD, TD_H_D_STOP, \
-    TD_H_H_STOP, UPGRADER_SPOT, KILLER_CLAIM
+from constants import ATTACK_DISMANTLE, ATTACK_POWER_BANK, CLAIM_LATER, DEPOT, ENERGY_GRAB, KILLER_CLAIM, LOCAL_MINE, \
+    RAID_OVER, RAMPART_DEFENSE, RANGED_DEFENSE, REAP_POWER_BANK, REMOTE_MINE, REROUTE, REROUTE_DESTINATION, RESERVE_NOW, \
+    SCOUT, SLIGHTLY_AVOID, SPAWN_FILL_WAIT, SQUAD_4_SCOUTS, SQUAD_DISMANTLE_RANGED, SQUAD_DUAL_ATTACK, \
+    SQUAD_DUAL_SCOUTS, SQUAD_KITING_PAIR, SQUAD_SIGN_CLEAR, SQUAD_TOWER_DRAIN, SUPPORT_MINE, SUPPORT_WALL, TD_D_GOAD, \
+    TD_H_D_STOP, TD_H_H_STOP, UPGRADER_SPOT
 from jstools.js_set_map import new_map
 from jstools.screeps import *
 from utilities import naming
@@ -529,7 +529,7 @@ def __create_flag(position, flag_type, primary, secondary, name_prefix):
         return flag_name
 
 
-def create_flag(position, flag_type, sponsor=None):
+def create_flag(position, flag_type, sponsor = None):
     # type: (RoomPosition, int, Optional[str]) -> Union[str, int]
     flag_def = flag_definitions[flag_type]
     return __create_flag(position, flag_type, flag_def[0], flag_def[1], sponsor)
@@ -581,7 +581,7 @@ def rename_flags():
     refresh_flag_caches()
 
 
-def look_for(room, position, main, sub=None):
+def look_for(room, position, main, sub = None):
     # type: (RoomMind, RoomPosition, int, Optional[int]) -> Optional[Flag]
     """
     :type room: rooms.room_mind.RoomMind
@@ -610,7 +610,7 @@ def look_for(room, position, main, sub=None):
 _flag_sponsor_regex = __new__(RegExp("^(W|E)([0-9]{1,3})(N|S)([0-9]{1,3})"))
 
 
-def flag_sponsor(flag, backup_search_by=None):
+def flag_sponsor(flag, backup_search_by = None):
     # type: (Flag, Optional[HiveMind]) -> Optional[str]
     """
     :type backup_search_by: empire.hive.HiveMind

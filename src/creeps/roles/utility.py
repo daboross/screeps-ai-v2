@@ -111,7 +111,7 @@ class LinkManager(RoleBase):
 
         return False
 
-    def ensure_ok(self, result, action, p1, p2, p3=None):
+    def ensure_ok(self, result, action, p1, p2, p3 = None):
         # TODO: nicer messages for running out of energy, and also saying if this was a transfer or withdraw, from a
         # link or storage.
         if result != OK:
@@ -129,7 +129,7 @@ class LinkManager(RoleBase):
                     return True
         return False
 
-    def send_to_link(self, link, amount=None):
+    def send_to_link(self, link, amount = None):
         storage = self.home.room.storage
 
         if not amount or amount > self.creep.carryCapacity / 2:
@@ -142,7 +142,7 @@ class LinkManager(RoleBase):
         self.ensure_ok(self.creep.transfer(link, RESOURCE_ENERGY, amount), "transfer", link, RESOURCE_ENERGY)
         self.ensure_ok(self.creep.withdraw(storage, RESOURCE_ENERGY, amount), "withdraw", storage, RESOURCE_ENERGY)
 
-    def send_from_link(self, link, amount=None):
+    def send_from_link(self, link, amount = None):
         storage = self.home.room.storage
 
         if not amount or amount > self.creep.carryCapacity / 2:

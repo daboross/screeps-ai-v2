@@ -96,7 +96,7 @@ def leftovers() -> str:
         if data.owner and data.owner.state != StoredEnemyRoomState.OWNED_DEAD \
                 and data.owner.name != stored_data.get_my_username():
             return False
-        if movement.is_room_exact_center_of_sector(room_name) or movement.is_room_inner_circle_of_sector(room_name)\
+        if movement.is_room_exact_center_of_sector(room_name) or movement.is_room_inner_circle_of_sector(room_name) \
                 or movement.is_room_highway(room_name):
             return False
         if (not data.owner or data.owner.state == StoredEnemyRoomState.OWNED_DEAD) \

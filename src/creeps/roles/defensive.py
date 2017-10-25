@@ -22,7 +22,7 @@ __pragma__('noalias', 'values')
 
 
 class RoleDefender(MilitaryBase):
-    def should_pickup(self, resource_type=None):
+    def should_pickup(self, resource_type = None):
         return False
 
     def run(self):

@@ -75,7 +75,7 @@ class JSSet(Generic[K]):
 __pragma__('noskip')
 
 
-def new_map(iterable=undefined):
+def new_map(iterable = undefined):
     # type: (Optional[Iterable[Tuple[K, V]]]) -> JSMap[K, V]
     """
     :rtype: JSMap
@@ -83,7 +83,7 @@ def new_map(iterable=undefined):
     return cast(JSMap, __new__(__pragma__('js', 'Map')(iterable)))
 
 
-def new_set(iterable=undefined):
+def new_set(iterable = undefined):
     # type: (Optional[Iterable[K]]) -> JSSet[K]
     """
     :rtype: JSSet
