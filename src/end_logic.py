@@ -64,20 +64,23 @@ def _end_stage_2():
         room = Game.rooms[room_name]
         if room.controller and room.controller.my:
             for structure in cast(List[Structure], room.find(FIND_STRUCTURES)):
-                if structure.structureType != STRUCTURE_STORAGE:
+                if structure.structureType != STRUCTURE_STORAGE and structure.structureType != STRUCTURE_CONTROLLER:
                     result = structure.destroy()
                     if result != OK:
                         print("ending: error: result {} from structure ({}).destroy()"
                               .format(result, structure))
+                        return
     Memory[global_mem_key_end_stage] = 3
 
 
 def _end_stage_3():
     print("ending: running stage 3")
     print("ending: clearing main memory")
-    js_global.Memory = {global_mem_key_end_stage: 4}
     RawMemory.setPublicSegments([])
     RawMemory.setDefaultPublicSegment(None)
+    for key in Object.keys(Memory):
+        del Memory[key]
+    Memory[global_mem_key_end_stage] = 4
 
 
 def _end_stage_4():
@@ -85,15 +88,15 @@ def _end_stage_4():
 
     mem_key = 'end_segment_section'
     segment_section = Memory[mem_key]
-    print("ending: clearing segments: {}".format(', '.join(str(x) for x in Object.keys(RawMemory.segments))))
+    print("ending: clearing segments: {}".format(Object.keys(RawMemory.segments)))
     if not segment_section:
         segment_section = 0
     for key in Object.keys(RawMemory.segments):
         RawMemory.segments[key] = ''
 
     if segment_section > 10:
-        js_global.Memory = {global_mem_key_end_stage: 5}
         RawMemory.setActiveSegments([])
+        Memory[global_mem_key_end_stage] = 5
     else:
         RawMemory.setActiveSegments(list(range(segment_section, segment_section + 10)))
         Memory[mem_key] = segment_section + 1
@@ -152,13 +155,14 @@ def _end_stage_8_and_9():
     else:
         print("ending: running stage 9")
         print("ending: completely clearing memory")
-        Memory = {}
+        for key in Object.keys(Memory):
+            del Memory[key]
         print("ending: removing last controller")
         result = owned_rooms[0].controller.unclaim()
         if result != OK:
             print("ending: error: result {} from controller {}.unclaim()"
                   .format(result, owned_rooms[0].controller))
-            Memory = {global_mem_key_end_stage: 6}
+            Memory[global_mem_key_end_stage] = 7
             return
 
         print("ending complete.")
