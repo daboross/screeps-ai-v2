@@ -2067,6 +2067,38 @@ class RoomMind:
                                                    creep_base_claiming, needed, 1)
         return None
 
+    def _next_killer_claim(self):
+        # type: () -> Optional[Dict[str, Any]]
+
+        c_m_cost = BODYPART_COST[MOVE] + BODYPART_COST[CLAIM]
+        if self.room.energyCapacityAvailable >= c_m_cost:
+
+            flag_list = self.flags_without_target(KILLER_CLAIM)
+
+            def _needs_killer_claim(flag):
+                if hostile_utils.enemy_owns_room(flag.pos.roomName):
+                    self.log("warning: killer claim {} invalid: enemy owns room.", flag.pos.roomName)
+                    return False
+                else:
+                    room = Game.rooms[flag.pos.roomName]
+                    if room and (not room.controller or room.controller.my):
+                        self.log("warning: killer claim {} invalid: we own room.", flag.pos.roomName)
+                        return False
+                path_len = self.hive.honey.find_path_length(self.spawn.pos, flag.pos, {'use_roads': False})
+                if path_len > CREEP_CLAIM_LIFE_TIME - 2:
+                    self.log("warning: killer claim {} invalid: too far away ({} > {})",
+                             flag.pos.roomName, path_len, CREEP_CLAIM_LIFE_TIME - 2)
+                    return False
+                return True
+
+            needed = _.find(flag_list, _needs_killer_claim)
+            if needed:
+                self.log("ok - spawning killer claim for {}", needed.pos.roomName)
+                return self.get_spawn_for_flag(role_killer_claim, creep_base_claiming,
+                                               creep_base_claiming, needed, 1)
+        return None
+
+
     def _next_tower_breaker_role(self):
         # type: () -> Optional[Dict[str, Any]]
         if not self.conducting_siege():
@@ -2293,6 +2325,7 @@ class RoomMind:
                 self._next_tower_breaker_role,
                 self._next_needed_local_role,
                 self._next_claim,
+                self._next_killer_claim,
                 self._get_next_requested_creep,
                 self._next_message_creep,
                 self._next_neighbor_support_creep,
@@ -2350,6 +2383,14 @@ class RoomMind:
         # type: () -> str
         return "RoomMind[name: {}, my: {}, using_storage: {}, conducting_siege: {}]".format(
             self.name, self.my, self.full_storage_use, self.conducting_siege())
+
+    def log(self, message, *args):
+        # type: (str, *Any) -> None
+        if len(args):
+            print("[{}] {}".format(self.room.name, message.format(*args)))
+        else:
+            print("[{}] {}".format(self.room.name, message))
+
 
     position = property(get_position)
     sources = property(get_sources)

@@ -98,7 +98,7 @@ class HiveMind:
         room_to_flags = {}  # type: Dict[str, List[Flag]]
         for flag in flag_list:
             room = self.get_room(flag.pos.roomName)
-            if room and room.my:
+            if room and room.my and not room.mem.pause:
                 print("[hive] removing mining flag in owned room: {} in {}".format(flag.name, room.name))
                 flag.remove()
             else:

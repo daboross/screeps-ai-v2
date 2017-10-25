@@ -370,7 +370,10 @@ def _find_obstacles(room: Room) -> List[StoredObstacle]:
         orig_type = structure.structureType
         if orig_type == STRUCTURE_PORTAL or orig_type == STRUCTURE_CONTAINER:
             continue
-        elif orig_type == STRUCTURE_RAMPART and cast(StructureRampart, structure).my:
+        elif orig_type == STRUCTURE_RAMPART and \
+                (cast(StructureRampart, structure).my
+                 or (cast(StructureRampart, structure).isPublic
+                     and (not room.controller or not room.controller.owner))):
             continue
         elif orig_type == STRUCTURE_ROAD:
             stored_type = StoredObstacleType.ROAD

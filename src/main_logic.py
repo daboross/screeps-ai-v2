@@ -16,7 +16,7 @@ from empire.targets import TargetMind
 from jstools import errorlog, memory_info, records
 from jstools.screeps import *
 from position_management import flags, locations
-from rooms import building, defense, minerals, squads
+from rooms import building, defense, minerals, squads, scouting
 from rooms.room_mind import RoomMind
 from utilities import hostile_utils, movement, rndrs
 
@@ -449,6 +449,7 @@ __pragma__('js', 'global').py = {
     "honey": honey,
     "squads": squads,
     "portals": portals,
+    "info": scouting,
     "roles_squads": creeps.roles.squads,
     "hive": lambda: context.hive(),
     "get_room": lambda name: context.hive().get_room(name),

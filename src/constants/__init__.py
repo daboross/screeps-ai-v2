@@ -79,6 +79,7 @@ role_colonist = "colonist"
 role_sacrifice = "sacrifice"
 role_sacrificial_cleanup = "cleanup_sacrifice"
 role_simple_claim = "simple_claim"
+role_killer_claim = "killer_claim"
 role_room_reserve = "top_priority_reserve"
 role_cleanup = "simple_cleanup"
 role_temporary_replacing = "currently_replacing"
@@ -132,6 +133,7 @@ role_bases = {
     role_sacrifice: creep_base_hauler,
     role_sacrificial_cleanup: creep_base_hauler,
     role_simple_claim: creep_base_claiming,
+    role_killer_claim: creep_base_claiming,
     role_room_reserve: creep_base_reserving,
     role_mineral_miner: creep_base_mammoth_miner,
     role_mineral_hauler: creep_base_hauler,
@@ -189,6 +191,7 @@ RANGED_DEFENSE = 51
 ATTACK_DISMANTLE = 52
 ENERGY_GRAB = 53
 RAMPART_DEFENSE = 54
+KILLER_CLAIM = 55
 RAID_OVER = 59
 # Overly specific / soon to be removed military: 6*
 TD_H_H_STOP = 60
