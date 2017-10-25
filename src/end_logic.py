@@ -50,7 +50,7 @@ def _end_stage_1():
     print("ending: killing all creeps")
     for creep in _.values(Game.creeps):
         result = creep.suicide()
-        if result != OK:
+        if result != OK and not creep.spawning:
             print("ending: error: result {} from creep ({}).suicide()"
                   .format(result, creep))
             return
