@@ -3,10 +3,12 @@ from typing import Dict, List, Optional
 
 import constants
 import creeps.roles.squads
+import end_logic
 from cache import consistency, context, global_cache, volatile_cache
 from consoletools import client_scripts, visuals
-from constants import default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, role_miner, \
-    role_ranged_offense, role_spawn_fill, role_squad_init, role_temporary_replacing, role_tower_fill, role_wall_defender
+from constants import ABANDON_ALL, default_roles, rmem_key_pause_all_room_operations, role_hauler, role_link_manager, \
+    role_miner, role_ranged_offense, role_spawn_fill, role_squad_init, role_temporary_replacing, role_tower_fill, \
+    role_wall_defender
 from creep_management import autoactions, deathwatch, mining_paths, spawning, walkby_move
 from creeps.base import RoleBase
 from directories.creep_wrappers import wrap_creep
@@ -211,6 +213,9 @@ def run_room(targets, creeps_skipped, room):
 
 @errorlog.wrapped("main", lambda: "error running main")
 def main():
+    if ABANDON_ALL:
+        if end_logic.is_ending():
+            return end_logic.run_end()
     global _memory_init, _early_exit_cpu
     # This check is here in case it's a global reset, and we've already initiated memory.
     if _memory_init is None:
@@ -469,5 +474,6 @@ __pragma__('js', 'global').py = {
         'output': records.output_records,
         'output_sub': records.output_sub_records,
         'reset': records.reset_records,
-    }
+    },
+    "abandon_shard": end_logic.start_ending,
 }
