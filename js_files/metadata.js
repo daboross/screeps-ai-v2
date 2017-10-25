@@ -805,7 +805,7 @@ function defineRoomMetadataPrototypes() {
         }
     };
     StoredObstacle.prototype.toString = function () {
-        return `[${ReverseStoredStructureType[this.type] || this.type} ${this.x},${this.y}${this.source_capacity !== undefined ? ` cap=${this.source_capacity}` : ''}]`;
+        return `[${ReverseStoredObstacleType[this.type] || this.type} ${this.x},${this.y}${this.source_capacity !== undefined ? ` cap=${this.source_capacity}` : ''}]`;
     };
 
     StoredObstacle.read = function (pbf, end) {

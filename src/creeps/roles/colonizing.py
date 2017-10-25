@@ -47,6 +47,9 @@ class Colonist(MilitaryBase):
 
     def run(self):
         colony = self.get_colony()
+        if not colony:
+            self.log("Colonist couldn't find room to colonize.")
+            return self.recycle_me()
 
         if self.creep.room.name == colony:
             del self.memory.colonizing
@@ -81,6 +84,8 @@ class Colonist(MilitaryBase):
 
     def _calculate_time_to_replace(self):
         colony = self.get_colony()
+        if not colony:
+            return -1
         path_len = self.get_military_path_length(self.home.spawn.pos, movement.center_pos(colony), {'range': 15})
         if self.creep.getActiveBodyparts(MOVE) < len(self.creep.body) / 2:
             path_len *= 2
