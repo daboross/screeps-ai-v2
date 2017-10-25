@@ -2276,13 +2276,38 @@ class RoomMind:
         if self.under_siege() or not self.spots_around_controller():
             return None
         message = self.get_message()
-        if (self.room.controller.sign == undefined or message != self.room.controller.sign.text) \
-                and self.role_count(role_sign) < 1:
-            return {
-                roleobj_key_role: role_sign,
-                roleobj_key_base: creep_base_scout,
-                roleobj_key_num_sections: 1,
-            }
+
+        def sign_matches(controller: StructureController):
+            if not controller:
+                return True
+            if not controller.sign:
+                if message == '':
+                    return True
+                else:
+                    return False
+            return message == controller.sign.text
+        any_local = False
+        if not sign_matches(self.room.controller):
+            if self.role_count(role_sign) < 1:
+                return {
+                    roleobj_key_role: role_sign,
+                    roleobj_key_base: creep_base_scout,
+                    roleobj_key_num_sections: 1,
+                }
+        elif self.role_count(role_remote_sign) < 1:
+            any_remote = False
+            for mine in self.mining.active_mines:
+                room = Game.rooms[mine.pos.roomName]
+                if room and not sign_matches(room.controller):
+                    any_remote = True
+                    break
+            if any_remote:
+                return {
+                    roleobj_key_role: role_remote_sign,
+                    roleobj_key_base: creep_base_scout,
+                    roleobj_key_num_sections: 1,
+                }
+        return None
 
     def reset_planned_role(self):
         # type: () -> None
@@ -2370,6 +2395,8 @@ class RoomMind:
 
     def get_message(self):
         # type: () -> str
+        if ABANDON_ALL:
+            return ''
         message = self.get_cached_property("_msg")
 
         if not message:
