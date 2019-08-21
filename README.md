@@ -4,7 +4,7 @@ Screeps-v2
 This repository contains a snapshot of my program written for the JavaScript-based MMO game, screeps.com.
 
 Although screeps uses JS, this repository is, as you've probably noticed, written in Python. In order to accomplish this,
-I've used a tool called [transcrypt](transcrypt.com).
+I've used a tool called [transcrypt](transcrypt.com). See the [screeps-starter-python] repository for more info on this.
 
 The `./build.py` script does the majority of the work, from setting up a new environment to building/publishing the
 binary to the screeps server. However, you will need to install some dependencies:
@@ -29,3 +29,5 @@ The only remaining step will be to provide your screeps credentials. To do that,
 a new file `config.json`, and enter your email and password into the config.
 
 Following that, you're all set up! All you need to do now is run `python3 build.py` to compile, collect and deploy code.
+
+[screeps-starter-python]: https://github.com/daboross/screeps-starter-python/
